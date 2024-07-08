@@ -20,12 +20,18 @@ class _RegisterPageState extends State<RegisterPage> {
   String? password;
 
   bool _showSpinner = false;
-
-  bool _wrongEmail = true;
+  bool _wrongEmail = false;
   bool _wrongPassword = false;
+  bool _emptyNameField = false;
+  bool _emptyEmailField = false;
+  bool _emptyPasswordField = false;
 
   String _emailText = 'Please use a valid Email';
   String _passwordText = 'Please use a strong Password';
+  String _emptyNameFieldText = 'Please fill in the name field';
+  String _emptyEmailFieldText = 'Please fill in the email field';
+  String _emptyPasswordFieldText = 'Please fill in the password field';
+  String _inUsedEmailText = 'The email address is already in use by another account.';
 
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -60,6 +66,78 @@ class _RegisterPageState extends State<RegisterPage> {
         builder: (context) => GoogleDone(user!, _googleSignIn),
       ),
     );
+  }
+
+  void _register() async {
+    setState(() {
+      _wrongEmail = false;
+      _wrongPassword = false;
+      _emptyNameField = false;
+      _emptyEmailField = false;
+      _emptyPasswordField = false;
+    });
+
+    if (name == null || name!.isEmpty) {
+      setState(() {
+        _emptyNameField = true;
+      });
+    }
+
+    if (email == null || email!.isEmpty) {
+      setState(() {
+        _emptyEmailField = true;
+      });
+    }
+
+    if (password == null || password!.isEmpty) {
+      setState(() {
+        _emptyPasswordField = true;
+      });
+    }
+
+    if (_emptyNameField || _emptyEmailField || _emptyPasswordField) {
+      return;
+    }
+
+    if (!validator.isEmail(email!) || !validator.isLength(password!, 6)) {
+      setState(() {
+        if (!validator.isEmail(email!)) {
+          _wrongEmail = true;
+        }
+        if (!validator.isLength(password!, 6)) {
+          _wrongPassword = true;
+        }
+      });
+      return;
+    }
+
+    setState(() {
+      _showSpinner = true;
+    });
+
+    try {
+      final newUser = await _auth.createUserWithEmailAndPassword(
+        email: email!,
+        password: password!,
+      );
+      if (newUser != null) {
+        print('User registered successfully');
+        Navigator.pushNamed(context, Done.id);
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _showSpinner = false;
+        if (e.code == 'email-already-in-use') {
+          _wrongEmail = true;
+          _emailText = _inUsedEmailText;
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _showSpinner = false;
+      });
+      print(e);
+    }
   }
 
   @override
@@ -112,8 +190,8 @@ class _RegisterPageState extends State<RegisterPage> {
                           name = value;
                         },
                         decoration: InputDecoration(
-                        
                           labelText: 'Full Name',
+                          errorText: _emptyNameField ? _emptyNameFieldText : null,
                         ),
                       ),
                       SizedBox(height: 20.0),
@@ -124,7 +202,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         },
                         decoration: InputDecoration(
                           labelText: 'Email',
-                          errorText: _wrongEmail ? _emailText : null,
+                          errorText: _wrongEmail ? _emailText : _emptyEmailField ? _emptyEmailFieldText : null,
                         ),
                       ),
                       SizedBox(height: 20.0),
@@ -136,57 +214,14 @@ class _RegisterPageState extends State<RegisterPage> {
                         },
                         decoration: InputDecoration(
                           labelText: 'Password',
-                          errorText: _wrongPassword ? _passwordText : null,
+                          errorText: _wrongPassword ? _passwordText : _emptyPasswordField ? _emptyPasswordFieldText : null,
                         ),
                       ),
                       SizedBox(height: 10.0),
                     ],
                   ),
                   ElevatedButton(
-                    onPressed: () async {
-                      setState(() {
-                        _wrongEmail = false;
-                        _wrongPassword = false;
-                      });
-                      try {
-                        if (validator.isEmail(email!) &&
-                            validator.isLength(password!, 6)) {
-                          setState(() {
-                            _showSpinner = true;
-                          });
-                          final newUser =
-                              await _auth.createUserWithEmailAndPassword(
-                            email: email!,
-                            password: password!,
-                          );
-                          if (newUser != null) {
-                            print('User registered successfully');
-                            Navigator.pushNamed(context, Done.id);
-                          }
-                        } else {
-                          setState(() {
-                            if (!validator.isEmail(email!)) {
-                              _wrongEmail = true;
-                            }
-                            if (!validator.isLength(password!, 6)) {
-                              _wrongPassword = true;
-                            }
-                          });
-                        }
-                      } on FirebaseAuthException catch (e) {
-                        setState(() {
-                          _showSpinner = false;
-                        });
-                        print(e);
-                        setState(() {
-                          _wrongEmail = true;
-                          if (e.code == 'ERROR_EMAIL_ALREADY_IN_USE') {
-                            _emailText =
-                                'The email address is already in use by another account.';
-                          }
-                        });
-                      }
-                    },
+                    onPressed: _register,
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 10.0),
                       backgroundColor: Color(0xff447def),
@@ -229,7 +264,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             onGoogleSignIn(context);
                           },
                           style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 10.0), // Adjusted padding
+                            padding: EdgeInsets.symmetric(vertical: 10.0),
                             backgroundColor: Color(0xff447def),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8.0),
@@ -261,7 +296,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             // TODO: Implement Facebook functionality
                           },
                           style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 10.0), // Adjusted padding
+                            padding: EdgeInsets.symmetric(vertical: 10.0),
                             backgroundColor: Color(0xff447def),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8.0),
