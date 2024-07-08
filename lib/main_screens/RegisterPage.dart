@@ -21,11 +21,11 @@ class _RegisterPageState extends State<RegisterPage> {
 
   bool _showSpinner = false;
 
-  bool _wrongEmail = false;
+  bool _wrongEmail = true;
   bool _wrongPassword = false;
 
-  String _emailText = 'Please use a valid email';
-  String _passwordText = 'Please use a strong password';
+  String _emailText = 'Please use a valid Email';
+  String _passwordText = 'Please use a strong Password';
 
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -112,7 +112,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           name = value;
                         },
                         decoration: InputDecoration(
-                          hintText: 'Full Name',
+                        
                           labelText: 'Full Name',
                         ),
                       ),

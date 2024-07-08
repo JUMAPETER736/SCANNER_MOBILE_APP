@@ -122,7 +122,7 @@ class _LoginPageState extends State<LoginPage> {
                           email = value;
                         },
                         decoration: InputDecoration(
-                          hintText: 'Email',
+                      
                           labelText: 'Email',
                           errorText:
                               _wrongEmail ? 'Email doesn\'t match' : null,
@@ -136,10 +136,10 @@ class _LoginPageState extends State<LoginPage> {
                           password = value;
                         },
                         decoration: InputDecoration(
-                          hintText: 'Password',
+                        
                           labelText: 'Password',
                           errorText: _wrongPassword
-                              ? 'Password doesn\'t match'
+                              ? 'Invalid Password'
                               : null,
                         ),
                       ),
