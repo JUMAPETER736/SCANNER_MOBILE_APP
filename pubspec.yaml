@@ -1,0 +1,34 @@
+
+name: scanna
+description: A new Flutter application.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=2.12.0 <3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  modal_progress_hud_nsn: ^0.1.0-nullsafety-0
+  google_fonts: ^2.3.2
+  awesome_dialog: ^3.1.1
+  cupertino_icons: ^1.0.5
+  firebase_auth: ^4.8.1
+  firebase_core: ^2.15.0
+  cloud_firestore: ^4.11.0
+  google_sign_in: ^6.1.0
+  validators: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+  fonts:
+    - family: Abel
+      fonts:
+        - asset: assets/fonts/Abel-Regular.ttf
