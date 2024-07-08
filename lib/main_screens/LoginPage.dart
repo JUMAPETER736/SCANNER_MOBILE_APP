@@ -109,7 +109,7 @@ class _LoginPageState extends State<LoginPage> {
                         style: TextStyle(fontSize: 30.0),
                       ),
                       Text(
-                        'to your account',
+                        'to your Account',
                         style: TextStyle(fontSize: 30.0),
                       ),
                     ],
@@ -292,7 +292,7 @@ class _LoginPageState extends State<LoginPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Don\'t have an account?',
+                        'Don\'t have an Account?',
                         style: TextStyle(fontSize: 25.0),
                       ),
                       GestureDetector(
@@ -300,7 +300,7 @@ class _LoginPageState extends State<LoginPage> {
                           Navigator.pushNamed(context, RegisterPage.id);
                         },
                         child: Text(
-                          ' Sign Up',
+                          ' Sign In',
                           style: TextStyle(fontSize: 25.0, color: Colors.blue),
                         ),
                       ),

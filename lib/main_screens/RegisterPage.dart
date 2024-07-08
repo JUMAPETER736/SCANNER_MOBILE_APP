@@ -28,10 +28,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
   String _emailText = 'Please use a valid Email';
   String _passwordText = 'Please use a strong Password';
-  String _emptyNameFieldText = 'Please fill in the name field';
-  String _emptyEmailFieldText = 'Please fill in the email field';
-  String _emptyPasswordFieldText = 'Please fill in the password field';
-  String _inUsedEmailText = 'The email address is already in use by another account.';
+  String _emptyNameFieldText = 'Please fill in the Name field';
+  String _emptyEmailFieldText = 'Please fill in the Email field';
+  String _emptyPasswordFieldText = 'Please fill in the Password field';
+  String _inUsedEmailText = 'The Email address is already in use by another Account.';
 
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -121,7 +121,7 @@ class _RegisterPageState extends State<RegisterPage> {
         password: password!,
       );
       if (newUser != null) {
-        print('User registered successfully');
+        print('User Registered Successfully');
         Navigator.pushNamed(context, Done.id);
       }
     } on FirebaseAuthException catch (e) {
@@ -327,7 +327,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Already have an account?',
+                        'Already have an Account?',
                         style: TextStyle(fontSize: 25.0),
                       ),
                       GestureDetector(
@@ -335,7 +335,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           Navigator.pushNamed(context, LoginPage.id);
                         },
                         child: Text(
-                          ' Sign In',
+                          ' Sign Up',
                           style: TextStyle(fontSize: 25.0, color: Colors.blue),
                         ),
                       ),
