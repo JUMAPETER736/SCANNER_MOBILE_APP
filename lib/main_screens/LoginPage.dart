@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart'; // Import Facebook Auth
 import 'package:scanna/results_screen/GoogleDone.dart';
 import 'package:scanna/results_screen/ForgotPassword.dart';
 import 'package:scanna/main_screens/RegisterPage.dart';
@@ -297,69 +297,69 @@ class _LoginPageState extends State<LoginPage> {
                                 height: 40.0,
                               ),
                               SizedBox(width: 10.0),
-                          Text(
-                            'Google',
-                            style: TextStyle(fontSize: 25.0, color: Colors.black),
+                              Text(
+                                'Google',
+                                style: TextStyle(fontSize: 25.0, color: Colors.black),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                      SizedBox(width: 20.0),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            onFacebookSignIn(context); // Call Facebook login method
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 10.0),
+                            backgroundColor: Color(0xff447def),
+                            side: BorderSide(width: 0.5, color: Colors.grey[400]!),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/images/facebook.png', // Replace with your Facebook button image asset
+                                fit: BoxFit.cover,
+                                width: 40.0,
+                                height: 40.0,
+                              ),
+                              SizedBox(width: 10.0),
+                              Text(
+                                'Facebook',
+                                style: TextStyle(fontSize: 25.0, color: Colors.black),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 20.0),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        onFacebookSignIn(context); // Call Facebook login method
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 10.0),
-                        backgroundColor: Color(0xff447def),
-                        side: BorderSide(width: 0.5, color: Colors.grey[400]!),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Don\'t have an Account?',
+                        style: TextStyle(fontSize: 25.0),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            'assets/images/facebook.png',
-                            fit: BoxFit.cover,
-                            width: 40.0,
-                            height: 40.0,
-                          ),
-                          SizedBox(width: 10.0),
-                          Text(
-                            'Facebook',
-                            style: TextStyle(fontSize: 25.0, color: Colors.black),
-                          ),
-                        ],
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(context, RegisterPage.id);
+                        },
+                        child: Text(
+                          ' Sign In',
+                          style: TextStyle(fontSize: 25.0, color: Colors.blue),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Don\'t have an Account?',
-                    style: TextStyle(fontSize: 25.0),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushNamed(context, RegisterPage.id);
-                    },
-                    child: Text(
-                      ' Sign In',
-                      style: TextStyle(fontSize: 25.0, color: Colors.blue),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
-    ),
-  ),
-);
-}
+      ),
+    );
+  }
 }
