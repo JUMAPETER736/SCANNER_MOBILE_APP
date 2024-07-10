@@ -6,6 +6,9 @@ import 'package:validators/validators.dart' as validator;
 import 'package:scanna/results_screen/Done.dart';
 import 'package:scanna/results_screen/GoogleDone.dart';
 import 'package:scanna/main_screens/LoginPage.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+
+
 
 class RegisterPage extends StatefulWidget {
   static String id = '/RegisterPage';
@@ -36,37 +39,69 @@ class _RegisterPageState extends State<RegisterPage> {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Future<User?> _handleSignIn() async {
-    User? user;
-    bool isSignedIn = await _googleSignIn.isSignedIn();
-    if (isSignedIn) {
-      user = await _auth.currentUser;
-    } else {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser!.authentication;
 
-      user = (await _auth.signInWithCredential(
-        GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        ),
-      ))
-          .user;
+Future<User?> _handleSignIn() async {
+  User? user;
+  try {
+    GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
+    if (googleUser == null) {
+      googleUser = await _googleSignIn.signIn();
     }
-
-    return user;
+    final GoogleSignInAuthentication googleAuth = await googleUser!.authentication;
+    user = (await _auth.signInWithCredential(
+      GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      ),
+    ))
+    .user;
+  } catch (error) {
+    print('Error signing in with Google: $error');
   }
+  return user;
+}
 
-  void onGoogleSignIn(BuildContext context) async {
-    User? user = await _handleSignIn();
+Future<void> loginWithFacebook() async {
+  try {
+    // Trigger Facebook login
+    final LoginResult result = await FacebookAuth.instance.login();
+
+    // Check if Facebook login is successful
+    if (result.status == LoginStatus.success) {
+      // Get Facebook user profile
+      final AccessToken accessToken = result.accessToken!;
+      final userData = await FacebookAuth.instance.getUserData();
+
+      // Navigate to the appropriate screen after successful login
+      // Example:
+      // Navigator.push(context, MaterialPageRoute(builder: (context) => MyHomePage()));
+    } else {
+      // Handle if login is cancelled or failed
+      print('Facebook login failed');
+    }
+  } catch (e) {
+    // Handle error
+    print('Error while Facebook login: $e');
+  }
+}
+
+
+
+ void onGoogleSignIn(BuildContext context) async {
+  User? user = await _handleSignIn();
+  if (user != null) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => GoogleDone(user!, _googleSignIn),
+        builder: (context) => GoogleDone(user, _googleSignIn),
       ),
     );
+  } else {
+    // Handle sign-in failure or cancellation
+    print('Google sign-in failed');
   }
+}
+
 
   void _register() async {
     setState(() {

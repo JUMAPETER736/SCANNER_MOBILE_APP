@@ -8,6 +8,10 @@ import 'package:scanna/main_screens/RegisterPage.dart';
 import 'package:scanna/results_screen/Done.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 
+
+
+
+
 class LoginPage extends StatefulWidget {
   static String id = '/LoginPage';
 
@@ -74,6 +78,32 @@ class _LoginPageState extends State<LoginPage> {
 
     return _user;
   }
+
+Future<void> loginWithFacebook() async {
+  try {
+    // Trigger Facebook login
+    final LoginResult result = await FacebookAuth.instance.login();
+
+    // Check if Facebook login is successful
+    if (result.status == LoginStatus.success) {
+      // Get Facebook user profile
+      final AccessToken accessToken = result.accessToken!;
+      final userData = await FacebookAuth.instance.getUserData();
+
+      // Navigate to the appropriate screen after successful login
+      // Example:
+      // Navigator.push(context, MaterialPageRoute(builder: (context) => MyHomePage()));
+    } else {
+      // Handle if login is cancelled or failed
+      print('Facebook login failed');
+    }
+  } catch (e) {
+    // Handle error
+    print('Error while Facebook login: $e');
+  }
+}
+
+
 
   void onFacebookSignIn(BuildContext context) async {
     setState(() {
