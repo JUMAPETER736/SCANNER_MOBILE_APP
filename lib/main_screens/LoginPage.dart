@@ -15,16 +15,23 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  late String email;
-  late String password;
-
   bool _showSpinner = false;
   bool _wrongEmail = false;
   bool _wrongPassword = false;
-  late User _user;
+  bool _emptyEmailField = false;
+  bool _emptyPasswordField = false;
+
+  String _emailText = 'Please use a valid Email';
+  String _passwordText = 'Please use a strong Password';
+  String _emptyEmailFieldText = 'Please fill in the Email field';
+  String _emptyPasswordFieldText = 'Please fill in the Password field';
 
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  String email = '';
+  String password = '';
+  User? _user;
 
   void onGoogleSignIn(BuildContext context) async {
     setState(() {
@@ -51,22 +58,17 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<User?> _handleSignIn() async {
-    bool isSignedIn = await _googleSignIn.isSignedIn();
-    if (isSignedIn) {
-      _user = _auth.currentUser!;
-    } else {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser!.authentication;
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    if (googleUser != null) {
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
-      _user = userCredential.user!;
+      UserCredential userCredential = await _auth.signInWithCredential(credential);
+      _user = userCredential.user;
     }
 
     return _user;
@@ -122,10 +124,8 @@ class _LoginPageState extends State<LoginPage> {
                           email = value;
                         },
                         decoration: InputDecoration(
-                      
                           labelText: 'Email',
-                          errorText:
-                              _wrongEmail ? 'Email doesn\'t match' : null,
+                          errorText: _emptyEmailField ? _emptyEmailFieldText : _wrongEmail ? _emailText : null,
                         ),
                       ),
                       SizedBox(height: 20.0),
@@ -136,11 +136,8 @@ class _LoginPageState extends State<LoginPage> {
                           password = value;
                         },
                         decoration: InputDecoration(
-                        
                           labelText: 'Password',
-                          errorText: _wrongPassword
-                              ? 'Invalid Password'
-                              : null,
+                          errorText: _emptyPasswordField ? _emptyPasswordFieldText : _wrongPassword ? _passwordText : null,
                         ),
                       ),
                       SizedBox(height: 10.0),
@@ -162,17 +159,29 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: () async {
                       setState(() {
                         _showSpinner = true;
+                        _emptyEmailField = email.isEmpty;
+                        _emptyPasswordField = password.isEmpty;
                       });
+
+                      if (_emptyEmailField || _emptyPasswordField) {
+                        setState(() {
+                          _showSpinner = false;
+                        });
+                        return;
+                      }
+
                       try {
                         setState(() {
                           _wrongEmail = false;
                           _wrongPassword = false;
                         });
+
                         UserCredential userCredential =
                             await _auth.signInWithEmailAndPassword(
                           email: email,
                           password: password,
                         );
+
                         if (userCredential.user != null) {
                           Navigator.pushNamed(context, Done.id);
                         }
