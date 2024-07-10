@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:scanna/results_screen/GoogleDone.dart';
 import 'package:scanna/results_screen/ForgotPassword.dart';
 import 'package:scanna/main_screens/RegisterPage.dart';
@@ -38,7 +39,7 @@ class _LoginPageState extends State<LoginPage> {
       _showSpinner = true;
     });
 
-    User? user = await _handleSignIn();
+    User? user = await _handleGoogleSignIn();
 
     setState(() {
       _showSpinner = false;
@@ -57,7 +58,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<User?> _handleSignIn() async {
+  Future<User?> _handleGoogleSignIn() async {
     final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
     if (googleUser != null) {
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -66,6 +67,44 @@ class _LoginPageState extends State<LoginPage> {
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
+
+      UserCredential userCredential = await _auth.signInWithCredential(credential);
+      _user = userCredential.user;
+    }
+
+    return _user;
+  }
+
+  void onFacebookSignIn(BuildContext context) async {
+    setState(() {
+      _showSpinner = true;
+    });
+
+    User? user = await _handleFacebookSignIn();
+
+    setState(() {
+      _showSpinner = false;
+    });
+
+    if (user != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Done(), // Navigate to your desired screen
+        ),
+      );
+    } else {
+      // Handle sign-in failure
+      // You can show a dialog or message indicating failure
+    }
+  }
+
+  Future<User?> _handleFacebookSignIn() async {
+    final LoginResult result = await FacebookAuth.instance.login();
+
+    if (result.status == LoginStatus.success) {
+      final AccessToken accessToken = result.accessToken!;
+      final AuthCredential credential = FacebookAuthProvider.credential(accessToken.token);
 
       UserCredential userCredential = await _auth.signInWithCredential(credential);
       _user = userCredential.user;
@@ -258,69 +297,69 @@ class _LoginPageState extends State<LoginPage> {
                                 height: 40.0,
                               ),
                               SizedBox(width: 10.0),
-                              Text(
-                                'Google',
-                                style: TextStyle(fontSize: 25.0, color: Colors.black),
-                              ),
-                            ],
+                          Text(
+                            'Google',
+                            style: TextStyle(fontSize: 25.0, color: Colors.black),
                           ),
-                        ),
+                        ],
                       ),
-                      SizedBox(width: 20.0),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            //TODO: Implement Facebook functionality
-                          },
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 10.0),
-                            backgroundColor: Color(0xff447def),
-                            side: BorderSide(width: 0.5, color: Colors.grey[400]!),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'assets/images/facebook.png',
-                                fit: BoxFit.cover,
-                                width: 40.0,
-                                height: 40.0,
-                              ),
-                              SizedBox(width: 10.0),
-                              Text(
-                                'Facebook',
-                                style: TextStyle(fontSize: 25.0, color: Colors.black),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Don\'t have an Account?',
-                        style: TextStyle(fontSize: 25.0),
+                  SizedBox(width: 20.0),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        onFacebookSignIn(context); // Call Facebook login method
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 10.0),
+                        backgroundColor: Color(0xff447def),
+                        side: BorderSide(width: 0.5, color: Colors.grey[400]!),
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, RegisterPage.id);
-                        },
-                        child: Text(
-                          ' Sign In',
-                          style: TextStyle(fontSize: 25.0, color: Colors.blue),
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Image.asset(
+                            'assets/images/facebook.png',
+                            fit: BoxFit.cover,
+                            width: 40.0,
+                            height: 40.0,
+                          ),
+                          SizedBox(width: 10.0),
+                          Text(
+                            'Facebook',
+                            style: TextStyle(fontSize: 25.0, color: Colors.black),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Don\'t have an Account?',
+                    style: TextStyle(fontSize: 25.0),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, RegisterPage.id);
+                    },
+                    child: Text(
+                      ' Sign In',
+                      style: TextStyle(fontSize: 25.0, color: Colors.blue),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  ),
+);
+}
 }
