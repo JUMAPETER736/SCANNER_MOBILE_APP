@@ -4,11 +4,10 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:validators/validators.dart' as validator;
 import 'package:scanna/results_screen/Done.dart';
-import 'package:scanna/results_screen/GoogleDone.dart';
 import 'package:scanna/main_screens/LoginPage.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class RegisterPage extends StatefulWidget {
   static String id = '/RegisterPage';
@@ -36,144 +35,100 @@ class _RegisterPageState extends State<RegisterPage> {
   String _emptyPasswordFieldText = 'Please fill in the Password field';
   String _inUsedEmailText = 'The Email address is already in use by another Account.';
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+Future<void> _register() async {
+  setState(() {
+    _wrongEmail = false;
+    _wrongPassword = false;
+    _emptyNameField = false;
+    _emptyEmailField = false;
+    _emptyPasswordField = false;
+  });
 
-Future<User?> _handleSignIn() async {
-  User? user;
-  try {
-    GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
-    if (googleUser == null) {
-      googleUser = await _googleSignIn.signIn();
-    }
-    final GoogleSignInAuthentication googleAuth = await googleUser!.authentication;
-    user = (await _auth.signInWithCredential(
-      GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      ),
-    ))
-    .user;
-  } catch (error) {
-    print('Error signing in with Google: $error');
-  }
-  return user;
-}
-
-Future<void> loginWithFacebook() async {
-  try {
-    // Trigger Facebook login
-    final LoginResult result = await FacebookAuth.instance.login();
-
-    // Check if Facebook login is successful
-    if (result.status == LoginStatus.success) {
-      // Get Facebook user profile
-      final AccessToken accessToken = result.accessToken!;
-      final userData = await FacebookAuth.instance.getUserData();
-
-      // Navigate to the appropriate screen after successful login
-      // Example:
-      // Navigator.push(context, MaterialPageRoute(builder: (context) => MyHomePage()));
-    } else {
-      // Handle if login is cancelled or failed
-      print('Facebook login failed');
-    }
-  } catch (e) {
-    // Handle error
-    print('Error while Facebook login: $e');
-  }
-}
-
-
-
- void onGoogleSignIn(BuildContext context) async {
-  User? user = await _handleSignIn();
-  if (user != null) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => GoogleDone(user, _googleSignIn),
-      ),
-    );
-  } else {
-    // Handle sign-in failure or cancellation
-    print('Google sign-in failed');
-  }
-}
-
-
-  void _register() async {
+  // Validate input fields
+  if (name == null || name!.isEmpty) {
     setState(() {
-      _wrongEmail = false;
-      _wrongPassword = false;
-      _emptyNameField = false;
-      _emptyEmailField = false;
-      _emptyPasswordField = false;
+      _emptyNameField = true;
     });
+  }
 
-    if (name == null || name!.isEmpty) {
-      setState(() {
-        _emptyNameField = true;
-      });
-    }
-
-    if (email == null || email!.isEmpty) {
-      setState(() {
-        _emptyEmailField = true;
-      });
-    }
-
-    if (password == null || password!.isEmpty) {
-      setState(() {
-        _emptyPasswordField = true;
-      });
-    }
-
-    if (_emptyNameField || _emptyEmailField || _emptyPasswordField) {
-      return;
-    }
-
-    if (!validator.isEmail(email!) || !validator.isLength(password!, 6)) {
-      setState(() {
-        if (!validator.isEmail(email!)) {
-          _wrongEmail = true;
-        }
-        if (!validator.isLength(password!, 6)) {
-          _wrongPassword = true;
-        }
-      });
-      return;
-    }
-
+  if (email == null || email!.isEmpty) {
     setState(() {
-      _showSpinner = true;
+      _emptyEmailField = true;
     });
+  }
 
-    try {
-      final newUser = await _auth.createUserWithEmailAndPassword(
-        email: email!,
-        password: password!,
-      );
-      if (newUser != null) {
-        print('User Registered Successfully');
-        Navigator.pushNamed(context, Done.id);
+  if (password == null || password!.isEmpty) {
+    setState(() {
+      _emptyPasswordField = true;
+    });
+  }
+
+  if (_emptyNameField || _emptyEmailField || _emptyPasswordField) {
+    return;
+  }
+
+  if (!validator.isEmail(email!) || !validator.isLength(password!, 6)) {
+    setState(() {
+      if (!validator.isEmail(email!)) {
+        _wrongEmail = true;
       }
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        _showSpinner = false;
-        if (e.code == 'email-already-in-use') {
-          _wrongEmail = true;
-          _emailText = _inUsedEmailText;
-        }
-      });
-    } catch (e) {
-      setState(() {
-        _showSpinner = false;
-      });
-      print(e);
-    }
+      if (!validator.isLength(password!, 6)) {
+        _wrongPassword = true;
+      }
+    });
+    return;
   }
+
+  setState(() {
+    _showSpinner = true;
+  });
+
+  try {
+    final newUser = await _auth.createUserWithEmailAndPassword(
+      email: email!,
+      password: password!,
+    );
+
+    if (newUser.user != null) {
+      // Add additional user details to Firestore
+      await FirebaseFirestore.instance.collection('users').doc(newUser.user!.uid).set({
+        'name': name,
+        'email': email,
+        // Add any other details here
+      }).catchError((error) {
+        print("Error adding user to Firestore: $error");
+        throw error; // Propagate error to be handled in catch block
+      });
+
+      Fluttertoast.showToast(
+        msg: "Registered Successfully",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+
+      Navigator.pushNamed(context, Done.id);
+    }
+  } on FirebaseAuthException catch (e) {
+    setState(() {
+      _showSpinner = false;
+      if (e.code == 'email-already-in-use') {
+        _wrongEmail = true;
+        _emailText = _inUsedEmailText;
+      }
+    });
+  } catch (e) {
+    setState(() {
+      _showSpinner = false;
+    });
+    print("Error: $e");
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -295,12 +250,63 @@ Future<void> loginWithFacebook() async {
                     children: [
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
-                            onGoogleSignIn(context);
+                          onPressed: () async {
+                            // Handle Google sign-in
+                            setState(() {
+                              _showSpinner = true;
+                            });
+
+                            try {
+                              final GoogleSignInAccount? googleUser =
+                                  await GoogleSignIn().signIn();
+                              final GoogleSignInAuthentication? googleAuth =
+                                  await googleUser?.authentication;
+
+                              if (googleAuth != null) {
+                                final AuthCredential credential =
+                                    GoogleAuthProvider.credential(
+                                  accessToken: googleAuth.accessToken,
+                                  idToken: googleAuth.idToken,
+                                );
+
+                                final UserCredential userCredential =
+                                    await _auth.signInWithCredential(credential);
+                                final User? user = userCredential.user;
+
+                                if (user != null) {
+                                  // Add additional user details to Firestore
+                                  await FirebaseFirestore.instance
+                                      .collection('users')
+                                      .doc(user.uid)
+                                      .set({
+                                    'name': user.displayName ?? '',
+                                    'email': user.email ?? '',
+                                    // Add any other details here
+                                  });
+
+                                  Fluttertoast.showToast(
+                                    msg: "Registered Successfully",
+                                    toastLength: Toast.LENGTH_SHORT,
+                                    gravity: ToastGravity.BOTTOM,
+                                    backgroundColor: Colors.green,
+                                    textColor: Colors.white,
+                                    fontSize: 16.0,
+                                  );
+
+                                  Navigator.pushNamed(context, Done.id);
+                                }
+                              }
+                            } catch (e) {
+                              print(e);
+                            } finally {
+                              setState(() {
+                                _showSpinner = false;
+                              });
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.symmetric(vertical: 10.0),
-                            backgroundColor: Color(0xff447def),
+                            backgroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8.0),
                               side: BorderSide(width: 0.5, color: Colors.grey[400]!),
@@ -327,8 +333,56 @@ Future<void> loginWithFacebook() async {
                       SizedBox(width: 20.0),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
-                            // TODO: Implement Facebook functionality
+                          onPressed: () async {
+                            // Handle Facebook login
+                            setState(() {
+                              _showSpinner = true;
+                            });
+
+                            try {
+                              final LoginResult result =
+                                  await FacebookAuth.instance.login();
+
+                              if (result.status == LoginStatus.success) {
+                                final OAuthCredential facebookAuthCredential =
+                                    FacebookAuthProvider.credential(
+                                        result.accessToken!.token);
+
+                                final UserCredential userCredential =
+                                    await _auth.signInWithCredential(
+                                        facebookAuthCredential);
+                                final User? user = userCredential.user;
+
+                                if (user != null) {
+                                  // Add additional user details to Firestore
+                                  await FirebaseFirestore.instance
+                                      .collection('users')
+                                      .doc(user.uid)
+                                      .set({
+                                    'name': user.displayName ?? '',
+                                    'email': user.email ?? '',
+                                    // Add any other details here
+                                  });
+
+                                  Fluttertoast.showToast(
+                                    msg: "Registered Successfully",
+                                    toastLength: Toast.LENGTH_SHORT,
+                                    gravity: ToastGravity.BOTTOM,
+                                    backgroundColor: Colors.green,
+                                    textColor: Colors.white,
+                                    fontSize: 16.0,
+                                  );
+
+                                  Navigator.pushNamed(context, Done.id);
+                                }
+                              }
+                            } catch (e) {
+                              print(e);
+                            } finally {
+                              setState(() {
+                                _showSpinner = false;
+                              });
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.symmetric(vertical: 10.0),
@@ -350,7 +404,7 @@ Future<void> loginWithFacebook() async {
                               SizedBox(width: 10.0),
                               Text(
                                 'Facebook',
-                                style: TextStyle(fontSize: 25.0, color: Colors.black),
+                                style: TextStyle(fontSize: 25.0, color: Colors.white),
                               ),
                             ],
                           ),
@@ -370,7 +424,7 @@ Future<void> loginWithFacebook() async {
                           Navigator.pushNamed(context, LoginPage.id);
                         },
                         child: Text(
-                          ' Sign Up',
+                          ' Sign In',
                           style: TextStyle(fontSize: 25.0, color: Colors.blue),
                         ),
                       ),
