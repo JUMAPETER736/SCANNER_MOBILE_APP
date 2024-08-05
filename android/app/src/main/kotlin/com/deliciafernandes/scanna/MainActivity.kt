@@ -1,4 +1,4 @@
-package com.deliciafernandes.scanna3
+package com.deliciafernandes.scanna
 
 import io.flutter.embedding.android.FlutterActivity
 
