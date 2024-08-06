@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "gradescanna"
-  }
+    "default": "gradescanna",
+    "staging": "gradescanna-935d8"
+  },
+  "targets": {},
+  "etags": {},
+  "dataconnectEmulatorConfig": {}
 }
