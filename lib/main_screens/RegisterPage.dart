@@ -37,98 +37,97 @@ class _RegisterPageState extends State<RegisterPage> {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-Future<void> _register() async {
-  setState(() {
-    _wrongEmail = false;
-    _wrongPassword = false;
-    _emptyNameField = false;
-    _emptyEmailField = false;
-    _emptyPasswordField = false;
-  });
-
-  // Validate input fields
-  if (name == null || name!.isEmpty) {
+  Future<void> _register() async {
     setState(() {
-      _emptyNameField = true;
+      _wrongEmail = false;
+      _wrongPassword = false;
+      _emptyNameField = false;
+      _emptyEmailField = false;
+      _emptyPasswordField = false;
     });
-  }
 
-  if (email == null || email!.isEmpty) {
-    setState(() {
-      _emptyEmailField = true;
-    });
-  }
-
-  if (password == null || password!.isEmpty) {
-    setState(() {
-      _emptyPasswordField = true;
-    });
-  }
-
-  if (_emptyNameField || _emptyEmailField || _emptyPasswordField) {
-    return;
-  }
-
-  if (!validator.isEmail(email!) || !validator.isLength(password!, 6)) {
-    setState(() {
-      if (!validator.isEmail(email!)) {
-        _wrongEmail = true;
-      }
-      if (!validator.isLength(password!, 6)) {
-        _wrongPassword = true;
-      }
-    });
-    return;
-  }
-
-  setState(() {
-    _showSpinner = true;
-  });
-
-  try {
-    final newUser = await _auth.createUserWithEmailAndPassword(
-      email: email!,
-      password: password!,
-    );
-
-    if (newUser.user != null) {
-      // Add additional user details to Firestore
-      await FirebaseFirestore.instance.collection('users').doc(newUser.user!.uid).set({
-        'name': name,
-        'email': email,
-        // Add any other details here
-      }).catchError((error) {
-        print("Error adding user to Firestore: $error");
-        throw error; // Propagate error to be handled in catch block
+    // Validate input fields
+    if (name == null || name!.isEmpty) {
+      setState(() {
+        _emptyNameField = true;
       });
+    }
 
-      Fluttertoast.showToast(
-        msg: "Registered Successfully",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.green,
-        textColor: Colors.green,
-        fontSize: 16.0,
+    if (email == null || email!.isEmpty) {
+      setState(() {
+        _emptyEmailField = true;
+      });
+    }
+
+    if (password == null || password!.isEmpty) {
+      setState(() {
+        _emptyPasswordField = true;
+      });
+    }
+
+    if (_emptyNameField || _emptyEmailField || _emptyPasswordField) {
+      return;
+    }
+
+    if (!validator.isEmail(email!) || !validator.isLength(password!, 6)) {
+      setState(() {
+        if (!validator.isEmail(email!)) {
+          _wrongEmail = true;
+        }
+        if (!validator.isLength(password!, 6)) {
+          _wrongPassword = true;
+        }
+      });
+      return;
+    }
+
+    setState(() {
+      _showSpinner = true;
+    });
+
+    try {
+      final newUser = await _auth.createUserWithEmailAndPassword(
+        email: email!,
+        password: password!,
       );
 
-      Navigator.pushNamed(context, Done.id);
-    }
-  } on FirebaseAuthException catch (e) {
-    setState(() {
-      _showSpinner = false;
-      if (e.code == 'email-already-in-use') {
-        _wrongEmail = true;
-        _emailText = _inUsedEmailText;
-      }
-    });
-  } catch (e) {
-    setState(() {
-      _showSpinner = false;
-    });
-    print("Error: $e");
-  }
-}
+      if (newUser.user != null) {
+        // Add additional user details to Firestore
+        await FirebaseFirestore.instance.collection('users').doc(newUser.user!.uid).set({
+          'name': name,
+          'email': email,
+          // Add any other details here
+        }).catchError((error) {
+          print("Error adding user to Firestore: $error");
+          throw error; // Propagate error to be handled in catch block
+        });
 
+        Fluttertoast.showToast(
+          msg: "Registered Successfully",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+          textColor: Colors.green,
+          fontSize: 16.0,
+        );
+
+        Navigator.pushNamed(context, Done.id);
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _showSpinner = false;
+        if (e.code == 'email-already-in-use') {
+          _wrongEmail = true;
+          _emailText = _inUsedEmailText;
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _showSpinner = false;
+      });
+      print("Error: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -257,28 +256,21 @@ Future<void> _register() async {
                             });
 
                             try {
-                              final GoogleSignInAccount? googleUser =
-                                  await GoogleSignIn().signIn();
-                              final GoogleSignInAuthentication? googleAuth =
-                                  await googleUser?.authentication;
+                              final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+                              final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
 
                               if (googleAuth != null) {
-                                final AuthCredential credential =
-                                    GoogleAuthProvider.credential(
+                                final AuthCredential credential = GoogleAuthProvider.credential(
                                   accessToken: googleAuth.accessToken,
                                   idToken: googleAuth.idToken,
                                 );
 
-                                final UserCredential userCredential =
-                                    await _auth.signInWithCredential(credential);
+                                final UserCredential userCredential = await _auth.signInWithCredential(credential);
                                 final User? user = userCredential.user;
 
                                 if (user != null) {
                                   // Add additional user details to Firestore
-                                  await FirebaseFirestore.instance
-                                      .collection('users')
-                                      .doc(user.uid)
-                                      .set({
+                                  await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
                                     'name': user.displayName ?? '',
                                     'email': user.email ?? '',
                                     // Add any other details here
@@ -306,7 +298,7 @@ Future<void> _register() async {
                           },
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.symmetric(vertical: 10.0),
-                            backgroundColor: Colors.white,
+                            backgroundColor: Color(0xff447def), // Blue background color
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8.0),
                               side: BorderSide(width: 0.5, color: Colors.grey[400]!),
@@ -324,7 +316,7 @@ Future<void> _register() async {
                               SizedBox(width: 10.0),
                               Text(
                                 'Google',
-                                style: TextStyle(fontSize: 25.0, color: Colors.black),
+                                style: TextStyle(fontSize: 25.0, color: Colors.white),
                               ),
                             ],
                           ),
@@ -334,31 +326,24 @@ Future<void> _register() async {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () async {
-                            // Handle Facebook login
+                            // Handle Facebook sign-in
                             setState(() {
                               _showSpinner = true;
                             });
 
                             try {
-                              final LoginResult result =
-                                  await FacebookAuth.instance.login();
+                              final LoginResult result = await FacebookAuth.instance.login();
 
                               if (result.status == LoginStatus.success) {
-                                final OAuthCredential facebookAuthCredential =
-                                    FacebookAuthProvider.credential(
-                                        result.accessToken!.token);
+                                final AccessToken accessToken = result.accessToken!;
+                                final AuthCredential credential = FacebookAuthProvider.credential(accessToken.token);
 
-                                final UserCredential userCredential =
-                                    await _auth.signInWithCredential(
-                                        facebookAuthCredential);
+                                final UserCredential userCredential = await _auth.signInWithCredential(credential);
                                 final User? user = userCredential.user;
 
                                 if (user != null) {
                                   // Add additional user details to Firestore
-                                  await FirebaseFirestore.instance
-                                      .collection('users')
-                                      .doc(user.uid)
-                                      .set({
+                                  await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
                                     'name': user.displayName ?? '',
                                     'email': user.email ?? '',
                                     // Add any other details here
@@ -397,7 +382,7 @@ Future<void> _register() async {
                             children: [
                               Image.asset(
                                 'assets/images/facebook.png',
-                                fit: BoxFit.cover,
+                                fit: BoxFit.contain,
                                 width: 40.0,
                                 height: 40.0,
                               ),
@@ -412,23 +397,30 @@ Future<void> _register() async {
                       ),
                     ],
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Already have an Account?',
-                        style: TextStyle(fontSize: 25.0),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, LoginPage.id);
-                        },
-                        child: Text(
-                          ' Sign In',
-                          style: TextStyle(fontSize: 25.0, color: Colors.blue),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Already have an account?',
+                          style: TextStyle(fontSize: 15.0),
                         ),
-                      ),
-                    ],
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, LoginPage.id);
+                          },
+                          child: Text(
+                            'Sign in',
+                            style: TextStyle(
+                              fontSize: 15.0,
+                              decoration: TextDecoration.underline,
+                              color: Color(0xff447def),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

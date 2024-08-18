@@ -371,7 +371,7 @@ Future<void> loginWithFacebook() async {
                     children: [
                       Text(
                         'Don\'t have an Account?',
-                        style: TextStyle(fontSize: 25.0),
+                        style: TextStyle(fontSize: 15.0),
                       ),
                       GestureDetector(
                         onTap: () {
@@ -379,7 +379,7 @@ Future<void> loginWithFacebook() async {
                         },
                         child: Text(
                           ' Sign In',
-                          style: TextStyle(fontSize: 25.0, color: Colors.blue),
+                          style: TextStyle(fontSize: 15.0, color: Colors.blue),
                         ),
                       ),
                     ],
