@@ -37,97 +37,100 @@ class _RegisterPageState extends State<RegisterPage> {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Future<void> _register() async {
+Future<void> _register() async {
+  setState(() {
+    _wrongEmail = false;
+    _wrongPassword = false;
+    _emptyNameField = false;
+    _emptyEmailField = false;
+    _emptyPasswordField = false;
+  });
+
+  // Validate input fields
+  if (name == null || name!.isEmpty) {
     setState(() {
-      _wrongEmail = false;
-      _wrongPassword = false;
-      _emptyNameField = false;
-      _emptyEmailField = false;
-      _emptyPasswordField = false;
+      _emptyNameField = true;
     });
+  }
 
-    // Validate input fields
-    if (name == null || name!.isEmpty) {
-      setState(() {
-        _emptyNameField = true;
-      });
-    }
-
-    if (email == null || email!.isEmpty) {
-      setState(() {
-        _emptyEmailField = true;
-      });
-    }
-
-    if (password == null || password!.isEmpty) {
-      setState(() {
-        _emptyPasswordField = true;
-      });
-    }
-
-    if (_emptyNameField || _emptyEmailField || _emptyPasswordField) {
-      return;
-    }
-
-    if (!validator.isEmail(email!) || !validator.isLength(password!, 6)) {
-      setState(() {
-        if (!validator.isEmail(email!)) {
-          _wrongEmail = true;
-        }
-        if (!validator.isLength(password!, 6)) {
-          _wrongPassword = true;
-        }
-      });
-      return;
-    }
-
+  if (email == null || email!.isEmpty) {
     setState(() {
-      _showSpinner = true;
+      _emptyEmailField = true;
     });
+  }
 
-    try {
-      final newUser = await _auth.createUserWithEmailAndPassword(
-        email: email!,
-        password: password!,
+  if (password == null || password!.isEmpty) {
+    setState(() {
+      _emptyPasswordField = true;
+    });
+  }
+
+  if (_emptyNameField || _emptyEmailField || _emptyPasswordField) {
+    return;
+  }
+
+  if (!validator.isEmail(email!) || !validator.isLength(password!, 6)) {
+    setState(() {
+      if (!validator.isEmail(email!)) {
+        _wrongEmail = true;
+      }
+      if (!validator.isLength(password!, 6)) {
+        _wrongPassword = true;
+      }
+    });
+    return;
+  }
+
+  setState(() {
+    _showSpinner = true;
+  });
+
+  try {
+    final newUser = await _auth.createUserWithEmailAndPassword(
+      email: email!,
+      password: password!,
+    );
+
+    if (newUser.user != null) {
+      // Save the user's details to Firestore with default fields
+      await FirebaseFirestore.instance.collection('users').doc(newUser.user!.uid).set({
+        'name': name ?? 'Unknown',  // Default value if name is null
+        'email': email ?? 'Unknown',  // Default value if email is null
+        'createdAt': Timestamp.now(), // Timestamp when the user was created
+        'profilePictureUrl': '',      // Default empty string for profile picture URL
+        // Add any other fields as required
+      }).catchError((error) {
+        print("Error adding user to Firestore: $error");
+        throw error; // Propagate error to be handled in catch block
+      });
+
+      Fluttertoast.showToast(
+        msg: "Registered Successfully",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.green,
+        textColor: Colors.green,
+        fontSize: 16.0,
       );
 
-      if (newUser.user != null) {
-        // Add additional user details to Firestore
-        await FirebaseFirestore.instance.collection('users').doc(newUser.user!.uid).set({
-          'name': name,
-          'email': email,
-          // Add any other details here
-        }).catchError((error) {
-          print("Error adding user to Firestore: $error");
-          throw error; // Propagate error to be handled in catch block
-        });
-
-        Fluttertoast.showToast(
-          msg: "Registered Successfully",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
-          textColor: Colors.green,
-          fontSize: 16.0,
-        );
-
-        Navigator.pushNamed(context, Done.id);
-      }
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        _showSpinner = false;
-        if (e.code == 'email-already-in-use') {
-          _wrongEmail = true;
-          _emailText = _inUsedEmailText;
-        }
-      });
-    } catch (e) {
-      setState(() {
-        _showSpinner = false;
-      });
-      print("Error: $e");
+      Navigator.pushNamed(context, Done.id);
     }
+  } on FirebaseAuthException catch (e) {
+    setState(() {
+      _showSpinner = false;
+      if (e.code == 'email-already-in-use') {
+        _wrongEmail = true;
+        _emailText = _inUsedEmailText;
+      }
+    });
+  } catch (e) {
+    setState(() {
+      _showSpinner = false;
+    });
+    print("Error: $e");
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
