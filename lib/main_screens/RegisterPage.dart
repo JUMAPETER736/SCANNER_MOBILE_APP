@@ -107,7 +107,7 @@ Future<void> _register() async {
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
         backgroundColor: Colors.green,
-        textColor: Colors.white,
+        textColor: Colors.green,
         fontSize: 16.0,
       );
 
@@ -289,7 +289,7 @@ Future<void> _register() async {
                                     toastLength: Toast.LENGTH_SHORT,
                                     gravity: ToastGravity.BOTTOM,
                                     backgroundColor: Colors.green,
-                                    textColor: Colors.white,
+                                    textColor: Colors.green,
                                     fontSize: 16.0,
                                   );
 
@@ -369,7 +369,7 @@ Future<void> _register() async {
                                     toastLength: Toast.LENGTH_SHORT,
                                     gravity: ToastGravity.BOTTOM,
                                     backgroundColor: Colors.green,
-                                    textColor: Colors.white,
+                                    textColor: Colors.green,
                                     fontSize: 16.0,
                                   );
 
