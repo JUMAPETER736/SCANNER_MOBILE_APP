@@ -1,3 +1,13 @@
+import 'package:flutter/material.dart';
+
+class UserDetailsPage extends StatefulWidget {
+  final User? user;
+
+  UserDetailsPage({required this.user});
+
+  @override
+  _UserDetailsPageState createState() => _UserDetailsPageState();
+}
 
 
 class _UserDetailsPageState extends State<UserDetailsPage> {

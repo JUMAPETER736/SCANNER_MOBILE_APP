@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'package:scanna/settings/AppInfoPage.dart';
+import 'package:scanna/settings/BackupSyncPage.dart';
+  
 class SettingsPage extends StatelessWidget {
   final User? user;
 
@@ -155,12 +157,5 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
-class UserDetailsPage extends StatefulWidget {
-  final User? user;
 
-  UserDetailsPage({required this.user});
-
-  @override
-  _UserDetailsPageState createState() => _UserDetailsPageState();
-}
 
