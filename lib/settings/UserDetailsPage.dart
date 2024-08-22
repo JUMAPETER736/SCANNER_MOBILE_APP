@@ -58,24 +58,18 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-
-
             ListTile(
               leading: Icon(Icons.person),
               title: Text('Username'),
               subtitle: Text(_username.isNotEmpty ? _username : 'N/A'), // Display username from Firestore
             ),
             Divider(),
-
-
             ListTile(
               leading: Icon(Icons.email),
               title: Text('Email'),
               subtitle: Text(widget.user?.email ?? 'N/A'),
             ),
             Divider(),
-
-
             ListTile(
               title: Text('Change Password'),
               leading: Icon(Icons.lock),
@@ -102,8 +96,6 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
     );
   }
 }
-
-
 
 class ChangePasswordPage extends StatefulWidget {
   final User? user;
@@ -145,7 +137,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       // Handle error (e.g., incorrect old password)
       if (e is FirebaseAuthException && e.code == 'wrong-password') {
         setState(() {
-          errorMessage = 'Old Password Incorrect';
+          errorMessage = 'Incorrect Old Password';
         });
       } else {
         setState(() {
@@ -191,18 +183,19 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                String oldPassword = _oldPasswordController.text;
-                String newPassword = _newPasswordController.text;
-                String reEnterNewPassword = _reEnterNewPasswordController.text;
+                String oldPassword = _oldPasswordController.text.trim();
+                String newPassword = _newPasswordController.text.trim();
+                String reEnterNewPassword = _reEnterNewPasswordController.text.trim();
 
-                // Validation
-                if (newPassword == oldPassword) {
+                // Validation for empty fields
+                if (oldPassword.isEmpty || newPassword.isEmpty || reEnterNewPassword.isEmpty) {
                   setState(() {
-                    errorMessage = 'New Password must be different from Old Password';
+                    errorMessage = 'Please fill in all the fields';
                   });
                   return;
                 }
 
+                // Validation for matching new password
                 if (newPassword != reEnterNewPassword) {
                   setState(() {
                     errorMessage = 'Password Mismatch';
