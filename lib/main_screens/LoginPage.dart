@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart'; // Import Facebook Auth
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:scanna/results_screen/GoogleDone.dart';
 import 'package:scanna/results_screen/ForgotPassword.dart';
 import 'package:scanna/main_screens/RegisterPage.dart';
 import 'package:scanna/results_screen/Done.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
-
-
-
-
+import 'package:fluttertoast/fluttertoast.dart'; // Import FlutterToast
 
 class LoginPage extends StatefulWidget {
   static String id = '/LoginPage';
@@ -79,31 +76,29 @@ class _LoginPageState extends State<LoginPage> {
     return _user;
   }
 
-Future<void> loginWithFacebook() async {
-  try {
-    // Trigger Facebook login
-    final LoginResult result = await FacebookAuth.instance.login();
+  Future<void> loginWithFacebook() async {
+    try {
+      // Trigger Facebook login
+      final LoginResult result = await FacebookAuth.instance.login();
 
-    // Check if Facebook login is successful
-    if (result.status == LoginStatus.success) {
-      // Get Facebook user profile
-      final AccessToken accessToken = result.accessToken!;
-      final userData = await FacebookAuth.instance.getUserData();
+      // Check if Facebook login is successful
+      if (result.status == LoginStatus.success) {
+        // Get Facebook user profile
+        final AccessToken accessToken = result.accessToken!;
+        final userData = await FacebookAuth.instance.getUserData();
 
-      // Navigate to the appropriate screen after successful login
-      // Example:
-      // Navigator.push(context, MaterialPageRoute(builder: (context) => MyHomePage()));
-    } else {
-      // Handle if login is cancelled or failed
-      print('Facebook login failed');
+        // Navigate to the appropriate screen after successful login
+        // Example:
+        // Navigator.push(context, MaterialPageRoute(builder: (context) => MyHomePage()));
+      } else {
+        // Handle if login is cancelled or failed
+        print('Facebook login failed');
+      }
+    } catch (e) {
+      // Handle error
+      print('Error while Facebook login: $e');
     }
-  } catch (e) {
-    // Handle error
-    print('Error while Facebook login: $e');
   }
-}
-
-
 
   void onFacebookSignIn(BuildContext context) async {
     setState(() {
@@ -141,6 +136,18 @@ Future<void> loginWithFacebook() async {
     }
 
     return _user;
+  }
+
+  void _showToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      timeInSecForIosWeb: 1,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
   }
 
   @override
@@ -246,7 +253,7 @@ Future<void> loginWithFacebook() async {
                         });
 
                         UserCredential userCredential =
-                            await _auth.signInWithEmailAndPassword(
+                        await _auth.signInWithEmailAndPassword(
                           email: email,
                           password: password,
                         );
@@ -259,6 +266,7 @@ Future<void> loginWithFacebook() async {
                           setState(() {
                             _wrongPassword = true;
                           });
+                          _showToast("Incorrect Password"); // Show toast message
                         } else if (e.code == 'user-not-found') {
                           setState(() {
                             _wrongEmail = true;
@@ -339,7 +347,7 @@ Future<void> loginWithFacebook() async {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            onFacebookSignIn(context); // Call Facebook login method
+                            onFacebookSignIn(context);
                           },
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.symmetric(vertical: 10.0),
@@ -350,7 +358,7 @@ Future<void> loginWithFacebook() async {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Image.asset(
-                                'assets/images/facebook.png', // Replace with your Facebook button image asset
+                                'assets/images/facebook.png',
                                 fit: BoxFit.cover,
                                 width: 40.0,
                                 height: 40.0,
