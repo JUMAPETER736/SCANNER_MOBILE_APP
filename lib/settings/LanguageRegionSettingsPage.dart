@@ -10,9 +10,9 @@ class LanguageRegionSettingsPage extends StatefulWidget {
 
 class _LanguageRegionSettingsPageState extends State<LanguageRegionSettingsPage> {
   String _selectedLanguage = 'English';
-  final List<String> _languages = ['English', 'Spanish', 'French', 'German', 'Chinese'];
+  final List<String> _languages = ['English', 'Spanish', 'French', 'German', 'Chinese', 'Chichewa'];
   String _selectedRegion = 'United States';
-  final List<String> _regions = ['United States', 'Canada', 'United Kingdom', 'Australia', 'India'];
+  final List<String> _regions = ['United States', 'Canada', 'United Kingdom', 'Australia', 'India', 'Malawi'];
 
   // This method changes the app's locale based on the selected language
   void _changeLanguage(String language) {
