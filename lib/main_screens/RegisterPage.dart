@@ -8,6 +8,8 @@ import 'package:scanna/main_screens/LoginPage.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:firebase_database/firebase_database.dart';
+
 
 class RegisterPage extends StatefulWidget {
   static String id = '/RegisterPage';

@@ -24,6 +24,7 @@ dependencies:
   validators: ^3.0.0
   fluttertoast: ^8.2.6
   provider: ^6.0.3 
+  firebase_database: ^10.0.12
 
   flutter_localizations:
     sdk: flutter

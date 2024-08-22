@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserDetailsPage extends StatefulWidget {
   final User? user;
@@ -12,11 +13,33 @@ class UserDetailsPage extends StatefulWidget {
 
 class _UserDetailsPageState extends State<UserDetailsPage> {
   TextEditingController _nameController = TextEditingController();
+  String _username = '';
 
   @override
   void initState() {
     super.initState();
-    _nameController.text = widget.user?.displayName ?? '';
+    _fetchUsername();
+  }
+
+  Future<void> _fetchUsername() async {
+    if (widget.user?.uid != null) {
+      try {
+        // Fetch user data from Firestore
+        DocumentSnapshot snapshot = await FirebaseFirestore.instance
+            .collection('users') // Change to your collection name
+            .doc(widget.user!.uid) // User's UID as the document ID
+            .get();
+
+        if (snapshot.exists) {
+          setState(() {
+            _username = snapshot['username'] ?? ''; // Adjust based on your Firestore field
+            _nameController.text = _username; // Set the username in the controller
+          });
+        }
+      } catch (e) {
+        print('Error fetching username: $e');
+      }
+    }
   }
 
   @override
@@ -142,12 +165,16 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
+
+
             ListTile(
               leading: Icon(Icons.person),
               title: Text('Name'),
               subtitle: Text(widget.user?.displayName ?? 'N/A'),
             ),
             Divider(),
+
+
             ListTile(
               leading: Icon(Icons.email),
               title: Text('Email'),
