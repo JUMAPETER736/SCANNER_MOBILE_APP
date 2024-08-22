@@ -386,7 +386,7 @@ class _LoginPageState extends State<LoginPage> {
                           Navigator.pushNamed(context, RegisterPage.id);
                         },
                         child: Text(
-                          ' Sign In',
+                          ' Sign Up',
                           style: TextStyle(fontSize: 15.0, color: Colors.blue),
                         ),
                       ),

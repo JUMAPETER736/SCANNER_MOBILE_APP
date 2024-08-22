@@ -169,8 +169,8 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
 
             ListTile(
               leading: Icon(Icons.person),
-              title: Text('Name'),
-              subtitle: Text(widget.user?.displayName ?? 'N/A'),
+              title: Text('Username'),
+              subtitle: Text(_username.isNotEmpty ? _username : 'N/A'),
             ),
             Divider(),
 
