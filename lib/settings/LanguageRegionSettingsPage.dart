@@ -1,54 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:intl/intl.dart';
 
 void main() {
   runApp(MyApp());
 }
 
 class MyApp extends StatefulWidget {
+  static void setLocale(BuildContext context, Locale newLocale) {
+    _MyAppState? state = context.findAncestorStateOfType<_MyAppState>();
+    state?.setLocale(newLocale);
+  }
+
   @override
   _MyAppState createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
   Locale _locale = Locale('en', 'US'); // Default locale
-  String _selectedRegion = 'United States';
-  String _selectedLanguage = 'English';
 
-  final List<String> _languages = ['English', 'Spanish', 'French', 'German', 'Chinese', 'Chichewa'];
-  final List<String> _regions = ['United States', 'Canada', 'United Kingdom', 'Australia', 'India', 'Malawi'];
-
-  // This method changes the app's locale based on the selected language
-  void _changeLanguage(String language) {
+  void setLocale(Locale locale) {
     setState(() {
-      _selectedLanguage = language;
-      _locale = Locale(
-        language == 'Spanish' ? 'es' :
-        language == 'French' ? 'fr' :
-        language == 'German' ? 'de' :
-        language == 'Chinese' ? 'zh' :
-        language == 'Chichewa' ? 'ny' : 'en', // Default to English
-        '',
-      );
-    });
-  }
-
-  // This method can be used to adjust region-specific settings
-  void _changeRegion(String region) {
-    setState(() {
-      _selectedRegion = region;
-      // For demonstration purposes; modify as needed
-      String localeString = region == 'United States' ? 'en_US' :
-      region == 'United Kingdom' ? 'en_GB' :
-      region == 'Canada' ? 'en_CA' :
-      region == 'Australia' ? 'en_AU' :
-      region == 'India' ? 'en_IN' : 'ny_MW'; // Default to Chichewa for Malawi
-
-      // Example of adjusting date formats, currency, etc.
-      DateFormat dateFormat = DateFormat.yMMMd(localeString);
-      // Use dateFormat where needed
-      print("Selected Date Format: ${dateFormat.format(DateTime.now())}"); // Example usage
+      _locale = locale;
     });
   }
 
@@ -62,27 +34,33 @@ class _MyAppState extends State<MyApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: [
-        Locale('en', ''),
-        Locale('es', ''),
-        Locale('fr', ''),
-        Locale('de', ''),
-        Locale('zh', ''),
-        Locale('ny', ''),
+        Locale('en', 'US'),
+        Locale('es', 'ES'),
+        Locale('fr', 'FR'),
+        Locale('de', 'DE'),
+        Locale('zh', 'CN'),
+        Locale('ny', 'MW'),
       ],
       home: LanguageRegionSettingsPage(
-        selectedLanguage: _selectedLanguage,
-        languages: _languages,
+        selectedLanguage: 'English',
+        languages: ['English', 'Spanish', 'French', 'German', 'Chinese', 'Chichewa'],
         onLanguageChanged: (String? language) {
           if (language != null) {
-            _changeLanguage(language); // Call the change language method
+            Locale newLocale = Locale(
+              language == 'Spanish' ? 'es' :
+              language == 'French' ? 'fr' :
+              language == 'German' ? 'de' :
+              language == 'Chinese' ? 'zh' :
+              language == 'Chichewa' ? 'ny' : 'en',
+              '',
+            );
+            MyApp.setLocale(context, newLocale); // Change app language
           }
         },
-        selectedRegion: _selectedRegion,
-        regions: _regions,
+        selectedRegion: 'United States',
+        regions: ['United States', 'Canada', 'United Kingdom', 'Australia', 'India', 'Malawi'],
         onRegionChanged: (String? region) {
-          if (region != null) {
-            _changeRegion(region); // Call the change region method
-          }
+          // Handle region-specific settings here if needed
         },
       ),
     );
@@ -92,10 +70,10 @@ class _MyAppState extends State<MyApp> {
 class LanguageRegionSettingsPage extends StatelessWidget {
   final String selectedLanguage;
   final List<String> languages;
-  final ValueChanged<String?> onLanguageChanged; // Change to String?
+  final ValueChanged<String?> onLanguageChanged; // Callback for language change
   final String selectedRegion;
   final List<String> regions;
-  final ValueChanged<String?> onRegionChanged; // Change to String?
+  final ValueChanged<String?> onRegionChanged; // Callback for region change
 
   LanguageRegionSettingsPage({
     required this.selectedLanguage,
@@ -145,17 +123,6 @@ class LanguageRegionSettingsPage extends StatelessWidget {
                 );
               }).toList(),
               onChanged: onRegionChanged, // Change region-specific settings
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Tips for Language & Region Settings',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              '• Choose a language you are comfortable with.\n'
-                  '• Select a region that suits your location for better localization.\n'
-                  '• Check language support for specific features or content.',
-              style: TextStyle(fontSize: 14),
             ),
           ],
         ),
