@@ -1,5 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
+import 'package:provider/provider.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ThemeModeWrapper(
+      child: MaterialApp(
+        title: 'Theme & Display Settings',
+        theme: ThemeData.light(), // Light theme
+        darkTheme: ThemeData.dark(), // Dark theme
+        themeMode: ThemeModeProvider.of(context).themeMode, // Use the theme mode from the provider
+        home: ThemeDisplaySettingsPage(),
+      ),
+    );
+  }
+}
 
 class ThemeDisplaySettingsPage extends StatefulWidget {
   @override
@@ -33,8 +53,13 @@ class _ThemeDisplaySettingsPageState extends State<ThemeDisplaySettingsPage> {
               onChanged: (value) {
                 setState(() {
                   _isDarkMode = value;
+                  // Change theme mode based on the switch state
+                  if (_isDarkMode) {
+                    ThemeModeProvider.of(context).setTheme(ThemeMode.dark);
+                  } else {
+                    ThemeModeProvider.of(context).setTheme(ThemeMode.light);
+                  }
                 });
-                // You can add logic here to apply the theme to your app
               },
             ),
             Divider(),
@@ -68,6 +93,52 @@ class _ThemeDisplaySettingsPageState extends State<ThemeDisplaySettingsPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ThemeMode provider class
+class ThemeModeProvider extends InheritedWidget {
+  final ThemeMode themeMode;
+  final Function(ThemeMode) setTheme;
+
+  ThemeModeProvider({required Widget child, required this.themeMode, required this.setTheme}) : super(child: child);
+
+  static ThemeModeProvider of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<ThemeModeProvider>()!;
+  }
+
+  @override
+  bool updateShouldNotify(ThemeModeProvider oldWidget) {
+    return oldWidget.themeMode != themeMode;
+  }
+}
+
+// Create a widget to wrap the app and manage the theme mode
+class ThemeModeWrapper extends StatefulWidget {
+  final Widget child;
+
+  ThemeModeWrapper({required this.child});
+
+  @override
+  _ThemeModeWrapperState createState() => _ThemeModeWrapperState();
+}
+
+class _ThemeModeWrapperState extends State<ThemeModeWrapper> {
+  ThemeMode _themeMode = ThemeMode.light; // Default to light mode
+
+  void setTheme(ThemeMode themeMode) {
+    setState(() {
+      _themeMode = themeMode;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ThemeModeProvider(
+      themeMode: _themeMode,
+      setTheme: setTheme,
+      child: widget.child,
     );
   }
 }

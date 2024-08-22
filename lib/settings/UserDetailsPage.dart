@@ -10,7 +10,6 @@ class UserDetailsPage extends StatefulWidget {
   _UserDetailsPageState createState() => _UserDetailsPageState();
 }
 
-
 class _UserDetailsPageState extends State<UserDetailsPage> {
   TextEditingController _nameController = TextEditingController();
 
@@ -24,6 +23,94 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
   void dispose() {
     _nameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showChangePasswordDialog() async {
+
+    final TextEditingController _oldPasswordController = TextEditingController();
+    final TextEditingController _newPasswordController = TextEditingController();
+    final TextEditingController _re_EnterNewPasswordController = TextEditingController();
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // Prevents dismissing the dialog by tapping outside
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Change Password'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+
+
+                TextField(
+                  controller: _oldPasswordController,
+                  obscureText: true,
+                  decoration: InputDecoration(labelText: 'Old Password'),
+                ),
+
+                TextField(
+                  controller: _newPasswordController,
+                  obscureText: true,
+                  decoration: InputDecoration(labelText: 'New Password'),
+
+                ),
+
+            TextField(
+              controller: _re_EnterNewPasswordController,
+              obscureText: true,
+              decoration: InputDecoration(labelText: ' Re-Enter New Password'),
+
+            ),
+              ],
+            ),
+          ),
+          
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Change'),
+              onPressed: () {
+                // Implement password change logic here
+                String oldPassword = _oldPasswordController.text;
+                String newPassword = _newPasswordController.text;
+
+                // Call the method to change the password using Firebase
+                _changePassword(oldPassword, newPassword);
+
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _changePassword(String oldPassword, String newPassword) async {
+    // Here you can implement the password change logic using Firebase Auth
+    // For example, re-authenticate the user with the old password, then update to the new password
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: widget.user!.email!,
+        password: oldPassword,
+      );
+
+      // User re-authenticated, now update the password
+      await userCredential.user!.updatePassword(newPassword);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Password changed successfully!')),
+      );
+    } catch (e) {
+      // Handle error (e.g., incorrect old password)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to change password: $e')),
+      );
+    }
   }
 
   @override
@@ -51,9 +138,7 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
             ListTile(
               title: Text('Change Password'),
               leading: Icon(Icons.lock),
-              onTap: () {
-                // Implement change password functionality
-              },
+              onTap: _showChangePasswordDialog, // Show the change password dialog
             ),
             Divider(),
             ListTile(
@@ -69,4 +154,3 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
     );
   }
 }
-
