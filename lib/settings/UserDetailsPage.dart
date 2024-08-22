@@ -32,7 +32,7 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
 
         if (snapshot.exists) {
           setState(() {
-            _username = snapshot['username'] ?? ''; // Adjust based on your Firestore field
+            _username = snapshot['name'] ?? ''; // Adjusted to 'name'
             _nameController.text = _username; // Set the username in the controller
           });
         }
@@ -48,56 +48,148 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
     super.dispose();
   }
 
-  Future<void> _showChangePasswordDialog() async {
-    final TextEditingController _oldPasswordController = TextEditingController();
-    final TextEditingController _newPasswordController = TextEditingController();
-    final TextEditingController _reEnterNewPasswordController = TextEditingController();
-    String errorMessage = '';
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('User Details'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ListView(
+          children: [
 
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Change Password'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                TextField(
-                  controller: _oldPasswordController,
-                  obscureText: true,
-                  decoration: InputDecoration(labelText: 'Old Password'),
-                ),
-                TextField(
-                  controller: _newPasswordController,
-                  obscureText: true,
-                  decoration: InputDecoration(labelText: 'New Password'),
-                ),
-                TextField(
-                  controller: _reEnterNewPasswordController,
-                  obscureText: true,
-                  decoration: InputDecoration(labelText: 'Re-Enter New Password'),
-                ),
-                if (errorMessage.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      errorMessage,
-                      style: TextStyle(color: Colors.red),
-                    ),
-                  ),
-              ],
+
+            ListTile(
+              leading: Icon(Icons.person),
+              title: Text('Username'),
+              subtitle: Text(_username.isNotEmpty ? _username : 'N/A'), // Display username from Firestore
             ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
+            Divider(),
+
+
+            ListTile(
+              leading: Icon(Icons.email),
+              title: Text('Email'),
+              subtitle: Text(widget.user?.email ?? 'N/A'),
+            ),
+            Divider(),
+
+
+            ListTile(
+              title: Text('Change Password'),
+              leading: Icon(Icons.lock),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChangePasswordPage(user: widget.user),
+                  ),
+                );
               },
             ),
-            TextButton(
-              child: Text('Change'),
+            Divider(),
+            ListTile(
+              title: Text('Update Profile Picture'),
+              leading: Icon(Icons.photo),
+              onTap: () {
+                // Implement update profile picture functionality
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+
+class ChangePasswordPage extends StatefulWidget {
+  final User? user;
+
+  ChangePasswordPage({required this.user});
+
+  @override
+  _ChangePasswordPageState createState() => _ChangePasswordPageState();
+}
+
+class _ChangePasswordPageState extends State<ChangePasswordPage> {
+  final TextEditingController _oldPasswordController = TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
+  final TextEditingController _reEnterNewPasswordController = TextEditingController();
+  String errorMessage = '';
+
+  @override
+  void dispose() {
+    _oldPasswordController.dispose();
+    _newPasswordController.dispose();
+    _reEnterNewPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _changePassword(String oldPassword, String newPassword) async {
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: widget.user!.email!,
+        password: oldPassword,
+      );
+
+      // User re-authenticated, now update the password
+      await userCredential.user!.updatePassword(newPassword);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Password changed successfully!')),
+      );
+      Navigator.of(context).pop(); // Go back to the UserDetailsPage after success
+    } catch (e) {
+      // Handle error (e.g., incorrect old password)
+      if (e is FirebaseAuthException && e.code == 'wrong-password') {
+        setState(() {
+          errorMessage = 'Old Password Incorrect';
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Failed to change password: $e';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Change Password'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: _oldPasswordController,
+              obscureText: true,
+              decoration: InputDecoration(labelText: 'Old Password'),
+            ),
+            TextField(
+              controller: _newPasswordController,
+              obscureText: true,
+              decoration: InputDecoration(labelText: 'New Password'),
+            ),
+            TextField(
+              controller: _reEnterNewPasswordController,
+              obscureText: true,
+              decoration: InputDecoration(labelText: 'Re-Enter New Password'),
+            ),
+            if (errorMessage.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  errorMessage,
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            SizedBox(height: 20),
+            ElevatedButton(
               onPressed: () async {
                 String oldPassword = _oldPasswordController.text;
                 String newPassword = _newPasswordController.text;
@@ -120,79 +212,8 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
 
                 // Call the method to change the password using Firebase
                 await _changePassword(oldPassword, newPassword);
-                Navigator.of(context).pop();
               },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _changePassword(String oldPassword, String newPassword) async {
-    try {
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: widget.user!.email!,
-        password: oldPassword,
-      );
-
-      // User re-authenticated, now update the password
-      await userCredential.user!.updatePassword(newPassword);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Password changed successfully!')),
-      );
-    } catch (e) {
-      // Handle error (e.g., incorrect old password)
-      if (e is FirebaseAuthException && e.code == 'wrong-password') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Old Password Incorrect')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to change password: $e')),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('User Details'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-
-
-            ListTile(
-              leading: Icon(Icons.person),
-              title: Text('Username'),
-              subtitle: Text(_username.isNotEmpty ? _username : 'N/A'),
-            ),
-            Divider(),
-
-
-            ListTile(
-              leading: Icon(Icons.email),
-              title: Text('Email'),
-              subtitle: Text(widget.user?.email ?? 'N/A'),
-            ),
-            Divider(),
-            ListTile(
-              title: Text('Change Password'),
-              leading: Icon(Icons.lock),
-              onTap: _showChangePasswordDialog,
-            ),
-            Divider(),
-            ListTile(
-              title: Text('Update Profile Picture'),
-              leading: Icon(Icons.photo),
-              onTap: () {
-                // Implement update profile picture functionality
-              },
+              child: Text('Change Password'),
             ),
           ],
         ),

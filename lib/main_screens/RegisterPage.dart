@@ -370,7 +370,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             Navigator.pushNamed(context, LoginPage.id);
                           },
                           child: Text(
-                            'Sign In',
+                            'Log In',
                             style: TextStyle(
                               fontSize: 15.0,
                               decoration: TextDecoration.underline,
