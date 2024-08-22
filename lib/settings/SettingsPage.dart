@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:scanna/settings/AppInfoPage.dart';
 import 'package:scanna/settings/BackupSyncPage.dart';
+import 'package:scanna/settings/GradeSettingsPage.dart';
+import 'package:scanna/settings/LanguageRegionSettingsPage.dart';
+import 'package:scanna/settings/NotificationSettingsPage.dart';
+import 'package:scanna/settings/QRCodeSettingsPage.dart';
+import 'package:scanna/settings/SecuritySettingsPage.dart';
+import 'package:scanna/settings/ThemeDisplaySettingsPage.dart';
+import 'package:scanna/settings/UserDetailsPage.dart';
+
+
+
   
 class SettingsPage extends StatelessWidget {
   final User? user;
