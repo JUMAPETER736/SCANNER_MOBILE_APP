@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:scanna/settings/SettingsPage.dart'; // Import the settings page
 
 User? loggedInUser; // Make loggedInUser nullable
 
@@ -15,7 +16,7 @@ class _DoneState extends State<Done> {
 
   void getCurrentUser() async {
     try {
-      final user = await _auth.currentUser;
+      final user = _auth.currentUser;
       if (user != null) {
         setState(() {
           loggedInUser = user;
@@ -35,6 +36,22 @@ class _DoneState extends State<Done> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Welcome'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SettingsPage(user: loggedInUser),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
