@@ -10,13 +10,33 @@ import 'package:scanna/settings/SecuritySettingsPage.dart';
 import 'package:scanna/settings/ThemeDisplaySettingsPage.dart';
 import 'package:scanna/settings/UserDetailsPage.dart';
 
-
-
-  
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   final User? user;
 
   SettingsPage({required this.user});
+
+  @override
+  _SettingsPageState createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  String _selectedLanguage = 'English';
+  String _selectedRegion = 'United States';
+
+  final List<String> _languages = ['English', 'Spanish', 'French', 'German', 'Chinese', 'Chichewa'];
+  final List<String> _regions = ['United States', 'Canada', 'United Kingdom', 'Australia', 'India', 'Malawi'];
+
+  void _changeLanguage(String language) {
+    setState(() {
+      _selectedLanguage = language;
+    });
+  }
+
+  void _changeRegion(String region) {
+    setState(() {
+      _selectedRegion = region;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,10 +53,9 @@ class SettingsPage extends StatelessWidget {
             leading: Icon(Icons.person),
             subtitle: Text('Profile, Email, and more'),
             onTap: () {
-              // Navigate to User Details page
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => UserDetailsPage(user: user),
+                  builder: (context) => UserDetailsPage(user: widget.user),
                 ),
               );
             },
@@ -111,7 +130,22 @@ class SettingsPage extends StatelessWidget {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => LanguageRegionSettingsPage(),
+                  builder: (context) => LanguageRegionSettingsPage(
+                    selectedLanguage: _selectedLanguage,
+                    languages: _languages,
+                    onLanguageChanged: (String? language) {
+                      if (language != null) {
+                        _changeLanguage(language);
+                      }
+                    },
+                    selectedRegion: _selectedRegion,
+                    regions: _regions,
+                    onRegionChanged: (String? region) {
+                      if (region != null) {
+                        _changeRegion(region);
+                      }
+                    },
+                  ),
                 ),
               );
             },
@@ -166,6 +200,3 @@ class SettingsPage extends StatelessWidget {
     );
   }
 }
-
-
-
