@@ -20,6 +20,7 @@ class _RegisterPageState extends State<RegisterPage> {
   String? name;
   String? email;
   String? password;
+  String? confirmPassword; // Added variable for confirm password
 
   bool _showSpinner = false;
   bool _wrongEmail = false;
@@ -27,12 +28,14 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _emptyNameField = false;
   bool _emptyEmailField = false;
   bool _emptyPasswordField = false;
+  bool _passwordMismatch = false; // Added flag for password mismatch
 
   String _emailText = 'Please use a valid Email';
   String _passwordText = 'Please use a strong Password';
   String _emptyNameFieldText = 'Please fill in the Name field';
   String _emptyEmailFieldText = 'Please fill in the Email field';
   String _emptyPasswordFieldText = 'Please fill in the Password field';
+  String _passwordMismatchText = 'Passwords do not match'; // Error message for password mismatch
   String _inUsedEmailText = 'The Email address is already in use by another Account.';
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -44,6 +47,7 @@ class _RegisterPageState extends State<RegisterPage> {
       _emptyNameField = false;
       _emptyEmailField = false;
       _emptyPasswordField = false;
+      _passwordMismatch = false; // Reset password mismatch flag
     });
 
     // Validate input fields
@@ -65,17 +69,26 @@ class _RegisterPageState extends State<RegisterPage> {
       });
     }
 
-    if (_emptyNameField || _emptyEmailField || _emptyPasswordField) {
+    if (confirmPassword == null || confirmPassword!.isEmpty) {
+      setState(() {
+        _passwordMismatch = true;
+      });
+    }
+
+    if (_emptyNameField || _emptyEmailField || _emptyPasswordField || _passwordMismatch) {
       return;
     }
 
-    if (!validator.isEmail(email!) || !validator.isLength(password!, 6)) {
+    if (!validator.isEmail(email!) || !validator.isLength(password!, 6) || password != confirmPassword) {
       setState(() {
         if (!validator.isEmail(email!)) {
           _wrongEmail = true;
         }
         if (!validator.isLength(password!, 6)) {
           _wrongPassword = true;
+        }
+        if (password != confirmPassword) {
+          _passwordMismatch = true; // Set password mismatch flag
         }
       });
       return;
@@ -227,7 +240,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           name = value;
                         },
                         decoration: InputDecoration(
-                          labelText: 'Full Name',
+                          labelText: 'Username',
                           errorText: _emptyNameField ? _emptyNameFieldText : null,
                         ),
                       ),
@@ -252,6 +265,18 @@ class _RegisterPageState extends State<RegisterPage> {
                         decoration: InputDecoration(
                           labelText: 'Password',
                           errorText: _wrongPassword ? _passwordText : _emptyPasswordField ? _emptyPasswordFieldText : null,
+                        ),
+                      ),
+                      SizedBox(height: 20.0),
+                      TextField(
+                        obscureText: true,
+                        keyboardType: TextInputType.visiblePassword,
+                        onChanged: (value) {
+                          confirmPassword = value; // Capture confirm password input
+                        },
+                        decoration: InputDecoration(
+                          labelText: 'Confirm Password',
+                          errorText: _passwordMismatch ? _passwordMismatchText : null,
                         ),
                       ),
                       SizedBox(height: 10.0),
@@ -372,7 +397,6 @@ class _RegisterPageState extends State<RegisterPage> {
                           child: Text(
                             'Log In',
                             style: TextStyle(fontSize: 15.0, color: Colors.blue),
-
                           ),
                         ),
                       ],
