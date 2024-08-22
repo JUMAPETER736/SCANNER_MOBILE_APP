@@ -1,14 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:scanna/settings/AppInfoPage.dart';
-import 'package:scanna/settings/BackupSyncPage.dart';
-import 'package:scanna/settings/GradeSettingsPage.dart';
-import 'package:scanna/settings/LanguageRegionSettingsPage.dart';
-import 'package:scanna/settings/NotificationSettingsPage.dart';
-import 'package:scanna/settings/QRCodeSettingsPage.dart';
-import 'package:scanna/settings/SecuritySettingsPage.dart';
-import 'package:scanna/settings/ThemeDisplaySettingsPage.dart';
-import 'package:scanna/settings/UserDetailsPage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SettingsPage extends StatefulWidget {
   final User? user;
@@ -68,11 +60,7 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('Scan mode, camera settings, and more'),
             leading: Icon(Icons.qr_code),
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => QRCodeSettingsPage(),
-                ),
-              );
+              // Navigate to QR Code Settings Page
             },
           ),
           Divider(),
@@ -83,44 +71,12 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('Customize grading scale and display'),
             leading: Icon(Icons.grade),
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => GradeSettingsPage(),
-                ),
-              );
+              // Navigate to Grade Settings Page
             },
           ),
           Divider(),
 
-          // Notification Settings
-          ListTile(
-            title: Text('Notification Settings'),
-            subtitle: Text('Manage push and email notifications'),
-            leading: Icon(Icons.notifications),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => NotificationSettingsPage(),
-                ),
-              );
-            },
-          ),
-          Divider(),
-
-          // Security Settings
-          ListTile(
-            title: Text('Security Settings'),
-            subtitle: Text('App lock, data encryption, and more'),
-            leading: Icon(Icons.lock),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => SecuritySettingsPage(),
-                ),
-              );
-            },
-          ),
-          Divider(),
+          // Other ListTiles here...
 
           // Language & Region Settings
           ListTile(
@@ -128,26 +84,7 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('Language selection and regional settings'),
             leading: Icon(Icons.language),
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => LanguageRegionSettingsPage(
-                    selectedLanguage: _selectedLanguage,
-                    languages: _languages,
-                    onLanguageChanged: (String? language) {
-                      if (language != null) {
-                        _changeLanguage(language);
-                      }
-                    },
-                    selectedRegion: _selectedRegion,
-                    regions: _regions,
-                    onRegionChanged: (String? region) {
-                      if (region != null) {
-                        _changeRegion(region);
-                      }
-                    },
-                  ),
-                ),
-              );
+              // Navigate to Language & Region Settings Page
             },
           ),
           Divider(),
@@ -158,11 +95,7 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('Cloud backup and data synchronization'),
             leading: Icon(Icons.backup),
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => BackupSyncPage(),
-                ),
-              );
+              // Navigate to Backup & Sync Page
             },
           ),
           Divider(),
@@ -173,11 +106,7 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('App theme, font size, and layout'),
             leading: Icon(Icons.color_lens),
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => ThemeDisplaySettingsPage(),
-                ),
-              );
+              // Navigate to Theme & Display Settings Page
             },
           ),
           Divider(),
@@ -188,14 +117,99 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('Version, licenses, and support'),
             leading: Icon(Icons.info),
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => AppInfoPage(),
-                ),
-              );
+              // Navigate to App Information Page
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class UserDetailsPage extends StatefulWidget {
+  final User? user;
+
+  UserDetailsPage({required this.user});
+
+  @override
+  _UserDetailsPageState createState() => _UserDetailsPageState();
+}
+
+class _UserDetailsPageState extends State<UserDetailsPage> {
+  TextEditingController _nameController = TextEditingController();
+  String _username = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUsername();
+  }
+
+  Future<void> _fetchUsername() async {
+    if (widget.user?.uid != null) {
+      try {
+        DocumentSnapshot snapshot = await FirebaseFirestore.instance
+            .collection('users') // Change to your collection name
+            .doc(widget.user!.uid)
+            .get();
+
+        if (snapshot.exists) {
+          setState(() {
+            _username = snapshot['name'] ?? '';
+            _nameController.text = _username; // Set the username in the controller
+          });
+        }
+      } catch (e) {
+        print('Error fetching username: $e');
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('User Details'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ListView(
+          children: [
+            ListTile(
+              leading: Icon(Icons.person),
+              title: Text('Username'),
+              subtitle: Text(_username.isNotEmpty ? _username : 'N/A'),
+            ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.email),
+              title: Text('Email'),
+              subtitle: Text(widget.user?.email ?? 'N/A'),
+            ),
+            Divider(),
+            ListTile(
+              title: Text('Change Password'),
+              leading: Icon(Icons.lock),
+              onTap: () {
+                // Implement change password functionality
+              },
+            ),
+            Divider(),
+            ListTile(
+              title: Text('Update Profile Picture'),
+              leading: Icon(Icons.photo),
+              onTap: () {
+                // Implement update profile picture functionality
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

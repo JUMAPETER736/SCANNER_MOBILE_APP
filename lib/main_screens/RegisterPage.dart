@@ -206,8 +206,8 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
             Padding(
               padding: EdgeInsets.only(
-                top: 60.0,
-                bottom: 20.0,
+                top: 30.0,
+                bottom: 45.0,
                 left: 20.0,
                 right: 20.0,
               ),
@@ -267,19 +267,20 @@ class _RegisterPageState extends State<RegisterPage> {
                           errorText: _wrongPassword ? _passwordText : _emptyPasswordField ? _emptyPasswordFieldText : null,
                         ),
                       ),
+
+                      // SizedBox(height: 20.0),
+                      // TextField(
+                      //   obscureText: true,
+                      //   keyboardType: TextInputType.visiblePassword,
+                      //   onChanged: (value) {
+                      //     confirmPassword = value; // Capture confirm password input
+                      //   },
+                      //   decoration: InputDecoration(
+                      //     labelText: 'Confirm Password',
+                      //     errorText: _passwordMismatch ? _passwordMismatchText : null,
+                      //   ),
+                      // ),
                       SizedBox(height: 20.0),
-                      TextField(
-                        obscureText: true,
-                        keyboardType: TextInputType.visiblePassword,
-                        onChanged: (value) {
-                          confirmPassword = value; // Capture confirm password input
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Confirm Password',
-                          errorText: _passwordMismatch ? _passwordMismatchText : null,
-                        ),
-                      ),
-                      SizedBox(height: 10.0),
                     ],
                   ),
                   ElevatedButton(
