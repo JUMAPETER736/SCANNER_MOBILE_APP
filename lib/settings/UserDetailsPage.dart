@@ -49,6 +49,8 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
   Widget _buildUserDetails() {
     return ListView(
       children: [
+
+        Divider(),
         ListTile(
           leading: Icon(Icons.person),
           title: Text('Username'),
@@ -61,6 +63,7 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
           subtitle: Text(widget.user?.email ?? 'N/A'),
         ),
         Divider(),
+
         ListTile(
           title: Text('Change Password'),
           leading: Icon(Icons.lock),
@@ -73,6 +76,10 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
             );
           },
         ),
+
+        Divider(),
+
+
       ],
     );
   }

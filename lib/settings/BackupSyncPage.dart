@@ -1,6 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Backup & Sync App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: BackupSyncPage(),
+    );
+  }
+}
+
 class BackupSyncPage extends StatefulWidget {
   @override
   _BackupSyncPageState createState() => _BackupSyncPageState();
@@ -9,6 +26,9 @@ class BackupSyncPage extends StatefulWidget {
 class _BackupSyncPageState extends State<BackupSyncPage> {
   bool _autoBackupEnabled = false;
   bool _syncWithCloudEnabled = false;
+  String _backupStatus = ''; // To display backup status messages
+  double _backupProgress = 0.0; // To track backup progress
+  bool _isBackingUp = false; // To check if a backup is in progress
 
   void _toggleAutoBackup(bool? value) {
     setState(() {
@@ -22,6 +42,29 @@ class _BackupSyncPageState extends State<BackupSyncPage> {
       _syncWithCloudEnabled = value ?? false;
     });
     // Add logic to handle cloud sync setting
+  }
+
+  Future<void> _backupNow() async {
+    setState(() {
+      _backupStatus = 'Backing up...';
+      _backupProgress = 0.0;
+      _isBackingUp = true;
+    });
+
+    // Simulated backup process with progress
+    for (int i = 1; i <= 100; i++) {
+      await Future.delayed(Duration(milliseconds: 30)); // Simulate time taken for each percentage
+      setState(() {
+        _backupProgress = i / 100; // Update progress
+      });
+    }
+
+    setState(() {
+      _backupStatus = 'Backup completed successfully!'; // Update backup status message
+      _isBackingUp = false; // Mark backup as completed
+    });
+
+    // Here you can add actual backup logic (e.g., saving to a database or cloud)
   }
 
   @override
@@ -63,10 +106,25 @@ class _BackupSyncPageState extends State<BackupSyncPage> {
               style: TextStyle(fontSize: 16),
             ),
             SizedBox(height: 20),
+            Text(
+              _backupStatus,
+              style: TextStyle(fontSize: 16, color: Colors.green),
+            ),
+            SizedBox(height: 20),
+            if (_isBackingUp) // Show progress only during backup
+              Column(
+                children: [
+                  LinearProgressIndicator(value: _backupProgress), // Show progress bar
+                  SizedBox(height: 10),
+                  Text(
+                    '${(_backupProgress * 100).round()}%', // Show percentage
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ],
+              ),
+            SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                // Logic to manually trigger backup
-              },
+              onPressed: _isBackingUp ? null : _backupNow, // Disable button while backing up
               child: Text('Backup Now'),
             ),
           ],
