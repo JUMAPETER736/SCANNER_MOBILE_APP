@@ -45,7 +45,7 @@ class GradeSettingsPage extends StatelessWidget {
             ...juniorGradeRanges.map((grade) {
               return Card(
                 child: ListTile(
-                  title: Text('Grade Range: ${grade['range']}'),
+                  title: Text('Marks: ${grade['range']}'),
                   subtitle: Text('Grade: ${grade['grade']}'),
                 ),
               );
@@ -59,7 +59,7 @@ class GradeSettingsPage extends StatelessWidget {
             ...seniorGradeRanges.map((grade) {
               return Card(
                 child: ListTile(
-                  title: Text('Grade Range: ${grade['range']}'),
+                  title: Text('Marks: ${grade['range']}'),
                   subtitle: Text('Grade: ${grade['grade']}'),
                 ),
               );
