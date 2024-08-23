@@ -62,9 +62,6 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
           subtitle: Text(widget.user?.email ?? 'N/A'),
         ),
 
-
-
-
         Divider(),
         ListTile(
           title: Text('Change Password'),

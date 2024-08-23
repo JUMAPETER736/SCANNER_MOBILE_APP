@@ -148,19 +148,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Divider(),
 
           // App Information
-          ListTile(
-            title: Text('App Information'),
-            subtitle: Text('Version, licenses, and support'),
-            leading: Icon(Icons.info),
-            onTap: () {
-              // Navigate to AppInfoPage
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => AppInfoPage(), // Ensure this page exists
-                ),
-              );
-            },
-          ),
+
           Divider(),
 
           // Notification Settings
@@ -193,6 +181,21 @@ class _SettingsPageState extends State<SettingsPage> {
               );
             },
           ),
+
+          ListTile(
+            title: Text('App Information'),
+            subtitle: Text('Version, licenses, and support'),
+            leading: Icon(Icons.info),
+            onTap: () {
+              // Navigate to AppInfoPage
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => AppInfoPage(), // Ensure this page exists
+                ),
+              );
+            },
+          ),
+
         ],
       ),
     );
