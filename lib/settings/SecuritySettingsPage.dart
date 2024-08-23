@@ -19,20 +19,14 @@ class SecuritySettingsPage extends StatelessWidget {
             ),
             SizedBox(height: 20),
             ListTile(
-              title: Text('Change Password'),
-              subtitle: Text('Update your account password.'),
-              trailing: Icon(Icons.arrow_forward),
-              onTap: () {
-                // Add navigation to change password page
-              },
-            ),
-            Divider(),
-            ListTile(
               title: Text('Enable Two-Factor Authentication (2FA)'),
               subtitle: Text('Add an extra layer of security to your account.'),
               trailing: Icon(Icons.arrow_forward),
               onTap: () {
-                // Add navigation to 2FA settings page
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TwoFactorAuthenticationPage()),
+                );
               },
             ),
             Divider(),
@@ -40,7 +34,7 @@ class SecuritySettingsPage extends StatelessWidget {
               title: Text('Biometric Authentication'),
               subtitle: Text('Use fingerprint or face recognition for secure access.'),
               trailing: Switch(
-                value: false, // Change to actual state management
+                value: false, // Replace with actual state management for biometrics
                 onChanged: (value) {
                   // Add logic to enable/disable biometric authentication
                 },
@@ -52,7 +46,10 @@ class SecuritySettingsPage extends StatelessWidget {
               subtitle: Text('Set up security questions for account recovery.'),
               trailing: Icon(Icons.arrow_forward),
               onTap: () {
-                // Add navigation to security questions settings
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SecurityQuestionsPage()),
+                );
               },
             ),
             Divider(),
@@ -73,3 +70,94 @@ class SecuritySettingsPage extends StatelessWidget {
     );
   }
 }
+
+class TwoFactorAuthenticationPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Two-Factor Authentication'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Enable Two-Factor Authentication (2FA)',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'Two-Factor Authentication (2FA) adds an extra layer of security to your account by requiring an additional verification step during login.',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                // Implement 2FA setup logic here
+              },
+              child: Text('Set Up 2FA'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SecurityQuestionsPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Security Questions'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Set Up Security Questions',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'Security questions help verify your identity in case you forget your password or need to recover your account.',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 20),
+            // Add security question fields here
+            ElevatedButton(
+              onPressed: () {
+                // Implement security questions setup logic here
+              },
+              child: Text('Set Up Security Questions'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Placeholder for Biometric Authentication State Management
+// class BiometricAuthenticationState extends State<SecuritySettingsPage> {
+//   bool isBiometricEnabled = false;
+//
+//   void toggleBiometricAuthentication(bool value) {
+//     setState(() {
+//       isBiometricEnabled = value;
+//       // Implement logic to enable/disable biometric authentication
+//     });
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Switch(
+//       value: isBiometricEnabled,
+//       onChanged: toggleBiometricAuthentication,
+//     );
+//   }
+// }

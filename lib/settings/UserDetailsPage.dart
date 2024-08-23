@@ -13,28 +13,24 @@ class UserDetailsPage extends StatefulWidget {
 
 class _UserDetailsPageState extends State<UserDetailsPage> {
   String _username = '';
-  String _class = '';
-  String _subject = '';
   String errorMessage = '';
 
   @override
   void initState() {
     super.initState();
-    fetchUserDetails();
+    fetchUsername();
   }
 
-  Future<void> fetchUserDetails() async {
+  Future<void> fetchUsername() async {
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance.collection('users').doc(widget.user?.uid).get();
       if (snapshot.exists) {
         setState(() {
           _username = snapshot['name'] ?? '';
-          _class = snapshot['class'] ?? '';
-          _subject = snapshot['subject'] ?? '';
         });
       }
     } catch (e) {
-      print('Error fetching user details: $e');
+      print('Error fetching username: $e');
     }
   }
 
@@ -65,18 +61,10 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
           title: Text('Email'),
           subtitle: Text(widget.user?.email ?? 'N/A'),
         ),
-        Divider(),
-        ListTile(
-          leading: Icon(Icons.school),
-          title: Text('Class'),
-          subtitle: Text(_class.isNotEmpty ? _class : 'N/A'),
-        ),
-        Divider(),
-        ListTile(
-          leading: Icon(Icons.book),
-          title: Text('Subject'),
-          subtitle: Text(_subject.isNotEmpty ? _subject : 'N/A'),
-        ),
+
+
+
+
         Divider(),
         ListTile(
           title: Text('Change Password'),
