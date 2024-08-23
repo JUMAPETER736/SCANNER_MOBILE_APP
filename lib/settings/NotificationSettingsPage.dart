@@ -1,93 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class NotificationSettingsPage extends StatefulWidget {
-  @override
-  _NotificationSettingsPageState createState() => _NotificationSettingsPageState();
-}
-
-class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
-  bool _notificationsEnabled = true;
-  String _notificationSound = "Default";
-  bool _doNotDisturbEnabled = false;
-
-  void _selectNotificationSound() async {
-    // Logic to select a notification sound (you can replace this with actual sound selection)
-    final sound = await showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        return SimpleDialog(
-          title: Text('Select Notification Sound'),
-          children: <Widget>[
-            SimpleDialogOption(
-              onPressed: () {
-                Navigator.pop(context, 'Default');
-              },
-              child: Text('Default'),
-            ),
-            SimpleDialogOption(
-              onPressed: () {
-                Navigator.pop(context, 'Chime');
-              },
-              child: Text('Chime'),
-            ),
-            SimpleDialogOption(
-              onPressed: () {
-                Navigator.pop(context, 'Alert');
-              },
-              child: Text('Alert'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (sound != null && sound.isNotEmpty) {
-      setState(() {
-        _notificationSound = sound;
-      });
-    }
-  }
-
-  void _navigateToNotificationTypes() {
-    // Add logic to navigate to notification types settings
-    // For now, we'll use a placeholder alert dialog
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Notification Types'),
-          content: Text('Here you can select the types of notifications you want to receive.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _navigateToDoNotDisturb() {
-    // Add logic to navigate to do not disturb settings
-    // For now, we'll use a placeholder alert dialog
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Do Not Disturb'),
-          content: Text('Here you can set quiet hours for notifications.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
+class NotificationSettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -108,11 +22,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               title: Text('Enable Notifications'),
               subtitle: Text('Toggle notifications on or off.'),
               trailing: Switch(
-                value: _notificationsEnabled,
+                value: true, // Change to actual state management
                 onChanged: (value) {
-                  setState(() {
-                    _notificationsEnabled = value;
-                  });
+                  // Add logic to enable/disable notifications
                 },
               ),
             ),
@@ -120,37 +32,28 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
             ListTile(
               title: Text('Notification Sound'),
               subtitle: Text('Select the sound for notifications.'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(_notificationSound),
-                  Icon(Icons.arrow_forward),
-                ],
-              ),
-              onTap: _selectNotificationSound,
+              trailing: Icon(Icons.arrow_forward),
+              onTap: () {
+                // Add navigation to notification sound settings
+              },
             ),
             Divider(),
             ListTile(
               title: Text('Notification Types'),
               subtitle: Text('Choose which notifications to receive.'),
               trailing: Icon(Icons.arrow_forward),
-              onTap: _navigateToNotificationTypes,
+              onTap: () {
+                // Add navigation to select notification types
+              },
             ),
             Divider(),
             ListTile(
               title: Text('Do Not Disturb'),
               subtitle: Text('Set quiet hours for notifications.'),
-              trailing: Switch(
-                value: _doNotDisturbEnabled,
-                onChanged: (value) {
-                  setState(() {
-                    _doNotDisturbEnabled = value;
-                    if (value) {
-                      _navigateToDoNotDisturb();
-                    }
-                  });
-                },
-              ),
+              trailing: Icon(Icons.arrow_forward),
+              onTap: () {
+                // Add navigation to do not disturb settings
+              },
             ),
             Divider(),
             SizedBox(height: 20),

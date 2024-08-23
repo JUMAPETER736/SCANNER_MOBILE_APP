@@ -1,123 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class QRCodeSettingsPage extends StatefulWidget {
-  @override
-  _QRCodeSettingsPageState createState() => _QRCodeSettingsPageState();
-}
-
-class _QRCodeSettingsPageState extends State<QRCodeSettingsPage> {
-  bool _qrCodeScanningEnabled = true;
-  String _qrCodeDisplayOption = "Default";
-  String _qrCodeData = "Sample Data";
-  String _qrCodeExpiry = "24 hours";
-
-  void _navigateToDisplayOptions() async {
-    final option = await showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        return SimpleDialog(
-          title: Text('Select QR Code Display Option'),
-          children: <Widget>[
-            SimpleDialogOption(
-              onPressed: () {
-                Navigator.pop(context, 'Default');
-              },
-              child: Text('Default'),
-            ),
-            SimpleDialogOption(
-              onPressed: () {
-                Navigator.pop(context, 'Compact');
-              },
-              child: Text('Compact'),
-            ),
-            SimpleDialogOption(
-              onPressed: () {
-                Navigator.pop(context, 'Detailed');
-              },
-              child: Text('Detailed'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (option != null && option.isNotEmpty) {
-      setState(() {
-        _qrCodeDisplayOption = option;
-      });
-    }
-  }
-
-  void _navigateToManageData() async {
-    final data = await showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Manage QR Code Data'),
-          content: TextField(
-            decoration: InputDecoration(
-              labelText: 'Enter QR Code Data',
-            ),
-            onChanged: (value) {
-              _qrCodeData = value;
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, _qrCodeData);
-              },
-              child: Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (data != null && data.isNotEmpty) {
-      setState(() {
-        _qrCodeData = data;
-      });
-    }
-  }
-
-  void _navigateToExpirySettings() async {
-    final expiry = await showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        return SimpleDialog(
-          title: Text('Set QR Code Expiry Duration'),
-          children: <Widget>[
-            SimpleDialogOption(
-              onPressed: () {
-                Navigator.pop(context, '24 hours');
-              },
-              child: Text('24 hours'),
-            ),
-            SimpleDialogOption(
-              onPressed: () {
-                Navigator.pop(context, '7 days');
-              },
-              child: Text('7 days'),
-            ),
-            SimpleDialogOption(
-              onPressed: () {
-                Navigator.pop(context, '30 days');
-              },
-              child: Text('30 days'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (expiry != null && expiry.isNotEmpty) {
-      setState(() {
-        _qrCodeExpiry = expiry;
-      });
-    }
-  }
-
+class QRCodeSettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -138,11 +22,9 @@ class _QRCodeSettingsPageState extends State<QRCodeSettingsPage> {
               title: Text('Enable QR Code Scanning'),
               subtitle: Text('Toggle QR code scanning feature on or off.'),
               trailing: Switch(
-                value: _qrCodeScanningEnabled,
+                value: true, // Change to actual state management
                 onChanged: (value) {
-                  setState(() {
-                    _qrCodeScanningEnabled = value;
-                  });
+                  // Add logic to enable/disable QR code scanning
                 },
               ),
             ),
@@ -150,40 +32,28 @@ class _QRCodeSettingsPageState extends State<QRCodeSettingsPage> {
             ListTile(
               title: Text('QR Code Display Options'),
               subtitle: Text('Choose how QR codes are displayed in the app.'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(_qrCodeDisplayOption),
-                  Icon(Icons.arrow_forward),
-                ],
-              ),
-              onTap: _navigateToDisplayOptions,
+              trailing: Icon(Icons.arrow_forward),
+              onTap: () {
+                // Add navigation to QR code display options page
+              },
             ),
             Divider(),
             ListTile(
               title: Text('Manage QR Code Data'),
               subtitle: Text('View and edit the data associated with QR codes.'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(_qrCodeData),
-                  Icon(Icons.arrow_forward),
-                ],
-              ),
-              onTap: _navigateToManageData,
+              trailing: Icon(Icons.arrow_forward),
+              onTap: () {
+                // Add navigation to manage QR code data page
+              },
             ),
             Divider(),
             ListTile(
               title: Text('QR Code Expiry Settings'),
               subtitle: Text('Set expiry duration for generated QR codes.'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(_qrCodeExpiry),
-                  Icon(Icons.arrow_forward),
-                ],
-              ),
-              onTap: _navigateToExpirySettings,
+              trailing: Icon(Icons.arrow_forward),
+              onTap: () {
+                // Add navigation to QR code expiry settings page
+              },
             ),
             Divider(),
             SizedBox(height: 20),

@@ -1,51 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class SecuritySettingsPage extends StatefulWidget {
-  @override
-  _SecuritySettingsPageState createState() => _SecuritySettingsPageState();
-}
-
-class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
-  bool _isBiometricEnabled = false;
-
-  void _navigateTo2FASettings() {
-    // Navigate to 2FA settings page
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Two-Factor Authentication (2FA)'),
-          content: Text('Here you can enable or manage your 2FA settings.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _navigateToSecurityQuestions() {
-    // Navigate to security questions settings page
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Security Questions'),
-          content: Text('Here you can set or update your security questions.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
+class SecuritySettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,21 +19,29 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
             ),
             SizedBox(height: 20),
             ListTile(
+              title: Text('Change Password'),
+              subtitle: Text('Update your account password.'),
+              trailing: Icon(Icons.arrow_forward),
+              onTap: () {
+                // Add navigation to change password page
+              },
+            ),
+            Divider(),
+            ListTile(
               title: Text('Enable Two-Factor Authentication (2FA)'),
               subtitle: Text('Add an extra layer of security to your account.'),
               trailing: Icon(Icons.arrow_forward),
-              onTap: _navigateTo2FASettings,
+              onTap: () {
+                // Add navigation to 2FA settings page
+              },
             ),
             Divider(),
             ListTile(
               title: Text('Biometric Authentication'),
               subtitle: Text('Use fingerprint or face recognition for secure access.'),
               trailing: Switch(
-                value: _isBiometricEnabled,
+                value: false, // Change to actual state management
                 onChanged: (value) {
-                  setState(() {
-                    _isBiometricEnabled = value;
-                  });
                   // Add logic to enable/disable biometric authentication
                 },
               ),
@@ -87,7 +51,9 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
               title: Text('Security Questions'),
               subtitle: Text('Set up security questions for account recovery.'),
               trailing: Icon(Icons.arrow_forward),
-              onTap: _navigateToSecurityQuestions,
+              onTap: () {
+                // Add navigation to security questions settings
+              },
             ),
             Divider(),
             SizedBox(height: 20),

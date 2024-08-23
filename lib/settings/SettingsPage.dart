@@ -1,41 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:scanna/settings/UserDetailsPage.dart';
+import 'package:scanna/settings/ThemeDisplaySettingsPage.dart';
+import 'package:scanna/settings/BackupSyncPage.dart';
+import 'package:scanna/settings/AppInfoPage.dart';
+import 'package:scanna/settings/GradeSettingsPage.dart';
+import 'package:scanna/settings/LanguageRegionSettingsPage.dart';
+import 'package:scanna/settings/NotificationSettingsPage.dart';
+import 'package:scanna/settings/QRCodeSettingsPage.dart';
+import 'package:scanna/settings/SecuritySettingsPage.dart';
 
 class SettingsPage extends StatefulWidget {
   final User? user;
 
-  SettingsPage({required this.user});
+  SettingsPage({required this.user}); // Constructor requires a User object
 
   @override
   _SettingsPageState createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  final List<String> languages = ['English', 'Spanish', 'French', 'German', 'Chinese', 'Chichewa']; // Supported languages
+  String defaultLanguage = 'English'; // Set a default language
+
+  // Method to handle language change
+  void _onLanguageChanged(String? newLanguage) {
+    setState(() {
+      defaultLanguage = newLanguage ?? defaultLanguage; // Update the selected language
+    });
+  }
+
+  // Placeholder method for region change
+  void _onRegionChanged(String? newRegion) {
+    // Handle region-specific settings here if needed
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Settings'),
+        title: Text('Settings'), // Title of the settings page
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0), // Padding around the list
         children: [
-
-
           // User Details
           ListTile(
-            title: Text('User Details'),
-            leading: Icon(Icons.person),
-            subtitle: Text('Profile, Email, and more'),
+            title: Text('User Details'), // Title of the list item
+            leading: Icon(Icons.person), // Icon on the left
+            subtitle: Text('Profile, Email, and more'), // Subtitle
             onTap: () {
+              // Navigate to UserDetailsPage when tapped
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => UserDetailsPage(user: widget.user),
+                  builder: (context) => UserDetailsPage(user: widget.user), // Pass user object to UserDetailsPage
                 ),
               );
             },
           ),
-          Divider(),
+          Divider(), // Divider between list items
 
           // QR Code Settings
           ListTile(
@@ -43,9 +66,10 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('Scan mode, camera settings, and more'),
             leading: Icon(Icons.qr_code),
             onTap: () {
+              // Navigate to QRCodeSettingsPage
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => QRCodeSettingsPage(),
+                  builder: (context) => QRCodeSettingsPage(), // Ensure this page exists
                 ),
               );
             },
@@ -58,9 +82,10 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('Customize grading scale and display'),
             leading: Icon(Icons.grade),
             onTap: () {
+              // Navigate to GradeSettingsPage
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => GradeSettingsPage(),
+                  builder: (context) => GradeSettingsPage(), // Ensure this page exists
                 ),
               );
             },
@@ -73,9 +98,17 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('Language selection and regional settings'),
             leading: Icon(Icons.language),
             onTap: () {
+              // Navigate to LanguageRegionSettingsPage with required parameters
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => LanguageRegionSettingsPage(),
+                  builder: (context) => LanguageRegionSettingsPage(
+                    languages: languages, // Pass the languages list here
+                    selectedLanguage: defaultLanguage, // Pass the selected language
+                    onLanguageChanged: _onLanguageChanged, // Pass the callback for language changes
+                    selectedRegion: 'United States', // Pass the selected region
+                    regions: ['United States', 'Canada', 'United Kingdom', 'Australia', 'India', 'Malawi'], // Pass the regions list
+                    onRegionChanged: _onRegionChanged, // Pass the callback for region changes
+                  ),
                 ),
               );
             },
@@ -88,9 +121,10 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('Cloud backup and data synchronization'),
             leading: Icon(Icons.backup),
             onTap: () {
+              // Navigate to BackupSyncPage
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => BackupSyncPage(),
+                  builder: (context) => BackupSyncPage(), // Ensure this page exists
                 ),
               );
             },
@@ -103,39 +137,10 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('App theme, font size, and layout'),
             leading: Icon(Icons.color_lens),
             onTap: () {
+              // Navigate to ThemeDisplaySettingsPage
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => ThemeDisplaySettingsPage(),
-                ),
-              );
-            },
-          ),
-          Divider(),
-
-          // Notification Settings
-          ListTile(
-            title: Text('Notification Settings'),
-            subtitle: Text('Manage notifications and alerts'),
-            leading: Icon(Icons.notifications),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => NotificationSettingsPage(),
-                ),
-              );
-            },
-          ),
-          Divider(),
-
-          // Security Settings
-          ListTile(
-            title: Text('Security Settings'),
-            subtitle: Text('Change password and security options'),
-            leading: Icon(Icons.security),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => SecuritySettingsPage(),
+                  builder: (context) => ThemeDisplaySettingsPage(), // Ensure this page exists
                 ),
               );
             },
@@ -148,9 +153,42 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('Version, licenses, and support'),
             leading: Icon(Icons.info),
             onTap: () {
+              // Navigate to AppInfoPage
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => AppInfoPage(),
+                  builder: (context) => AppInfoPage(), // Ensure this page exists
+                ),
+              );
+            },
+          ),
+          Divider(),
+
+          // Notification Settings
+          ListTile(
+            title: Text('Notification Settings'),
+            subtitle: Text('Manage notifications preferences'),
+            leading: Icon(Icons.notifications),
+            onTap: () {
+              // Navigate to NotificationSettingsPage
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => NotificationSettingsPage(), // Ensure this page exists
+                ),
+              );
+            },
+          ),
+          Divider(),
+
+          // Security Settings
+          ListTile(
+            title: Text('Security Settings'),
+            subtitle: Text('Manage security options'),
+            leading: Icon(Icons.security),
+            onTap: () {
+              // Navigate to SecuritySettingsPage
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => SecuritySettingsPage(), // Ensure this page exists
                 ),
               );
             },
@@ -158,74 +196,5 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
     );
-  }
-}
-
-// Dummy placeholder classes for other pages
-class UserDetailsPage extends StatelessWidget {
-  final User? user;
-
-  UserDetailsPage({required this.user});
-
-  @override
-  Widget build(BuildContext context) {
-    // Implement UserDetailsPage UI
-    return Scaffold(appBar: AppBar(title: Text('User Details')));
-  }
-}
-
-class QRCodeSettingsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text('QR Code Settings')));
-  }
-}
-
-class GradeSettingsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text('Grade Settings')));
-  }
-}
-
-class LanguageRegionSettingsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text('Language & Region Settings')));
-  }
-}
-
-class BackupSyncPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text('Backup & Sync')));
-  }
-}
-
-class ThemeDisplaySettingsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text('Theme & Display Settings')));
-  }
-}
-
-class NotificationSettingsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text('Notification Settings')));
-  }
-}
-
-class SecuritySettingsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text('Security Settings')));
-  }
-}
-
-class AppInfoPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text('App Information')));
   }
 }
