@@ -44,6 +44,8 @@ class _SettingsPageState extends State<SettingsPage> {
       body: ListView(
         padding: const EdgeInsets.all(16.0), // Padding around the list
         children: [
+
+          Divider(),
           // User Details
           ListTile(
             title: Text('User Details'), // Title of the list item
@@ -147,9 +149,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           Divider(),
 
-          // App Information
 
-          Divider(),
 
           // Notification Settings
           ListTile(
@@ -181,6 +181,7 @@ class _SettingsPageState extends State<SettingsPage> {
               );
             },
           ),
+          Divider(),
 
           ListTile(
             title: Text('App Information'),
@@ -196,6 +197,7 @@ class _SettingsPageState extends State<SettingsPage> {
             },
           ),
 
+          Divider(),
         ],
       ),
     );
