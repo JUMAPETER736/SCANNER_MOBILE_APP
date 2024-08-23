@@ -55,7 +55,7 @@ class _BackupSyncPageState extends State<BackupSyncPage> {
 
   Future<void> _backupNow() async {
     setState(() {
-      _backupStatus = 'Backing up...';
+      _backupStatus = 'Back Up...';
       _backupProgress = 0.0;
       _isBackingUp = true;
     });
@@ -126,7 +126,7 @@ class _BackupSyncPageState extends State<BackupSyncPage> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             Text(
-              'Last backup: ${_lastBackupTime.isNotEmpty ? _lastBackupTime : "No backups yet"}\n'
+              'Last backup: ${_lastBackupTime.isNotEmpty ? _lastBackupTime : "No backup Availabe"}\n'
                   'Cloud sync: ${_syncWithCloudEnabled ? "Active" : "Inactive"}',
               style: TextStyle(fontSize: 16),
             ),
