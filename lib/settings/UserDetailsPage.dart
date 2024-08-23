@@ -56,7 +56,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
         password: password,
       );
 
-      // Save user data to Firestore
+      // Save user data to Firestore, setting defaults for class and subject if empty
       await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
         'name': username,
         'email': email,
@@ -65,7 +65,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       });
 
       // Show a success toast message
-      Fluttertoast.showToast(msg: "User registered successfully. Please log in.");
+      Fluttertoast.showToast(msg: "User registered successfully.");
 
       // Clear the form
       _emailController.clear();
@@ -181,14 +181,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
           },
           child: Text('Register'),
         ),
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => LoginPage(),
-            ));
-          },
-          child: Text('Already have an account? Log in'),
-        ),
       ],
     );
   }
@@ -211,13 +203,13 @@ class _UserManagementPageState extends State<UserManagementPage> {
         ListTile(
           leading: Icon(Icons.class_),
           title: Text('Class Selected'),
-          subtitle: Text(_classSelected),
+          subtitle: Text(_classSelected.isNotEmpty ? _classSelected : 'N/A'),
         ),
         Divider(),
         ListTile(
           leading: Icon(Icons.subject),
           title: Text('Subject Selected'),
-          subtitle: Text(_subjectSelected),
+          subtitle: Text(_subjectSelected.isNotEmpty ? _subjectSelected : 'N/A'),
         ),
         Divider(),
         ListTile(
@@ -303,68 +295,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
           ],
         );
       },
-    );
-  }
-}
-
-class LoginPage extends StatelessWidget {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  String errorMessage = '';
-
-  Future<void> loginUser(BuildContext context) async {
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-
-      // Navigate to user management page after successful login
-      Navigator.of(context).pushReplacement(MaterialPageRoute(
-        builder: (context) => UserManagementPage(),
-      ));
-    } catch (e) {
-      errorMessage = 'Failed to log in: $e';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Log In'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: InputDecoration(labelText: 'Email'),
-            ),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: InputDecoration(labelText: 'Password'),
-            ),
-            if (errorMessage.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  errorMessage,
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                await loginUser(context);
-              },
-              child: Text('Log In'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
