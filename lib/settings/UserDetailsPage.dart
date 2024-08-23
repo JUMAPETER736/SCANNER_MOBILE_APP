@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,7 +32,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _classController = TextEditingController();
+  final TextEditingController _subjectController = TextEditingController();
   String _username = '';
+  String _classSelected = 'N/A';
+  String _subjectSelected = 'N/A';
   String errorMessage = '';
 
   @override
@@ -39,10 +44,12 @@ class _UserManagementPageState extends State<UserManagementPage> {
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
+    _classController.dispose();
+    _subjectController.dispose();
     super.dispose();
   }
 
-  Future<void> registerUser(String email, String password, String username) async {
+  Future<void> registerUser(String email, String password, String username, String classSelected, String subjectSelected) async {
     try {
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
@@ -53,9 +60,19 @@ class _UserManagementPageState extends State<UserManagementPage> {
       await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
         'name': username,
         'email': email,
+        'class_selected': classSelected.isNotEmpty ? classSelected : 'N/A',
+        'subject_selected': subjectSelected.isNotEmpty ? subjectSelected : 'N/A',
       });
 
-      fetchUsername(userCredential.user!);
+      // Show a success toast message
+      Fluttertoast.showToast(msg: "User registered successfully. Please log in.");
+
+      // Clear the form
+      _emailController.clear();
+      _passwordController.clear();
+      _nameController.clear();
+      _classController.clear();
+      _subjectController.clear();
     } catch (e) {
       setState(() {
         errorMessage = 'Failed to register: $e';
@@ -70,6 +87,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
       if (snapshot.exists) {
         setState(() {
           _username = snapshot['name'] ?? '';
+          _classSelected = snapshot['class_selected'] ?? 'N/A';
+          _subjectSelected = snapshot['subject_selected'] ?? 'N/A';
         });
       }
     } catch (e) {
@@ -122,6 +141,14 @@ class _UserManagementPageState extends State<UserManagementPage> {
           decoration: InputDecoration(labelText: 'Email'),
         ),
         TextField(
+          controller: _classController,
+          decoration: InputDecoration(labelText: 'Class Selected'),
+        ),
+        TextField(
+          controller: _subjectController,
+          decoration: InputDecoration(labelText: 'Subject Selected'),
+        ),
+        TextField(
           controller: _passwordController,
           obscureText: true,
           decoration: InputDecoration(labelText: 'Password'),
@@ -138,19 +165,29 @@ class _UserManagementPageState extends State<UserManagementPage> {
         ElevatedButton(
           onPressed: () async {
             String email = _emailController.text.trim();
+            String classSelected = _classController.text.trim();
+            String subjectSelected = _subjectController.text.trim();
             String password = _passwordController.text.trim();
             String username = _nameController.text.trim();
 
-            if (email.isEmpty || password.isEmpty || username.isEmpty) {
+            if (email.isEmpty || password.isEmpty || username.isEmpty || classSelected.isEmpty || subjectSelected.isEmpty) {
               setState(() {
                 errorMessage = 'Please fill in all fields.';
               });
               return;
             }
 
-            await registerUser(email, password, username);
+            await registerUser(email, password, username, classSelected, subjectSelected);
           },
           child: Text('Register'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => LoginPage(),
+            ));
+          },
+          child: Text('Already have an account? Log in'),
         ),
       ],
     );
@@ -169,6 +206,18 @@ class _UserManagementPageState extends State<UserManagementPage> {
           leading: Icon(Icons.email),
           title: Text('Email'),
           subtitle: Text(FirebaseAuth.instance.currentUser?.email ?? 'N/A'),
+        ),
+        Divider(),
+        ListTile(
+          leading: Icon(Icons.class_),
+          title: Text('Class Selected'),
+          subtitle: Text(_classSelected),
+        ),
+        Divider(),
+        ListTile(
+          leading: Icon(Icons.subject),
+          title: Text('Subject Selected'),
+          subtitle: Text(_subjectSelected),
         ),
         Divider(),
         ListTile(
@@ -254,6 +303,68 @@ class _UserManagementPageState extends State<UserManagementPage> {
           ],
         );
       },
+    );
+  }
+}
+
+class LoginPage extends StatelessWidget {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  String errorMessage = '';
+
+  Future<void> loginUser(BuildContext context) async {
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      // Navigate to user management page after successful login
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+        builder: (context) => UserManagementPage(),
+      ));
+    } catch (e) {
+      errorMessage = 'Failed to log in: $e';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Log In'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: _emailController,
+              decoration: InputDecoration(labelText: 'Email'),
+            ),
+            TextField(
+              controller: _passwordController,
+              obscureText: true,
+              decoration: InputDecoration(labelText: 'Password'),
+            ),
+            if (errorMessage.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  errorMessage,
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () async {
+                await loginUser(context);
+              },
+              child: Text('Log In'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

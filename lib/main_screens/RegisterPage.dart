@@ -268,18 +268,18 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
 
-                      // SizedBox(height: 20.0),
-                      // TextField(
-                      //   obscureText: true,
-                      //   keyboardType: TextInputType.visiblePassword,
-                      //   onChanged: (value) {
-                      //     confirmPassword = value; // Capture confirm password input
-                      //   },
-                      //   decoration: InputDecoration(
-                      //     labelText: 'Confirm Password',
-                      //     errorText: _passwordMismatch ? _passwordMismatchText : null,
-                      //   ),
-                      // ),
+                      SizedBox(height: 20.0),
+                      TextField(
+                        obscureText: true,
+                        keyboardType: TextInputType.visiblePassword,
+                        onChanged: (value) {
+                          confirmPassword = value; // Capture confirm password input
+                        },
+                        decoration: InputDecoration(
+                          labelText: 'Confirm Password',
+                          errorText: _passwordMismatch ? _passwordMismatchText : null,
+                        ),
+                      ),
                       SizedBox(height: 20.0),
                     ],
                   ),

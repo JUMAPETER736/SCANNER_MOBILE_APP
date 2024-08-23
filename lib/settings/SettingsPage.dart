@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// Main Settings Page
 class SettingsPage extends StatefulWidget {
   final User? user;
 
@@ -60,7 +61,11 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('Scan mode, camera settings, and more'),
             leading: Icon(Icons.qr_code),
             onTap: () {
-              // Navigate to QR Code Settings Page
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => QRCodeSettingsPage(),
+                ),
+              );
             },
           ),
           Divider(),
@@ -71,12 +76,14 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('Customize grading scale and display'),
             leading: Icon(Icons.grade),
             onTap: () {
-              // Navigate to Grade Settings Page
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => GradeSettingsPage(),
+                ),
+              );
             },
           ),
           Divider(),
-
-          // Other ListTiles here...
 
           // Language & Region Settings
           ListTile(
@@ -84,7 +91,7 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('Language selection and regional settings'),
             leading: Icon(Icons.language),
             onTap: () {
-              // Navigate to Language & Region Settings Page
+              // Add the logic here for Language & Region Settings Page
             },
           ),
           Divider(),
@@ -95,7 +102,7 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('Cloud backup and data synchronization'),
             leading: Icon(Icons.backup),
             onTap: () {
-              // Navigate to Backup & Sync Page
+              // Add the logic here for Backup & Sync Page
             },
           ),
           Divider(),
@@ -106,7 +113,7 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('App theme, font size, and layout'),
             leading: Icon(Icons.color_lens),
             onTap: () {
-              // Navigate to Theme & Display Settings Page
+              // Add the logic here for Theme & Display Settings Page
             },
           ),
           Divider(),
@@ -117,7 +124,7 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text('Version, licenses, and support'),
             leading: Icon(Icons.info),
             onTap: () {
-              // Navigate to App Information Page
+              // Add the logic here for App Information Page
             },
           ),
         ],
@@ -126,6 +133,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
+// User Details Page
 class UserDetailsPage extends StatefulWidget {
   final User? user;
 
@@ -138,29 +146,33 @@ class UserDetailsPage extends StatefulWidget {
 class _UserDetailsPageState extends State<UserDetailsPage> {
   TextEditingController _nameController = TextEditingController();
   String _username = '';
+  String _classSelected = '';
+  String _subjectSelected = '';
 
   @override
   void initState() {
     super.initState();
-    _fetchUsername();
+    _fetchUserData();
   }
 
-  Future<void> _fetchUsername() async {
+  Future<void> _fetchUserData() async {
     if (widget.user?.uid != null) {
       try {
         DocumentSnapshot snapshot = await FirebaseFirestore.instance
-            .collection('users') // Change to your collection name
+            .collection('users') // Replace with your actual collection name
             .doc(widget.user!.uid)
             .get();
 
         if (snapshot.exists) {
           setState(() {
             _username = snapshot['name'] ?? '';
-            _nameController.text = _username; // Set the username in the controller
+            _nameController.text = _username;
+            _classSelected = snapshot['classSelected'] ?? 'Not Selected';
+            _subjectSelected = snapshot['subjectSelected'] ?? 'Not Selected';
           });
         }
       } catch (e) {
-        print('Error fetching username: $e');
+        print('Error fetching user data: $e');
       }
     }
   }
@@ -194,6 +206,18 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
             ),
             Divider(),
             ListTile(
+              leading: Icon(Icons.class_),
+              title: Text('Class Selected'),
+              subtitle: Text(_classSelected),
+            ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.subject),
+              title: Text('Subject Selected'),
+              subtitle: Text(_subjectSelected),
+            ),
+            Divider(),
+            ListTile(
               title: Text('Change Password'),
               leading: Icon(Icons.lock),
               onTap: () {
@@ -209,6 +233,42 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
               },
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// QR Code Settings Page
+class QRCodeSettingsPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('QR Code Settings'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Center(
+          child: Text('Customize QR code settings here.'),
+        ),
+      ),
+    );
+  }
+}
+
+// Grade Settings Page
+class GradeSettingsPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Grade Settings'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Center(
+          child: Text('Customize your grading scale and display.'),
         ),
       ),
     );
