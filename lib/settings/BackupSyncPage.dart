@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart'; // Import this package for date formatting
 
 void main() {
   runApp(MyApp());
@@ -29,6 +30,7 @@ class _BackupSyncPageState extends State<BackupSyncPage> {
   String _backupStatus = ''; // To display backup status messages
   double _backupProgress = 0.0; // To track backup progress
   bool _isBackingUp = false; // To check if a backup is in progress
+  String _lastBackupTime = ''; // To display the date and time of the last backup
 
   void _toggleAutoBackup(bool? value) {
     setState(() {
@@ -62,6 +64,7 @@ class _BackupSyncPageState extends State<BackupSyncPage> {
     setState(() {
       _backupStatus = 'Backup completed successfully!'; // Update backup status message
       _isBackingUp = false; // Mark backup as completed
+      _lastBackupTime = DateFormat('dd-MM-yyyy   kk:mm').format(DateTime.now()); // Get current date and time
     });
 
     // Here you can add actual backup logic (e.g., saving to a database or cloud)
@@ -108,8 +111,13 @@ class _BackupSyncPageState extends State<BackupSyncPage> {
             SizedBox(height: 20),
             Text(
               _backupStatus,
-              style: TextStyle(fontSize: 16, color: Colors.green),
+              style: TextStyle(fontSize: 16, color: Colors.blue),
             ),
+            if (_lastBackupTime.isNotEmpty) // Display last backup time if available
+              Text(
+                'Last Backup Time: $_lastBackupTime',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
             SizedBox(height: 20),
             if (_isBackingUp) // Show progress only during backup
               Column(
