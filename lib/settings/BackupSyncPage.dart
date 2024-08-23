@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart'; // Import this package for date formatting
+import 'package:shared_preferences/shared_preferences.dart'; // Import Shared Preferences
 
 void main() {
   runApp(MyApp());
@@ -31,6 +31,13 @@ class _BackupSyncPageState extends State<BackupSyncPage> {
   double _backupProgress = 0.0; // To track backup progress
   bool _isBackingUp = false; // To check if a backup is in progress
   String _lastBackupTime = ''; // To display the date and time of the last backup
+  String _lastBackupResult = ''; // To display the last backup result status
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLastBackupTime(); // Load the last backup time when the app starts
+  }
 
   void _toggleAutoBackup(bool? value) {
     setState(() {
@@ -63,11 +70,26 @@ class _BackupSyncPageState extends State<BackupSyncPage> {
 
     setState(() {
       _backupStatus = 'Backup completed successfully!'; // Update backup status message
+      _lastBackupResult = _backupStatus; // Save the last backup status
       _isBackingUp = false; // Mark backup as completed
       _lastBackupTime = DateFormat('dd-MM-yyyy   kk:mm').format(DateTime.now()); // Get current date and time
     });
 
-    // Here you can add actual backup logic (e.g., saving to a database or cloud)
+    await _saveLastBackupTime(_lastBackupTime); // Save the last backup time persistently
+  }
+
+  Future<void> _loadLastBackupTime() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? savedTime = prefs.getString('lastBackupTime');
+    setState(() {
+      _lastBackupTime = savedTime ?? ''; // Load the last backup time or keep it empty
+      _lastBackupResult = savedTime != null ? 'Last Backup Successful' : ''; // Update the last backup result if there's a time saved
+    });
+  }
+
+  Future<void> _saveLastBackupTime(String time) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('lastBackupTime', time); // Save the last backup time
   }
 
   @override
@@ -104,7 +126,7 @@ class _BackupSyncPageState extends State<BackupSyncPage> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             Text(
-              'Last backup: ${_autoBackupEnabled ? "Enabled" : "Disabled"}\n'
+              'Last backup: ${_lastBackupTime.isNotEmpty ? _lastBackupTime : "No backups yet"}\n'
                   'Cloud sync: ${_syncWithCloudEnabled ? "Active" : "Inactive"}',
               style: TextStyle(fontSize: 16),
             ),
@@ -113,9 +135,9 @@ class _BackupSyncPageState extends State<BackupSyncPage> {
               _backupStatus,
               style: TextStyle(fontSize: 16, color: Colors.blue),
             ),
-            if (_lastBackupTime.isNotEmpty) // Display last backup time if available
+            if (_lastBackupResult.isNotEmpty) // Display last backup result if available
               Text(
-                'Last Backup Time: $_lastBackupTime',
+                'Last Backup Status: $_lastBackupResult',
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
             SizedBox(height: 20),

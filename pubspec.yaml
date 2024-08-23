@@ -22,6 +22,7 @@ dependencies:
   fluttertoast: ^8.2.6
   provider: ^6.0.3
   local_auth: ^2.1.7
+  shared_preferences: ^2.3.2
   firebase_database: ^10.0.12
   flutter_localizations:
     sdk: flutter
