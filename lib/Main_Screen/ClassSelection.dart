@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fluttertoast/fluttertoast.dart'; // Import the toast package
 
 class ClassSelection extends StatefulWidget {
   @override
@@ -19,6 +20,26 @@ class _ClassSelectionState extends State<ClassSelection> {
     'FORM 4': ['CHEMISTRY', 'CHICHEWA', 'PHYSICS', 'BIBLE KNOWLEDGE', 'MATHEMATICS', 'ENGLISH', 'BIOLOGY', 'AGRICULTURE', 'LIFE SKILLS', 'SOCIAL STUDIES'],
     // Add more classes and their corresponding subjects as needed
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSavedSelections();
+  }
+
+  void _checkSavedSelections() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DocumentSnapshot doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists && doc['classes'] != null && doc['subjects'] != null) {
+        setState(() {
+          selectedClasses = List<String>.from(doc['classes']);
+          selectedSubjects = List<String>.from(doc['subjects']);
+          isSaved = true; // Mark as saved
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,11 +63,15 @@ class _ClassSelectionState extends State<ClassSelection> {
                   style: TextStyle(color: Colors.black),
                 ),
                 value: selectedClasses.contains(className),
-                onChanged: (bool? value) {
+                onChanged: isSaved
+                    ? null // Disable if already saved
+                    : (bool? value) {
                   setState(() {
                     if (value == true) {
                       if (selectedClasses.length < 2) {
                         selectedClasses.add(className);
+                      } else {
+                        _showToast("You can't select more than 2 classes");
                       }
                     } else {
                       selectedClasses.remove(className);
@@ -71,11 +96,15 @@ class _ClassSelectionState extends State<ClassSelection> {
                   style: TextStyle(color: Colors.black),
                 ),
                 value: selectedSubjects.contains(subject),
-                onChanged: (bool? value) {
+                onChanged: isSaved
+                    ? null // Disable if already saved
+                    : (bool? value) {
                   setState(() {
                     if (value == true) {
                       if (selectedSubjects.length < 2) {
                         selectedSubjects.add(subject);
+                      } else {
+                        _showToast("You can't select more than 2 subjects");
                       }
                     } else {
                       selectedSubjects.remove(subject);
@@ -140,6 +169,18 @@ class _ClassSelectionState extends State<ClassSelection> {
         print('Error saving classes and subjects: $e');
       }
     }
+  }
+
+  void _showToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      timeInSecForIosWeb: 1,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
   }
 }
 
