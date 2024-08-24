@@ -120,7 +120,7 @@ class _ClassSelectionState extends State<ClassSelection> {
             // Save Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green, // Change button color here
+                backgroundColor: Colors.blue, // Change button color here
               ),
               onPressed: (selectedClasses.isNotEmpty && selectedSubjects.isNotEmpty && !isSaved)
                   ? () async {
