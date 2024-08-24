@@ -14,9 +14,9 @@ class _ClassSelectionState extends State<ClassSelection> {
 
   final Map<String, List<String>> classSubjects = {
     'FORM 1': ['MATHEMATICS', 'ENGLISH', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'PHYSICS', 'BIBLE KNOWLEDGE', 'AGRICULTURE', 'LIFE SKILLS', 'SOCIAL STUDIES'],
-    'FORM 2': [ 'CHICHEWA', 'PHYSICS', 'BIBLE KNOWLEDGE', 'MATHEMATICS', 'ENGLISH', 'BIOLOGY', 'CHEMISTRY','AGRICULTURE', 'LIFE SKILLS', 'SOCIAL STUDIES'],
-    'FORM 3': ['MATHEMATICS',  'BIBLE KNOWLEDGE', 'AGRICULTURE', 'ENGLISH', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'PHYSICS','LIFE SKILLS', 'SOCIAL STUDIES'],
-    'FORM 4': ['CHEMISTRY', 'CHICHEWA', 'PHYSICS', 'BIBLE KNOWLEDGE','MATHEMATICS', 'ENGLISH', 'BIOLOGY', 'AGRICULTURE', 'LIFE SKILLS', 'SOCIAL STUDIES'],
+    'FORM 2': ['CHICHEWA', 'PHYSICS', 'BIBLE KNOWLEDGE', 'MATHEMATICS', 'ENGLISH', 'BIOLOGY', 'CHEMISTRY', 'AGRICULTURE', 'LIFE SKILLS', 'SOCIAL STUDIES'],
+    'FORM 3': ['MATHEMATICS', 'BIBLE KNOWLEDGE', 'AGRICULTURE', 'ENGLISH', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'PHYSICS', 'LIFE SKILLS', 'SOCIAL STUDIES'],
+    'FORM 4': ['CHEMISTRY', 'CHICHEWA', 'PHYSICS', 'BIBLE KNOWLEDGE', 'MATHEMATICS', 'ENGLISH', 'BIOLOGY', 'AGRICULTURE', 'LIFE SKILLS', 'SOCIAL STUDIES'],
     // Add more classes and their corresponding subjects as needed
   };
 
@@ -90,6 +90,9 @@ class _ClassSelectionState extends State<ClassSelection> {
 
             // Save Button
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green, // Change button color here
+              ),
               onPressed: (selectedClasses.isNotEmpty && selectedSubjects.isNotEmpty && !isSaved)
                   ? () async {
                 await _saveSelection();
@@ -99,6 +102,7 @@ class _ClassSelectionState extends State<ClassSelection> {
                     builder: (context) => ClassSubjectConfirmation(
                       selectedClasses: selectedClasses,
                       selectedSubjects: selectedSubjects,
+                      classSubjects: classSubjects, // Pass classSubjects here
                     ),
                   ),
                 );
@@ -142,8 +146,13 @@ class _ClassSelectionState extends State<ClassSelection> {
 class ClassSubjectConfirmation extends StatelessWidget {
   final List<String> selectedClasses;
   final List<String> selectedSubjects;
+  final Map<String, List<String>> classSubjects; // Add classSubjects parameter
 
-  ClassSubjectConfirmation({required this.selectedClasses, required this.selectedSubjects});
+  ClassSubjectConfirmation({
+    required this.selectedClasses,
+    required this.selectedSubjects,
+    required this.classSubjects, // Accept it in the constructor
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -162,15 +171,23 @@ class ClassSubjectConfirmation extends StatelessWidget {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 20),
-              Text(
-                'Classes: ${selectedClasses.join(', ')}',
-                style: TextStyle(fontSize: 20),
-              ),
-              SizedBox(height: 10),
-              Text(
-                'Subjects: ${selectedSubjects.join(', ')}',
-                style: TextStyle(fontSize: 20),
-              ),
+              // Display each class with its subjects
+              ...selectedClasses.map((className) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Class: $className',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Subjects: ${selectedSubjects.where((subject) => classSubjects[className]?.contains(subject) ?? false).join(', ')}',
+                      style: TextStyle(fontSize: 20),
+                    ),
+                    SizedBox(height: 10),
+                  ],
+                );
+              }).toList(),
               SizedBox(height: 30),
               ElevatedButton(
                 onPressed: () {
