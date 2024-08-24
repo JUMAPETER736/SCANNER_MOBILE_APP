@@ -131,6 +131,7 @@ class _ClassSelectionState extends State<ClassSelection> {
                     builder: (context) => GradeEntryPage(
                       selectedClasses: selectedClasses,
                       selectedSubjects: selectedSubjects,
+                      classSubjects: classSubjects, // Pass classSubjects here
                     ),
                   ),
                 );
@@ -183,20 +184,36 @@ class _ClassSelectionState extends State<ClassSelection> {
   }
 }
 
-class GradeEntryPage extends StatelessWidget {
+class GradeEntryPage extends StatefulWidget {
   final List<String> selectedClasses;
   final List<String> selectedSubjects;
+  final Map<String, List<String>> classSubjects;
 
   GradeEntryPage({
     required this.selectedClasses,
     required this.selectedSubjects,
+    required this.classSubjects,
   });
+
+  @override
+  _GradeEntryPageState createState() => _GradeEntryPageState();
+}
+
+class _GradeEntryPageState extends State<GradeEntryPage> {
+  final Map<String, String> grades = {}; // Store grades for each class
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Enter Grades'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            // Navigate back to the ClassSelection page
+            Navigator.pop(context);
+          },
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -209,9 +226,9 @@ class GradeEntryPage extends StatelessWidget {
             SizedBox(height: 20),
             Expanded(
               child: ListView.builder(
-                itemCount: selectedClasses.length,
+                itemCount: widget.selectedClasses.length,
                 itemBuilder: (context, index) {
-                  String className = selectedClasses[index];
+                  String className = widget.selectedClasses[index];
                   return Card(
                     margin: EdgeInsets.symmetric(vertical: 8.0),
                     child: Padding(
@@ -224,17 +241,20 @@ class GradeEntryPage extends StatelessWidget {
                             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            'Subjects: ${selectedSubjects.where((subject) => classSubjects[className]?.contains(subject) ?? false).join(', ')}',
+                            'Subjects: ${widget.selectedSubjects.where((subject) => widget.classSubjects[className]?.contains(subject) ?? false).join(', ')}',
                             style: TextStyle(fontSize: 16),
                           ),
                           SizedBox(height: 10),
-                          // Here you can add input fields for grades
+                          // Input field for grades
                           TextField(
                             decoration: InputDecoration(
                               labelText: 'Enter Grades for $className',
                               border: OutlineInputBorder(),
                             ),
                             keyboardType: TextInputType.number,
+                            onChanged: (value) {
+                              grades[className] = value; // Save grade input
+                            },
                           ),
                         ],
                       ),
@@ -243,9 +263,33 @@ class GradeEntryPage extends StatelessWidget {
                 },
               ),
             ),
+            ElevatedButton(
+              onPressed: _saveGrades,
+              child: Text('Save Grades'),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _saveGrades() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        // Save grades to Firestore under the user's document
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).collection('grades').add({
+          'grades': grades,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+        Fluttertoast.showToast(
+          msg: "Grades saved successfully!",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+        );
+      } catch (e) {
+        print('Error saving grades: $e');
+      }
+    }
   }
 }
