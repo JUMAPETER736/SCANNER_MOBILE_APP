@@ -92,17 +92,7 @@ class _DoneState extends State<Done> {
                 },
                 child: Text('CLASS'),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => GradeEntryForm(), // Ensure GradeEntryForm is correctly defined
-                    ),
-                  );
-                },
-                child: Text('Enter Grades'),
-              ),
+
               ElevatedButton(
                 onPressed: () {
                   Navigator.push(
