@@ -8,11 +8,11 @@ class ClassSelection extends StatefulWidget {
 }
 
 class _ClassSelectionState extends State<ClassSelection> {
-  String? selectedClass; // Variable to hold selected class
-  String? selectedSubject; // Variable to hold selected subject
+  List<String> selectedClasses = []; // List to hold selected classes
+  List<String> selectedSubjects = []; // List to hold selected subjects
+  bool isSaved = false; // Track if the selection is saved
 
   final Map<String, List<String>> classSubjects = {
-
     'FORM 1': ['MATHEMATICS', 'ENGLISH', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'PHYSICS', 'BIBLE KNOWLEDGE', 'AGRICULTURE', 'LIFE SKILLS', 'SOCIAL STUDIES'],
     'FORM 2': ['MATHEMATICS', 'ENGLISH', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'PHYSICS', 'BIBLE KNOWLEDGE', 'AGRICULTURE', 'LIFE SKILLS', 'SOCIAL STUDIES'],
     'FORM 3': ['MATHEMATICS', 'ENGLISH', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'PHYSICS', 'BIBLE KNOWLEDGE', 'AGRICULTURE', 'LIFE SKILLS', 'SOCIAL STUDIES'],
@@ -44,79 +44,101 @@ class _ClassSelectionState extends State<ClassSelection> {
               ],
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Dropdown for selecting class
-              DropdownButton<String>(
-                value: selectedClass,
-                hint: Text(
-                  'Select a Class',
-                  style: TextStyle(color: Colors.white),
+          child: SingleChildScrollView( // Enable scrolling
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Class Selection
+                Text(
+                  'Select Classes (Max 2)',
+                  style: TextStyle(color: Colors.white, fontSize: 20),
                 ),
-                dropdownColor: Colors.black,
-                iconEnabledColor: Colors.white,
-                onChanged: (String? newValue) {
-                  setState(() {
-                    selectedClass = newValue;
-                    selectedSubject = null; // Reset subject selection
-                  });
-                },
-                items: classSubjects.keys.map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(
-                      value,
+                ...classSubjects.keys.map((className) {
+                  return CheckboxListTile(
+                    title: Text(
+                      className,
                       style: TextStyle(color: Colors.white),
                     ),
+                    value: selectedClasses.contains(className),
+                    onChanged: (bool? value) {
+                      setState(() {
+                        if (value == true) {
+                          if (selectedClasses.length < 2) {
+                            selectedClasses.add(className);
+                          }
+                        } else {
+                          selectedClasses.remove(className);
+                        }
+                      });
+                    },
+                    activeColor: Colors.white,
+                    checkColor: Colors.black,
                   );
                 }).toList(),
-              ),
-              SizedBox(height: 20.0),
+                SizedBox(height: 20.0),
 
-              // Dropdown for selecting subject
-              DropdownButton<String>(
-                value: selectedSubject,
-                hint: Text(
-                  'Select a Subject',
-                  style: TextStyle(color: Colors.white),
+                // Subject Selection
+                Text(
+                  'Select Subjects (Max 2)',
+                  style: TextStyle(color: Colors.white, fontSize: 20),
                 ),
-                dropdownColor: Colors.black,
-                iconEnabledColor: Colors.white,
-                onChanged: (String? newValue) {
-                  setState(() {
-                    selectedSubject = newValue;
-                  });
-                },
-                items: selectedClass != null
-                    ? classSubjects[selectedClass]!.map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(
-                      value,
+                ..._getAvailableSubjects().map((subject) {
+                  return CheckboxListTile(
+                    title: Text(
+                      subject,
                       style: TextStyle(color: Colors.white),
                     ),
+                    value: selectedSubjects.contains(subject),
+                    onChanged: (bool? value) {
+                      setState(() {
+                        if (value == true) {
+                          if (selectedSubjects.length < 2) {
+                            selectedSubjects.add(subject);
+                          }
+                        } else {
+                          selectedSubjects.remove(subject);
+                        }
+                      });
+                    },
+                    activeColor: Colors.white,
+                    checkColor: Colors.black,
                   );
-                }).toList()
-                    : [],
-              ),
-              SizedBox(height: 20.0),
+                }).toList(),
+                SizedBox(height: 20.0),
 
-              // Save Button
-              ElevatedButton(
-                onPressed: (selectedClass != null && selectedSubject != null)
-                    ? () async {
-                  await _saveSelection();
-                  Navigator.pop(context); // Return to the previous page
-                }
-                    : null, // Disable the button if either selection is null
-                child: Text('Save'),
-              ),
-            ],
+                // Save Button
+                ElevatedButton(
+                  onPressed: (selectedClasses.isNotEmpty && selectedSubjects.isNotEmpty && !isSaved)
+                      ? () async {
+                    await _saveSelection();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ClassSubjectConfirmation(
+                          selectedClasses: selectedClasses,
+                          selectedSubjects: selectedSubjects,
+                        ),
+                      ),
+                    );
+                  }
+                      : null, // Disable the button if either selection is null or if already saved
+                  child: Text('Save'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  List<String> _getAvailableSubjects() {
+    // Get subjects based on selected classes
+    Set<String> availableSubjects = {};
+    for (var className in selectedClasses) {
+      availableSubjects.addAll(classSubjects[className]!);
+    }
+    return availableSubjects.toList();
   }
 
   Future<void> _saveSelection() async {
@@ -124,12 +146,62 @@ class _ClassSelectionState extends State<ClassSelection> {
     if (user != null) {
       try {
         await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-          'class': selectedClass,
-          'subject': selectedSubject,
+          'classes': selectedClasses,
+          'subjects': selectedSubjects,
+        });
+        setState(() {
+          isSaved = true; // Mark as saved
         });
       } catch (e) {
-        print('Error saving class and subject: $e');
+        print('Error saving classes and subjects: $e');
       }
     }
+  }
+}
+
+class ClassSubjectConfirmation extends StatelessWidget {
+  final List<String> selectedClasses;
+  final List<String> selectedSubjects;
+
+  ClassSubjectConfirmation({required this.selectedClasses, required this.selectedSubjects});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Confirmation'),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Your selection has been saved!',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Classes: ${selectedClasses.join(', ')}',
+                style: TextStyle(fontSize: 20),
+              ),
+              SizedBox(height: 10),
+              Text(
+                'Subjects: ${selectedSubjects.join(', ')}',
+                style: TextStyle(fontSize: 20),
+              ),
+              SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context); // Return to the previous page
+                },
+                child: Text('Back to Selection'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
