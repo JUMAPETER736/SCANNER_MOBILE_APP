@@ -128,7 +128,7 @@ class _ClassSelectionState extends State<ClassSelection> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ClassSubjectConfirmation(
+                    builder: (context) => GradeEntryPage(
                       selectedClasses: selectedClasses,
                       selectedSubjects: selectedSubjects,
                       classSubjects: classSubjects, // Pass classSubjects here
@@ -184,12 +184,12 @@ class _ClassSelectionState extends State<ClassSelection> {
   }
 }
 
-class ClassSubjectConfirmation extends StatelessWidget {
+class GradeEntryPage extends StatelessWidget {
   final List<String> selectedClasses;
   final List<String> selectedSubjects;
   final Map<String, List<String>> classSubjects; // Add classSubjects parameter
 
-  ClassSubjectConfirmation({
+  GradeEntryPage({
     required this.selectedClasses,
     required this.selectedSubjects,
     required this.classSubjects, // Accept it in the constructor
@@ -199,45 +199,54 @@ class ClassSubjectConfirmation extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Confirmation'),
+        title: Text('Enter Grades'),
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Your selection has been saved!',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 20),
-              // Display each class with its subjects
-              ...selectedClasses.map((className) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Class: $className',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Text(
+              'Classes and Subjects Selected',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 20),
+            Expanded(
+              child: ListView.builder(
+                itemCount: selectedClasses.length,
+                itemBuilder: (context, index) {
+                  String className = selectedClasses[index];
+                  return Card(
+                    margin: EdgeInsets.symmetric(vertical: 8.0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Class: $className',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'Subjects: ${selectedSubjects.where((subject) => classSubjects[className]?.contains(subject) ?? false).join(', ')}',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          SizedBox(height: 10),
+                          // Here you can add input fields for grades
+                          TextField(
+                            decoration: InputDecoration(
+                              labelText: 'Enter Grades for $className',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ],
+                      ),
                     ),
-                    Text(
-                      'Subjects: ${selectedSubjects.where((subject) => classSubjects[className]?.contains(subject) ?? false).join(', ')}',
-                      style: TextStyle(fontSize: 20),
-                    ),
-                    SizedBox(height: 10),
-                  ],
-                );
-              }).toList(),
-              SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context); // Return to the previous page
+                  );
                 },
-                child: Text('Back to Selection'),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
