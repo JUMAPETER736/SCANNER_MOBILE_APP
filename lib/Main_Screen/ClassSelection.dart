@@ -131,7 +131,6 @@ class _ClassSelectionState extends State<ClassSelection> {
                     builder: (context) => GradeEntryPage(
                       selectedClasses: selectedClasses,
                       selectedSubjects: selectedSubjects,
-                      classSubjects: classSubjects, // Pass classSubjects here
                     ),
                   ),
                 );
@@ -187,12 +186,10 @@ class _ClassSelectionState extends State<ClassSelection> {
 class GradeEntryPage extends StatelessWidget {
   final List<String> selectedClasses;
   final List<String> selectedSubjects;
-  final Map<String, List<String>> classSubjects; // Add classSubjects parameter
 
   GradeEntryPage({
     required this.selectedClasses,
     required this.selectedSubjects,
-    required this.classSubjects, // Accept it in the constructor
   });
 
   @override
