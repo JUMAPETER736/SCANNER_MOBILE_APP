@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:scanna/Settings/SettingsPage.dart';
 import 'package:scanna/Main_Screen/GradeAnalytics.dart';
-import 'package:scanna/Main_Screen/GradeEntryForm.dart';
 import 'package:scanna/Main_Screen/ClassSelection.dart';
 
 User? loggedInUser; // Make loggedInUser nullable
