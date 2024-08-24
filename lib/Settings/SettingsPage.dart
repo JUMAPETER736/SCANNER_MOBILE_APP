@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:scanna/settings/UserDetailsPage.dart';
-import 'package:scanna/settings/ThemeDisplaySettingsPage.dart';
-import 'package:scanna/settings/BackupSyncPage.dart';
-import 'package:scanna/settings/AppInfoPage.dart';
-import 'package:scanna/settings/GradeSettingsPage.dart';
-import 'package:scanna/settings/LanguageRegionSettingsPage.dart';
-import 'package:scanna/settings/NotificationSettingsPage.dart';
-import 'package:scanna/settings/QRCodeSettingsPage.dart';
-import 'package:scanna/settings/SecuritySettingsPage.dart';
+import 'package:scanna/Settings/UserDetailsPage.dart';
+import 'package:scanna/Settings/ThemeDisplaySettingsPage.dart';
+import 'package:scanna/Settings/BackupSyncPage.dart';
+import 'package:scanna/Settings/AppInfoPage.dart';
+import 'package:scanna/Settings/GradeSettingsPage.dart';
+import 'package:scanna/Settings/LanguageRegionSettingsPage.dart';
+import 'package:scanna/Settings/NotificationSettingsPage.dart';
+import 'package:scanna/Settings/QRCodeSettingsPage.dart';
+import 'package:scanna/Settings/SecuritySettingsPage.dart';
 
 class SettingsPage extends StatefulWidget {
   final User? user;
@@ -97,7 +97,7 @@ class _SettingsPageState extends State<SettingsPage> {
           // Language & Region Settings
           ListTile(
             title: Text('Language & Region'),
-            subtitle: Text('Language selection and regional settings'),
+            subtitle: Text('Language selection and Regional settings'),
             leading: Icon(Icons.language),
             onTap: () {
               // Navigate to LanguageRegionSettingsPage with required parameters
@@ -120,7 +120,7 @@ class _SettingsPageState extends State<SettingsPage> {
           // Backup & Sync
           ListTile(
             title: Text('Backup & Sync'),
-            subtitle: Text('Cloud backup and data synchronization'),
+            subtitle: Text('Cloud Backup and Data Synchronization'),
             leading: Icon(Icons.backup),
             onTap: () {
               // Navigate to BackupSyncPage
@@ -136,7 +136,7 @@ class _SettingsPageState extends State<SettingsPage> {
           // Theme & Display Settings
           ListTile(
             title: Text('Theme & Display'),
-            subtitle: Text('App theme, font size, and layout'),
+            subtitle: Text('App Theme, font size, and layout'),
             leading: Icon(Icons.color_lens),
             onTap: () {
               // Navigate to ThemeDisplaySettingsPage
@@ -154,7 +154,7 @@ class _SettingsPageState extends State<SettingsPage> {
           // Notification Settings
           ListTile(
             title: Text('Notification Settings'),
-            subtitle: Text('Manage notifications preferences'),
+            subtitle: Text('Manage Notifications preferences'),
             leading: Icon(Icons.notifications),
             onTap: () {
               // Navigate to NotificationSettingsPage
@@ -170,7 +170,7 @@ class _SettingsPageState extends State<SettingsPage> {
           // Security Settings
           ListTile(
             title: Text('Security Settings'),
-            subtitle: Text('Manage security options'),
+            subtitle: Text('Manage Security options'),
             leading: Icon(Icons.security),
             onTap: () {
               // Navigate to SecuritySettingsPage

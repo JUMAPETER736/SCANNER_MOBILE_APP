@@ -13,6 +13,8 @@ class UserDetailsPage extends StatefulWidget {
 
 class _UserDetailsPageState extends State<UserDetailsPage> {
   String _username = '';
+  String _selectedClass = '';
+  String _selectedSubject = '';
 
   @override
   void initState() {
@@ -26,6 +28,9 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
       if (snapshot.exists) {
         setState(() {
           _username = snapshot['name'] ?? '';
+          _selectedClass = snapshot['class'] ?? 'N/A';
+          _selectedSubject = snapshot['subject'] ?? 'N/A';
+
         });
       }
     } catch (e) {
@@ -61,6 +66,20 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
           leading: Icon(Icons.email),
           title: Text('Email'),
           subtitle: Text(widget.user?.email ?? 'N/A'),
+        ),
+        Divider(),
+
+        Divider(),
+        ListTile(
+          leading: Icon(Icons.class_),
+          title: Text('Selected Class'),
+          subtitle: Text(_selectedClass),
+        ),
+        Divider(),
+        ListTile(
+          leading: Icon(Icons.subject),
+          title: Text('Selected Subject'),
+          subtitle: Text(_selectedSubject),
         ),
         Divider(),
 

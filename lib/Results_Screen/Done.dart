@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:scanna/settings/SettingsPage.dart'; // Import the settings page
+import 'package:scanna/Settings/SettingsPage.dart';
+import 'package:scanna/Main_Screen/GradeAnalytics.dart';
+import 'package:scanna/Main_Screen/GradeEntryForm.dart';
+import 'package:scanna/Main_Screen/ClassSelection.dart';
 
 User? loggedInUser; // Make loggedInUser nullable
 
@@ -70,11 +73,48 @@ class _DoneState extends State<Done> {
               ],
             ),
           ),
-          child: Center(
-            child: Text(
-              'Welcome ${loggedInUser?.displayName ?? 'User'}!',
-              style: TextStyle(fontSize: 50.0, color: Colors.white),
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Welcome ${loggedInUser?.displayName ?? 'User'}!',
+                style: TextStyle(fontSize: 50.0, color: Colors.white),
+              ),
+              SizedBox(height: 20.0),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ClassSelection(),
+                    ),
+                  );
+                },
+                child: Text('CLASS'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GradeEntryForm(), // Ensure GradeEntryForm is correctly defined
+                    ),
+                  );
+                },
+                child: Text('Enter Grades'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GradeAnalytics(), // Update as necessary
+                    ),
+                  );
+                },
+                child: Text('View Analytics'),
+              ),
+            ],
           ),
         ),
       ),
