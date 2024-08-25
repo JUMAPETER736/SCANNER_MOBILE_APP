@@ -139,9 +139,8 @@ class _RegisterPageState extends State<RegisterPage> {
     Fluttertoast.showToast(
       msg: "Registered Successfully",
       toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.green,
-      textColor: Colors.white,
+      // gravity: ToastGravity.BOTTOM,
+      textColor: Colors.blue,
       fontSize: 16.0,
     );
   }

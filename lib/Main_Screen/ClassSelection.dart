@@ -53,7 +53,7 @@ class _ClassSelectionState extends State<ClassSelection> {
           children: [
             // Class Selection
             Text(
-              'Select Classes (Max 2)',
+              'Select Classes (Max 1)',
               style: TextStyle(color: Colors.black, fontSize: 20),
             ),
             ...classSubjects.keys.map((className) {
@@ -68,10 +68,10 @@ class _ClassSelectionState extends State<ClassSelection> {
                     : (bool? value) {
                   setState(() {
                     if (value == true) {
-                      if (selectedClasses.length < 2) {
+                      if (selectedClasses.length < 1) {
                         selectedClasses.add(className);
                       } else {
-                        _showToast("You can't select more than 2 classes");
+                        _showToast("You can't select  2 classes");
                       }
                     } else {
                       selectedClasses.remove(className);
@@ -120,7 +120,7 @@ class _ClassSelectionState extends State<ClassSelection> {
             // Save Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue, // Change button color here
+                backgroundColor: const Color.fromARGB(255, 105, 104, 104), // Change button color here
               ),
               onPressed: (selectedClasses.isNotEmpty && selectedSubjects.isNotEmpty && !isSaved)
                   ? () async {
@@ -177,8 +177,7 @@ class _ClassSelectionState extends State<ClassSelection> {
       toastLength: Toast.LENGTH_SHORT,
       gravity: ToastGravity.BOTTOM,
       timeInSecForIosWeb: 1,
-      backgroundColor: Colors.black,
-      textColor: Colors.white,
+      textColor: Colors.blue,
       fontSize: 16.0,
     );
   }
