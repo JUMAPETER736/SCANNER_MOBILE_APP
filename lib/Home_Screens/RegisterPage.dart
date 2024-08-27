@@ -218,19 +218,19 @@ class _RegisterPageState extends State<RegisterPage> {
                     'Register',
                     style: TextStyle(fontSize: 50.0),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Let\'s get',
-                        style: TextStyle(fontSize: 30.0),
-                      ),
-                      Text(
-                        'you on board',
-                        style: TextStyle(fontSize: 30.0),
-                      ),
-                    ],
-                  ),
+                  // Column(
+                  //   crossAxisAlignment: CrossAxisAlignment.start,
+                  //   children: [
+                  //     Text(
+                  //       'Let\'s get',
+                  //       style: TextStyle(fontSize: 30.0),
+                  //     ),
+                  //     Text(
+                  //       'you on board',
+                  //       style: TextStyle(fontSize: 30.0),
+                  //     ),
+                  //   ],
+                  // ),
                   Column(
                     children: [
                       TextField(
