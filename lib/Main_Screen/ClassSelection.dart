@@ -120,7 +120,7 @@ class _ClassSelectionState extends State<ClassSelection> {
             // Save Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 105, 104, 104), // Change button color here
+                backgroundColor: Colors.blue, // Set button color to blue
               ),
               onPressed: (selectedClasses.isNotEmpty && selectedSubjects.isNotEmpty && !isSaved)
                   ? () async {
@@ -137,7 +137,10 @@ class _ClassSelectionState extends State<ClassSelection> {
                 );
               }
                   : null, // Disable the button if either selection is null or if already saved
-              child: Text('Save'),
+              child: Text(
+                'Save',
+                style: TextStyle(color: Colors.black), // Set text color to black
+              ),
             ),
           ],
         ),
