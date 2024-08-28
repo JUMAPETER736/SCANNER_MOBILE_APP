@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:validators/validators.dart' as validator;
+import 'package:scanna/Results_Screen/Done.dart';
 import 'package:scanna/Home_Screens/LoginPage.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -19,7 +20,7 @@ class _RegisterPageState extends State<RegisterPage> {
   String? name;
   String? email;
   String? password;
-  String? confirmPassword;
+  String? confirmPassword; // Added variable for confirm password
 
   bool _showSpinner = false;
   bool _wrongEmail = false;
@@ -27,14 +28,14 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _emptyNameField = false;
   bool _emptyEmailField = false;
   bool _emptyPasswordField = false;
-  bool _passwordMismatch = false;
+  bool _passwordMismatch = false; // Added flag for password mismatch
 
   String _emailText = 'Please use a valid Email';
   String _passwordText = 'Please use a strong Password';
   String _emptyNameFieldText = 'Please fill in the Name field';
   String _emptyEmailFieldText = 'Please fill in the Email field';
   String _emptyPasswordFieldText = 'Please fill in the Password field';
-  String _passwordMismatchText = 'Passwords do not match';
+  String _passwordMismatchText = 'Passwords do not match'; // Error message for password mismatch
   String _inUsedEmailText = 'The Email address is already in use by another Account.';
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -46,9 +47,10 @@ class _RegisterPageState extends State<RegisterPage> {
       _emptyNameField = false;
       _emptyEmailField = false;
       _emptyPasswordField = false;
-      _passwordMismatch = false;
+      _passwordMismatch = false; // Reset password mismatch flag
     });
 
+    // Validate input fields
     if (name == null || name!.isEmpty) {
       setState(() {
         _emptyNameField = true;
@@ -86,7 +88,7 @@ class _RegisterPageState extends State<RegisterPage> {
           _wrongPassword = true;
         }
         if (password != confirmPassword) {
-          _passwordMismatch = true;
+          _passwordMismatch = true; // Set password mismatch flag
         }
       });
       return;
@@ -97,20 +99,17 @@ class _RegisterPageState extends State<RegisterPage> {
     });
 
     try {
-      await _auth.createUserWithEmailAndPassword(
+      final newUser = await _auth.createUserWithEmailAndPassword(
         email: email!,
         password: password!,
       );
 
-      // Save the user's details to Firestore
-      await _saveUserDetails();
-      _showSuccessToast();
-
-      // Navigate to Done screen after a delay to let the toast finish
-      Future.delayed(Duration(seconds: 2), () {
-        Navigator.pushNamed(context, LoginPage.id);
-      });
-
+      if (newUser.user != null) {
+        // Save the user's details to Firestore
+        await _saveUserDetails(newUser.user!);
+        _showSuccessToast();
+        Navigator.pushNamed(context, Done.id);
+      }
     } on FirebaseAuthException catch (e) {
       setState(() {
         _showSpinner = false;
@@ -127,8 +126,8 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  Future<void> _saveUserDetails() async {
-    await FirebaseFirestore.instance.collection('users').add({
+  Future<void> _saveUserDetails(User user) async {
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
       'name': name ?? 'Unknown',
       'email': email ?? 'Unknown',
       'createdAt': Timestamp.now(),
@@ -140,6 +139,7 @@ class _RegisterPageState extends State<RegisterPage> {
     Fluttertoast.showToast(
       msg: "Registered Successfully",
       toastLength: Toast.LENGTH_SHORT,
+      // gravity: ToastGravity.BOTTOM,
       textColor: Colors.blue,
       fontSize: 16.0,
     );
@@ -176,9 +176,9 @@ class _RegisterPageState extends State<RegisterPage> {
       }
 
       if (userCredential != null && userCredential.user != null) {
-        await _saveUserDetails();
+        await _saveUserDetails(userCredential.user!);
         _showSuccessToast();
-        Navigator.pushNamed(context, LoginPage.id);
+        Navigator.pushNamed(context, Done.id);
       }
     } catch (e) {
       print(e);
@@ -199,10 +199,7 @@ class _RegisterPageState extends State<RegisterPage> {
         color: Colors.blueAccent,
         child: Stack(
           children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: Image.asset('assets/images/background.png'),
-            ),
+
             Padding(
               padding: EdgeInsets.only(
                 top: 30.0,
@@ -218,6 +215,19 @@ class _RegisterPageState extends State<RegisterPage> {
                     'Please Register',
                     style: TextStyle(fontSize: 50.0),
                   ),
+                  // Column(
+                  //   crossAxisAlignment: CrossAxisAlignment.start,
+                  //   children: [
+                  //     Text(
+                  //       'Let\'s get',
+                  //       style: TextStyle(fontSize: 30.0),
+                  //     ),
+                  //     Text(
+                  //       'you on board',
+                  //       style: TextStyle(fontSize: 30.0),
+                  //     ),
+                  //   ],
+                  // ),
                   Column(
                     children: [
                       TextField(
@@ -253,12 +263,13 @@ class _RegisterPageState extends State<RegisterPage> {
                           errorText: _wrongPassword ? _passwordText : _emptyPasswordField ? _emptyPasswordFieldText : null,
                         ),
                       ),
+
                       SizedBox(height: 20.0),
                       TextField(
                         obscureText: true,
                         keyboardType: TextInputType.visiblePassword,
                         onChanged: (value) {
-                          confirmPassword = value;
+                          confirmPassword = value; // Capture confirm password input
                         },
                         decoration: InputDecoration(
                           labelText: 'Confirm Password',
@@ -282,32 +293,110 @@ class _RegisterPageState extends State<RegisterPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      GestureDetector(
-                        onTap: () => _signInWithSocialMedia('google'),
-                        child: CircleAvatar(
-                          backgroundImage: AssetImage('assets/images/google-logo.png'),
-                          radius: 25.0,
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 10.0),
+                        child: Container(
+                          height: 1.0,
+                          width: 60.0,
+                          color: Colors.black87,
                         ),
                       ),
-                      SizedBox(width: 20.0),
-                      GestureDetector(
-                        onTap: () => _signInWithSocialMedia('facebook'),
-                        child: CircleAvatar(
-                          backgroundImage: AssetImage('assets/images/facebook-logo.png'),
-                          radius: 25.0,
+                      Text(
+                        'Or',
+                        style: TextStyle(fontSize: 25.0),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 10.0),
+                        child: Container(
+                          height: 1.0,
+                          width: 60.0,
+                          color: Colors.black87,
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 10.0),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushNamed(context, LoginPage.id);
-                    },
-                    child: Text(
-                      "Already have an Account? Log in",
-                      style: TextStyle(color: Colors.blue, fontSize: 16.0),
-                      textAlign: TextAlign.center,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => _signInWithSocialMedia('google'),
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 10.0),
+                            backgroundColor: Color(0xff447def), // Blue background color
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                              side: BorderSide(width: 0.5, color: Colors.grey[400]!),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/images/google.png',
+                                fit: BoxFit.contain,
+                                width: 40.0,
+                                height: 40.0,
+                              ),
+                              SizedBox(width: 10.0),
+                              Text(
+                                'Google',
+                                style: TextStyle(fontSize: 25.0, color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 20.0),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => _signInWithSocialMedia('facebook'),
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 10.0),
+                            backgroundColor: Color(0xff447def),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                              side: BorderSide(width: 0.5, color: Colors.grey[400]!),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/images/facebook.png',
+                                fit: BoxFit.contain,
+                                width: 40.0,
+                                height: 40.0,
+                              ),
+                              SizedBox(width: 10.0),
+                              Text(
+                                'Facebook',
+                                style: TextStyle(fontSize: 25.0, color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Already have an Account?',
+                          style: TextStyle(fontSize: 15.0),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, LoginPage.id);
+                          },
+                          child: Text(
+                            'Log In',
+                            style: TextStyle(fontSize: 15.0, color: Colors.blue),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
