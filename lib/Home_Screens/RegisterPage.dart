@@ -9,7 +9,7 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
-class RegisterPage extends StatefulWidget {
+class RegisterPage extends StatefulWidget { 
   static String id = '/RegisterPage';
 
   @override
