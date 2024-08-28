@@ -215,7 +215,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Register',
+                    'Please Register',
                     style: TextStyle(fontSize: 50.0),
                   ),
                   // Column(
