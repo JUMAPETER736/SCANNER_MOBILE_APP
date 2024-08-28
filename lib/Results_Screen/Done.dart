@@ -56,55 +56,46 @@ class _DoneState extends State<Done> {
       ),
       body: Container(
         decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/images/done.jpg"),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.bottomRight,
-              stops: [0.5, 1],
-              colors: [
-                Colors.black.withOpacity(.9),
-                Colors.black.withOpacity(.2),
-              ],
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Welcome ${loggedInUser?.displayName ?? 'User'}!',
-                style: TextStyle(fontSize: 50.0, color: Colors.white),
-              ),
-              SizedBox(height: 20.0),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ClassSelection(),
-                    ),
-                  );
-                },
-                child: Text('CLASS'),
-              ),
-
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => GradeAnalytics(), // Update as necessary
-                    ),
-                  );
-                },
-                child: Text('View Analytics'),
-              ),
+          gradient: LinearGradient(
+            begin: Alignment.bottomRight,
+            stops: [0.5, 1],
+            colors: [
+              Colors.black.withOpacity(.9),
+              Colors.black.withOpacity(.2),
             ],
           ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Welcome ${loggedInUser?.displayName ?? 'User'}!',
+              style: TextStyle(fontSize: 50.0, color: Colors.white),
+            ),
+            SizedBox(height: 20.0),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ClassSelection(),
+                  ),
+                );
+              },
+              child: Text('CLASS'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => GradeAnalytics(),
+                  ),
+                );
+              },
+              child: Text('View Analytics'),
+            ),
+          ],
         ),
       ),
     );

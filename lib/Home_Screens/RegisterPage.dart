@@ -108,6 +108,7 @@ class _RegisterPageState extends State<RegisterPage> {
         // Save the user's details to Firestore
         await _saveUserDetails(newUser.user!);
         _showSuccessToast();
+        // Navigate to Done screen without logging in automatically
         Navigator.pushNamed(context, Done.id);
       }
     } on FirebaseAuthException catch (e) {
@@ -139,7 +140,6 @@ class _RegisterPageState extends State<RegisterPage> {
     Fluttertoast.showToast(
       msg: "Registered Successfully",
       toastLength: Toast.LENGTH_SHORT,
-      // gravity: ToastGravity.BOTTOM,
       textColor: Colors.blue,
       fontSize: 16.0,
     );
@@ -199,7 +199,6 @@ class _RegisterPageState extends State<RegisterPage> {
         color: Colors.blueAccent,
         child: Stack(
           children: [
-
             Padding(
               padding: EdgeInsets.only(
                 top: 30.0,
@@ -215,19 +214,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     'Please Register',
                     style: TextStyle(fontSize: 50.0),
                   ),
-                  // Column(
-                  //   crossAxisAlignment: CrossAxisAlignment.start,
-                  //   children: [
-                  //     Text(
-                  //       'Let\'s get',
-                  //       style: TextStyle(fontSize: 30.0),
-                  //     ),
-                  //     Text(
-                  //       'you on board',
-                  //       style: TextStyle(fontSize: 30.0),
-                  //     ),
-                  //   ],
-                  // ),
                   Column(
                     children: [
                       TextField(
@@ -263,7 +249,6 @@ class _RegisterPageState extends State<RegisterPage> {
                           errorText: _wrongPassword ? _passwordText : _emptyPasswordField ? _emptyPasswordFieldText : null,
                         ),
                       ),
-
                       SizedBox(height: 20.0),
                       TextField(
                         obscureText: true,
@@ -316,88 +301,36 @@ class _RegisterPageState extends State<RegisterPage> {
                     ],
                   ),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => _signInWithSocialMedia('google'),
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 10.0),
-                            backgroundColor: Color(0xff447def), // Blue background color
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.0),
-                              side: BorderSide(width: 0.5, color: Colors.grey[400]!),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'assets/images/google.png',
-                                fit: BoxFit.contain,
-                                width: 40.0,
-                                height: 40.0,
-                              ),
-                              SizedBox(width: 10.0),
-                              Text(
-                                'Google',
-                                style: TextStyle(fontSize: 25.0, color: Colors.white),
-                              ),
-                            ],
-                          ),
-                        ),
+                      TextButton(
+                        onPressed: () => _signInWithSocialMedia('google'),
+                        child: Image.asset('assets/google.png', height: 30.0),
                       ),
                       SizedBox(width: 20.0),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => _signInWithSocialMedia('facebook'),
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 10.0),
-                            backgroundColor: Color(0xff447def),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.0),
-                              side: BorderSide(width: 0.5, color: Colors.grey[400]!),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'assets/images/facebook.png',
-                                fit: BoxFit.contain,
-                                width: 40.0,
-                                height: 40.0,
-                              ),
-                              SizedBox(width: 10.0),
-                              Text(
-                                'Facebook',
-                                style: TextStyle(fontSize: 25.0, color: Colors.white),
-                              ),
-                            ],
-                          ),
-                        ),
+                      TextButton(
+                        onPressed: () => _signInWithSocialMedia('facebook'),
+                        child: Image.asset('assets/facebook.png', height: 30.0),
                       ),
                     ],
                   ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Already have an Account?',
-                          style: TextStyle(fontSize: 15.0),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Already have an account?',
+                        style: TextStyle(fontSize: 20.0),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushReplacementNamed(context, LoginPage.id);
+                        },
+                        child: Text(
+                          'Login',
+                          style: TextStyle(fontSize: 20.0, color: Colors.blue),
                         ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, LoginPage.id);
-                          },
-                          child: Text(
-                            'Log In',
-                            style: TextStyle(fontSize: 15.0, color: Colors.blue),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
