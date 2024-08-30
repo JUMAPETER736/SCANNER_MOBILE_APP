@@ -8,7 +8,7 @@ import 'package:scanna/Main_Screen/GradeAnalytics.dart';
 import 'package:scanna/Main_Screen/ClassSelection.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart'; 
 import 'package:barcode/barcode.dart' as barcodeLib; // Alias barcode package
-import 'package:barcode_widget/barcode_widget.dart'; 
+import 'package:barcode_widget/barcode_widget.dart';
 
 User? loggedInUser;
 
@@ -223,7 +223,6 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
 
       // Save student details to Firestore
       await _firestore.collection('Students').add({
-
         'firstName': firstName,
         'lastName': lastName,
         'studentClass': studentClass,
@@ -257,21 +256,67 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
           child: Column(
             children: [
               TextFormField(
-                decoration: InputDecoration(labelText: 'Student Name'),
+                decoration: InputDecoration(labelText: 'First Name'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please Enter Student Name';
+                    return 'Please enter the student\'s first name';
                   }
                   return null;
                 },
                 onSaved: (value) {
-                  
                   firstName = value;
+                },
+              ),
+              SizedBox(height: 10.0),
+              TextFormField(
+                decoration: InputDecoration(labelText: 'Last Name'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the student\'s last name';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
                   lastName = value;
+                },
+              ),
+              SizedBox(height: 10.0),
+              TextFormField(
+                decoration: InputDecoration(labelText: 'Class'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the student\'s class';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
                   studentClass = value;
+                },
+              ),
+              SizedBox(height: 10.0),
+              TextFormField(
+                decoration: InputDecoration(labelText: 'Age'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the student\'s age';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
                   studentAge = value;
+                },
+              ),
+              SizedBox(height: 10.0),
+              TextFormField(
+                decoration: InputDecoration(labelText: 'Gender'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the student\'s gender';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
                   studentGender = value;
-
                 },
               ),
               SizedBox(height: 20.0),
@@ -323,25 +368,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    // Create QRView directly without a controller constructor
-  }
-
-  void _onQRViewCreated(QRViewController controller) {
-    setState(() {
-      this.controller = controller;
-    });
-
-    controller.scannedDataStream.listen((scanData) {
-      setState(() {
-        scanResult = scanData.code;
-      });
-      Navigator.pop(context, scanData.code);
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -366,6 +392,17 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
         ],
       ),
     );
+  }
+
+  void _onQRViewCreated(QRViewController controller) {
+    this.controller = controller;
+
+    controller.scannedDataStream.listen((scanData) {
+      setState(() {
+        scanResult = scanData.code;
+      });
+      Navigator.pop(context, scanData.code);
+    });
   }
 
   @override
