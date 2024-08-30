@@ -57,12 +57,21 @@ class _DoneState extends State<Done> {
         ],
       ),
       body: Container(
-        color: Colors.white, // Set the background to white
+        color: Colors.white,
+        padding: EdgeInsets.all(16.0), // Add padding
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
-              onPressed: () {
+            // Welcome Message
+            Text(
+              'Welcome, ${loggedInUser?.displayName ?? 'User'}!',
+              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 40.0), // Spacing before buttons
+            
+            // Button for Class Selection
+            GestureDetector(
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -70,10 +79,29 @@ class _DoneState extends State<Done> {
                   ),
                 );
               },
-              child: Text('Select Class'),
+              child: Card(
+                elevation: 5,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.class_, size: 40, color: Colors.blue),
+                      SizedBox(width: 10),
+                      Text(
+                        'Select Class',
+                        style: TextStyle(fontSize: 20.0),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-            ElevatedButton(
-              onPressed: () {
+            SizedBox(height: 20.0), // Spacing between buttons
+            
+            // Button for Viewing Grade Analytics
+            GestureDetector(
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -81,11 +109,29 @@ class _DoneState extends State<Done> {
                   ),
                 );
               },
-              child: Text('View Grade Analytics'),
+              child: Card(
+                elevation: 5,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.analytics, size: 40, color: Colors.green),
+                      SizedBox(width: 10),
+                      Text(
+                        'View Grade Analytics',
+                        style: TextStyle(fontSize: 20.0),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-            SizedBox(height: 20.0),
-            ElevatedButton(
-              onPressed: () {
+            SizedBox(height: 20.0), // Spacing between buttons
+            
+            // Button for Scanning Grades
+            GestureDetector(
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -93,9 +139,27 @@ class _DoneState extends State<Done> {
                   ),
                 );
               },
-              child: Text('Scan Student Grades'),
+              child: Card(
+                elevation: 5,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.camera_alt, size: 40, color: Colors.orange),
+                      SizedBox(width: 10),
+                      Text(
+                        'Scan Student Grades',
+                        style: TextStyle(fontSize: 20.0),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-            SizedBox(height: 20.0),
+            SizedBox(height: 20.0), // Spacing for last text
+            
+            // Display Last Scan Result
             if (scanResult != null)
               Text(
                 'Last Scan: $scanResult',
@@ -103,6 +167,32 @@ class _DoneState extends State<Done> {
               ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+        ],
+        onTap: (index) {
+          if (index == 0) {
+            // Navigate to Home
+            Navigator.pushReplacementNamed(context, Done.id);
+          } else {
+            // Navigate to Settings
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SettingsPage(user: loggedInUser),
+              ),
+            );
+          }
+        },
       ),
     );
   }
