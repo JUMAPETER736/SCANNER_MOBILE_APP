@@ -1,14 +1,11 @@
 import 'dart:math';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/Settings/SettingsPage.dart';
 import 'package:scanna/Main_Screen/GradeAnalytics.dart';
 import 'package:scanna/Main_Screen/ClassSelection.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart'; 
-import 'package:barcode/barcode.dart' as barcodeLib; // Alias barcode package
-import 'package:barcode_widget/barcode_widget.dart';
+import 'package:qr_flutter/qr_flutter.dart'; 
 
 User? loggedInUser;
 
@@ -73,7 +70,7 @@ class _DoneState extends State<Done> {
               style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 40.0), // Spacing before buttons
-            
+
             // Button for Class Selection
             GestureDetector(
               onTap: () {
@@ -103,7 +100,7 @@ class _DoneState extends State<Done> {
               ),
             ),
             SizedBox(height: 20.0), // Spacing between buttons
-            
+
             // Button for Viewing Grade Analytics
             GestureDetector(
               onTap: () {
@@ -133,7 +130,7 @@ class _DoneState extends State<Done> {
               ),
             ),
             SizedBox(height: 20.0), // Spacing between buttons
-            
+
             // Button for Entering Student Details
             GestureDetector(
               onTap: () {
@@ -163,7 +160,7 @@ class _DoneState extends State<Done> {
               ),
             ),
             SizedBox(height: 20.0), // Spacing for last text
-            
+
             // Display Last Scan Result
             if (scanResult != null)
               Text(
@@ -179,11 +176,18 @@ class _DoneState extends State<Done> {
             icon: Icon(Icons.home),
             label: 'Home',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.help_outline),
+            label: 'Help',
+          ),
         ],
         onTap: (index) {
           if (index == 0) {
             // Navigate to Home
             Navigator.pushReplacementNamed(context, Done.id);
+          }
+          if (index == 1) {
+            // Navigate to Help or any other feature you want to add
           }
         },
       ),
@@ -206,7 +210,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
   String? studentAge;
   String? studentGender;
   String? studentID;
-  String? generatedBarcode;
+  String? generatedQRCode;
 
   String generateRandomStudentID() {
     Random random = Random();
@@ -221,25 +225,36 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
       // Generate random student ID
       studentID = generateRandomStudentID();
 
-      // Save student details to Firestore
-      await _firestore.collection('Students').add({
-        'firstName': firstName,
-        'lastName': lastName,
-        'studentClass': studentClass,
-        'studentAge': studentAge,
-        'studentGender': studentGender,
-        'studentID': studentID,
-        'createdBy': loggedInUser?.uid,
-      });
+      // Save student details to Firestore under the user's document
+      try {
+        await _firestore
+            .collection('Students') 
+            .doc(loggedInUser?.uid) 
+            .collection('StudentDetails') 
+            .doc(studentID) 
+            .set({
+          'firstName': firstName,
+          'lastName': lastName,
+          'studentClass': studentClass,
+          'studentAge': studentAge,
+          'studentGender': studentGender,
+          'studentID': studentID,
+          'createdBy': loggedInUser?.uid,
+        });
 
-      // Generate Barcode after saving
-      setState(() {
-        generatedBarcode = studentID; // Use studentID as the barcode data
-      });
+        // Generate QR Code after saving
+        setState(() {
+          generatedQRCode = studentID; // Use studentID as the QR code data
+        });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Student details saved successfully!')),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Student Details saved Successfully!')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving Student Details: $e')),
+        );
+      }
     }
   }
 
@@ -259,7 +274,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                 decoration: InputDecoration(labelText: 'First Name'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter the student\'s first name';
+                    return 'Please Enter the Student\'s First Name';
                   }
                   return null;
                 },
@@ -272,7 +287,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                 decoration: InputDecoration(labelText: 'Last Name'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter the student\'s last name';
+                    return 'Please Enter the Student\'s Last Name';
                   }
                   return null;
                 },
@@ -281,16 +296,25 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                 },
               ),
               SizedBox(height: 10.0),
-              TextFormField(
+              DropdownButtonFormField<String>(
                 decoration: InputDecoration(labelText: 'Class'),
+                items: ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4']
+                    .map((String classValue) {
+                  return DropdownMenuItem<String>(
+                    value: classValue,
+                    child: Text(classValue),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    studentClass = newValue!;
+                  });
+                },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter the student\'s class';
+                    return 'Please select the Student\'s Class';
                   }
                   return null;
-                },
-                onSaved: (value) {
-                  studentClass = value;
                 },
               ),
               SizedBox(height: 10.0),
@@ -298,7 +322,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                 decoration: InputDecoration(labelText: 'Age'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter the student\'s age';
+                    return 'Please Enter the Student\'s Age';
                   }
                   return null;
                 },
@@ -307,16 +331,25 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                 },
               ),
               SizedBox(height: 10.0),
-              TextFormField(
+              DropdownButtonFormField<String>(
                 decoration: InputDecoration(labelText: 'Gender'),
+                items: ['Male', 'Female']
+                    .map((String gender) {
+                  return DropdownMenuItem<String>(
+                    value: gender,
+                    child: Text(gender),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    studentGender = newValue!;
+                  });
+                },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter the student\'s gender';
+                    return 'Please select the Student\'s gender';
                   }
                   return null;
-                },
-                onSaved: (value) {
-                  studentGender = value;
                 },
               ),
               SizedBox(height: 20.0),
@@ -325,18 +358,16 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                 child: Text('Save Student Details'),
               ),
               SizedBox(height: 20.0),
-              if (generatedBarcode != null)
+
+              // Display QR Code if generated
+              if (generatedQRCode != null)
                 Column(
                   children: [
-                    Text(
-                      'Generated Barcode:',
-                      style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-                    ),
-                    BarcodeWidget(
-                      barcode: barcodeLib.Barcode.code128(), // Use the aliased barcode class
-                      data: generatedBarcode!,
-                      width: 200,
-                      height: 80,
+                    Text('Generated QR Code for Student ID: $generatedQRCode'),
+                    QrImage(
+                      data: generatedQRCode!,
+                      version: QrVersions.auto,
+                      size: 200.0,
                     ),
                   ],
                 ),
@@ -345,69 +376,5 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
         ),
       ),
     );
-  }
-}
-
-class QRCodeScannerPage extends StatefulWidget {
-  @override
-  _QRCodeScannerPageState createState() => _QRCodeScannerPageState();
-}
-
-class _QRCodeScannerPageState extends State<QRCodeScannerPage> {
-  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
-  QRViewController? controller; // Update based on latest QR package
-  String? scanResult;
-
-  @override
-  void reassemble() {
-    super.reassemble();
-    if (Platform.isAndroid) {
-      controller!.pauseCamera();
-    }
-    controller!.resumeCamera();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('QR Code Scanner'),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: QRView(
-              key: qrKey,
-              onQRViewCreated: _onQRViewCreated,
-            ),
-          ),
-          if (scanResult != null)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                'Scanned Code: $scanResult',
-                style: TextStyle(fontSize: 20.0),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  void _onQRViewCreated(QRViewController controller) {
-    this.controller = controller;
-
-    controller.scannedDataStream.listen((scanData) {
-      setState(() {
-        scanResult = scanData.code;
-      });
-      Navigator.pop(context, scanData.code);
-    });
-  }
-
-  @override
-  void dispose() {
-    controller?.dispose();
-    super.dispose();
   }
 }
