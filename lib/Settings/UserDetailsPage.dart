@@ -2,6 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'User Details App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: UserDetailsPage(user: FirebaseAuth.instance.currentUser),
+    );
+  }
+}
+
 class UserDetailsPage extends StatefulWidget {
   final User? user;
 
@@ -13,23 +30,30 @@ class UserDetailsPage extends StatefulWidget {
 
 class _UserDetailsPageState extends State<UserDetailsPage> {
   String _username = '';
+  List<String> _selectedClasses = []; // List to store multiple classes
+  List<String> _selectedSubjects = []; // List to store multiple subjects
 
   @override
   void initState() {
     super.initState();
-    fetchUsername();
+    fetchUserDetails();
   }
 
-  Future<void> fetchUsername() async {
+  Future<void> fetchUserDetails() async {
     try {
-      DocumentSnapshot snapshot = await FirebaseFirestore.instance.collection('users').doc(widget.user?.uid).get();
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.user?.uid)
+          .get();
       if (snapshot.exists) {
         setState(() {
           _username = snapshot['name'] ?? '';
+          _selectedClasses = List<String>.from(snapshot['classes'] ?? []);
+          _selectedSubjects = List<String>.from(snapshot['subjects'] ?? []);
         });
       }
     } catch (e) {
-      print('Error fetching username: $e');
+      print('Error fetching User Details: $e');
     }
   }
 
@@ -41,7 +65,9 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _username.isEmpty ? Center(child: CircularProgressIndicator()) : _buildUserDetails(),
+        child: _username.isEmpty
+            ? Center(child: CircularProgressIndicator())
+            : _buildUserDetails(),
       ),
     );
   }
@@ -49,7 +75,6 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
   Widget _buildUserDetails() {
     return ListView(
       children: [
-
         Divider(),
         ListTile(
           leading: Icon(Icons.person),
@@ -63,7 +88,18 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
           subtitle: Text(widget.user?.email ?? 'N/A'),
         ),
         Divider(),
-
+        ListTile(
+          leading: Icon(Icons.class_),
+          title: Text('Selected Classes'),
+          subtitle: Text(_selectedClasses.isNotEmpty ? _selectedClasses.join(', ') : 'N/A'),
+        ),
+        Divider(),
+        ListTile(
+          leading: Icon(Icons.subject),
+          title: Text('Selected Subjects'),
+          subtitle: Text(_selectedSubjects.isNotEmpty ? _selectedSubjects.join(', ') : 'N/A'),
+        ),
+        Divider(),
         ListTile(
           title: Text('Change Password'),
           leading: Icon(Icons.lock),
@@ -76,10 +112,7 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
             );
           },
         ),
-
         Divider(),
-
-
       ],
     );
   }
@@ -134,13 +167,13 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   style: TextStyle(color: Colors.red),
                 ),
               ),
-            Spacer(), // Pushes buttons to the bottom
+            Spacer(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.of(context).pop(); // Go back to UserDetailsPage
+                    Navigator.of(context).pop();
                   },
                   child: Text('Cancel'),
                 ),
@@ -187,12 +220,12 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
       await userCredential.user!.updatePassword(newPassword);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Password changed successfully!')),
+        SnackBar(content: Text('Password changed Successfully!')),
       );
-      Navigator.of(context).pop(); // Go back to UserDetailsPage
+      Navigator.of(context).pop();
     } catch (e) {
       setState(() {
-        errorMessage = 'Failed to change password: $e';
+        errorMessage = 'Failed to change Password: $e';
       });
     }
   }
