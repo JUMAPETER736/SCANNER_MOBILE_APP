@@ -27,12 +27,14 @@ class StudentNameList extends StatelessWidget {
             return Center(child: Text('User not found.'));
           }
 
+          // Assuming that the user's class is stored in a field called 'form'
           var userClass = userSnapshot.data!['form'];
-          var userSubject = userSnapshot.data!['subject']; // Assuming you have a field for subject
+          // You might also want to retrieve subjects here if needed
+          var userSubject = userSnapshot.data!['subject'];
 
-          // Check if class and subject are selected
-          if (userClass == null || userSubject == null) {
-            return Center(child: Text('Please select class and subjects first.'));
+          // Check if class is selected
+          if (userClass == null) {
+            return Center(child: Text('Please select class first.'));
           }
 
           return StreamBuilder<QuerySnapshot>(
@@ -91,6 +93,7 @@ class StudentNameList extends StatelessWidget {
               );
             },
           );
+          
         },
       ),
     );
