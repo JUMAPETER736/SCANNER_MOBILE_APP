@@ -53,12 +53,12 @@ class _DoneState extends State<Done> {
         ],
       ),
       body: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/images/done.jpg"),
-            fit: BoxFit.cover,
-          ),
-        ),
+        // decoration: BoxDecoration(
+        //   image: DecorationImage(
+        //     image: AssetImage("assets/images/done.jpg"),
+        //     fit: BoxFit.cover,
+        //   ),
+        // ),
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
