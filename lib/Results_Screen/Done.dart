@@ -1,11 +1,11 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/Settings/SettingsPage.dart';
 import 'package:scanna/Main_Screen/GradeAnalytics.dart';
 import 'package:scanna/Main_Screen/ClassSelection.dart';
-import 'package:qr_flutter/qr_flutter.dart'; 
+import 'package:scanna/Main_Screen/StudentDetails.dart'; // Import the StudentDetails
+import 'package:scanna/Main_Screen/Help.dart'; // Import the Help class
 
 User? loggedInUser;
 
@@ -18,7 +18,7 @@ class Done extends StatefulWidget {
 
 class _DoneState extends State<Done> {
   final _auth = FirebaseAuth.instance;
-  String? scanResult;
+  int _selectedIndex = 0; // Track the selected index for bottom navigation
 
   void getCurrentUser() async {
     try {
@@ -39,27 +39,23 @@ class _DoneState extends State<Done> {
     getCurrentUser();
   }
 
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  Future<void> _logout() async {
+    await _auth.signOut();
+    // Optionally navigate to the login page
+    // Navigator.pushReplacementNamed(context, LoginPage.id);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Scanna Dashboard'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SettingsPage(user: loggedInUser),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Container(
-        color: Colors.white,
+    Widget _buildHome() {
+      return Container(
+        color: Colors.lightBlueAccent, // Updated background color
         padding: EdgeInsets.all(16.0), // Add padding
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -67,7 +63,7 @@ class _DoneState extends State<Done> {
             // Welcome Message
             Text(
               'Welcome, ${loggedInUser?.displayName ?? 'User'}!',
-              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold, color: Colors.teal),
             ),
             SizedBox(height: 40.0), // Spacing before buttons
 
@@ -83,16 +79,18 @@ class _DoneState extends State<Done> {
               },
               child: Card(
                 elevation: 5,
+                color: Colors.blueAccent, // Button color
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 child: Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(16.0), // Adjusted padding
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.class_, size: 40, color: Colors.blue),
+                      Icon(Icons.class_, size: 30, color: Colors.white), // Adjusted icon size
                       SizedBox(width: 10),
                       Text(
                         'Select Class',
-                        style: TextStyle(fontSize: 20.0),
+                        style: TextStyle(fontSize: 18.0, color: Colors.white), // Adjusted text size and color
                       ),
                     ],
                   ),
@@ -113,16 +111,18 @@ class _DoneState extends State<Done> {
               },
               child: Card(
                 elevation: 5,
+                color: Colors.greenAccent, // Button color
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 child: Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(16.0), // Adjusted padding
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.analytics, size: 40, color: Colors.green),
+                      Icon(Icons.analytics, size: 30, color: Colors.white), // Adjusted icon size
                       SizedBox(width: 10),
                       Text(
                         'View Grade Analytics',
-                        style: TextStyle(fontSize: 20.0),
+                        style: TextStyle(fontSize: 18.0, color: Colors.white), // Adjusted text size and color
                       ),
                     ],
                   ),
@@ -137,243 +137,95 @@ class _DoneState extends State<Done> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => StudentDetailsPage(),
+                    builder: (context) => StudentDetails(),
                   ),
                 );
               },
               child: Card(
                 elevation: 5,
+                color: Colors.orangeAccent, // Button color
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 child: Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(16.0), // Adjusted padding
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.person_add, size: 40, color: Colors.purple),
+                      Icon(Icons.person_add, size: 30, color: Colors.white), // Adjusted icon size
                       SizedBox(width: 10),
                       Text(
                         'Enter Student Details',
-                        style: TextStyle(fontSize: 20.0),
+                        style: TextStyle(fontSize: 18.0, color: Colors.white), // Adjusted text size and color
                       ),
                     ],
                   ),
                 ),
               ),
             ),
-            SizedBox(height: 20.0), // Spacing for last text
+            SizedBox(height: 20.0), // Spacing for logout button
 
-            // Display Last Scan Result
-            if (scanResult != null)
-              Text(
-                'Last Scan: $scanResult',
-                style: TextStyle(fontSize: 16.0, color: Colors.black),
+            // Log Out Button
+            GestureDetector(
+              onTap: _logout,
+              child: Card(
+                elevation: 5,
+                color: Colors.redAccent, // Logout button color
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0), // Adjusted padding
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.logout, size: 30, color: Colors.white), // Adjusted icon size
+                      SizedBox(width: 10),
+                      Text(
+                        'Log Out',
+                        style: TextStyle(fontSize: 18.0, color: Colors.white), // Adjusted text size and color
+                      ),
+                    ],
+                  ),
+                ),
               ),
+            ),
           ],
         ),
+      );
+    }
+
+    Widget _buildHelp() {
+      return Help(); // Directly using the Help widget
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Scanna Dashboard'),
+        backgroundColor: Colors.teal, // AppBar color
       ),
+      body: _selectedIndex == 0 ? _buildHome() : _buildHelp(),
+
       bottomNavigationBar: BottomNavigationBar(
-        items: [
-          BottomNavigationBarItem(
+        items: const <BottomNavigationBarItem>[
+         
+
+            BottomNavigationBarItem(
+            icon: Icon(Icons.help),
+            label: 'Help',
+          ),
+
+           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
+
           BottomNavigationBarItem(
-            icon: Icon(Icons.help_outline),
-            label: 'Help',
+            icon: Icon(Icons.settings),
+            label: 'Settings',
           ),
         ],
-        onTap: (index) {
-          if (index == 0) {
-            // Navigate to Home
-            Navigator.pushReplacementNamed(context, Done.id);
-          }
-          if (index == 1) {
-            // Navigate to Help or any other feature you want to add
-          }
-        },
-      ),
-    );
-  }
-}
-
-class StudentDetailsPage extends StatefulWidget {
-  @override
-  _StudentDetailsPageState createState() => _StudentDetailsPageState();
-}
-
-class _StudentDetailsPageState extends State<StudentDetailsPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _firestore = FirebaseFirestore.instance;
-
-  String? firstName;
-  String? lastName;
-  String? studentClass;
-  String? studentAge;
-  String? studentGender;
-  String? studentID;
-  String? generatedQRCode;
-
-  String generateRandomStudentID() {
-    Random random = Random();
-    int id = 100000 + random.nextInt(900000); // Generate a random 6-digit number
-    return id.toString();
-  }
-
-  void saveStudentDetails() async {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-
-      // Generate random student ID
-      studentID = generateRandomStudentID();
-
-      // Save student details to Firestore under the user's document
-      try {
-        await _firestore
-            .collection('Students') 
-            .doc(loggedInUser?.uid) 
-            .collection('StudentDetails') 
-            .doc(studentID) 
-            .set({
-          'firstName': firstName,
-          'lastName': lastName,
-          'studentClass': studentClass,
-          'studentAge': studentAge,
-          'studentGender': studentGender,
-          'studentID': studentID,
-          'createdBy': loggedInUser?.uid,
-        });
-
-        // Generate QR Code after saving
-        setState(() {
-          generatedQRCode = studentID; // Use studentID as the QR code data
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Student Details saved Successfully!')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving Student Details: $e')),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Enter Student Details'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                decoration: InputDecoration(labelText: 'First Name'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please Enter the Student\'s First Name';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  firstName = value;
-                },
-              ),
-              SizedBox(height: 10.0),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Last Name'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please Enter the Student\'s Last Name';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  lastName = value;
-                },
-              ),
-              SizedBox(height: 10.0),
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(labelText: 'Class'),
-                items: ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4']
-                    .map((String classValue) {
-                  return DropdownMenuItem<String>(
-                    value: classValue,
-                    child: Text(classValue),
-                  );
-                }).toList(),
-                onChanged: (newValue) {
-                  setState(() {
-                    studentClass = newValue!;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select the Student\'s Class';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 10.0),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Age'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please Enter the Student\'s Age';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  studentAge = value;
-                },
-              ),
-              SizedBox(height: 10.0),
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(labelText: 'Gender'),
-                items: ['Male', 'Female']
-                    .map((String gender) {
-                  return DropdownMenuItem<String>(
-                    value: gender,
-                    child: Text(gender),
-                  );
-                }).toList(),
-                onChanged: (newValue) {
-                  setState(() {
-                    studentGender = newValue!;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select the Student\'s gender';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 20.0),
-              ElevatedButton(
-                onPressed: saveStudentDetails,
-                child: Text('Save Student Details'),
-              ),
-              SizedBox(height: 20.0),
-
-              // Display QR Code if generated
-              if (generatedQRCode != null)
-                Column(
-                  children: [
-                    Text('Generated QR Code for Student ID: $generatedQRCode'),
-                    QrImage(
-                      data: generatedQRCode!,
-                      version: QrVersions.auto,
-                      size: 200.0,
-                    ),
-                  ],
-                ),
-            ],
-          ),
-        ),
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        backgroundColor: Colors.teal,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white54,
       ),
     );
   }
