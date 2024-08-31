@@ -6,6 +6,7 @@ class Help extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Help & Support'),
+        automaticallyImplyLeading: false, 
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

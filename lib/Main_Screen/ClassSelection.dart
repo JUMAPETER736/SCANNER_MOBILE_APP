@@ -27,19 +27,42 @@ class _ClassSelectionState extends State<ClassSelection> {
     _checkSavedSelections();
   }
 
-  void _checkSavedSelections() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      DocumentSnapshot doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      if (doc.exists && doc['classes'] != null && doc['subjects'] != null) {
-        setState(() {
-          selectedClasses = List<String>.from(doc['classes']);
-          selectedSubjects = List<String>.from(doc['subjects']);
-          isSaved = true; // Mark as saved
-        });
-      }
+void _checkSavedSelections() async {
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    String userId = user.uid; // Get user's ID instead of email
+    DocumentSnapshot doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    if (doc.exists && doc['classes'] != null && doc['subjects'] != null) {
+      setState(() {
+        selectedClasses = List<String>.from(doc['classes']);
+        selectedSubjects = List<String>.from(doc['subjects']);
+        isSaved = true; // Mark as saved
+      });
     }
   }
+}
+
+Future<void> _saveSelection() async {
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    String userId = user.uid; // Use user ID for the document reference
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(userId).set({
+        'classes': selectedClasses,
+        'subjects': selectedSubjects,
+      }, SetOptions(merge: true)); // Use merge to update existing data
+      setState(() {
+        isSaved = true; // Mark as saved
+      });
+      _showToast("Selections saved Successfully!"); // Show success message
+    } catch (e) {
+      print('Error saving Classes and Subjects: $e');
+      _showToast("Error saving Selections."); // Show error message
+    }
+  }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -53,95 +76,98 @@ class _ClassSelectionState extends State<ClassSelection> {
           children: [
             // Class Selection
             Text(
-              'Select Classes (Max 1)',
+              'Selected Classes',
               style: TextStyle(color: Colors.black, fontSize: 20),
             ),
-            ...classSubjects.keys.map((className) {
-              return CheckboxListTile(
-                title: Text(
-                  className,
-                  style: TextStyle(color: Colors.black),
-                ),
-                value: selectedClasses.contains(className),
-                onChanged: isSaved
-                    ? null // Disable if already saved
-                    : (bool? value) {
-                  setState(() {
-                    if (value == true) {
-                      if (selectedClasses.length < 1) {
-                        selectedClasses.add(className);
+            if (isSaved) 
+              Text(
+                selectedClasses.join(', '), // Display saved classes
+                style: TextStyle(color: Colors.black, fontSize: 18),
+              )
+            else 
+              ...classSubjects.keys.map((className) {
+                return CheckboxListTile(
+                  title: Text(
+                    className,
+                    style: TextStyle(color: Colors.black),
+                  ),
+                  value: selectedClasses.contains(className),
+                  onChanged: (isSaved || selectedClasses.length >= 1 && selectedClasses.contains(className))
+                      ? null // Disable if already saved or if it's already selected
+                      : (bool? value) {
+                    setState(() {
+                      if (value == true) {
+                        if (selectedClasses.length < 1) {
+                          selectedClasses.add(className);
+                        } else {
+                          _showToast("You can't select more than 1 class");
+                        }
                       } else {
-                        _showToast("You can't select  2 classes");
+                        selectedClasses.remove(className);
                       }
-                    } else {
-                      selectedClasses.remove(className);
-                    }
-                  });
-                },
-                activeColor: Colors.blue,
-                checkColor: Colors.white,
-              );
-            }).toList(),
+                    });
+                  },
+                  activeColor: Colors.blue,
+                  checkColor: Colors.white,
+                );
+              }).toList(),
             SizedBox(height: 20.0),
 
             // Subject Selection
             Text(
-              'Select Subjects (Max 2)',
+              'Selected Subjects',
               style: TextStyle(color: Colors.black, fontSize: 20),
             ),
-            ..._getAvailableSubjects().map((subject) {
-              return CheckboxListTile(
-                title: Text(
-                  subject,
-                  style: TextStyle(color: Colors.black),
-                ),
-                value: selectedSubjects.contains(subject),
-                onChanged: isSaved
-                    ? null // Disable if already saved
-                    : (bool? value) {
-                  setState(() {
-                    if (value == true) {
-                      if (selectedSubjects.length < 2) {
-                        selectedSubjects.add(subject);
+            if (isSaved) 
+              Text(
+                selectedSubjects.join(', '), // Display saved subjects
+                style: TextStyle(color: Colors.black, fontSize: 18),
+              )
+            else 
+              ..._getAvailableSubjects().map((subject) {
+                return CheckboxListTile(
+                  title: Text(
+                    subject,
+                    style: TextStyle(color: Colors.black),
+                  ),
+                  value: selectedSubjects.contains(subject),
+                  onChanged: isSaved
+                      ? null // Disable if already saved
+                      : (bool? value) {
+                    setState(() {
+                      if (value == true) {
+                        if (selectedSubjects.length < 2) {
+                          selectedSubjects.add(subject);
+                        } else {
+                          _showToast("You can't select more than 2 subjects");
+                        }
                       } else {
-                        _showToast("You can't select more than 2 subjects");
+                        selectedSubjects.remove(subject);
                       }
-                    } else {
-                      selectedSubjects.remove(subject);
-                    }
-                  });
-                },
-                activeColor: Colors.blue,
-                checkColor: Colors.white,
-              );
-            }).toList(),
+                    });
+                  },
+                  activeColor: Colors.blue,
+                  checkColor: Colors.white,
+                );
+              }).toList(),
             SizedBox(height: 20.0),
 
             // Save Button
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue, // Set button color to blue
+            if (!isSaved) // Show save button only if not saved
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue, // Set button color to blue
+                ),
+                onPressed: (selectedClasses.isNotEmpty && selectedSubjects.isNotEmpty)
+                    ? () async {
+                  await _saveSelection();
+                }
+                    : null, // Disable the button if either selection is null
+                child: Text(
+                  'Save',
+                  style: TextStyle(color: Colors.black), // Set text color to black
+                ),
               ),
-              onPressed: (selectedClasses.isNotEmpty && selectedSubjects.isNotEmpty && !isSaved)
-                  ? () async {
-                await _saveSelection();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => GradeEntryPage(
-                      selectedClasses: selectedClasses,
-                      selectedSubjects: selectedSubjects,
-                      classSubjects: classSubjects, // Pass classSubjects here
-                    ),
-                  ),
-                );
-              }
-                  : null, // Disable the button if either selection is null or if already saved
-              child: Text(
-                'Save',
-                style: TextStyle(color: Colors.black), // Set text color to black
-              ),
-            ),
           ],
         ),
       ),
@@ -157,22 +183,7 @@ class _ClassSelectionState extends State<ClassSelection> {
     return availableSubjects.toList();
   }
 
-  Future<void> _saveSelection() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      try {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-          'classes': selectedClasses,
-          'subjects': selectedSubjects,
-        });
-        setState(() {
-          isSaved = true; // Mark as saved
-        });
-      } catch (e) {
-        print('Error saving classes and subjects: $e');
-      }
-    }
-  }
+
 
   void _showToast(String message) {
     Fluttertoast.showToast(
@@ -183,115 +194,5 @@ class _ClassSelectionState extends State<ClassSelection> {
       textColor: Colors.blue,
       fontSize: 16.0,
     );
-  }
-}
-
-class GradeEntryPage extends StatefulWidget {
-  final List<String> selectedClasses;
-  final List<String> selectedSubjects;
-  final Map<String, List<String>> classSubjects;
-
-  GradeEntryPage({
-    required this.selectedClasses,
-    required this.selectedSubjects,
-    required this.classSubjects,
-  });
-
-  @override
-  _GradeEntryPageState createState() => _GradeEntryPageState();
-}
-
-class _GradeEntryPageState extends State<GradeEntryPage> {
-  final Map<String, String> grades = {}; // Store grades for each class
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Enter Grades'),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () {
-            // Navigate back to the ClassSelection page
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Text(
-              'Classes and Subjects Selected',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 20),
-            Expanded(
-              child: ListView.builder(
-                itemCount: widget.selectedClasses.length,
-                itemBuilder: (context, index) {
-                  String className = widget.selectedClasses[index];
-                  return Card(
-                    margin: EdgeInsets.symmetric(vertical: 8.0),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Class: $className',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            'Subjects: ${widget.selectedSubjects.where((subject) => widget.classSubjects[className]?.contains(subject) ?? false).join(', ')}',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                          SizedBox(height: 10),
-                          // Input field for grades
-                          TextField(
-                            decoration: InputDecoration(
-                              labelText: 'Enter Grades for $className',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.number,
-                            onChanged: (value) {
-                              grades[className] = value; // Save grade input
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            ElevatedButton(
-              onPressed: _saveGrades,
-              child: Text('Save Grades'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _saveGrades() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      try {
-        // Save grades to Firestore under the user's document
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).collection('grades').add({
-          'grades': grades,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
-        Fluttertoast.showToast(
-          msg: "Grades saved successfully!",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-        );
-      } catch (e) {
-        print('Error saving grades: $e');
-      }
-    }
   }
 }

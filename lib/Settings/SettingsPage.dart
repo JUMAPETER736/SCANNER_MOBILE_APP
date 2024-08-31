@@ -39,7 +39,8 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Settings'), // Title of the settings page
+        title: Text('Settings'), 
+        automaticallyImplyLeading: false, 
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0), // Padding around the list

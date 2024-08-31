@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/Settings/SettingsPage.dart';
 import 'package:scanna/Main_Screen/GradeAnalytics.dart';
 import 'package:scanna/Main_Screen/ClassSelection.dart';
-import 'package:scanna/Main_Screen/StudentDetails.dart';
-import 'package:scanna/Main_Screen/Help.dart';
+import 'package:scanna/Main_Screen/StudentDetails.dart'; // Import the StudentDetails
+import 'package:scanna/Main_Screen/Help.dart'; // Import the Help class
+import 'package:scanna/Home_Screens/LoginPage.dart'; // Import your LoginPage
 
 User? loggedInUser;
 
@@ -44,6 +46,16 @@ class _DoneState extends State<Done> {
     });
   }
 
+  void _logout() async {
+    try {
+      await _auth.signOut();
+      // Navigate to the login page after logging out
+      Navigator.pushReplacementNamed(context, '/login');
+    } catch (e) {
+      print(e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     Widget _buildHome() {
@@ -68,9 +80,7 @@ class _DoneState extends State<Done> {
                   MaterialPageRoute(
                     builder: (context) => ClassSelection(),
                   ),
-                ).then((_) {
-                  setState(() {}); // Refresh the page after coming back
-                });
+                );
               },
               child: Card(
                 elevation: 5,
@@ -102,9 +112,7 @@ class _DoneState extends State<Done> {
                   MaterialPageRoute(
                     builder: (context) => GradeAnalytics(),
                   ),
-                ).then((_) {
-                  setState(() {}); // Refresh the page after coming back
-                });
+                );
               },
               child: Card(
                 elevation: 5,
@@ -136,9 +144,7 @@ class _DoneState extends State<Done> {
                   MaterialPageRoute(
                     builder: (context) => StudentDetails(),
                   ),
-                ).then((_) {
-                  setState(() {}); // Refresh the page after coming back
-                });
+                );
               },
               child: Card(
                 elevation: 5,
@@ -165,15 +171,33 @@ class _DoneState extends State<Done> {
       );
     }
 
+    Widget _buildHelp() {
+      return Help(); // Directly using the Help widget
+    }
+
+    Widget _buildSettings() {
+      // Pass the loggedInUser to the SettingsPage
+      return SettingsPage(user: loggedInUser!); // Pass loggedInUser
+    }
+
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          _buildHome(), // Home page
-          Help(), // Help page
-          SettingsPage(user: loggedInUser!), // Settings page
+      appBar: AppBar(
+        title: Text('Scanna Dashboard'),
+        backgroundColor: Colors.teal, // AppBar color
+        automaticallyImplyLeading: false, // This removes the back arrow
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout, color: Colors.white),
+            onPressed: _logout, // Log out when pressed
+          ),
         ],
       ),
+      body: _selectedIndex == 0
+          ? _buildHelp() 
+          : _selectedIndex == 1 
+              ? _buildHome() 
+              : _buildSettings(), // Added Settings page logic
+
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
