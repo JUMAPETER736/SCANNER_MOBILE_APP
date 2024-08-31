@@ -200,10 +200,10 @@ class _RegisterPageState extends State<RegisterPage> {
         color: Colors.blueAccent,
         child: Stack(
           children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: Image.asset('assets/images/background.png'),
-            ),
+            // Align(
+            //   alignment: Alignment.topRight,
+            //   child: Image.asset('assets/images/background.png'),
+            // ),
             Padding(
               padding: EdgeInsets.only(
                 top: 30.0,

@@ -160,10 +160,10 @@ class _LoginPageState extends State<LoginPage> {
         color: Colors.blueAccent,
         child: Stack(
           children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: Image.asset('assets/images/background.png'),
-            ),
+            // Align(
+            //   alignment: Alignment.topRight,
+            //   child: Image.asset('assets/images/background.png'),
+            // ),
             Padding(
               padding: EdgeInsets.only(
                   top: 60.0, bottom: 20.0, left: 20.0, right: 20.0),
