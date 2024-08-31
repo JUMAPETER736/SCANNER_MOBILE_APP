@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/Settings/SettingsPage.dart';
 import 'package:scanna/Main_Screen/GradeAnalytics.dart';
 import 'package:scanna/Main_Screen/ClassSelection.dart';
-import 'package:scanna/Main_Screen/StudentDetails.dart'; // Import the StudentDetails
-import 'package:scanna/Main_Screen/Help.dart'; // Import the Help class
+import 'package:scanna/Main_Screen/StudentDetails.dart';
+import 'package:scanna/Main_Screen/Help.dart';
 
 User? loggedInUser;
 
@@ -45,17 +44,11 @@ class _DoneState extends State<Done> {
     });
   }
 
-  Future<void> _logout() async {
-    await _auth.signOut();
-    // Optionally navigate to the login page
-    // Navigator.pushReplacementNamed(context, LoginPage.id);
-  }
-
   @override
   Widget build(BuildContext context) {
     Widget _buildHome() {
       return Container(
-        color: Colors.lightBlueAccent, // Updated background color
+        color: Colors.white,
         padding: EdgeInsets.all(16.0), // Add padding
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -75,7 +68,9 @@ class _DoneState extends State<Done> {
                   MaterialPageRoute(
                     builder: (context) => ClassSelection(),
                   ),
-                );
+                ).then((_) {
+                  setState(() {}); // Refresh the page after coming back
+                });
               },
               child: Card(
                 elevation: 5,
@@ -107,7 +102,9 @@ class _DoneState extends State<Done> {
                   MaterialPageRoute(
                     builder: (context) => GradeAnalytics(),
                   ),
-                );
+                ).then((_) {
+                  setState(() {}); // Refresh the page after coming back
+                });
               },
               child: Card(
                 elevation: 5,
@@ -139,7 +136,9 @@ class _DoneState extends State<Done> {
                   MaterialPageRoute(
                     builder: (context) => StudentDetails(),
                   ),
-                );
+                ).then((_) {
+                  setState(() {}); // Refresh the page after coming back
+                });
               },
               child: Card(
                 elevation: 5,
@@ -161,71 +160,40 @@ class _DoneState extends State<Done> {
                 ),
               ),
             ),
-            SizedBox(height: 20.0), // Spacing for logout button
-
-            // Log Out Button
-            GestureDetector(
-              onTap: _logout,
-              child: Card(
-                elevation: 5,
-                color: Colors.redAccent, // Logout button color
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0), // Adjusted padding
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.logout, size: 30, color: Colors.white), // Adjusted icon size
-                      SizedBox(width: 10),
-                      Text(
-                        'Log Out',
-                        style: TextStyle(fontSize: 18.0, color: Colors.white), // Adjusted text size and color
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       );
     }
 
-    Widget _buildHelp() {
-      return Help(); // Directly using the Help widget
-    }
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Scanna Dashboard'),
-        backgroundColor: Colors.teal, // AppBar color
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          _buildHome(), // Home page
+          Help(), // Help page
+          SettingsPage(user: loggedInUser!), // Settings page
+        ],
       ),
-      body: _selectedIndex == 0 ? _buildHome() : _buildHelp(),
-
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
-         
-
-            BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.help),
             label: 'Help',
           ),
-
-           BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
-
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
+            icon: Icon(Icons.settings), // Settings icon
             label: 'Settings',
           ),
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        backgroundColor: Colors.teal,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white54,
+        backgroundColor: Colors.teal, 
+        selectedItemColor: Colors.white, 
+        unselectedItemColor: Colors.white54, 
       ),
     );
   }
