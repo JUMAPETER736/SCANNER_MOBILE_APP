@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:qr_flutter/qr_flutter.dart'; // Import the qr_flutter package
+import 'package:barcode_widget/barcode_widget.dart';
 
 User? loggedInUser;
 
@@ -21,7 +21,7 @@ class _StudentDetailsState extends State<StudentDetails> {
   String? studentAge;
   String? studentGender;
   String? studentID;
-  String? generatedQRCode; // Change variable name to reflect QR code
+  String? generatedBarcode;
 
   @override
   void initState() {
@@ -55,9 +55,6 @@ class _StudentDetailsState extends State<StudentDetails> {
       // Generate random student ID
       studentID = generateRandomStudentID();
 
-      // Prepare QR code data with student's full name
-      String qrCodeData = '$firstName $lastName';
-
       // Save student details to Firestore under the user's document
       try {
         await _firestore
@@ -72,16 +69,13 @@ class _StudentDetailsState extends State<StudentDetails> {
           'studentAge': studentAge,
           'studentGender': studentGender,
           'studentID': studentID,
-          'qrCodeData': qrCodeData, // Store QR code data
           'createdBy': loggedInUser?.uid,
         });
 
-        // Generate QR Code after saving only if not generated
-        if (generatedQRCode == null) {
-          setState(() {
-            generatedQRCode = qrCodeData; // Use the full name as the QR code data
-          });
-        }
+        // Generate Barcode after saving
+        setState(() {
+          generatedBarcode = studentID; // Use studentID as the barcode data
+        });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Student Details saved Successfully!')),
@@ -92,17 +86,6 @@ class _StudentDetailsState extends State<StudentDetails> {
         );
       }
     }
-  }
-
-  String? validateAge(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please Enter the Student\'s Age';
-    }
-    final age = int.tryParse(value);
-    if (age == null || age < 11 || age > 40) {
-      return 'Please enter a valid Age between 11 and 40';
-    }
-    return null;
   }
 
   @override
@@ -168,7 +151,12 @@ class _StudentDetailsState extends State<StudentDetails> {
               TextFormField(
                 decoration: InputDecoration(labelText: 'Age'),
                 keyboardType: TextInputType.number,
-                validator: validateAge,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please Enter the Student\'s Age';
+                  }
+                  return null;
+                },
                 onSaved: (value) {
                   studentAge = value;
                 },
@@ -197,14 +185,15 @@ class _StudentDetailsState extends State<StudentDetails> {
               SizedBox(height: 20.0),
               ElevatedButton(
                 onPressed: saveStudentDetails,
-                child: Text('Save Details and Generate QR Code'),
+                child: Text('Save Details and Generate Barcode'),
               ),
               SizedBox(height: 20.0),
-              if (generatedQRCode != null)
-                QrImage(
-                  data: generatedQRCode!, // The generated QR code data
-                  version: QrVersions.auto,
-                  size: 200.0,
+              if (generatedBarcode != null)
+                BarcodeWidget(
+                  barcode: Barcode.code128(), // Barcode type
+                  data: generatedBarcode!, // The generated barcode data
+                  width: 200,
+                  height: 80,
                 ),
             ],
           ),
