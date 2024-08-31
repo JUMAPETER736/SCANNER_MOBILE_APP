@@ -13,56 +13,78 @@ class _ClassSelectionState extends State<ClassSelection> {
   List<String> selectedSubjects = []; // List to hold selected subjects
   bool isSaved = false; // Track if the selection is saved
 
+  // Define the classSubjects in Firestore
+  final List<String> classes = ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'];
+
   final Map<String, List<String>> classSubjects = {
     'FORM 1': ['MATHEMATICS', 'ENGLISH', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'PHYSICS', 'BIBLE KNOWLEDGE', 'AGRICULTURE', 'LIFE SKILLS', 'SOCIAL STUDIES'],
     'FORM 2': ['CHICHEWA', 'PHYSICS', 'BIBLE KNOWLEDGE', 'MATHEMATICS', 'ENGLISH', 'BIOLOGY', 'CHEMISTRY', 'AGRICULTURE', 'LIFE SKILLS', 'SOCIAL STUDIES'],
     'FORM 3': ['MATHEMATICS', 'BIBLE KNOWLEDGE', 'AGRICULTURE', 'ENGLISH', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'PHYSICS', 'LIFE SKILLS', 'SOCIAL STUDIES'],
     'FORM 4': ['CHEMISTRY', 'CHICHEWA', 'PHYSICS', 'BIBLE KNOWLEDGE', 'MATHEMATICS', 'ENGLISH', 'BIOLOGY', 'AGRICULTURE', 'LIFE SKILLS', 'SOCIAL STUDIES'],
-    // Add more classes and their corresponding subjects as needed
   };
 
   @override
   void initState() {
     super.initState();
+    _initializeFirestoreData(); // Initialize Firestore data
     _checkSavedSelections();
   }
 
-void _checkSavedSelections() async {
-  User? user = FirebaseAuth.instance.currentUser;
-  if (user != null) {
-    String userId = user.uid; // Get user's ID instead of email
-    DocumentSnapshot doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-    if (doc.exists && doc['classes'] != null && doc['subjects'] != null) {
-      setState(() {
-        selectedClasses = List<String>.from(doc['classes']);
-        selectedSubjects = List<String>.from(doc['subjects']);
-        isSaved = true; // Mark as saved
-      });
-    }
-  }
-}
-
-Future<void> _saveSelection() async {
-  User? user = FirebaseAuth.instance.currentUser;
-  if (user != null) {
-    String userId = user.uid; // Use user ID for the document reference
+  // Initialize Firestore with class subjects
+  void _initializeFirestoreData() async {
     try {
-      await FirebaseFirestore.instance.collection('users').doc(userId).set({
-        'classes': selectedClasses,
-        'subjects': selectedSubjects,
-      }, SetOptions(merge: true)); // Use merge to update existing data
-      setState(() {
-        isSaved = true; // Mark as saved
-      });
-      _showToast("Selections saved Successfully!"); // Show success message
+      for (var className in classes) {
+        // Check if the class already exists
+        DocumentSnapshot doc = await FirebaseFirestore.instance.collection('classSubjects').doc(className).get();
+        if (!doc.exists) {
+          // If it doesn't exist, create it
+          await FirebaseFirestore.instance.collection('classSubjects').doc(className).set({
+            'subjects': classSubjects[className],
+          });
+        }
+      }
+      print('Firestore initialized with class subjects.');
     } catch (e) {
-      print('Error saving Classes and Subjects: $e');
-      _showToast("Error saving Selections."); // Show error message
+      print('Error initializing Firestore data: $e');
     }
   }
-}
 
+  // Check saved selections from Firestore
+  void _checkSavedSelections() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      String userId = user.uid; // Get user's ID
+      DocumentSnapshot doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      if (doc.exists && doc['classes'] != null && doc['subjects'] != null) {
+        setState(() {
+          selectedClasses = List<String>.from(doc['classes']);
+          selectedSubjects = List<String>.from(doc['subjects']);
+          isSaved = true; // Mark as saved
+        });
+      }
+    }
+  }
 
+  // Save selected classes and subjects to Firestore
+  Future<void> _saveSelection() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      String userId = user.uid; // Use user ID for the document reference
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(userId).set({
+          'classes': selectedClasses,
+          'subjects': selectedSubjects,
+        }, SetOptions(merge: true)); // Use merge to update existing data
+        setState(() {
+          isSaved = true; // Mark as saved
+        });
+        _showToast("Selections saved successfully!"); // Show success message
+      } catch (e) {
+        print('Error saving classes and subjects: $e');
+        _showToast("Error saving selections."); // Show error message
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,14 +107,14 @@ Future<void> _saveSelection() async {
                 style: TextStyle(color: Colors.black, fontSize: 18),
               )
             else 
-              ...classSubjects.keys.map((className) {
+              ...classes.map((className) {
                 return CheckboxListTile(
                   title: Text(
                     className,
                     style: TextStyle(color: Colors.black),
                   ),
                   value: selectedClasses.contains(className),
-                  onChanged: (isSaved || selectedClasses.length >= 1 && selectedClasses.contains(className))
+                  onChanged: isSaved || selectedClasses.length >= 1 && selectedClasses.contains(className)
                       ? null // Disable if already saved or if it's already selected
                       : (bool? value) {
                     setState(() {
@@ -178,12 +200,10 @@ Future<void> _saveSelection() async {
     // Get subjects based on selected classes
     Set<String> availableSubjects = {};
     for (var className in selectedClasses) {
-      availableSubjects.addAll(classSubjects[className]!);
+      availableSubjects.addAll(classSubjects[className] ?? []);
     }
     return availableSubjects.toList();
   }
-
-
 
   void _showToast(String message) {
     Fluttertoast.showToast(

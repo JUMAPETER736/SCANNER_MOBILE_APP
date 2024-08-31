@@ -54,39 +54,25 @@ class _DoneState extends State<Done> {
     }
   }
 
-Widget _buildHome(BuildContext context, User? loggedInUser) {
-  // Get screen size
-  final screenWidth = MediaQuery.of(context).size.width;
-  final screenHeight = MediaQuery.of(context).size.height;
-
-  // Calculate the size of the square card based on the screen size
-  final cardSize = screenWidth * 0.35;
-
-  return Container(
-    color: Colors.white,
-    padding: EdgeInsets.all(8.0), // Reduced padding
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          'Welcome, ${loggedInUser?.displayName ?? 'User'}!',
-          style: TextStyle(
-            fontSize: 24.0,
-            fontWeight: FontWeight.bold,
-            color: Colors.teal,
+  Widget _buildHome(BuildContext context, User? loggedInUser) {
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Welcome, ${loggedInUser?.displayName ?? 'User'}!',
+            style: TextStyle(
+                fontSize: 24.0, fontWeight: FontWeight.bold, color: Colors.teal),
           ),
-        ),
-        SizedBox(height: 20.0), // Reduced spacing
+          SizedBox(height: 40.0),
 
-        Expanded(
-          child: ScrollConfiguration(
-            behavior: ScrollConfiguration.of(context).copyWith(
-              scrollbars: false,
-            ),
+          Expanded(
             child: GridView.count(
               crossAxisCount: 2,
-              crossAxisSpacing: 7, // Reduced spacing
-              mainAxisSpacing: 7, // Reduced spacing
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 20,
               children: [
                 // Select Class
                 GestureDetector(
@@ -100,7 +86,6 @@ Widget _buildHome(BuildContext context, User? loggedInUser) {
                     icon: Icons.class_,
                     text: 'Select Class',
                     color: Colors.blueAccent,
-                    size: cardSize,
                   ),
                 ),
 
@@ -109,15 +94,13 @@ Widget _buildHome(BuildContext context, User? loggedInUser) {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (context) => GradeAnalytics()),
+                      MaterialPageRoute(builder: (context) => GradeAnalytics()),
                     );
                   },
                   child: _buildSquareCard(
                     icon: Icons.analytics,
                     text: 'View Grade Analytics',
                     color: Colors.greenAccent,
-                    size: cardSize,
                   ),
                 ),
 
@@ -126,15 +109,13 @@ Widget _buildHome(BuildContext context, User? loggedInUser) {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (context) => StudentDetails()),
+                      MaterialPageRoute(builder: (context) => StudentDetails()),
                     );
                   },
                   child: _buildSquareCard(
                     icon: Icons.person_add,
                     text: 'Enter Student Details',
                     color: Colors.orangeAccent,
-                    size: cardSize,
                   ),
                 ),
 
@@ -153,37 +134,30 @@ Widget _buildHome(BuildContext context, User? loggedInUser) {
                     icon: Icons.list,
                     text: 'Students Names',
                     color: Colors.purpleAccent,
-                    size: cardSize,
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
-
-  Widget _buildSquareCard({
-    required IconData icon,
-    required String text,
-    required Color color,
-    required double size,
-  }) {
+  Widget _buildSquareCard(
+      {required IconData icon, required String text, required Color color}) {
     return Card(
       elevation: 5,
       color: color,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Container(
-        width: size,
-        height: size,
+        width: 50,
+        height: 50,
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: size * 0.4, color: Colors.white),
+            Icon(icon, size: 50, color: Colors.white),
             SizedBox(height: 10),
             Text(
               text,
