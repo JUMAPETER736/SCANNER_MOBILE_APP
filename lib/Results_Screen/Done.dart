@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/Settings/SettingsPage.dart';
 import 'package:scanna/Main_Screen/GradeAnalytics.dart';
 import 'package:scanna/Main_Screen/ClassSelection.dart';
-import 'package:scanna/Main_Screen/StudentDetails.dart'; // Import the StudentDetails
-import 'package:scanna/Main_Screen/Help.dart'; // Import the Help class
-import 'package:scanna/Home_Screens/LoginPage.dart'; // Import your LoginPage
+import 'package:scanna/Main_Screen/StudentDetails.dart';
+import 'package:scanna/Main_Screen/Help.dart';
+import 'package:scanna/Main_Screen/StudentNameList.dart';
 
 User? loggedInUser;
 
@@ -19,7 +18,7 @@ class Done extends StatefulWidget {
 
 class _DoneState extends State<Done> {
   final _auth = FirebaseAuth.instance;
-  int _selectedIndex = 0; // Track the selected index for bottom navigation
+  int _selectedIndex = 1;
 
   void getCurrentUser() async {
     try {
@@ -49,155 +48,170 @@ class _DoneState extends State<Done> {
   void _logout() async {
     try {
       await _auth.signOut();
-      // Navigate to the login page after logging out
       Navigator.pushReplacementNamed(context, '/login');
     } catch (e) {
       print(e);
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    Widget _buildHome() {
-      return Container(
-        color: Colors.white,
-        padding: EdgeInsets.all(16.0), // Add padding
+  Widget _buildHome(BuildContext context, User? loggedInUser) {
+    // Get screen size
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Calculate the size of the square card based on the screen size
+    final cardSize = screenWidth * 0.4;
+
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Welcome, ${loggedInUser?.displayName ?? 'User'}!',
+            style: TextStyle(
+                fontSize: 24.0, fontWeight: FontWeight.bold, color: Colors.teal),
+          ),
+          SizedBox(height: 40.0),
+
+          Expanded(
+            child: GridView.count(
+              crossAxisCount: 2,
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 20,
+              children: [
+                // Select Class
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ClassSelection()),
+                    );
+                  },
+                  child: _buildSquareCard(
+                    icon: Icons.class_,
+                    text: 'Select Class',
+                    color: Colors.blueAccent,
+                    size: cardSize,
+                  ),
+                ),
+
+                // View Grade Analytics
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => GradeAnalytics()),
+                    );
+                  },
+                  child: _buildSquareCard(
+                    icon: Icons.analytics,
+                    text: 'View Grade Analytics',
+                    color: Colors.greenAccent,
+                    size: cardSize,
+                  ),
+                ),
+
+                // Enter Student Details
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => StudentDetails()),
+                    );
+                  },
+                  child: _buildSquareCard(
+                    icon: Icons.person_add,
+                    text: 'Enter Student Details',
+                    color: Colors.orangeAccent,
+                    size: cardSize,
+                  ),
+                ),
+
+                // List Students
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            StudentNameList(loggedInUser: loggedInUser),
+                      ),
+                    );
+                  },
+                  child: _buildSquareCard(
+                    icon: Icons.list,
+                    text: 'Students Names',
+                    color: Colors.purpleAccent,
+                    size: cardSize,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSquareCard({
+    required IconData icon,
+    required String text,
+    required Color color,
+    required double size,
+  }) {
+    return Card(
+      elevation: 5,
+      color: color,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: Container(
+        width: size,
+        height: size,
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Welcome Message
+            Icon(icon, size: size * 0.4, color: Colors.white),
+            SizedBox(height: 10),
             Text(
-              'Welcome, ${loggedInUser?.displayName ?? 'User'}!',
-              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold, color: Colors.teal),
-            ),
-            SizedBox(height: 40.0), // Spacing before buttons
-
-            // Button for Class Selection
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ClassSelection(),
-                  ),
-                );
-              },
-              child: Card(
-                elevation: 5,
-                color: Colors.blueAccent, // Button color
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0), // Adjusted padding
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.class_, size: 30, color: Colors.white), // Adjusted icon size
-                      SizedBox(width: 10),
-                      Text(
-                        'Select Class',
-                        style: TextStyle(fontSize: 18.0, color: Colors.white), // Adjusted text size and color
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(height: 20.0), // Spacing between buttons
-
-            // Button for Viewing Grade Analytics
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => GradeAnalytics(),
-                  ),
-                );
-              },
-              child: Card(
-                elevation: 5,
-                color: Colors.greenAccent, // Button color
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0), // Adjusted padding
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.analytics, size: 30, color: Colors.white), // Adjusted icon size
-                      SizedBox(width: 10),
-                      Text(
-                        'View Grade Analytics',
-                        style: TextStyle(fontSize: 18.0, color: Colors.white), // Adjusted text size and color
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(height: 20.0), // Spacing between buttons
-
-            // Button for Entering Student Details
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => StudentDetails(),
-                  ),
-                );
-              },
-              child: Card(
-                elevation: 5,
-                color: Colors.orangeAccent, // Button color
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0), // Adjusted padding
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.person_add, size: 30, color: Colors.white), // Adjusted icon size
-                      SizedBox(width: 10),
-                      Text(
-                        'Enter Student Details',
-                        style: TextStyle(fontSize: 18.0, color: Colors.white), // Adjusted text size and color
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              text,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 18.0, color: Colors.white),
             ),
           ],
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    Widget _buildHelp() {
-      return Help(); // Directly using the Help widget
-    }
+  Widget _buildHelp() {
+    return Help();
+  }
 
-    Widget _buildSettings() {
-      // Pass the loggedInUser to the SettingsPage
-      return SettingsPage(user: loggedInUser!); // Pass loggedInUser
-    }
+  Widget _buildSettings() {
+    return SettingsPage(user: loggedInUser!);
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Scanna Dashboard'),
-        backgroundColor: Colors.teal, // AppBar color
-        automaticallyImplyLeading: false, // This removes the back arrow
+        backgroundColor: Colors.teal,
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: Icon(Icons.logout, color: Colors.white),
-            onPressed: _logout, // Log out when pressed
+            onPressed: _logout,
           ),
         ],
       ),
       body: _selectedIndex == 0
-          ? _buildHelp() 
-          : _selectedIndex == 1 
-              ? _buildHome() 
-              : _buildSettings(), // Added Settings page logic
-
+          ? _buildHelp()
+          : _selectedIndex == 1
+              ? _buildHome(context, loggedInUser)
+              : _buildSettings(),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -209,15 +223,15 @@ class _DoneState extends State<Done> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings), // Settings icon
+            icon: Icon(Icons.settings),
             label: 'Settings',
           ),
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        backgroundColor: Colors.teal, 
-        selectedItemColor: Colors.white, 
-        unselectedItemColor: Colors.white54, 
+        backgroundColor: Colors.teal,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white54,
       ),
     );
   }
