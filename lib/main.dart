@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:scanna/Results_Screen/ForgotPassword.dart';
-import 'package:scanna/Home_Screens/LoginPage.dart';
-import 'package:scanna/Home_Screens/RegisterPage.dart';
-import 'package:scanna/Results_Screen/Done.dart';
+import 'package:scanna/results_screen/ForgotPassword.dart';
+import 'package:scanna/main_screens/LoginPage.dart';
+import 'package:scanna/main_screens/RegisterPage.dart';
+import 'package:scanna/results_screen/Done.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 

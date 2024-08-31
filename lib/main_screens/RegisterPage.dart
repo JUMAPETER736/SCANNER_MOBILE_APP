@@ -3,13 +3,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:validators/validators.dart' as validator;
-import 'package:scanna/Results_Screen/Done.dart';
-import 'package:scanna/Home_Screens/LoginPage.dart';
+import 'package:scanna/results_screen/Done.dart';
+import 'package:scanna/main_screens/LoginPage.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
-class RegisterPage extends StatefulWidget { 
+class RegisterPage extends StatefulWidget {
   static String id = '/RegisterPage';
 
   @override
@@ -139,8 +139,9 @@ class _RegisterPageState extends State<RegisterPage> {
     Fluttertoast.showToast(
       msg: "Registered Successfully",
       toastLength: Toast.LENGTH_SHORT,
-      // gravity: ToastGravity.BOTTOM,
-      textColor: Colors.blue,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.green,
+      textColor: Colors.white,
       fontSize: 16.0,
     );
   }
@@ -199,7 +200,10 @@ class _RegisterPageState extends State<RegisterPage> {
         color: Colors.blueAccent,
         child: Stack(
           children: [
-
+            Align(
+              alignment: Alignment.topRight,
+              child: Image.asset('assets/images/background.png'),
+            ),
             Padding(
               padding: EdgeInsets.only(
                 top: 30.0,
