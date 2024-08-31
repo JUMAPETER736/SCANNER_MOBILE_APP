@@ -29,8 +29,6 @@ class StudentNameList extends StatelessWidget {
 
           // Assuming that the user's class is stored in a field called 'form'
           var userClass = userSnapshot.data!['form'];
-          // You might also want to retrieve subjects here if needed
-          var userSubject = userSnapshot.data!['subject'];
 
           // Check if class is selected
           if (userClass == null) {
@@ -93,7 +91,6 @@ class StudentNameList extends StatelessWidget {
               );
             },
           );
-          
         },
       ),
     );
