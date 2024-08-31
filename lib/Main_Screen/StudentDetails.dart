@@ -70,6 +70,7 @@ class _StudentDetailsState extends State<StudentDetails> {
           'studentGender': studentGender,
           'studentID': studentID,
           'createdBy': loggedInUser?.email,
+          'form': studentClass, // Store the class as 'form' for filtering later
         });
 
         // Generate Barcode after saving

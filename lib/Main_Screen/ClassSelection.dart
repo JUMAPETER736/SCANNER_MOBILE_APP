@@ -90,7 +90,7 @@ class _ClassSelectionState extends State<ClassSelection> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Select Class and Subject', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('Selected Class and Subject', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
       ),
@@ -109,96 +109,136 @@ class _ClassSelectionState extends State<ClassSelection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Class Selection
-                Text(
-                  'Selected Classes',
-                  style: TextStyle(color: Colors.black, fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                if (isSaved) 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(
-                      selectedClasses.join(', '), // Display saved classes
-                      style: TextStyle(color: Colors.black, fontSize: 18),
-                    ),
-                  )
-                else 
-                  ...classes.map((className) {
-                    return Card(
-                      elevation: 4,
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: CheckboxListTile(
-                        title: Text(
-                          className,
-                          style: TextStyle(color: Colors.black, fontSize: 18),
-                        ),
-                        value: selectedClasses.contains(className),
-                        onChanged: isSaved || selectedClasses.length >= 1 && selectedClasses.contains(className)
-                            ? null // Disable if already saved or if it's already selected
-                            : (bool? value) {
-                          setState(() {
-                            if (value == true) {
-                              if (selectedClasses.length < 1) {
-                                selectedClasses.add(className);
-                              } else {
-                                _showToast("You can't select more than 1 class");
-                              }
-                            } else {
-                              selectedClasses.remove(className);
-                            }
-                          });
-                        },
-                        activeColor: Colors.blue,
-                        checkColor: Colors.white,
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 4,
+                        offset: Offset(2, 2),
                       ),
-                    );
-                  }).toList(),
-                SizedBox(height: 20.0),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(16.0),
+                  margin: const EdgeInsets.only(bottom: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Selected Classes',
+                        style: TextStyle(color: Colors.blueAccent, fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      if (isSaved)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            selectedClasses.join(', '), // Display saved classes
+                            style: TextStyle(color: Colors.black, fontSize: 18),
+                          ),
+                        )
+                      else
+                        ...classes.map((className) {
+                          return Card(
+                            elevation: 4,
+                            margin: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: CheckboxListTile(
+                              title: Text(
+                                className,
+                                style: TextStyle(color: Colors.black, fontSize: 18),
+                              ),
+                              value: selectedClasses.contains(className),
+                              onChanged: isSaved || selectedClasses.length >= 1 && selectedClasses.contains(className)
+                                  ? null // Disable if already saved or if it's already selected
+                                  : (bool? value) {
+                                setState(() {
+                                  if (value == true) {
+                                    if (selectedClasses.length < 1) {
+                                      selectedClasses.add(className);
+                                    } else {
+                                      _showToast("You can't select more than 1 class");
+                                    }
+                                  } else {
+                                    selectedClasses.remove(className);
+                                  }
+                                });
+                              },
+                              activeColor: Colors.blue,
+                              checkColor: Colors.white,
+                            ),
+                          );
+                        }).toList(),
+                    ],
+                  ),
+                ),
 
                 // Subject Selection
-                Text(
-                  'Selected Subjects',
-                  style: TextStyle(color: Colors.black, fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                if (isSaved) 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(
-                      selectedSubjects.join(', '), // Display saved subjects
-                      style: TextStyle(color: Colors.black, fontSize: 18),
-                    ),
-                  )
-                else 
-                  ..._getAvailableSubjects().map((subject) {
-                    return Card(
-                      elevation: 4,
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: CheckboxListTile(
-                        title: Text(
-                          subject,
-                          style: TextStyle(color: Colors.black, fontSize: 18),
-                        ),
-                        value: selectedSubjects.contains(subject),
-                        onChanged: isSaved
-                            ? null // Disable if already saved
-                            : (bool? value) {
-                          setState(() {
-                            if (value == true) {
-                              if (selectedSubjects.length < 2) {
-                                selectedSubjects.add(subject);
-                              } else {
-                                _showToast("You can't select more than 2 subjects");
-                              }
-                            } else {
-                              selectedSubjects.remove(subject);
-                            }
-                          });
-                        },
-                        activeColor: Colors.blue,
-                        checkColor: Colors.white,
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 4,
+                        offset: Offset(2, 2),
                       ),
-                    );
-                  }).toList(),
-                SizedBox(height: 20.0),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(16.0),
+                  margin: const EdgeInsets.only(bottom: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Selected Subjects',
+                        style: TextStyle(color: Colors.blueAccent, fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      if (isSaved)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            selectedSubjects.join(', '), // Display saved subjects
+                            style: TextStyle(color: Colors.black, fontSize: 18),
+                          ),
+                        )
+                      else
+                        ..._getAvailableSubjects().map((subject) {
+                          return Card(
+                            elevation: 4,
+                            margin: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: CheckboxListTile(
+                              title: Text(
+                                subject,
+                                style: TextStyle(color: Colors.black, fontSize: 18),
+                              ),
+                              value: selectedSubjects.contains(subject),
+                              onChanged: isSaved
+                                  ? null // Disable if already saved
+                                  : (bool? value) {
+                                setState(() {
+                                  if (value == true) {
+                                    if (selectedSubjects.length < 2) {
+                                      selectedSubjects.add(subject);
+                                    } else {
+                                      _showToast("You can't select more than 2 subjects");
+                                    }
+                                  } else {
+                                    selectedSubjects.remove(subject);
+                                  }
+                                });
+                              },
+                              activeColor: Colors.blue,
+                              checkColor: Colors.white,
+                            ),
+                          );
+                        }).toList(),
+                    ],
+                  ),
+                ),
 
                 // Save Button
                 if (!isSaved) // Show save button only if not saved
@@ -209,13 +249,11 @@ class _ClassSelectionState extends State<ClassSelection> {
                         padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
                       ),
                       onPressed: (selectedClasses.isNotEmpty && selectedSubjects.isNotEmpty)
-                          ? () async {
-                        await _saveSelection();
-                      }
-                          : null, // Disable the button if either selection is null
+                          ? _saveSelection
+                          : null, // Disable button if no selection
                       child: Text(
-                        'Save',
-                        style: TextStyle(color: Colors.white, fontSize: 18), // Set text color to white
+                        'Save Selections',
+                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -227,23 +265,25 @@ class _ClassSelectionState extends State<ClassSelection> {
     );
   }
 
-  List<String> _getAvailableSubjects() {
-    // Get subjects based on selected classes
-    Set<String> availableSubjects = {};
-    for (var className in selectedClasses) {
-      availableSubjects.addAll(classSubjects[className] ?? []);
-    }
-    return availableSubjects.toList();
-  }
-
+  // Function to show toast messages
   void _showToast(String message) {
     Fluttertoast.showToast(
       msg: message,
       toastLength: Toast.LENGTH_SHORT,
       gravity: ToastGravity.BOTTOM,
       timeInSecForIosWeb: 1,
-      textColor: Colors.blue,
+      backgroundColor: Colors.blueAccent,
+      textColor: Colors.white,
       fontSize: 16.0,
     );
+  }
+
+  // Get subjects based on selected class
+  List<String> _getAvailableSubjects() {
+    List<String> availableSubjects = [];
+    for (var className in selectedClasses) {
+      availableSubjects.addAll(classSubjects[className]!);
+    }
+    return availableSubjects;
   }
 }
