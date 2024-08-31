@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:scanna/Main_Screen/StudentSubjects.dart';
 
 class StudentNameList extends StatelessWidget {
   final User? loggedInUser;
@@ -26,14 +27,20 @@ class StudentNameList extends StatelessWidget {
             return Center(child: Text('User not found.'));
           }
 
-          var userClass = userSnapshot.data!['form']; // Assuming there's a 'form' field in the user's document
+          var userClass = userSnapshot.data!['form'];
+          var userSubject = userSnapshot.data!['subject']; // Assuming you have a field for subject
+
+          // Check if class and subject are selected
+          if (userClass == null || userSubject == null) {
+            return Center(child: Text('Please select class and subjects first.'));
+          }
 
           return StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('Students')
                 .doc(loggedInUser?.uid)
                 .collection('StudentDetails')
-                .where('form', isEqualTo: userClass) // Filter for students in the same class as the user
+                .where('form', isEqualTo: userClass)
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -69,11 +76,10 @@ class StudentNameList extends StatelessWidget {
                         color: Colors.black,
                       ),
                       onTap: () {
-                        // Navigate to the subjects page for the selected student
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => StudentSubjectsPage(
+                            builder: (context) => StudentSubjects(
                               studentId: student.id,
                             ),
                           ),
@@ -82,50 +88,6 @@ class StudentNameList extends StatelessWidget {
                     ),
                   );
                 },
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}
-
-class StudentSubjectsPage extends StatelessWidget {
-  final String studentId;
-
-  const StudentSubjectsPage({Key? key, required this.studentId}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Subjects for Student ID: $studentId'),
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('Students')
-            .doc(studentId)
-            .collection('Subjects')
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text('No subjects found.'));
-          }
-
-          List<String> subjects = [];
-          for (var doc in snapshot.data!.docs) {
-            subjects.add(doc['subjectName']);
-          }
-
-          return ListView.builder(
-            itemCount: subjects.length,
-            itemBuilder: (context, index) {
-              return ListTile(
-                title: Text(subjects[index]),
               );
             },
           );
