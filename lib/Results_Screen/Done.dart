@@ -54,32 +54,39 @@ class _DoneState extends State<Done> {
     }
   }
 
-  Widget _buildHome(BuildContext context, User? loggedInUser) {
-    // Get screen size
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
+Widget _buildHome(BuildContext context, User? loggedInUser) {
+  // Get screen size
+  final screenWidth = MediaQuery.of(context).size.width;
+  final screenHeight = MediaQuery.of(context).size.height;
 
-    // Calculate the size of the square card based on the screen size
-    final cardSize = screenWidth * 0.4;
+  // Calculate the size of the square card based on the screen size
+  final cardSize = screenWidth * 0.35;
 
-    return Container(
-      color: Colors.white,
-      padding: EdgeInsets.all(16.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Welcome, ${loggedInUser?.displayName ?? 'User'}!',
-            style: TextStyle(
-                fontSize: 24.0, fontWeight: FontWeight.bold, color: Colors.teal),
+  return Container(
+    color: Colors.white,
+    padding: EdgeInsets.all(8.0), // Reduced padding
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          'Welcome, ${loggedInUser?.displayName ?? 'User'}!',
+          style: TextStyle(
+            fontSize: 24.0,
+            fontWeight: FontWeight.bold,
+            color: Colors.teal,
           ),
-          SizedBox(height: 40.0),
+        ),
+        SizedBox(height: 20.0), // Reduced spacing
 
-          Expanded(
+        Expanded(
+          child: ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(
+              scrollbars: false,
+            ),
             child: GridView.count(
               crossAxisCount: 2,
-              crossAxisSpacing: 20,
-              mainAxisSpacing: 20,
+              crossAxisSpacing: 7, // Reduced spacing
+              mainAxisSpacing: 7, // Reduced spacing
               children: [
                 // Select Class
                 GestureDetector(
@@ -102,7 +109,8 @@ class _DoneState extends State<Done> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => GradeAnalytics()),
+                      MaterialPageRoute(
+                          builder: (context) => GradeAnalytics()),
                     );
                   },
                   child: _buildSquareCard(
@@ -118,7 +126,8 @@ class _DoneState extends State<Done> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => StudentDetails()),
+                      MaterialPageRoute(
+                          builder: (context) => StudentDetails()),
                     );
                   },
                   child: _buildSquareCard(
@@ -150,10 +159,12 @@ class _DoneState extends State<Done> {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
+
 
   Widget _buildSquareCard({
     required IconData icon,
