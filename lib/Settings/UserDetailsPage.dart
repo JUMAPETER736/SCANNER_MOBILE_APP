@@ -2,6 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'User Details App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: UserDetailsPage(user: FirebaseAuth.instance.currentUser),
+    );
+  }
+}
+
 class UserDetailsPage extends StatefulWidget {
   final User? user;
 
@@ -13,8 +30,8 @@ class UserDetailsPage extends StatefulWidget {
 
 class _UserDetailsPageState extends State<UserDetailsPage> {
   String _username = '';
-  List<String> _selectedClasses = [];
-  List<String> _selectedSubjects = [];
+  List<String> _selectedClasses = []; // List to store multiple classes
+  List<String> _selectedSubjects = []; // List to store multiple subjects
 
   @override
   void initState() {
@@ -44,18 +61,10 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('User Details', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        backgroundColor: Colors.blueAccent,
+        title: Text('User Details'),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.lightBlueAccent, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: _username.isEmpty
             ? Center(child: CircularProgressIndicator())
             : _buildUserDetails(),
@@ -65,70 +74,46 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
 
   Widget _buildUserDetails() {
     return ListView(
-      padding: const EdgeInsets.all(16.0),
       children: [
-        _buildSettingsItem(Icons.person, 'Username', _username.isNotEmpty ? _username : 'N/A'),
-        _buildSettingsItem(Icons.email, 'Email', widget.user?.email ?? 'N/A'),
-        _buildSettingsItem(Icons.class_, 'Selected Classes', _selectedClasses.isNotEmpty ? _selectedClasses.join(', ') : 'N/A'),
-        _buildSettingsItem(Icons.subject, 'Selected Subjects', _selectedSubjects.isNotEmpty ? _selectedSubjects.join(', ') : 'N/A'),
-        SizedBox(height: 20),
-        _buildSettingsActionItem('Change Password', Icons.lock, () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ChangePasswordPage(user: widget.user),
-            ),
-          );
-        }),
+        Divider(),
+        ListTile(
+          leading: Icon(Icons.person),
+          title: Text('Username'),
+          subtitle: Text(_username.isNotEmpty ? _username : 'N/A'),
+        ),
+        Divider(),
+        ListTile(
+          leading: Icon(Icons.email),
+          title: Text('Email'),
+          subtitle: Text(widget.user?.email ?? 'N/A'),
+        ),
+        Divider(),
+        ListTile(
+          leading: Icon(Icons.class_),
+          title: Text('Selected Classes'),
+          subtitle: Text(_selectedClasses.isNotEmpty ? _selectedClasses.join(', ') : 'N/A'),
+        ),
+        Divider(),
+        ListTile(
+          leading: Icon(Icons.subject),
+          title: Text('Selected Subjects'),
+          subtitle: Text(_selectedSubjects.isNotEmpty ? _selectedSubjects.join(', ') : 'N/A'),
+        ),
+        Divider(),
+        ListTile(
+          title: Text('Change Password'),
+          leading: Icon(Icons.lock),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChangePasswordPage(user: widget.user),
+              ),
+            );
+          },
+        ),
+        Divider(),
       ],
-    );
-  }
-
-  Widget _buildSettingsItem(IconData icon, String title, String subtitle) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 4,
-            offset: Offset(2, 2),
-          ),
-        ],
-      ),
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: ListTile(
-        title: Text(title, style: TextStyle(color: Colors.blueAccent, fontSize: 20, fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle, style: TextStyle(color: Colors.black, fontSize: 16)),
-        leading: Icon(icon, color: Colors.blueAccent, size: 28),
-      ),
-    );
-  }
-
-  Widget _buildSettingsActionItem(String title, IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: Colors.blue[50],
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 4,
-              offset: Offset(2, 2),
-            ),
-          ],
-        ),
-        margin: const EdgeInsets.symmetric(vertical: 8.0),
-        child: ListTile(
-          title: Text(title, style: TextStyle(color: Colors.blueAccent, fontSize: 20)),
-          leading: Icon(icon, color: Colors.blueAccent, size: 28),
-        ),
-      ),
     );
   }
 }
@@ -152,9 +137,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Change Password', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        backgroundColor: Colors.blueAccent,
+        title: Text('Change Password'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

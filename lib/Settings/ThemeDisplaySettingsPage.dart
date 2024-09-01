@@ -1,6 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Ensure this is included
 
+import 'package:provider/provider.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ThemeModeWrapper(
+      child: MaterialApp(
+        title: 'Theme & Display Settings',
+        theme: ThemeData.light(), // Light theme
+        darkTheme: ThemeData.dark(), // Dark theme
+        themeMode: ThemeModeProvider.of(context).themeMode, // Use the theme mode from the provider
+        home: ThemeDisplaySettingsPage(),
+      ),
+    );
+  }
+}
 
 class ThemeDisplaySettingsPage extends StatefulWidget {
   @override
@@ -16,135 +35,110 @@ class _ThemeDisplaySettingsPageState extends State<ThemeDisplaySettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Theme & Display', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        backgroundColor: Colors.blueAccent,
+        title: Text('Theme & Display'),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.lightBlueAccent, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Customize App Theme',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 20),
+            SwitchListTile(
+              title: Text('Dark Mode'),
+              value: _isDarkMode,
+              onChanged: (value) {
+                setState(() {
+                  _isDarkMode = value;
+                  // Change theme mode based on the switch state
+                  if (_isDarkMode) {
+                    ThemeModeProvider.of(context).setTheme(ThemeMode.dark);
+                  } else {
+                    ThemeModeProvider.of(context).setTheme(ThemeMode.light);
+                  }
+                });
+              },
+            ),
+            Divider(),
+            SizedBox(height: 20),
+            Text(
+              'Date Format',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            DropdownButton<String>(
+              value: _selectedDateFormat,
+              items: _dateFormats.map((String format) {
+                return DropdownMenuItem<String>(
+                  value: format,
+                  child: Text(format),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedDateFormat = newValue!;
+                });
+                // You can add logic here to apply the date format in your app
+              },
+            ),
+            Divider(),
+            SizedBox(height: 20),
+            Text(
+              'Other Settings',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            // You can add more settings here as needed
+          ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ListView(
-            children: [
-              Text(
-                'Customize App Theme',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 20),
-              _buildSettingsItem(
-                title: 'Dark Mode',
-                subtitle: 'Switch between light and dark themes.',
-                trailing: Switch(
-                  value: _isDarkMode,
-                  onChanged: (value) {
-                    setState(() {
-                      _isDarkMode = value;
-                      // Change theme mode based on the switch state
-                      if (_isDarkMode) {
-                        Provider.of<ThemeModeProvider>(context, listen: false).setTheme(ThemeMode.dark);
-                      } else {
-                        Provider.of<ThemeModeProvider>(context, listen: false).setTheme(ThemeMode.light);
-                      }
-                    });
-                  },
-                ),
-              ),
-              
-              SizedBox(height: 20),
-              Text(
-                'Date Format',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              _buildSettingsItem(
-                title: 'Select Date Format',
-                subtitle: 'Choose your preferred date format.',
-                trailing: DropdownButton<String>(
-                  value: _selectedDateFormat,
-                  items: _dateFormats.map((String format) {
-                    return DropdownMenuItem<String>(
-                      value: format,
-                      child: Text(format),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedDateFormat = newValue!;
-                    });
-                    // You can add logic here to apply the date format in your app
-                  },
-                ),
-              ),
-            
-              SizedBox(height: 20),
-              Text(
-                'Other Settings',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-  
-              _buildSettingsItem(
-                title: 'Privacy Settings',
-                subtitle: 'Adjust your privacy options.',
-              ),
-              _buildSettingsItem(
-                title: 'Language Settings',
-                subtitle: 'Select your preferred language.',
-              ),
-              // Add more settings items as needed
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSettingsItem({
-    required String title,
-    required String subtitle,
-    Widget? trailing,
-  }) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 4,
-            offset: Offset(2, 2),
-          ),
-        ],
-      ),
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: ListTile(
-        title: Text(title, style: TextStyle(color: Colors.blueAccent, fontSize: 20, fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle, style: TextStyle(color: Colors.black, fontSize: 16)),
-        trailing: trailing,
-        onTap: () {
-          // Optional: Add functionality for tapping on the item
-        },
       ),
     );
   }
 }
 
+// ThemeMode provider class
+class ThemeModeProvider extends InheritedWidget {
+  final ThemeMode themeMode;
+  final Function(ThemeMode) setTheme;
 
+  ThemeModeProvider({required Widget child, required this.themeMode, required this.setTheme}) : super(child: child);
 
+  static ThemeModeProvider of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<ThemeModeProvider>()!;
+  }
 
+  @override
+  bool updateShouldNotify(ThemeModeProvider oldWidget) {
+    return oldWidget.themeMode != themeMode;
+  }
+}
 
-class ThemeModeProvider with ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.light;
+// Create a widget to wrap the app and manage the theme mode
+class ThemeModeWrapper extends StatefulWidget {
+  final Widget child;
 
-  ThemeMode get themeMode => _themeMode;
+  ThemeModeWrapper({required this.child});
+
+  @override
+  _ThemeModeWrapperState createState() => _ThemeModeWrapperState();
+}
+
+class _ThemeModeWrapperState extends State<ThemeModeWrapper> {
+  ThemeMode _themeMode = ThemeMode.light; // Default to light mode
 
   void setTheme(ThemeMode themeMode) {
-    _themeMode = themeMode;
-    notifyListeners();
+    setState(() {
+      _themeMode = themeMode;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ThemeModeProvider(
+      themeMode: _themeMode,
+      setTheme: setTheme,
+      child: widget.child,
+    );
   }
 }

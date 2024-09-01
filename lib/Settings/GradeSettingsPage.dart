@@ -1,116 +1,107 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Import Shared Preferences
 
 class GradeSettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Grade Settings', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.blueAccent,
+        title: Text('Grade Settings'),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.lightBlueAccent, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
             Text(
               'Customize Your Grading Scale and Display:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             Text(
               'Manage your grading settings efficiently to ensure accurate assessment of student performance.',
-              style: TextStyle(fontSize: 16, color: Colors.black87),
+              style: TextStyle(fontSize: 16),
             ),
             SizedBox(height: 16),
 
             // View current grading settings
-            _buildSettingsItem(
-              title: 'View Current Grading Settings',
-              subtitle: 'Check the current grading scale in use.',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => CurrentSettingsPage()),
-                );
-              },
+            Card(
+              child: ListTile(
+                title: Text('View Current Grading Settings'),
+                subtitle: Text('Check the current grading scale in use.'),
+                trailing: Icon(Icons.arrow_forward),
+                onTap: () {
+                  // Action to view current settings
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => CurrentSettingsPage()),
+                  );
+                },
+              ),
             ),
             SizedBox(height: 8),
 
             // Reset to default settings
-            _buildSettingsItem(
-              title: 'Reset to Default Settings',
-              subtitle: 'Restore the default grading settings.',
-              onTap: () => _showResetConfirmationDialog(context),
+            Card(
+              child: ListTile(
+                title: Text('Reset to Default Settings'),
+                subtitle: Text('Restore the default grading settings.'),
+                trailing: Icon(Icons.restore),
+                onTap: () {
+                  // Action to reset settings
+                  _showResetConfirmationDialog(context);
+                },
+              ),
             ),
             SizedBox(height: 16),
 
             Text(
               'Additional Features:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
 
             // Save custom grading scales
-            _buildSettingsItem(
-              title: 'Save Custom Grading Scales',
-              subtitle: 'Save your modifications for future use.',
-              onTap: () => _showSaveConfirmationDialog(context),
+            Card(
+              child: ListTile(
+                title: Text('Save Custom Grading Scales'),
+                subtitle: Text('Save your modifications for future use.'),
+                trailing: Icon(Icons.save),
+                onTap: () {
+                  // Action to save custom settings
+                  _showSaveConfirmationDialog(context);
+                },
+              ),
             ),
             SizedBox(height: 8),
 
             // Export grading settings
-            _buildSettingsItem(
-              title: 'Export Grading Settings',
-              subtitle: 'Export your settings as a file.',
-              onTap: _exportSettings,
+            Card(
+              child: ListTile(
+                title: Text('Export Grading Settings'),
+                subtitle: Text('Export your settings as a file.'),
+                trailing: Icon(Icons.file_download),
+                onTap: () {
+                  // Action to export settings
+                  _exportSettings();
+                },
+              ),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 16),
 
-            // Import grading settings
-            _buildSettingsItem(
-              title: 'Import Grading Settings',
-              subtitle: 'Import grading settings from a file.',
-              onTap: _importSettings,
+            // Additional options
+            Card(
+              child: ListTile(
+                title: Text('Import Grading Settings'),
+                subtitle: Text('Import grading settings from a file.'),
+                trailing: Icon(Icons.file_upload),
+                onTap: () {
+                  // Action to import settings
+                  _importSettings();
+                },
+              ),
             ),
             SizedBox(height: 8),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSettingsItem({
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 4,
-            offset: Offset(2, 2),
-          ),
-        ],
-      ),
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: ListTile(
-        title: Text(title, style: TextStyle(color: Colors.blueAccent, fontSize: 20, fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle, style: TextStyle(color: Colors.black, fontSize: 16)),
-        trailing: Icon(Icons.arrow_forward),
-        onTap: onTap,
       ),
     );
   }
@@ -126,7 +117,7 @@ class GradeSettingsPage extends StatelessWidget {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _resetSettings(); // Reset settings logic here
+                // Reset settings logic here
               },
               child: Text('Yes'),
             ),
@@ -151,7 +142,7 @@ class GradeSettingsPage extends StatelessWidget {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _saveSettings(); // Save settings logic here
+                // Save settings logic here
               },
               child: Text('Yes'),
             ),
@@ -173,15 +164,8 @@ class GradeSettingsPage extends StatelessWidget {
     // Logic to import settings
   }
 
-  Future<void> _saveSettings() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    // Replace 'yourGradingScaleKey' and 'yourGradingScaleValue' with actual data
-    await prefs.setString('gradingScale', 'A: 90-100, B: 80-89, C: 70-79'); // Example grading scale
-  }
-
-  Future<void> _resetSettings() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove('gradingScale'); // Remove saved grading scale
+  void _setNotificationPreferences() {
+    // Logic to set notification preferences
   }
 }
 
@@ -190,58 +174,11 @@ class CurrentSettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Current Grading Settings', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.blueAccent,
+        title: Text('Current Grading Settings'),
       ),
-      body: FutureBuilder<String?>(
-        future: _loadCurrentSettings(), // Load current settings
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasData) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Card(
-                  elevation: 4,
-                  color: Colors.blue[50], // Match color to SettingsPage
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      'Current Grading Scale: ${snapshot.data}',
-                      style: TextStyle(fontSize: 16, color: Colors.black87),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          } else {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Card(
-                  elevation: 4,
-                  color: Colors.blue[50], // Match color to SettingsPage
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      'No grading settings found.',
-                      style: TextStyle(fontSize: 16, color: Colors.black87),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }
-        },
+      body: Center(
+        child: Text('Display current grading settings here.'),
       ),
     );
-  }
-
-  Future<String?> _loadCurrentSettings() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString('gradingScale'); // Load the grading scale
   }
 }

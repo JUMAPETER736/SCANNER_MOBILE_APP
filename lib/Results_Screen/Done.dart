@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/Settings/SettingsPage.dart';
 import 'package:scanna/Main_Screen/GradeAnalytics.dart';
 import 'package:scanna/Main_Screen/ClassSelection.dart';
-import 'package:scanna/Main_Screen/StudentDetails.dart';
-import 'package:scanna/Main_Screen/Help.dart';
-import 'package:scanna/Main_Screen/StudentNameList.dart';
-import 'package:scanna/Main_Screen/QRCodeScan.dart';
+import 'package:scanna/Main_Screen/StudentDetails.dart'; // Import the StudentDetails
+import 'package:scanna/Main_Screen/Help.dart'; // Import the Help class
+import 'package:scanna/Home_Screens/LoginPage.dart'; // Import your LoginPage
 
 User? loggedInUser;
 
@@ -19,7 +19,7 @@ class Done extends StatefulWidget {
 
 class _DoneState extends State<Done> {
   final _auth = FirebaseAuth.instance;
-  int _selectedIndex = 1;
+  int _selectedIndex = 0; // Track the selected index for bottom navigation
 
   void getCurrentUser() async {
     try {
@@ -49,172 +49,155 @@ class _DoneState extends State<Done> {
   void _logout() async {
     try {
       await _auth.signOut();
+      // Navigate to the login page after logging out
       Navigator.pushReplacementNamed(context, '/login');
     } catch (e) {
       print(e);
     }
   }
 
-  Widget _buildHome(BuildContext context, User? loggedInUser) {
-    return Container(
-      color: Color.fromARGB(255, 198, 205, 218),
-      padding: EdgeInsets.all(16.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Welcome, ${loggedInUser?.displayName ?? 'User'}!',
-            style: TextStyle(
-                fontSize: 24.0, fontWeight: FontWeight.bold, color: Colors.teal),
-          ),
-          SizedBox(height: 30.0),
-
-          Expanded(
-
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15.0),
-
-            child: GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 16,
-              childAspectRatio: 5.3 / 3, // Further adjust the aspect ratio to reduce size
-              children: [
-                // Select Class
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ClassSelection()),
-                    );
-                  },
-                  child: _buildSquareCard(
-                    icon: Icons.class_,
-                    text: 'Select Class',
-                    color: Colors.blueAccent,
-                  ),
-                ),
-                // View Grade Analytics
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => GradeAnalytics()),
-                    );
-                  },
-                  child: _buildSquareCard(
-                    icon: Icons.analytics,
-                    text: 'View Grade Analytics',
-                    color: Colors.greenAccent,
-                  ),
-                ),
-                // Enter Student Details
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => StudentDetails()),
-                    );
-                  },
-                  child: _buildSquareCard(
-                    icon: Icons.person_add,
-                    text: 'Enter Student Details',
-                    color: Colors.orangeAccent,
-                  ),
-                ),
-                // QR Code Scan
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => QRCodeScan()),
-                    );
-                  },
-                  child: _buildSquareCard(
-                    icon: Icons.qr_code_scanner,
-                    text: 'QR Scan',
-                    color: Color.fromARGB(255, 59, 61, 60)
-                  ),
-                ),
-                // List Students
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            StudentNameList(loggedInUser: loggedInUser),
-                      ),
-                    );
-                  },
-                  child: _buildSquareCard(
-                    icon: Icons.list,
-                    text: 'Students Names',
-                    color: Colors.purpleAccent,
-
-
-                   ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSquareCard(
-      {required IconData icon, required String text, required Color color}) {
-    return Card(
-      elevation: 5,
-      color: color,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Container(
-        padding: const EdgeInsets.all(6.0), // Further reduce padding
+  @override
+  Widget build(BuildContext context) {
+    Widget _buildHome() {
+      return Container(
+        color: Colors.white,
+        padding: EdgeInsets.all(16.0), // Add padding
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 50, color: Colors.white), // Further reduce icon size
-            SizedBox(height: 10), // Further reduce spacing
+            // Welcome Message
             Text(
-              text,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16.0, color: Colors.white), // Further reduce text size
+              'Welcome, ${loggedInUser?.displayName ?? 'User'}!',
+              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold, color: Colors.teal),
+            ),
+            SizedBox(height: 40.0), // Spacing before buttons
+
+            // Button for Class Selection
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ClassSelection(),
+                  ),
+                );
+              },
+              child: Card(
+                elevation: 5,
+                color: Colors.blueAccent, // Button color
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0), // Adjusted padding
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.class_, size: 30, color: Colors.white), // Adjusted icon size
+                      SizedBox(width: 10),
+                      Text(
+                        'Select Class',
+                        style: TextStyle(fontSize: 18.0, color: Colors.white), // Adjusted text size and color
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: 20.0), // Spacing between buttons
+
+            // Button for Viewing Grade Analytics
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => GradeAnalytics(),
+                  ),
+                );
+              },
+              child: Card(
+                elevation: 5,
+                color: Colors.greenAccent, // Button color
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0), // Adjusted padding
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.analytics, size: 30, color: Colors.white), // Adjusted icon size
+                      SizedBox(width: 10),
+                      Text(
+                        'View Grade Analytics',
+                        style: TextStyle(fontSize: 18.0, color: Colors.white), // Adjusted text size and color
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: 20.0), // Spacing between buttons
+
+            // Button for Entering Student Details
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StudentDetails(),
+                  ),
+                );
+              },
+              child: Card(
+                elevation: 5,
+                color: Colors.orangeAccent, // Button color
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0), // Adjusted padding
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.person_add, size: 30, color: Colors.white), // Adjusted icon size
+                      SizedBox(width: 10),
+                      Text(
+                        'Enter Student Details',
+                        style: TextStyle(fontSize: 18.0, color: Colors.white), // Adjusted text size and color
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
         ),
-      ),
-    );
-  }
+      );
+    }
 
-  Widget _buildHelp() {
-    return Help();
-  }
+    Widget _buildHelp() {
+      return Help(); // Directly using the Help widget
+    }
 
-  Widget _buildSettings() {
-    return SettingsPage(user: loggedInUser!);
-  }
+    Widget _buildSettings() {
+      // Pass the loggedInUser to the SettingsPage
+      return SettingsPage(user: loggedInUser!); // Pass loggedInUser
+    }
 
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Scanna Dashboard'),
-        backgroundColor: Colors.teal,
-        automaticallyImplyLeading: false,
+        backgroundColor: Colors.teal, // AppBar color
+        automaticallyImplyLeading: false, // This removes the back arrow
         actions: [
           IconButton(
             icon: Icon(Icons.logout, color: Colors.white),
-            onPressed: _logout,
+            onPressed: _logout, // Log out when pressed
           ),
         ],
       ),
       body: _selectedIndex == 0
-          ? _buildHelp()
-          : _selectedIndex == 1
-              ? _buildHome(context, loggedInUser)
-              : _buildSettings(),
+          ? _buildHelp() 
+          : _selectedIndex == 1 
+              ? _buildHome() 
+              : _buildSettings(), // Added Settings page logic
+
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -226,15 +209,15 @@ class _DoneState extends State<Done> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
+            icon: Icon(Icons.settings), // Settings icon
             label: 'Settings',
           ),
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        backgroundColor: Colors.teal,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white54,
+        backgroundColor: Colors.teal, 
+        selectedItemColor: Colors.white, 
+        unselectedItemColor: Colors.white54, 
       ),
     );
   }
