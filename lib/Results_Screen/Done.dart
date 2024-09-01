@@ -6,6 +6,7 @@ import 'package:scanna/Main_Screen/ClassSelection.dart';
 import 'package:scanna/Main_Screen/StudentDetails.dart';
 import 'package:scanna/Main_Screen/Help.dart';
 import 'package:scanna/Main_Screen/StudentNameList.dart';
+import 'package:scanna/Main_Screen/QRCodeScan.dart';
 
 User? loggedInUser;
 
@@ -67,7 +68,6 @@ class _DoneState extends State<Done> {
                 fontSize: 24.0, fontWeight: FontWeight.bold, color: Colors.teal),
           ),
           SizedBox(height: 40.0),
-
           Expanded(
             child: GridView.count(
               crossAxisCount: 2,
@@ -88,7 +88,6 @@ class _DoneState extends State<Done> {
                     color: Colors.blueAccent,
                   ),
                 ),
-
                 // View Grade Analytics
                 GestureDetector(
                   onTap: () {
@@ -103,7 +102,6 @@ class _DoneState extends State<Done> {
                     color: Colors.greenAccent,
                   ),
                 ),
-
                 // Enter Student Details
                 GestureDetector(
                   onTap: () {
@@ -118,7 +116,20 @@ class _DoneState extends State<Done> {
                     color: Colors.orangeAccent,
                   ),
                 ),
-
+                // QR Code Scan
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => QRCodeScan()),
+                    );
+                  },
+                  child: _buildSquareCard(
+                    icon: Icons.qr_code_scanner,
+                    text: 'QR Scan',
+                    color: Colors.greenAccent,
+                  ),
+                ),
                 // List Students
                 GestureDetector(
                   onTap: () {
