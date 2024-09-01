@@ -175,12 +175,12 @@ class _DoneState extends State<Done> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 35, color: Colors.white), // Further reduce icon size
-            SizedBox(height: 6), // Further reduce spacing
+            Icon(icon, size: 50, color: Colors.white), // Further reduce icon size
+            SizedBox(height: 10), // Further reduce spacing
             Text(
               text,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14.0, color: Colors.white), // Further reduce text size
+              style: TextStyle(fontSize: 16.0, color: Colors.white), // Further reduce text size
             ),
           ],
         ),
