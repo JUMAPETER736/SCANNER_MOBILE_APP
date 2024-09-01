@@ -69,7 +69,8 @@ class _StudentDetailsState extends State<StudentDetails> {
           'studentAge': studentAge,
           'studentGender': studentGender,
           'studentID': studentID,
-          'createdBy': loggedInUser?.uid,
+          'createdBy': loggedInUser?.email,
+          'form': studentClass, // Store the class as 'form' for filtering later
         });
 
         // Generate Barcode after saving
