@@ -67,12 +67,18 @@ class _DoneState extends State<Done> {
             style: TextStyle(
                 fontSize: 24.0, fontWeight: FontWeight.bold, color: Colors.teal),
           ),
-          SizedBox(height: 40.0),
+          SizedBox(height: 30.0),
+
           Expanded(
+
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15.0),
+
             child: GridView.count(
               crossAxisCount: 2,
-              crossAxisSpacing: 20,
-              mainAxisSpacing: 20,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 14,
+              childAspectRatio: 5.7 / 3, // Further adjust the aspect ratio to reduce size
               children: [
                 // Select Class
                 GestureDetector(
@@ -127,7 +133,7 @@ class _DoneState extends State<Done> {
                   child: _buildSquareCard(
                     icon: Icons.qr_code_scanner,
                     text: 'QR Scan',
-                    color: Colors.greenAccent,
+                    color: Color.fromARGB(255, 59, 61, 60)
                   ),
                 ),
                 // List Students
@@ -145,9 +151,12 @@ class _DoneState extends State<Done> {
                     icon: Icons.list,
                     text: 'Students Names',
                     color: Colors.purpleAccent,
+
+
+                   ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -162,18 +171,16 @@ class _DoneState extends State<Done> {
       color: color,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Container(
-        width: 50,
-        height: 50,
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(6.0), // Further reduce padding
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 50, color: Colors.white),
-            SizedBox(height: 10),
+            Icon(icon, size: 35, color: Colors.white), // Further reduce icon size
+            SizedBox(height: 6), // Further reduce spacing
             Text(
               text,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18.0, color: Colors.white),
+              style: TextStyle(fontSize: 14.0, color: Colors.white), // Further reduce text size
             ),
           ],
         ),
