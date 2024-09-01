@@ -76,9 +76,9 @@ class _DoneState extends State<Done> {
 
             child: GridView.count(
               crossAxisCount: 2,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 14,
-              childAspectRatio: 5.7 / 3, // Further adjust the aspect ratio to reduce size
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 16,
+              childAspectRatio: 5.3 / 3, // Further adjust the aspect ratio to reduce size
               children: [
                 // Select Class
                 GestureDetector(
