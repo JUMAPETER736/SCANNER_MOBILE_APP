@@ -12,21 +12,24 @@ class _QRCodeSettingsPageState extends State<QRCodeSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('QR Code Settings'),
+        title: Text('QR Code Settings', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
       ),
-      body: Padding(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.lightBlueAccent, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
           children: [
-            Text(
-              'Manage QR Code Settings',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 20),
-            ListTile(
-              title: Text('Enable QR Code Scanning'),
-              subtitle: Text('Toggle QR code scanning feature on or off.'),
+            _buildSettingsItem(
+              title: 'Enable QR Code Scanning',
+              subtitle: 'Toggle QR code scanning feature on or off.',
               trailing: Switch(
                 value: isScanningEnabled,
                 onChanged: (value) {
@@ -36,10 +39,9 @@ class _QRCodeSettingsPageState extends State<QRCodeSettingsPage> {
                 },
               ),
             ),
-            Divider(),
-            ListTile(
-              title: Text('QR Code Display Options'),
-              subtitle: Text('Choose how QR codes are displayed in the app.'),
+            _buildSettingsItem(
+              title: 'QR Code Display Options',
+              subtitle: 'Choose how QR codes are displayed in the app.',
               trailing: Icon(Icons.arrow_forward),
               onTap: () {
                 Navigator.push(
@@ -48,10 +50,9 @@ class _QRCodeSettingsPageState extends State<QRCodeSettingsPage> {
                 );
               },
             ),
-            Divider(),
-            ListTile(
-              title: Text('Manage QR Code Data'),
-              subtitle: Text('View and edit the data associated with QR codes.'),
+            _buildSettingsItem(
+              title: 'Manage QR Code Data',
+              subtitle: 'View and edit the data associated with QR codes.',
               trailing: Icon(Icons.arrow_forward),
               onTap: () {
                 Navigator.push(
@@ -60,10 +61,9 @@ class _QRCodeSettingsPageState extends State<QRCodeSettingsPage> {
                 );
               },
             ),
-            Divider(),
-            ListTile(
-              title: Text('QR Code Expiry Settings'),
-              subtitle: Text('Set expiry duration for generated QR codes.'),
+            _buildSettingsItem(
+              title: 'QR Code Expiry Settings',
+              subtitle: 'Set expiry duration for generated QR codes.',
               trailing: Icon(Icons.arrow_forward),
               onTap: () {
                 Navigator.push(
@@ -72,20 +72,48 @@ class _QRCodeSettingsPageState extends State<QRCodeSettingsPage> {
                 );
               },
             ),
-            Divider(),
             SizedBox(height: 20),
-            Text(
-              'Tips for Using QR Codes',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Text(
+
+            _buildSettingsItem(
+              title: 'Tips for Using QR Codes',
+             
+              subtitle:
               '• Ensure QR codes are clear and easy to scan.\n'
-                  '• Regularly update QR code data as needed.\n'
-                  '• Use secure methods to generate and share QR codes.',
-              style: TextStyle(fontSize: 14),
+              '• Regularly update QR code data as needed.\n'
+              '• Use secure methods to generate and share QR codes.',
+            
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsItem({
+    required String title,
+    required String subtitle,
+    Widget? trailing,
+    VoidCallback? onTap,
+  }) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 4,
+            offset: Offset(2, 2),
+          ),
+        ],
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: ListTile(
+        title: Text(title, style: TextStyle(color: Colors.blueAccent, fontSize: 20, fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle, style: TextStyle(color: Colors.black, fontSize: 16)),
+        trailing: trailing,
+        onTap: onTap,
       ),
     );
   }
@@ -97,9 +125,18 @@ class QRCodeDisplayOptionsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('QR Code Display Options'),
+        title: Text('QR Code Display Options', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
       ),
-      body: Padding(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.lightBlueAccent, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         padding: const EdgeInsets.all(16.0),
         child: Center(
           child: Column(
@@ -110,9 +147,10 @@ class QRCodeDisplayOptionsPage extends StatelessWidget {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 20),
-              Text('• Option 1: Display QR Code with logo\n'
-                  '• Option 2: Display QR Code with a custom color\n'
-                  '• Option 3: Display QR Code in various sizes',
+              Text(
+                '• Option 1: Display QR Code with logo\n'
+                '• Option 2: Display QR Code with a custom color\n'
+                '• Option 3: Display QR Code in various sizes',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16),
               ),
@@ -130,9 +168,18 @@ class ManageQRCodeDataPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Manage QR Code Data'),
+        title: Text('Manage QR Code Data', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
       ),
-      body: Padding(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.lightBlueAccent, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         padding: const EdgeInsets.all(16.0),
         child: Center(
           child: Column(
@@ -143,9 +190,10 @@ class ManageQRCodeDataPage extends StatelessWidget {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 20),
-              Text('• View existing QR Code data\n'
-                  '• Edit QR Code information\n'
-                  '• Delete unwanted QR Codes',
+              Text(
+                '• View existing QR Code data\n'
+                '• Edit QR Code information\n'
+                '• Delete unwanted QR Codes',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16),
               ),
@@ -163,9 +211,18 @@ class QRCodeExpirySettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('QR Code Expiry Settings'),
+        title: Text('QR Code Expiry Settings', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
       ),
-      body: Padding(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.lightBlueAccent, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         padding: const EdgeInsets.all(16.0),
         child: Center(
           child: Column(
@@ -176,9 +233,10 @@ class QRCodeExpirySettingsPage extends StatelessWidget {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 20),
-              Text('• Choose duration for QR code validity\n'
-                  '• Set alerts for expired QR codes\n'
-                  '• Manage multiple expiry settings',
+              Text(
+                '• Choose duration for QR code validity\n'
+                '• Set alerts for expired QR codes\n'
+                '• Manage multiple expiry settings',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16),
               ),

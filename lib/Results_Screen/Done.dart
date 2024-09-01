@@ -57,7 +57,7 @@ class _DoneState extends State<Done> {
 
   Widget _buildHome(BuildContext context, User? loggedInUser) {
     return Container(
-      color: Colors.white,
+      color: Color.fromARGB(255, 198, 205, 218),
       padding: EdgeInsets.all(16.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
