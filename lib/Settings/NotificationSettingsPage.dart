@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(MyApp());
@@ -36,37 +36,76 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   List<bool> _notificationSelections = [true, true, true]; // State for notification types
 
   @override
+  void initState() {
+    super.initState();
+    _loadPreferences(); // Load saved preferences
+  }
+
+  Future<void> _loadPreferences() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
+      _selectedSound = prefs.getString('selectedSound') ?? 'Default';
+      _startTime = TimeOfDay(
+          hour: prefs.getInt('quietHoursStartHour') ?? 22,
+          minute: prefs.getInt('quietHoursStartMinute') ?? 0);
+      _endTime = TimeOfDay(
+          hour: prefs.getInt('quietHoursEndHour') ?? 7,
+          minute: prefs.getInt('quietHoursEndMinute') ?? 0);
+      _notificationSelections = List.generate(
+          _notificationTypes.length,
+          (index) => prefs.getBool('notificationType$index') ?? true);
+    });
+  }
+
+  Future<void> _savePreferences() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('notificationsEnabled', _notificationsEnabled);
+    await prefs.setString('selectedSound', _selectedSound);
+    await prefs.setInt('quietHoursStartHour', _startTime.hour);
+    await prefs.setInt('quietHoursStartMinute', _startTime.minute);
+    await prefs.setInt('quietHoursEndHour', _endTime.hour);
+    await prefs.setInt('quietHoursEndMinute', _endTime.minute);
+    for (int i = 0; i < _notificationTypes.length; i++) {
+      await prefs.setBool('notificationType$i', _notificationSelections[i]);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Notification Settings'),
+        title: Text('Notification Settings', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
       ),
-      body: Padding(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.lightBlueAccent, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
           children: [
-            Text(
-              'Manage Your Notification Preferences',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 20),
-            ListTile(
-              title: Text('Enable Notifications'),
-              subtitle: Text('Toggle notifications on or off.'),
+            _buildSettingsItem(
+              title: 'Enable Notifications',
+              subtitle: 'Toggle notifications on or off.',
               trailing: Switch(
                 value: _notificationsEnabled,
                 onChanged: (value) {
                   setState(() {
                     _notificationsEnabled = value;
                   });
+                  _savePreferences(); // Save preferences
                 },
               ),
             ),
-            Divider(),
-            ListTile(
-              title: Text('Notification Sound'),
-              subtitle: Text('Select the sound for notifications.'),
+            _buildSettingsItem(
+              title: 'Notification Sound',
+              subtitle: 'Select the sound for notifications.',
               trailing: Text(_selectedSound),
               onTap: () async {
                 // Simulated sound selection
@@ -102,40 +141,69 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   setState(() {
                     _selectedSound = chosenSound;
                   });
+                  _savePreferences(); // Save preferences
                 }
               },
             ),
-            Divider(),
-            ListTile(
-              title: Text('Notification Types'),
-              subtitle: Text('Choose which notifications to receive.'),
+            _buildSettingsItem(
+              title: 'Notification Types',
+              subtitle: 'Choose which notifications to receive.',
               trailing: Icon(Icons.arrow_forward),
               onTap: () {
                 _showNotificationTypesDialog();
               },
             ),
-            Divider(),
-            ListTile(
-              title: Text('Do Not Disturb'),
-              subtitle: Text('Set quiet hours for notifications.'),
+            _buildSettingsItem(
+              title: 'Do Not Disturb',
+              subtitle: 'Set quiet hours for notifications.',
               onTap: () {
                 _selectQuietHours(context);
               },
             ),
-            Divider(),
             SizedBox(height: 20),
-            Text(
-              'Tips for Managing Notifications',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Text(
+
+            _buildSettingsItem(
+
+            title: 'Tips for Managing Notifications',
+              
+            subtitle: 
               '• Customize notifications to stay informed without being overwhelmed.\n'
-                  '• Regularly check settings to ensure you receive important alerts.\n'
-                  '• Use do not disturb during meetings or personal time.',
-              style: TextStyle(fontSize: 14),
+              '• Regularly check settings to ensure you receive important alerts.\n'
+              '• Use do not disturb during meetings or personal time.',
+              
+            
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsItem({
+    required String title,
+    required String subtitle,
+    Widget? trailing,
+    VoidCallback? onTap,
+  }) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 4,
+            offset: Offset(2, 2),
+          ),
+        ],
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: ListTile(
+        title: Text(title, style: TextStyle(color: Colors.blueAccent, fontSize: 20, fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle, style: TextStyle(color: Colors.black, fontSize: 16)),
+        trailing: trailing,
+        onTap: onTap,
       ),
     );
   }
@@ -156,6 +224,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
           _startTime = newStartTime;
           _endTime = newEndTime;
         });
+        _savePreferences(); // Save preferences
       }
     }
     _showQuietHoursDialog();
@@ -201,6 +270,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     setState(() {
                       _notificationSelections[index] = value ?? false;
                     });
+                    _savePreferences(); // Save preferences
                   },
                 );
               }),

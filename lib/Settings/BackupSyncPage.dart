@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Import this package for date formatting
-import 'package:shared_preferences/shared_preferences.dart'; // Import Shared Preferences
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(MyApp());
@@ -27,138 +27,193 @@ class BackupSyncPage extends StatefulWidget {
 class _BackupSyncPageState extends State<BackupSyncPage> {
   bool _autoBackupEnabled = false;
   bool _syncWithCloudEnabled = false;
-  String _backupStatus = ''; // To display backup status messages
-  double _backupProgress = 0.0; // To track backup progress
-  bool _isBackingUp = false; // To check if a backup is in progress
-  String _lastBackupTime = ''; // To display the date and time of the last backup
-  String _lastBackupResult = ''; // To display the last backup result status
+  String _backupStatus = '';
+  double _backupProgress = 0.0;
+  bool _isBackingUp = false;
+  String _lastBackupTime = '';
+  String _lastBackupResult = '';
 
   @override
   void initState() {
     super.initState();
-    _loadLastBackupTime(); // Load the last backup time when the app starts
+    _loadLastBackupTime();
   }
 
   void _toggleAutoBackup(bool? value) {
     setState(() {
       _autoBackupEnabled = value ?? false;
     });
-    // Add logic to handle auto backup setting
   }
 
   void _toggleSyncWithCloud(bool? value) {
     setState(() {
       _syncWithCloudEnabled = value ?? false;
     });
-    // Add logic to handle cloud sync setting
   }
 
   Future<void> _backupNow() async {
     setState(() {
-      _backupStatus = 'Back Up...';
+      _backupStatus = 'Backing up...';
       _backupProgress = 0.0;
       _isBackingUp = true;
     });
 
-    // Simulated backup process with progress
     for (int i = 1; i <= 100; i++) {
-      await Future.delayed(Duration(milliseconds: 30)); // Simulate time taken for each percentage
+      await Future.delayed(Duration(milliseconds: 30));
       setState(() {
-        _backupProgress = i / 100; // Update progress
+        _backupProgress = i / 100;
       });
     }
 
     setState(() {
-      _backupStatus = 'Backup completed successfully!'; // Update backup status message
-      _lastBackupResult = _backupStatus; // Save the last backup status
-      _isBackingUp = false; // Mark backup as completed
-      _lastBackupTime = DateFormat('dd-MM-yyyy   kk:mm').format(DateTime.now()); // Get current date and time
+      _backupStatus = 'Backup completed successfully!';
+      _lastBackupResult = _backupStatus;
+      _isBackingUp = false;
+      _lastBackupTime = DateFormat('dd-MM-yyyy   kk:mm').format(DateTime.now());
     });
 
-    await _saveLastBackupTime(_lastBackupTime); // Save the last backup time persistently
+    await _saveLastBackupTime(_lastBackupTime);
   }
 
   Future<void> _loadLastBackupTime() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? savedTime = prefs.getString('lastBackupTime');
     setState(() {
-      _lastBackupTime = savedTime ?? ''; // Load the last backup time or keep it empty
-      _lastBackupResult = savedTime != null ? 'Last Backup Successful' : ''; // Update the last backup result if there's a time saved
+      _lastBackupTime = savedTime ?? '';
+      _lastBackupResult = savedTime != null ? 'Last Backup Successful' : '';
     });
   }
 
   Future<void> _saveLastBackupTime(String time) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('lastBackupTime', time); // Save the last backup time
+    await prefs.setString('lastBackupTime', time);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Backup & Sync'),
+        title: Text('Backup & Sync', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
       ),
-      body: Padding(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.lightBlueAccent, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
           children: [
             Text(
               'Backup Settings',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SwitchListTile(
-              title: Text('Enable Auto Backup'),
-              value: _autoBackupEnabled,
-              onChanged: _toggleAutoBackup,
-              subtitle: Text('Automatically back up your data regularly.'),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
             ),
             SizedBox(height: 20),
-            SwitchListTile(
-              title: Text('Sync with Cloud'),
-              value: _syncWithCloudEnabled,
-              onChanged: _toggleSyncWithCloud,
-              subtitle: Text('Keep your data synchronized with the cloud.'),
+            _buildSettingsItem(
+              title: 'Enable Auto Backup',
+              subtitle: 'Automatically back up your data regularly.',
+              trailing: Switch(
+                value: _autoBackupEnabled,
+                onChanged: _toggleAutoBackup,
+                activeColor: Colors.blueAccent, // Change active color of switch
+              ),
+            ),
+            SizedBox(height: 20),
+            _buildSettingsItem(
+              title: 'Sync with Cloud',
+              subtitle: 'Keep your data synchronized with the cloud.',
+              trailing: Switch(
+                value: _syncWithCloudEnabled,
+                onChanged: _toggleSyncWithCloud,
+                activeColor: Colors.blueAccent, // Change active color of switch
+              ),
             ),
             SizedBox(height: 20),
             Text(
               'Backup Status',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blueAccent),
             ),
+            SizedBox(height: 10),
             Text(
-              'Last backup: ${_lastBackupTime.isNotEmpty ? _lastBackupTime : "No backup Availabe"}\n'
-                  'Cloud sync: ${_syncWithCloudEnabled ? "Active" : "Inactive"}',
-              style: TextStyle(fontSize: 16),
+              'Last backup: ${_lastBackupTime.isNotEmpty ? _lastBackupTime : "No backup available"}\n'
+              'Cloud sync: ${_syncWithCloudEnabled ? "Active" : "Inactive"}',
+              style: TextStyle(fontSize: 16, color: Colors.black),
             ),
             SizedBox(height: 20),
-            Text(
-              _backupStatus,
-              style: TextStyle(fontSize: 16, color: Colors.blue),
-            ),
-            if (_lastBackupResult.isNotEmpty) // Display last backup result if available
+            if (_backupStatus.isNotEmpty)
+              Text(
+                _backupStatus,
+                style: TextStyle(fontSize: 16, color: Colors.black),
+              ),
+            if (_lastBackupResult.isNotEmpty)
               Text(
                 'Last Backup Status: $_lastBackupResult',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               ),
             SizedBox(height: 20),
-            if (_isBackingUp) // Show progress only during backup
+            if (_isBackingUp)
               Column(
                 children: [
-                  LinearProgressIndicator(value: _backupProgress), // Show progress bar
+                  LinearProgressIndicator(
+                    value: _backupProgress,
+                    backgroundColor: Colors.blue[100],
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                  ),
                   SizedBox(height: 10),
                   Text(
-                    '${(_backupProgress * 100).round()}%', // Show percentage
-                    style: TextStyle(fontSize: 16),
+                    '${(_backupProgress * 100).round()}%',
+                    style: TextStyle(fontSize: 16, color: Colors.black),
                   ),
                 ],
               ),
             SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _isBackingUp ? null : _backupNow, // Disable button while backing up
-              child: Text('Backup Now'),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ElevatedButton(
+                onPressed: _isBackingUp ? null : _backupNow,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                child: Text('Backup Now', style: TextStyle(fontSize: 18, color: Colors.white)),
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsItem({
+    required String title,
+    required String subtitle,
+    Widget? trailing,
+  }) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 4,
+            offset: Offset(2, 2),
+          ),
+        ],
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: ListTile(
+        title: Text(title, style: TextStyle(color: Colors.blueAccent, fontSize: 20, fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle, style: TextStyle(color: Colors.black, fontSize: 16)),
+        trailing: trailing,
+        onTap: () {
+          // Optional: Add functionality for tapping on the item
+        },
       ),
     );
   }
