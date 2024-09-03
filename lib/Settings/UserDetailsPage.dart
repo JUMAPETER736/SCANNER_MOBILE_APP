@@ -72,7 +72,7 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
         _buildSettingsItem(Icons.class_, 'Selected Classes', _selectedClasses.isNotEmpty ? _selectedClasses.join(', ') : 'N/A'),
         _buildSettingsItem(Icons.subject, 'Selected Subjects', _selectedSubjects.isNotEmpty ? _selectedSubjects.join(', ') : 'N/A'),
         SizedBox(height: 20),
-        _buildSettingsActionItem('Change Password', Icons.lock, () {
+        _buildSettingsActionItem('Change Password',  Icons.lock, () {
           Navigator.push(
             context,
             MaterialPageRoute(

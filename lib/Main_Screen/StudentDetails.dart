@@ -26,15 +26,15 @@ class _StudentDetailsState extends State<StudentDetails> {
   @override
   void initState() {
     super.initState();
-    getCurrentUser(); // Fetch the current user on initialization
+    getCurrentUser();
   }
 
   void getCurrentUser() async {
     try {
-      final user = FirebaseAuth.instance.currentUser; // Get the current user
+      final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         setState(() {
-          loggedInUser = user; // Set the logged-in user
+          loggedInUser = user;
         });
       }
     } catch (e) {
@@ -44,7 +44,7 @@ class _StudentDetailsState extends State<StudentDetails> {
 
   String generateRandomStudentID() {
     Random random = Random();
-    int id = 100000 + random.nextInt(900000); // Generate a random 6-digit number
+    int id = 100000 + random.nextInt(900000);
     return id.toString();
   }
 
@@ -52,16 +52,14 @@ class _StudentDetailsState extends State<StudentDetails> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      // Generate random student ID
       studentID = generateRandomStudentID();
 
-      // Save student details to Firestore under the user's document
       try {
         await _firestore
             .collection('Students')
-            .doc(loggedInUser?.uid) // Use the logged-in user's UID
+            .doc(loggedInUser?.uid)
             .collection('StudentDetails')
-            .doc(studentID) // Use the generated student ID as the document ID
+            .doc(studentID)
             .set({
           'firstName': firstName,
           'lastName': lastName,
@@ -70,12 +68,11 @@ class _StudentDetailsState extends State<StudentDetails> {
           'studentGender': studentGender,
           'studentID': studentID,
           'createdBy': loggedInUser?.email,
-          'form': studentClass, // Store the class as 'form' for filtering later
+          'form': studentClass,
         });
 
-        // Generate Barcode after saving
         setState(() {
-          generatedBarcode = studentID; // Use studentID as the barcode data
+          generatedBarcode = studentID;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -89,117 +86,175 @@ class _StudentDetailsState extends State<StudentDetails> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Enter Student Details'),
+        title: Text('Enter Student Details', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.lightBlueAccent, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                decoration: InputDecoration(labelText: 'First Name'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please Enter the Student\'s First Name';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  firstName = value;
-                },
+              _buildStyledTextField(
+                controller: _firstNameController,
+                labelText: 'First Name',
               ),
-              SizedBox(height: 10.0),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Last Name'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please Enter the Student\'s Last Name';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  lastName = value;
-                },
+              SizedBox(height: 16),
+              _buildStyledTextField(
+                controller: _lastNameController,
+                labelText: 'Last Name',
               ),
-              SizedBox(height: 10.0),
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(labelText: 'Class'),
-                items: ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4']
-                    .map((String classValue) {
-                  return DropdownMenuItem<String>(
-                    value: classValue,
-                    child: Text(classValue),
-                  );
-                }).toList(),
+              SizedBox(height: 16),
+              _buildStyledDropdownField(
+                value: studentClass,
+                labelText: 'Class',
+                items: ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'],
                 onChanged: (newValue) {
                   setState(() {
                     studentClass = newValue!;
                   });
                 },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select the Student\'s Class';
-                  }
-                  return null;
-                },
               ),
-              SizedBox(height: 10.0),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Age'),
+              SizedBox(height: 16),
+              _buildStyledTextField(
+                controller: _ageController,
+                labelText: 'Age',
                 keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please Enter the Student\'s Age';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  studentAge = value;
-                },
               ),
-              SizedBox(height: 10.0),
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(labelText: 'Gender'),
-                items: ['Male', 'Female'].map((String genderValue) {
-                  return DropdownMenuItem<String>(
-                    value: genderValue,
-                    child: Text(genderValue),
-                  );
-                }).toList(),
+              SizedBox(height: 16),
+              _buildStyledDropdownField(
+                value: studentGender,
+                labelText: 'Gender',
+                items: ['Male', 'Female'],
                 onChanged: (newValue) {
                   setState(() {
                     studentGender = newValue!;
                   });
                 },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select the Student\'s Gender';
-                  }
-                  return null;
-                },
               ),
-              SizedBox(height: 20.0),
-              ElevatedButton(
-                onPressed: saveStudentDetails,
-                child: Text('Save Details and Generate Barcode'),
+              Spacer(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        padding: EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: Text('Cancel', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  SizedBox(width: 20),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.greenAccent,
+                        padding: EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: saveStudentDetails,
+                      child: Text('Save & Generate Barcode', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 20.0),
-              if (generatedBarcode != null)
-                BarcodeWidget(
-                  barcode: Barcode.code128(), // Barcode type
-                  data: generatedBarcode!, // The generated barcode data
-                  width: 200,
-                  height: 80,
-                ),
             ],
           ),
         ),
       ),
     );
   }
-}
+
+  Widget _buildStyledTextField({
+    required TextEditingController controller,
+    required String labelText,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(2, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          labelText: labelText,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStyledDropdownField({
+    required String? value,
+    required String labelText,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(2, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: labelText,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+        items: items.map((String item) {
+          return DropdownMenuItem<String>(
+            value: item,
+            child: Text(item),
+          );
+        }).toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+

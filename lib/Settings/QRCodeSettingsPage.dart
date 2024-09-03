@@ -30,7 +30,9 @@ class _QRCodeSettingsPageState extends State<QRCodeSettingsPage> {
             _buildSettingsItem(
               title: 'Enable QR Code Scanning',
               subtitle: 'Toggle QR code scanning feature on or off.',
+
               trailing: Switch(
+                activeColor: Colors.blueAccent,
                 value: isScanningEnabled,
                 onChanged: (value) {
                   setState(() {
