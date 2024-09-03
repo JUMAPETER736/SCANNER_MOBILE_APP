@@ -32,7 +32,7 @@ class StudentSubjects extends StatelessWidget {
           stream: FirebaseFirestore.instance
               .collection('classes')
               .doc(studentClass)
-              .collection('Subjects')
+              .collection('subjects')  // Ensure this matches your Firestore structure
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
