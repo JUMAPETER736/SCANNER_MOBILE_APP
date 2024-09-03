@@ -21,35 +21,9 @@ class _QRCodeScanState extends State<QRCodeScan> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: <Widget>[
-          Expanded(
-            flex: 4,
-            child: QRView(
-              key: qrKey,
-              onQRViewCreated: _onQRViewCreated,
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Center(
-              child: (result != null)
-                  ? ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => ScannedStudentDetails(
-                        studentID: result!.code!,
-                      ),
-                    ),
-                  );
-                },
-                child: Text('View Student Details'),
-              )
-                  : Text('Scan a code'),
-            ),
-          ),
-        ],
+      body: QRView(
+        key: qrKey,
+        onQRViewCreated: _onQRViewCreated,
       ),
     );
   }
@@ -57,9 +31,19 @@ class _QRCodeScanState extends State<QRCodeScan> {
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
     controller.scannedDataStream.listen((scanData) {
-      setState(() {
-        result = scanData;
-      });
+      if (scanData != null) {
+        setState(() {
+          result = scanData;
+        });
+        // Navigate to the student details page
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => ScannedStudentDetails(
+              studentID: result!.code!,
+            ),
+          ),
+        );
+      }
     });
   }
 }
@@ -79,7 +63,7 @@ class ScannedStudentDetails extends StatelessWidget {
       body: FutureBuilder<DocumentSnapshot>(
         future: FirebaseFirestore.instance
             .collection('Students')
-            .doc(studentID) // Use the scanned student ID directly
+            .doc(studentID)
             .get(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
