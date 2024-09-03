@@ -60,6 +60,7 @@ class StudentNameList extends StatelessWidget {
                 var student = snapshot.data!.docs[index];
                 var firstName = student['firstName'] ?? 'N/A';
                 var lastName = student['lastName'] ?? 'N/A';
+                var studentClass = student['studentClass'] ?? 'N/A'; // Retrieve class
 
                 return Container(
                   width: double.infinity,
@@ -83,6 +84,13 @@ class StudentNameList extends StatelessWidget {
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors.blueAccent,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Class: $studentClass',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black,
                       ),
                     ),
                     trailing: Icon(
