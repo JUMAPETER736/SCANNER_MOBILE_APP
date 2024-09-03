@@ -10,84 +10,68 @@ class StudentNameList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (loggedInUser == null) {
+      return Scaffold(
+        body: Center(child: Text('No user is logged in.')),
+      );
+    }
+
+    String userId = loggedInUser!.uid;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Name of Students'),
       ),
-      body: StreamBuilder<DocumentSnapshot>(
+      body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('Students')
-            .doc(loggedInUser?.uid)
+            .doc(userId)
+            .collection('StudentDetails')
             .snapshots(),
-        builder: (context, userSnapshot) {
-          if (userSnapshot.connectionState == ConnectionState.waiting) {
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
-          if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
-            return Center(child: Text('User not found.'));
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(child: Text('No students found.'));
           }
 
-          // Assuming that the user's class is stored in a field called 'form'
-          var userClass = userSnapshot.data!['form'];
+          return ListView.separated(
+            itemCount: snapshot.data!.docs.length,
+            separatorBuilder: (context, index) => SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              var student = snapshot.data!.docs[index];
+              var firstName = student['firstName'] ?? 'N/A';
+              var lastName = student['lastName'] ?? 'N/A';
 
-          // Check if class is selected
-          if (userClass == null) {
-            return Center(child: Text('Please select class first.'));
-          }
-
-          return StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('Students')
-                .doc(loggedInUser?.uid)
-                .collection('StudentDetails')
-                .where('form', isEqualTo: userClass)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              }
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return Center(child: Text('No students found.'));
-              }
-
-              return ListView.separated(
-                itemCount: snapshot.data!.docs.length,
-                separatorBuilder: (context, index) => SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  var student = snapshot.data!.docs[index];
-                  var firstName = student['firstName'];
-                  var lastName = student['lastName'];
-
-                  return Card(
-                    elevation: 4,
-                    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: ListTile(
-                      contentPadding: EdgeInsets.all(16),
-                      title: Text(
-                        '$firstName $lastName',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
+              return Card(
+                elevation: 4,
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  contentPadding: EdgeInsets.all(16),
+                  title: Text(
+                    '$firstName $lastName',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  trailing: Icon(
+                    Icons.arrow_forward,
+                    color: Colors.black,
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => StudentSubjects(
+                          studentId: student.id,
                         ),
                       ),
-                      trailing: Icon(
-                        Icons.arrow_forward,
-                        color: Colors.black,
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => StudentSubjects(
-                              studentId: student.id,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               );
             },
           );
