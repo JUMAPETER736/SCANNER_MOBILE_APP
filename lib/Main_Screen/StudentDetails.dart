@@ -260,7 +260,7 @@ class _StudentDetailsState extends State<StudentDetails> {
                       padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       textStyle: TextStyle(fontSize: 18),
                     ),
-                    child: Text('Save & Generate Barcode'),
+                    child: Text('Save & Generate QRCode'),
                   ),
                 ],
               ),
@@ -268,10 +268,10 @@ class _StudentDetailsState extends State<StudentDetails> {
               if (generatedBarcode != null)
                 Center(
                   child: BarcodeWidget(
-                    barcode: Barcode.code128(),
+                    barcode: Barcode.qrCode(),
                     data: generatedBarcode!,
-                    width: 200,
-                    height: 80,
+                    width: 650,
+                    height:100,
                   ),
                 ),
             ],
