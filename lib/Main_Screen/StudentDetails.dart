@@ -86,7 +86,6 @@ class _StudentDetailsState extends State<StudentDetails> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,165 +95,189 @@ class _StudentDetailsState extends State<StudentDetails> {
         backgroundColor: Colors.blueAccent,
       ),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.lightBlueAccent, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildStyledTextField(
-                controller: _firstNameController,
-                labelText: 'First Name',
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'First Name',
+                  labelStyle: TextStyle(color: Colors.blueAccent),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blueAccent),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blueAccent, width: 2.0),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please Enter the Student\'s First Name';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  firstName = value;
+                },
               ),
-              SizedBox(height: 16),
-              _buildStyledTextField(
-                controller: _lastNameController,
-                labelText: 'Last Name',
+              SizedBox(height: 10.0),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Last Name',
+                  labelStyle: TextStyle(color: Colors.blueAccent),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blueAccent),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blueAccent, width: 2.0),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please Enter the Student\'s Last Name';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  lastName = value;
+                },
               ),
-              SizedBox(height: 16),
-              _buildStyledDropdownField(
-                value: studentClass,
-                labelText: 'Class',
-                items: ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'],
+              SizedBox(height: 10.0),
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  labelText: 'Class',
+                  labelStyle: TextStyle(color: Colors.blueAccent),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blueAccent),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blueAccent, width: 2.0),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                items: ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4']
+                    .map((String classValue) {
+                  return DropdownMenuItem<String>(
+                    value: classValue,
+                    child: Text(classValue),
+                  );
+                }).toList(),
                 onChanged: (newValue) {
                   setState(() {
                     studentClass = newValue!;
                   });
                 },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please select the Student\'s Class';
+                  }
+                  return null;
+                },
               ),
-              SizedBox(height: 16),
-              _buildStyledTextField(
-                controller: _ageController,
-                labelText: 'Age',
+              SizedBox(height: 10.0),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Age',
+                  labelStyle: TextStyle(color: Colors.blueAccent),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blueAccent),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blueAccent, width: 2.0),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
                 keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please Enter the Student\'s Age';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  studentAge = value;
+                },
               ),
-              SizedBox(height: 16),
-              _buildStyledDropdownField(
-                value: studentGender,
-                labelText: 'Gender',
-                items: ['Male', 'Female'],
+              SizedBox(height: 10.0),
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  labelText: 'Gender',
+                  labelStyle: TextStyle(color: Colors.blueAccent),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blueAccent),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blueAccent, width: 2.0),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                items: ['Male', 'Female'].map((String genderValue) {
+                  return DropdownMenuItem<String>(
+                    value: genderValue,
+                    child: Text(genderValue),
+                  );
+                }).toList(),
                 onChanged: (newValue) {
                   setState(() {
                     studentGender = newValue!;
                   });
                 },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please select the Student\'s Gender';
+                  }
+                  return null;
+                },
               ),
-              Spacer(),
+              SizedBox(height: 20.0),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        padding: EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: Text('Cancel', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      textStyle: TextStyle(fontSize: 18),
                     ),
+                    child: Text('Cancel'),
                   ),
-                  SizedBox(width: 20),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.greenAccent,
-                        padding: EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: saveStudentDetails,
-                      child: Text('Save & Generate Barcode', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ElevatedButton(
+                    onPressed: saveStudentDetails,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      textStyle: TextStyle(fontSize: 18),
                     ),
+                    child: Text('Save & Generate Barcode'),
                   ),
                 ],
               ),
+              SizedBox(height: 20.0),
+              if (generatedBarcode != null)
+                Center(
+                  child: BarcodeWidget(
+                    barcode: Barcode.code128(),
+                    data: generatedBarcode!,
+                    width: 200,
+                    height: 80,
+                  ),
+                ),
             ],
           ),
         ),
       ),
     );
   }
-
-  Widget _buildStyledTextField({
-    required TextEditingController controller,
-    required String labelText,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(2, 2),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        decoration: InputDecoration(
-          labelText: labelText,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStyledDropdownField({
-    required String? value,
-    required String labelText,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(2, 2),
-          ),
-        ],
-      ),
-      child: DropdownButtonFormField<String>(
-        value: value,
-        decoration: InputDecoration(
-          labelText: labelText,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
-        items: items.map((String item) {
-          return DropdownMenuItem<String>(
-            value: item,
-            child: Text(item),
-          );
-        }).toList(),
-        onChanged: onChanged,
-      ),
-    );
-  }
-
+}
