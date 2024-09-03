@@ -102,7 +102,8 @@ class StudentNameList extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => StudentSubjects(
-                            studentId: student.id,
+                            studentName: '$firstName $lastName',
+                            studentClass: studentClass,
                           ),
                         ),
                       );
