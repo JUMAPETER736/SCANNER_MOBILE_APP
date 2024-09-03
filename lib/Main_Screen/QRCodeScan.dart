@@ -1,6 +1,7 @@
-
-import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+
 
 class QRCodeScan extends StatefulWidget {
   @override
@@ -13,40 +14,39 @@ class _QRCodeScanState extends State<QRCodeScan> {
   QRViewController? controller;
 
   @override
-  void reassemble() {
-    super.reassemble();
-    controller?.pauseCamera();
-    controller?.resumeCamera();
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('QR Code Scanner'),
-        backgroundColor: Colors.teal,
-      ),
       body: Column(
         children: <Widget>[
           Expanded(
-            flex: 5,
+            flex: 4,
             child: QRView(
               key: qrKey,
               onQRViewCreated: _onQRViewCreated,
-              overlay: QrScannerOverlayShape(
-                borderColor: Colors.teal,
-                borderRadius: 10,
-                borderLength: 30,
-                borderWidth: 10,
-                cutOutSize: 300,
-              ),
             ),
           ),
           Expanded(
             flex: 1,
             child: Center(
               child: (result != null)
-                  ? Text('Barcode Type: ${result!.format}   Data: ${result!.code}')
+                  ? ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ScannedStudentDetails(
+                        studentID: result!.code!,
+                      ),
+                    ),
+                  );
+                },
+                child: Text('View Student Details'),
+              )
                   : Text('Scan a code'),
             ),
           )
@@ -62,11 +62,5 @@ class _QRCodeScanState extends State<QRCodeScan> {
         result = scanData;
       });
     });
-  }
-
-  @override
-  void dispose() {
-    controller?.dispose();
-    super.dispose();
   }
 }

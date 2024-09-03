@@ -68,7 +68,6 @@ class _StudentDetailsState extends State<StudentDetails> {
           'studentGender': studentGender,
           'studentID': studentID,
           'createdBy': loggedInUser?.email,
-          'form': studentClass,
         });
 
         setState(() {
@@ -85,6 +84,7 @@ class _StudentDetailsState extends State<StudentDetails> {
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -281,3 +281,5 @@ class _StudentDetailsState extends State<StudentDetails> {
     );
   }
 }
+
+
