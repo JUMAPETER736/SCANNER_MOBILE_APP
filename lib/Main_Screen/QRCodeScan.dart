@@ -1,7 +1,6 @@
-import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-
+import 'package:qr_code_scanner/qr_code_scanner.dart';
 
 class QRCodeScan extends StatefulWidget {
   @override
@@ -49,7 +48,7 @@ class _QRCodeScanState extends State<QRCodeScan> {
               )
                   : Text('Scan a code'),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -62,5 +61,70 @@ class _QRCodeScanState extends State<QRCodeScan> {
         result = scanData;
       });
     });
+  }
+}
+
+class ScannedStudentDetails extends StatelessWidget {
+  final String studentID;
+
+  ScannedStudentDetails({required this.studentID});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Student Details'),
+        backgroundColor: Colors.blueAccent,
+      ),
+      body: FutureBuilder<DocumentSnapshot>(
+        future: FirebaseFirestore.instance
+            .collection('Students')
+            .doc(studentID) // Use the scanned student ID directly
+            .get(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || !snapshot.data!.exists) {
+            return Center(child: Text('No Student Found'));
+          }
+
+          var studentData = snapshot.data!;
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Name: ${studentData['firstName']} ${studentData['lastName']}',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 10.0),
+                Text(
+                  'Class: ${studentData['studentClass']}',
+                  style: TextStyle(fontSize: 18),
+                ),
+                SizedBox(height: 20.0),
+                // Additional form fields for extra student information
+                TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Additional Information',
+                    labelStyle: TextStyle(color: Colors.blueAccent),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.blueAccent),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.blueAccent, width: 2.0),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }
