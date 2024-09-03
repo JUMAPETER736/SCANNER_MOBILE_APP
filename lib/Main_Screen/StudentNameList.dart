@@ -12,7 +12,13 @@ class StudentNameList extends StatelessWidget {
   Widget build(BuildContext context) {
     if (loggedInUser == null) {
       return Scaffold(
-        body: Center(child: Text('No user is logged in.')),
+        appBar: AppBar(
+          title: Text('Name of Students'),
+          backgroundColor: Colors.blueAccent,
+        ),
+        body: Center(
+          child: Text('No user is logged in.'),
+        ),
       );
     }
 
@@ -20,62 +26,85 @@ class StudentNameList extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Name of Students'),
+        title: Text('Name of Students', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('Students')
-            .doc(userId)
-            .collection('StudentDetails')
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text('No students found.'));
-          }
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blueAccent, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        padding: const EdgeInsets.all(16.0),
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('Students')
+              .doc(userId)
+              .collection('StudentDetails')
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Center(child: Text('No students found.'));
+            }
 
-          return ListView.separated(
-            itemCount: snapshot.data!.docs.length,
-            separatorBuilder: (context, index) => SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              var student = snapshot.data!.docs[index];
-              var firstName = student['firstName'] ?? 'N/A';
-              var lastName = student['lastName'] ?? 'N/A';
+            return ListView.separated(
+              itemCount: snapshot.data!.docs.length,
+              separatorBuilder: (context, index) => SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                var student = snapshot.data!.docs[index];
+                var firstName = student['firstName'] ?? 'N/A';
+                var lastName = student['lastName'] ?? 'N/A';
 
-              return Card(
-                elevation: 4,
-                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ListTile(
-                  contentPadding: EdgeInsets.all(16),
-                  title: Text(
-                    '$firstName $lastName',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  trailing: Icon(
-                    Icons.arrow_forward,
-                    color: Colors.black,
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => StudentSubjects(
-                          studentId: student.id,
-                        ),
+                return Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 4,
+                        offset: Offset(2, 2),
                       ),
-                    );
-                  },
-                ),
-              );
-            },
-          );
-        },
+                    ],
+                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.all(16),
+                    title: Text(
+                      '$firstName $lastName',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blueAccent,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.arrow_forward,
+                      color: Colors.blueAccent,
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StudentSubjects(
+                            studentId: student.id,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
