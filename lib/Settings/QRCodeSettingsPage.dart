@@ -19,7 +19,7 @@ class _QRCodeSettingsPageState extends State<QRCodeSettingsPage> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.lightBlueAccent, Colors.white],
+            colors: [Colors.blueAccent, Colors.white],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
