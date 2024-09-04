@@ -85,7 +85,7 @@ class StudentSubjects extends StatelessWidget {
                 },
               );
             } else {
-              return Center(child: Text('Subjects data is not in the expected format.'));
+              return Center(child: Text('Subjects DATA is not in the expected format.'));
             }
           },
         ),

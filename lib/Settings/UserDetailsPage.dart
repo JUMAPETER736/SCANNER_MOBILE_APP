@@ -278,7 +278,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
     if (newPassword != reEnterNewPassword) {
       setState(() {
-        errorMessage = 'Passwords do not match';
+        errorMessage = 'Passwords do Not match';
       });
       return;
     }
