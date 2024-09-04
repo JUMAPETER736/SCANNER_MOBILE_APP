@@ -7,6 +7,8 @@ import 'package:scanna/Main_Screen/StudentDetails.dart';
 import 'package:scanna/Main_Screen/Help.dart';
 import 'package:scanna/Main_Screen/StudentNameList.dart';
 import 'package:scanna/Main_Screen/QRCodeScan.dart';
+import 'package:scanna/Home_Screens/LoginPage.dart'; // Import LoginPage
+
 
 User? loggedInUser;
 
@@ -49,7 +51,7 @@ class _DoneState extends State<Done> {
   void _logout() async {
     try {
       await _auth.signOut();
-      Navigator.pushReplacementNamed(context, '/login');
+      Navigator.pushNamedAndRemoveUntil(context, LoginPage.id, (route) => false);
     } catch (e) {
       print(e);
     }
