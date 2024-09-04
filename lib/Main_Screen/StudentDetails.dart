@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 
+
+
 class StudentDetails extends StatefulWidget {
   @override
   _StudentDetailsState createState() => _StudentDetailsState();
@@ -23,7 +25,7 @@ class _StudentDetailsState extends State<StudentDetails> {
   String? studentClass;
   String? studentGender;
   String? studentID;
-  String? generatedBarcode;
+  String? generatedQRcode;
 
   @override
   void initState() {
@@ -75,19 +77,19 @@ class _StudentDetailsState extends State<StudentDetails> {
         });
 
         setState(() {
-          generatedBarcode = jsonEncode(studentDetails);
+          generatedQRcode = jsonEncode(studentDetails);
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Student Details saved successfully!'),
+            content: Text('Student Details saved Successfully!'),
             backgroundColor: Colors.green,
           ),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error saving student details: $e'),
+            content: Text('Error saving Student Details: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -164,7 +166,7 @@ class _StudentDetailsState extends State<StudentDetails> {
                       },
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please select the student\'s class';
+                          return 'Please select the student\'s Class';
                         }
                         return null;
                       },
@@ -176,10 +178,10 @@ class _StudentDetailsState extends State<StudentDetails> {
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter the student\'s age';
+                          return 'Please enter the student\'s Age';
                         }
                         if (int.tryParse(value) == null || int.parse(value) <= 0) {
-                          return 'Please enter a valid age';
+                          return 'Please enter a valid Age';
                         }
                         return null;
                       },
@@ -196,7 +198,7 @@ class _StudentDetailsState extends State<StudentDetails> {
                       },
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please select the student\'s gender';
+                          return 'Please select the student\'s Gender';
                         }
                         return null;
                       },
@@ -252,7 +254,7 @@ class _StudentDetailsState extends State<StudentDetails> {
                 ),
               ),
               SizedBox(height: 40),
-              if (generatedBarcode != null) ...[
+              if (generatedQRcode != null) ...[
                 Text(
                   'Below is the QR Code Generated:',
                   style: TextStyle(
@@ -277,7 +279,7 @@ class _StudentDetailsState extends State<StudentDetails> {
                   padding: EdgeInsets.all(16),
                   child: BarcodeWidget(
                     barcode: Barcode.qrCode(),
-                    data: generatedBarcode!,
+                    data: generatedQRcode!,
                     width: 200,
                     height: 200,
                   ),
