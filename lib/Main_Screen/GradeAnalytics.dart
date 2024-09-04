@@ -26,7 +26,10 @@ class GradeAnalytics extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Grade Format'),
+        title: Text('Grade Format',
+            style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+
         backgroundColor: Colors.blueAccent, // Same color as in ClassSelection
       ),
       body: Container(

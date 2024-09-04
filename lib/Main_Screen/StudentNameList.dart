@@ -13,7 +13,9 @@ class StudentNameList extends StatelessWidget {
     if (loggedInUser == null) {
       return Scaffold(
         appBar: AppBar(
-          title: Text('Name of Students'),
+          title: Text('Name of Students',
+              style: TextStyle(fontWeight: FontWeight.bold),
+        ),
           backgroundColor: Colors.blueAccent,
         ),
         body: Center(

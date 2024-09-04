@@ -68,92 +68,91 @@ class _DoneState extends State<Done> {
                 fontSize: 24.0, fontWeight: FontWeight.bold, color: Colors.teal),
           ),
           SizedBox(height: 30.0),
-
           Expanded(
-
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 15.0),
-
-            child: GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 16,
-              childAspectRatio: 5.3 / 3, // Further adjust the aspect ratio to reduce size
-              children: [
-                // Select Class
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ClassSelection()),
-                    );
-                  },
-                  child: _buildSquareCard(
-                    icon: Icons.class_,
-                    text: 'Select Class',
-                    color: Colors.blueAccent,
+              child: GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 16,
+                childAspectRatio: 5.3 / 3,
+                children: [
+                  // Select Class
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ClassSelection()),
+                      );
+                    },
+                    child: _buildSquareCard(
+                      icon: Icons.class_,
+                      text: 'Select Class',
+                      color: Colors.blueAccent,
+                    ),
                   ),
-                ),
-                // View Grade Analytics
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => GradeAnalytics()),
-                    );
-                  },
-                  child: _buildSquareCard(
-                    icon: Icons.analytics,
-                    text: 'View Grade Analytics',
-                    color: Colors.greenAccent,
+                  // View Grade Analytics
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => GradeAnalytics()),
+                      );
+                    },
+                    child: _buildSquareCard(
+                      icon: Icons.analytics,
+                      text: 'View Grade Analytics',
+                      color: Colors.greenAccent,
+                    ),
                   ),
-                ),
-                // Enter Student Details
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => StudentDetails()),
-                    );
-                  },
-                  child: _buildSquareCard(
-                    icon: Icons.person_add,
-                    text: 'Enter Student Details',
-                    color: Colors.orangeAccent,
+                  // Enter Student Details
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => StudentDetails()),
+                      );
+                    },
+                    child: _buildSquareCard(
+                      icon: Icons.person_add,
+                      text: 'Enter Student Details',
+                      color: Colors.orangeAccent,
+                    ),
                   ),
-                ),
-                // QR Code Scan
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => QRCodeScan()),
-                    );
-                  },
-                  child: _buildSquareCard(
-                    icon: Icons.qr_code_scanner,
-                    text: 'QR Scan',
-                    color: Color.fromARGB(255, 59, 61, 60)
+                  // QR Code Scan
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => QRCodeScan()),
+                      );
+                    },
+                    child: _buildSquareCard(
+                      icon: Icons.qr_code_scanner,
+                      text: 'QR Scan',
+                      color: Color.fromARGB(255, 59, 61, 60),
+                    ),
                   ),
-                ),
-                // List Students
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            StudentNameList(loggedInUser: loggedInUser),
-                      ),
-                    );
-                  },
-                  child: _buildSquareCard(
-                    icon: Icons.list,
-                    text: 'Students Names',
-                    color: Colors.purpleAccent,
-
-
-                   ),
+                  // List Students
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              StudentNameList(loggedInUser: loggedInUser),
+                        ),
+                      );
+                    },
+                    child: _buildSquareCard(
+                      icon: Icons.list,
+                      text: 'Students Names',
+                      color: Colors.purpleAccent,
+                    ),
                   ),
                 ],
               ),
@@ -171,16 +170,16 @@ class _DoneState extends State<Done> {
       color: color,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Container(
-        padding: const EdgeInsets.all(6.0), // Further reduce padding
+        padding: const EdgeInsets.all(6.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 50, color: Colors.white), // Further reduce icon size
-            SizedBox(height: 10), // Further reduce spacing
+            Icon(icon, size: 50, color: Colors.white),
+            SizedBox(height: 10),
             Text(
               text,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16.0, color: Colors.white), // Further reduce text size
+              style: TextStyle(fontSize: 16.0, color: Colors.white),
             ),
           ],
         ),
@@ -200,7 +199,10 @@ class _DoneState extends State<Done> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Scanna Dashboard'),
+        title: Text(
+          'Scanna Dashboard',
+          style: TextStyle(fontWeight: FontWeight.bold), // Text in bold
+        ),
         backgroundColor: Colors.teal,
         automaticallyImplyLeading: false,
         actions: [
@@ -213,8 +215,8 @@ class _DoneState extends State<Done> {
       body: _selectedIndex == 0
           ? _buildHelp()
           : _selectedIndex == 1
-              ? _buildHome(context, loggedInUser)
-              : _buildSettings(),
+          ? _buildHome(context, loggedInUser)
+          : _buildSettings(),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
