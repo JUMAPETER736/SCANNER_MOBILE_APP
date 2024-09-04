@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barcode_widget/barcode_widget.dart';
+import 'dart:convert';
+
 
 class StudentDetails extends StatefulWidget {
   @override
@@ -51,6 +53,17 @@ class _StudentDetailsState extends State<StudentDetails> {
     if (_formKey.currentState!.validate()) {
       studentID = generateRandomStudentID();
 
+      Map<String, String> studentDetails = {
+        'firstName': _firstNameController.text.trim(),
+        'lastName': _lastNameController.text.trim(),
+        'studentClass': studentClass!,
+        'studentAge': _ageController.text.trim(),
+        'studentGender': studentGender!,
+        'studentID': studentID!,
+        'createdBy': loggedInUser?.email ?? '',
+      };
+
+      // Save details to Firestore and generate QR code
       try {
         await _firestore
             .collection('Students')
@@ -58,18 +71,12 @@ class _StudentDetailsState extends State<StudentDetails> {
             .collection('StudentDetails')
             .doc(studentID)
             .set({
-          'firstName': _firstNameController.text.trim(),
-          'lastName': _lastNameController.text.trim(),
-          'studentClass': studentClass,
-          'studentAge': _ageController.text.trim(),
-          'studentGender': studentGender,
-          'studentID': studentID,
-          'createdBy': loggedInUser?.email,
+          ...studentDetails,
           'timestamp': FieldValue.serverTimestamp(),
         });
 
         setState(() {
-          generatedBarcode = studentID;
+          generatedBarcode = jsonEncode(studentDetails);
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
