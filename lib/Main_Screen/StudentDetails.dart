@@ -1,10 +1,9 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barcode_widget/barcode_widget.dart';
-import 'dart:convert';
-
 
 class StudentDetails extends StatefulWidget {
   @override
@@ -255,7 +254,7 @@ class _StudentDetailsState extends State<StudentDetails> {
               SizedBox(height: 40),
               if (generatedBarcode != null) ...[
                 Text(
-                  'Generated QR Code:',
+                  'Below is the QR Code Generated:',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -285,7 +284,7 @@ class _StudentDetailsState extends State<StudentDetails> {
                 ),
                 SizedBox(height: 20),
                 Text(
-                  'Student ID: $generatedBarcode',
+                  'Student ID: $studentID',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
