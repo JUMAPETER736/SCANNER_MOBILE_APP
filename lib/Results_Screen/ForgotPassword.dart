@@ -49,7 +49,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
   Future<void> validateAndResetPassword(String email) async {
     if (!isValidEmail(email)) {
       setState(() {
-        errorMessage = 'Please enter a valid Email address';
+        errorMessage = 'Please Enter a valid Email Address';
       });
       return;
     }
