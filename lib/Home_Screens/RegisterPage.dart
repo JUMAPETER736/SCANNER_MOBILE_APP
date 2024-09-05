@@ -393,7 +393,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           },
                           child: Text(
                             'Log In',
-                            style: TextStyle(fontSize: 15.0, color: Colors.blue),
+                            style: TextStyle(fontSize: 15.0, color: Colors.blue, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],

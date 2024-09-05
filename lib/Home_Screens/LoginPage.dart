@@ -334,7 +334,7 @@ class _LoginPageState extends State<LoginPage> {
                               SizedBox(width: 10.0),
                               Text(
                                 'Google',
-                                style: TextStyle(fontSize: 25.0, color: Colors.black),
+                                style: TextStyle(fontSize: 25.0, color: Colors.white),
                               ),
                             ],
                           ),
@@ -363,7 +363,7 @@ class _LoginPageState extends State<LoginPage> {
                               SizedBox(width: 10.0),
                               Text(
                                 'Facebook',
-                                style: TextStyle(fontSize: 25.0, color: Colors.black),
+                                style: TextStyle(fontSize: 25.0, color: Colors.white),
                               ),
                             ],
                           ),
@@ -384,7 +384,7 @@ class _LoginPageState extends State<LoginPage> {
                         },
                         child: Text(
                           ' Sign Up',
-                          style: TextStyle(fontSize: 15.0, color: Colors.blue),
+                          style: TextStyle(fontSize: 15.0, color: Colors.blue, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
