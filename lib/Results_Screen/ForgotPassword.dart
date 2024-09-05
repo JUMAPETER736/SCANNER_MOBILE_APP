@@ -16,6 +16,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
   final TextEditingController _emailController = TextEditingController();
   String errorMessage = '';
 
+  // Function to reset password using Firebase Authentication
   Future<void> resetPassword(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
@@ -25,29 +26,30 @@ class _ForgotPasswordState extends State<ForgotPassword> {
         dialogType: DialogType.success,
         animType: AnimType.scale,
         title: 'Email Sent ✈️',
-        desc: 'Check your email to reset your password!',
+        desc: 'Check your Email to reset your Password!',
         btnOkText: 'OK',
         btnOkOnPress: () {},
       )..show();
     } catch (e) {
       // Handle errors such as invalid email or network issues
-      print('Failed to send reset email: $e');
+      print('Failed to send reset Email: $e');
       AwesomeDialog(
         context: context,
         dialogType: DialogType.error,
         animType: AnimType.scale,
         title: 'Failed to Reset Password',
-        desc: '$e', // Show error message in the dialog
+        desc: 'Error: ${e.toString()}', // Show error message in the dialog
         btnOkText: 'OK',
         btnOkOnPress: () {},
       )..show();
     }
   }
 
+  // Function to validate the email and check if it exists in Firestore
   Future<void> validateAndResetPassword(String email) async {
     if (!isValidEmail(email)) {
       setState(() {
-        errorMessage = 'Please enter a valid email address';
+        errorMessage = 'Please enter a valid Email address';
       });
       return;
     }
@@ -61,7 +63,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
 
       if (userDoc.docs.isEmpty) {
         setState(() {
-          errorMessage = 'Email is not registered';
+          errorMessage = 'Email is not Registered';
         });
         return;
       }
@@ -69,13 +71,14 @@ class _ForgotPasswordState extends State<ForgotPassword> {
       // If email is valid and exists, proceed to reset password
       await resetPassword(email);
     } catch (e) {
-      print('Error checking email in Firestore: $e');
+      print('Error checking Email in Firestore: $e');
       setState(() {
         errorMessage = 'An error occurred. Please try again later.';
       });
     }
   }
 
+  // Regular expression to check for valid email
   bool isValidEmail(String email) {
     final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
     return emailRegex.hasMatch(email);
@@ -104,7 +107,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Text(
-                'Enter your Email to reset your password',
+                'Enter your Email to reset your Password',
                 style: TextStyle(fontSize: 30.0, fontWeight: FontWeight.bold, color: Colors.blueAccent),
               ),
               SizedBox(height: 10.0),
@@ -145,6 +148,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
     );
   }
 
+  // Reusable widget to create styled text fields
   Widget _buildStyledTextField({
     required TextEditingController controller,
     required String labelText,
