@@ -23,10 +23,12 @@ class _LoginPageState extends State<LoginPage> {
   bool _emptyEmailField = false;
   bool _emptyPasswordField = false;
 
+
   String _emailText = 'Please use a valid Email';
   String _passwordText = 'Please use a strong Password';
   String _emptyEmailFieldText = 'Please fill in the Email field';
   String _emptyPasswordFieldText = 'Please fill in the Password field';
+  String _wrongPasswordFieldText = 'Wrong Password';
 
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -210,7 +212,7 @@ class _LoginPageState extends State<LoginPage> {
                         },
                         decoration: InputDecoration(
                           labelText: 'Password',
-                          errorText: _emptyPasswordField ? _emptyPasswordFieldText : _wrongPassword ? _passwordText : null,
+                          errorText: _wrongPassword ? _wrongPasswordFieldtext : _emptyPasswordField ? _emptyPasswordFieldText : _wrongPassword ? _passwordText : null,
                         ),
                       ),
                       SizedBox(height: 10.0),
@@ -398,3 +400,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+
+
+//in this code please ake it that when a user inputs wrong password of the Email he wants to use to log in with, he should see a Message that says Wrong Password
