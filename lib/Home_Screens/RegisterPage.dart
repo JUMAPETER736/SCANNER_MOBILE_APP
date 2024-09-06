@@ -111,9 +111,9 @@ class _RegisterPageState extends State<RegisterPage> {
     });
   }
 
-  void _showSuccessToast() {
+  void _showSuccessToast([String message = "Registered Successfully"]) {
     Fluttertoast.showToast(
-      msg: "Registered Successfully",
+      msg: message,
       toastLength: Toast.LENGTH_SHORT,
       textColor: Colors.blue,
       fontSize: 16.0,
@@ -152,180 +152,170 @@ class _RegisterPageState extends State<RegisterPage> {
       body: ModalProgressHUD(
         inAsyncCall: _showSpinner,
         color: Colors.blueAccent,
-        child: Stack(
-          children: [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Register',
+                  style: TextStyle(fontSize: 40.0, color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 20.0),
+                _buildStyledTextField(
+                  label: 'Name',
+                  icon: Icons.person,
+                  obscureText: false,
+                  onChanged: (value) => name = value,
+                  showError: _emptyNameField,
+                  errorText: 'Please fill in the Name field',
+                ),
+                SizedBox(height: 20.0),
+                _buildStyledTextField(
+                  label: 'Email',
+                  icon: Icons.email,
+                  obscureText: false,
+                  onChanged: (value) => email = value,
+                  showError: _wrongEmail || _emptyEmailField,
+                  errorText: 'Please use a valid Email',
+                ),
+                SizedBox(height: 20.0),
+                _buildStyledTextField(
+                  label: 'Password',
+                  icon: Icons.lock,
+                  obscureText: true,
+                  onChanged: (value) => password = value,
+                  showError: _wrongPassword || _emptyPasswordField,
+                  errorText: 'Please use a strong Password',
+                ),
+                SizedBox(height: 20.0),
+                _buildStyledTextField(
+                  label: 'Confirm Password',
+                  icon: Icons.lock_outline,
+                  obscureText: true,
+                  onChanged: (value) => confirmPassword = value,
+                  showError: _passwordMismatch,
+                  errorText: 'Passwords do not match',
+                ),
+                SizedBox(height: 30.0),
+                ElevatedButton(
+                  onPressed: _register,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    padding: EdgeInsets.symmetric(vertical: 15.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                  ),
+                  child: Text(
                     'Register',
-                    style: TextStyle(fontSize: 40.0, color: Colors.blueAccent, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 20.0, color: Colors.white),
                   ),
-                  SizedBox(height: 20.0),
-                  _buildStyledTextField(
-                    label: 'Name',
-                    icon: Icons.person,
-                    obscureText: false,
-                    onChanged: (value) => name = value,
-                    showError: _emptyNameField,
-                    errorText: 'Please fill in the Name field',
-                  ),
-                  SizedBox(height: 20.0),
-                  _buildStyledTextField(
-                    label: 'Email',
-                    icon: Icons.email,
-                    obscureText: false,
-                    onChanged: (value) => email = value,
-                    showError: _wrongEmail || _emptyEmailField,
-                    errorText: 'Please use a valid Email',
-                  ),
-                  SizedBox(height: 20.0),
-                  _buildStyledTextField(
-                    label: 'Password',
-                    icon: Icons.lock,
-                    obscureText: true,
-                    onChanged: (value) => password = value,
-                    showError: _wrongPassword || _emptyPasswordField,
-                    errorText: 'Please use a strong Password',
-                  ),
-                  SizedBox(height: 20.0),
-                  _buildStyledTextField(
-                    label: 'Confirm Password',
-                    icon: Icons.lock_outline,
-                    obscureText: true,
-                    onChanged: (value) => confirmPassword = value,
-                    showError: _passwordMismatch,
-                    errorText: 'Passwords do not match',
-                  ),
-                  SizedBox(height: 30.0),
-                  ElevatedButton(
-                    onPressed: _register,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      padding: EdgeInsets.symmetric(vertical: 15.0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
+                ),
+                SizedBox(height: 20.0),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Divider(color: Colors.blueAccent),
+                    ),
+                    SizedBox(width: 10.0),
+                    Text('Or', style: TextStyle(fontSize: 20.0, color: Colors.blueAccent)),
+                    SizedBox(width: 10.0),
+                    Expanded(
+                      child: Divider(color: Colors.blueAccent),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20.0),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _signInWithSocialMedia('google'),
+                        icon: Image.asset('assets/images/google.png', width: 24),
+                        label: Text('Google', style: TextStyle(fontSize: 18.0)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.blueAccent,
+                          side: BorderSide(color: Colors.blueAccent),
+                        ),
                       ),
                     ),
-                    child: Text(
-                      'Register',
-                      style: TextStyle(fontSize: 20.0, color: Colors.white),
+                    SizedBox(width: 20.0),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _signInWithSocialMedia('facebook'),
+                        icon: Image.asset('assets/images/facebook.png', width: 24),
+                        label: Text('Facebook', style: TextStyle(fontSize: 18.0)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.blueAccent,
+                          side: BorderSide(color: Colors.blueAccent),
+                        ),
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 20.0),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('Or', style: TextStyle(fontSize: 20.0)),
-                    ],
-                  ),
-                  SizedBox(height: 20.0),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _signInWithSocialMedia('google'),
-                          icon: Image.asset('assets/images/google.png', width: 24),
-                          label: Text('Google', style: TextStyle(fontSize: 18.0)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.blueAccent,
-                            side: BorderSide(color: Colors.blueAccent),
-                          ),
-                        ),
+                  ],
+                ),
+                SizedBox(height: 20.0),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Already have an account?', style: TextStyle(fontSize: 16.0)),
+                    TextButton(
+                      onPressed: () => Navigator.pushNamed(context, LoginPage.id),
+                      child: Text(
+                        'Log In',
+                        style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 16.0),
                       ),
-                      SizedBox(width: 20.0),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _signInWithSocialMedia('facebook'),
-                          icon: Image.asset('assets/images/facebook.png', width: 24),
-                          label: Text('Facebook', style: TextStyle(fontSize: 18.0)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.blueAccent,
-                            side: BorderSide(color: Colors.blueAccent),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 20.0),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('Already have an account?', style: TextStyle(fontSize: 16.0)),
-                      TextButton(
-                        onPressed: () => Navigator.pushNamed(context, LoginPage.id),
-                        child: Text(
-                          'Log In',
-                          style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 16.0),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
-}
 
+  Future<void> _signInWithSocialMedia(String provider) async {
+    try {
+      if (provider == 'google') {
+        // Google sign-in
+        final GoogleSignIn googleSignIn = GoogleSignIn();
+        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
+        if (googleUser != null) {
+          final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+          final AuthCredential credential = GoogleAuthProvider.credential(
+            accessToken: googleAuth.accessToken,
+            idToken: googleAuth.idToken,
+          );
 
+          final UserCredential userCredential = await _auth.signInWithCredential(credential);
+          Navigator.pushNamed(context, Done.id);
+        }
+      } else if (provider == 'facebook') {
+        // Facebook sign-in
+        final LoginResult loginResult = await FacebookAuth.instance.login();
 
-Future<void> _signInWithSocialMedia(String provider) async {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  try {
-    if (provider == 'google') {
-      // Google sign-in
-      final GoogleSignIn googleSignIn = GoogleSignIn();
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-
-      if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-        final AuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-
-        final UserCredential userCredential = await _auth.signInWithCredential(credential);
-        _showSuccessToast('Google Sign-In Successful');
+        if (loginResult.status == LoginStatus.success) {
+          final AuthCredential credential = FacebookAuthProvider.credential(loginResult.accessToken!.token);
+          final UserCredential userCredential = await _auth.signInWithCredential(credential);
+          Navigator.pushNamed(context, Done.id);
+        }
       }
-    } else if (provider == 'facebook') {
-      // Facebook sign-in
-      final LoginResult result = await FacebookAuth.instance.login();
-
-      if (result.status == LoginStatus.success) {
-        final OAuthCredential facebookAuthCredential = FacebookAuthProvider.credential(result.accessToken!.token);
-
-        final UserCredential userCredential = await _auth.signInWithCredential(facebookAuthCredential);
-        _showSuccessToast('Facebook Sign-In Successful');
-      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Sign-in failed",
+        toastLength: Toast.LENGTH_SHORT,
+        textColor: Colors.red,
+        fontSize: 16.0,
+      );
     }
-  } catch (e) {
-    Fluttertoast.showToast(
-      msg: "Sign-In Failed: ${e.toString()}",
-      toastLength: Toast.LENGTH_SHORT,
-      textColor: Colors.red,
-      fontSize: 16.0,
-    );
   }
 }
-
-void _showSuccessToast(String message) {
-  Fluttertoast.showToast(
-    msg: message,
-    toastLength: Toast.LENGTH_SHORT,
-    textColor: Colors.blue,
-    fontSize: 16.0,
-  );
-}
-
