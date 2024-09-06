@@ -186,7 +186,7 @@ class _LoginPageState extends State<LoginPage> {
                       prefixIcon: Icon(Icons.lock, color: Colors.blueAccent),
                     ),
                   ),
-                  SizedBox(height: 8.0),
+                  SizedBox(height: 1.0),
                   Align(
                     alignment: Alignment.topRight,
                     child: GestureDetector(
@@ -248,7 +248,7 @@ class _LoginPageState extends State<LoginPage> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 15.0),
+                      padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20),
                       backgroundColor: Colors.blueAccent,
                       side: BorderSide(width: 0.5, color: Colors.grey[400]!),
                     ),
@@ -304,6 +304,28 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ],
+                  ),
+                  SizedBox(height: 4.5),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Already have an Account?',
+                          style: TextStyle(fontSize: 15.0),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, LoginPage.id);
+                          },
+                          child: Text(
+                            'Sign Up',
+                            style: TextStyle(fontSize: 15.0, color: Colors.blue, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
