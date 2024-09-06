@@ -158,7 +158,7 @@ class _LoginPageState extends State<LoginPage> {
                   SizedBox(height: 15.0),
                   Text(
                     'Welcome back, please login to your Account',
-                    style: TextStyle(fontSize: 30.0, color: Colors.black54),
+                    style: TextStyle(fontSize: 18.0, color: Colors.black54),
                   ),
                   SizedBox(height: 20.0),
                   TextField(
