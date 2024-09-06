@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barcode_widget/barcode_widget.dart';
+import 'package:scanna/Main_Screen/ScannedStudentDetails.dart';
 
 
 
@@ -49,7 +50,6 @@ class _StudentDetailsState extends State<StudentDetails> {
     return id.toString();
   }
 
-  // Save student details to Firestore
   void saveStudentDetails() async {
     if (_formKey.currentState!.validate()) {
       studentID = generateRandomStudentID();
@@ -64,7 +64,6 @@ class _StudentDetailsState extends State<StudentDetails> {
         'createdBy': loggedInUser?.email ?? '',
       };
 
-      // Save details to Firestore and generate QR code
       try {
         await _firestore
             .collection('Students')
@@ -86,6 +85,9 @@ class _StudentDetailsState extends State<StudentDetails> {
             backgroundColor: Colors.green,
           ),
         );
+
+
+
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -96,6 +98,9 @@ class _StudentDetailsState extends State<StudentDetails> {
       }
     }
   }
+
+
+
 
   @override
   void dispose() {

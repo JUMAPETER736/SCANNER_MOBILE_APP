@@ -85,7 +85,7 @@ class StudentSubjects extends StatelessWidget {
                         ),
                       ),
                       trailing: Text(
-                        grade,
+                        'Grade: $grade',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
