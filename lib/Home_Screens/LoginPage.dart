@@ -24,7 +24,6 @@ class _LoginPageState extends State<LoginPage> {
   bool _emptyPasswordField = false;
 
   String _emailText = 'Please use a valid Email';
-  String _passwordText = 'Please use a strong Password';
   String _emptyEmailFieldText = 'Please fill in the Email field';
   String _emptyPasswordFieldText = 'Please fill in the Password field';
   String _wrongPasswordFieldText = 'Wrong Password';
@@ -192,7 +191,7 @@ class _LoginPageState extends State<LoginPage> {
                           ? _wrongPasswordFieldText
                           : _emptyPasswordField
                           ? _emptyPasswordFieldText
-                          : _passwordText,
+                          : null, // Remove the "Please use a strong Password" message
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.lock, color: Colors.blueAccent),
                     ),
@@ -212,70 +211,70 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   SizedBox(height: 10.0),
-                  SizedBox(
-                    width: 80.0, // Adjusted width
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        setState(() {
-                          _showSpinner = true;
-                          _emptyEmailField = email.isEmpty;
-                          _emptyPasswordField = password.isEmpty;
-                        });
-
-                        if (_emptyEmailField || _emptyPasswordField) {
+                  Center( // Center the button horizontally
+                    child: SizedBox(
+                      width: 88.0, // Set a fixed width for the button
+                      child: ElevatedButton(
+                        onPressed: () async {
                           setState(() {
-                            _showSpinner = false;
-                          });
-                          return;
-                        }
-
-                        try {
-                          setState(() {
-                            _wrongEmail = false;
-                            _wrongPassword = false;
+                            _showSpinner = true;
+                            _emptyEmailField = email.isEmpty;
+                            _emptyPasswordField = password.isEmpty;
                           });
 
-                          UserCredential userCredential =
-                          await _auth.signInWithEmailAndPassword(
-                            email: email,
-                            password: password,
-                          );
-
-                          if (userCredential.user != null) {
-                            Navigator.pushNamed(context, Done.id);
-                          }
-                        } on FirebaseAuthException catch (e) {
-                          if (e.code == 'wrong-password') {
+                          if (_emptyEmailField || _emptyPasswordField) {
                             setState(() {
-                              _wrongPassword = true;
+                              _showSpinner = false;
                             });
-                            _showToast("Incorrect Password");
-                          } else if (e.code == 'user-not-found') {
+                            return;
+                          }
+
+                          try {
                             setState(() {
-                              _wrongEmail = true;
+                              _wrongEmail = false;
+                              _wrongPassword = false;
+                            });
+
+                            UserCredential userCredential =
+                            await _auth.signInWithEmailAndPassword(
+                              email: email,
+                              password: password,
+                            );
+
+                            if (userCredential.user != null) {
+                              Navigator.pushNamed(context, Done.id);
+                            }
+                          } on FirebaseAuthException catch (e) {
+                            if (e.code == 'wrong-password') {
+                              setState(() {
+                                _wrongPassword = true;
+                              });
+                              _showToast("Incorrect Password");
+                            } else if (e.code == 'user-not-found') {
+                              setState(() {
+                                _wrongEmail = true;
+                              });
+                            }
+                          } finally {
+                            setState(() {
+                              _showSpinner = false;
                             });
                           }
-                        } finally {
-                          setState(() {
-                            _showSpinner = false;
-                          });
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-
-                        padding: EdgeInsets.symmetric(vertical: 13.0, horizontal: 20),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.0),
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          padding: EdgeInsets.symmetric(vertical: 13.0, horizontal: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        'Log In',
-                        style: TextStyle(fontSize: 20.0, color: Colors.white),
+                        child: Text(
+                          'Log In',
+                          style: TextStyle(fontSize: 20.0, color: Colors.white),
+                        ),
                       ),
                     ),
                   ),
-
                   SizedBox(height: 5.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
