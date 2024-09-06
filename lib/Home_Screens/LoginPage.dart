@@ -22,11 +22,13 @@ class _LoginPageState extends State<LoginPage> {
   bool _wrongPassword = false;
   bool _emptyEmailField = false;
   bool _emptyPasswordField = false;
+  bool _emailNotRegistered = false; // New state variable
 
   String _emailText = 'Please use a valid Email';
   String _emptyEmailFieldText = 'Please fill in the Email field';
   String _emptyPasswordFieldText = 'Please fill in the Password field';
   String _wrongPasswordFieldText = 'Wrong Password';
+  String _emailNotRegisteredText = 'Email not registered'; // New error message
 
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -168,12 +170,21 @@ class _LoginPageState extends State<LoginPage> {
                     keyboardType: TextInputType.emailAddress,
                     onChanged: (value) {
                       email = value;
+                      setState(() {
+                        _wrongEmail = false;
+                        _emailNotRegistered = false;
+                        _emptyEmailField = email.isEmpty;
+                      });
                     },
                     decoration: InputDecoration(
                       labelText: 'Email',
                       errorText: _emptyEmailField
                           ? _emptyEmailFieldText
-                          : _wrongEmail ? _emailText : null,
+                          : _wrongEmail
+                          ? _emailText
+                          : _emailNotRegistered
+                          ? _emailNotRegisteredText
+                          : null,
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.email, color: Colors.blueAccent),
                     ),
@@ -184,14 +195,16 @@ class _LoginPageState extends State<LoginPage> {
                     keyboardType: TextInputType.visiblePassword,
                     onChanged: (value) {
                       password = value;
+                      setState(() {
+                        _wrongPassword = false;
+                        _emptyPasswordField = password.isEmpty;
+                      });
                     },
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      errorText: _wrongPassword
-                          ? _wrongPasswordFieldText
-                          : _emptyPasswordField
+                      errorText: _emptyPasswordField
                           ? _emptyPasswordFieldText
-                          : null, // Remove the "Please use a strong Password" message
+                          : _wrongPassword ? _wrongPasswordFieldText : null,
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.lock, color: Colors.blueAccent),
                     ),
@@ -233,6 +246,7 @@ class _LoginPageState extends State<LoginPage> {
                             setState(() {
                               _wrongEmail = false;
                               _wrongPassword = false;
+                              _emailNotRegistered = false; // Reset email not registered error
                             });
 
                             UserCredential userCredential =
@@ -252,8 +266,9 @@ class _LoginPageState extends State<LoginPage> {
                               _showToast("Incorrect Password");
                             } else if (e.code == 'user-not-found') {
                               setState(() {
-                                _wrongEmail = true;
+                                _emailNotRegistered = true; // Set email not registered error
                               });
+                              _showToast("Email not registered");
                             }
                           } finally {
                             setState(() {
