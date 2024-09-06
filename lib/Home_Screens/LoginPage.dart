@@ -54,7 +54,32 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     } else {
-      _showToast("Google sign-in failed");
+      // Handle sign-in failure
+      // You can show a dialog or message indicating failure
+    }
+  }
+
+  Future<void> onFacebookSignIn(BuildContext context) async {
+    setState(() {
+      _showSpinner = true;
+    });
+
+    User? user = await _handleFacebookSignIn();
+
+    setState(() {
+      _showSpinner = false;
+    });
+
+    if (user != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Done(), // Navigate to your desired screen
+        ),
+      );
+    } else {
+      // Handle sign-in failure
+      // You can show a dialog or message indicating failure
     }
   }
 
@@ -151,13 +176,14 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void _signInWithSocialMedia(String provider) async {
+  Future<void> _signInWithSocialMedia(String provider) async {
     if (provider == 'google') {
       await onGoogleSignIn(context);
     } else if (provider == 'facebook') {
       await onFacebookSignIn(context);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
