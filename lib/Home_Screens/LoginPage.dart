@@ -5,6 +5,7 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:scanna/Results_Screen/GoogleDone.dart';
 import 'package:scanna/Results_Screen/ForgotPassword.dart';
 import 'package:scanna/Results_Screen/Done.dart';
+import 'package:scanna/Home_Screens/RegisterPage.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
@@ -272,53 +273,60 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 5.0),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 150.0,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _signInWithSocialMedia('google'),
-                          icon: Image.asset('assets/images/google.png', width: 24),
-                          label: Text('Google', style: TextStyle(fontSize: 18.0)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.blueAccent,
-                            side: BorderSide(color: Colors.blueAccent),
-                          ),
+                  SizedBox(height: 10.0),
+                  ElevatedButton(
+                    onPressed: () => _signInWithSocialMedia('google'),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20),
+                      backgroundColor: Colors.blueAccent,
+                      side: BorderSide(width: 0.5, color: Colors.grey[400]!),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset('assets/images/google_logo.png', height: 24.0),
+                        SizedBox(width: 10.0),
+                        Text(
+                          'Sign In with Google',
+                          style: TextStyle(fontSize: 20.0, color: Colors.white),
                         ),
-                      ),
-                      SizedBox(width: 12.0),
-                      Container(
-                        width: 150.0,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _signInWithSocialMedia('facebook'),
-                          icon: Image.asset('assets/images/facebook.png', width: 24),
-                          label: Text('Facebook', style: TextStyle(fontSize: 18.0)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.blueAccent,
-                            side: BorderSide(color: Colors.blueAccent),
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  SizedBox(height: 4.5),
+                  SizedBox(height: 10.0),
+                  ElevatedButton(
+                    onPressed: () => _signInWithSocialMedia('facebook'),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20),
+                      backgroundColor: Colors.blueAccent,
+                      side: BorderSide(width: 0.5, color: Colors.grey[400]!),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset('assets/images/facebook_logo.png', height: 24.0),
+                        SizedBox(width: 10.0),
+                        Text(
+                          'Sign In with Facebook',
+                          style: TextStyle(fontSize: 20.0, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 5.0),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 10.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Already have an Account?',
+                          'Don’t have an Account?',
                           style: TextStyle(fontSize: 15.0),
                         ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, LoginPage.id);
-                          },
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pushNamed(context, RegisterPage.id);
+                            },
                           child: Text(
                             'Sign Up',
                             style: TextStyle(fontSize: 15.0, color: Colors.blue, fontWeight: FontWeight.bold),
