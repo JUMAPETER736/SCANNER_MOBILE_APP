@@ -162,7 +162,7 @@ class _LoginPageState extends State<LoginPage> {
         color: Colors.blueAccent,
         child: Stack(
           children: [
-    
+
             Padding(
               padding: EdgeInsets.only(
                   top: 60.0, bottom: 20.0, left: 20.0, right: 20.0),
@@ -212,7 +212,8 @@ class _LoginPageState extends State<LoginPage> {
                         },
                         decoration: InputDecoration(
                           labelText: 'Password',
-                          errorText: _wrongPassword ? _wrongPasswordFieldtext : _emptyPasswordField ? _emptyPasswordFieldText : _wrongPassword ? _passwordText : null,
+                          errorText: _wrongPassword ? _wrongPasswordFieldText : _emptyPasswordField ? _emptyPasswordFieldText : _wrongPassword ? _passwordText : null,
+
                         ),
                       ),
                       SizedBox(height: 10.0),
@@ -402,4 +403,3 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 
-//in this code please ake it that when a user inputs wrong password of the Email he wants to use to log in with, he should see a Message that says Wrong Password

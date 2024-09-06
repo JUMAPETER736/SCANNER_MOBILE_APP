@@ -9,7 +9,7 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
-class RegisterPage extends StatefulWidget { 
+class RegisterPage extends StatefulWidget {
   static String id = '/RegisterPage';
 
   @override
@@ -20,7 +20,7 @@ class _RegisterPageState extends State<RegisterPage> {
   String? name;
   String? email;
   String? password;
-  String? confirmPassword; // Added variable for confirm password
+  String? confirmPassword;
 
   bool _showSpinner = false;
   bool _wrongEmail = false;
@@ -28,15 +28,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _emptyNameField = false;
   bool _emptyEmailField = false;
   bool _emptyPasswordField = false;
-  bool _passwordMismatch = false; // Added flag for password mismatch
-
-  String _emailText = 'Please use a valid Email';
-  String _passwordText = 'Please use a strong Password';
-  String _emptyNameFieldText = 'Please fill in the Name field';
-  String _emptyEmailFieldText = 'Please fill in the Email field';
-  String _emptyPasswordFieldText = 'Please fill in the Password field';
-  String _passwordMismatchText = 'Passwords do not match'; // Error message for password mismatch
-  String _inUsedEmailText = 'The Email address is already in use by another Account.';
+  bool _passwordMismatch = false;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -47,10 +39,10 @@ class _RegisterPageState extends State<RegisterPage> {
       _emptyNameField = false;
       _emptyEmailField = false;
       _emptyPasswordField = false;
-      _passwordMismatch = false; // Reset password mismatch flag
+      _passwordMismatch = false;
     });
 
-    // Validate input fields
+    // Input validations
     if (name == null || name!.isEmpty) {
       setState(() {
         _emptyNameField = true;
@@ -69,7 +61,7 @@ class _RegisterPageState extends State<RegisterPage> {
       });
     }
 
-    if (confirmPassword == null || confirmPassword!.isEmpty) {
+    if (confirmPassword == null || confirmPassword!.isEmpty || password != confirmPassword) {
       setState(() {
         _passwordMismatch = true;
       });
@@ -79,17 +71,10 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    if (!validator.isEmail(email!) || !validator.isLength(password!, 6) || password != confirmPassword) {
+    if (!validator.isEmail(email!) || !validator.isLength(password!, 6)) {
       setState(() {
-        if (!validator.isEmail(email!)) {
-          _wrongEmail = true;
-        }
-        if (!validator.isLength(password!, 6)) {
-          _wrongPassword = true;
-        }
-        if (password != confirmPassword) {
-          _passwordMismatch = true; // Set password mismatch flag
-        }
+        if (!validator.isEmail(email!)) _wrongEmail = true;
+        if (!validator.isLength(password!, 6)) _wrongPassword = true;
       });
       return;
     }
@@ -99,13 +84,8 @@ class _RegisterPageState extends State<RegisterPage> {
     });
 
     try {
-      final newUser = await _auth.createUserWithEmailAndPassword(
-        email: email!,
-        password: password!,
-      );
-
+      final newUser = await _auth.createUserWithEmailAndPassword(email: email!, password: password!);
       if (newUser.user != null) {
-        // Save the user's details to Firestore
         await _saveUserDetails(newUser.user!);
         _showSuccessToast();
         Navigator.pushNamed(context, Done.id);
@@ -113,16 +93,12 @@ class _RegisterPageState extends State<RegisterPage> {
     } on FirebaseAuthException catch (e) {
       setState(() {
         _showSpinner = false;
-        if (e.code == 'email-already-in-use') {
-          _wrongEmail = true;
-          _emailText = _inUsedEmailText;
-        }
+        if (e.code == 'email-already-in-use') _wrongEmail = true;
       });
-    } catch (e) {
+    } finally {
       setState(() {
         _showSpinner = false;
       });
-      print("Error: $e");
     }
   }
 
@@ -139,54 +115,33 @@ class _RegisterPageState extends State<RegisterPage> {
     Fluttertoast.showToast(
       msg: "Registered Successfully",
       toastLength: Toast.LENGTH_SHORT,
-      // gravity: ToastGravity.BOTTOM,
       textColor: Colors.blue,
       fontSize: 16.0,
     );
   }
 
-  Future<void> _signInWithSocialMedia(String platform) async {
-    setState(() {
-      _showSpinner = true;
-    });
-
-    UserCredential? userCredential;
-
-    try {
-      if (platform == 'google') {
-        final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-        final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
-
-        if (googleAuth != null) {
-          final AuthCredential credential = GoogleAuthProvider.credential(
-            accessToken: googleAuth.accessToken,
-            idToken: googleAuth.idToken,
-          );
-
-          userCredential = await _auth.signInWithCredential(credential);
-        }
-      } else if (platform == 'facebook') {
-        final LoginResult result = await FacebookAuth.instance.login();
-
-        if (result.status == LoginStatus.success) {
-          final AccessToken accessToken = result.accessToken!;
-          final AuthCredential credential = FacebookAuthProvider.credential(accessToken.token);
-          userCredential = await _auth.signInWithCredential(credential);
-        }
-      }
-
-      if (userCredential != null && userCredential.user != null) {
-        await _saveUserDetails(userCredential.user!);
-        _showSuccessToast();
-        Navigator.pushNamed(context, Done.id);
-      }
-    } catch (e) {
-      print(e);
-    } finally {
-      setState(() {
-        _showSpinner = false;
-      });
-    }
+  Widget _buildStyledTextField({
+    required String label,
+    required IconData icon,
+    required bool obscureText,
+    String? Function(String?)? validator,
+    Function(String)? onChanged,
+    bool showError = false,
+    String? errorText,
+  }) {
+    return TextField(
+      obscureText: obscureText,
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: label,
+        errorText: showError ? errorText : null,
+        prefixIcon: Icon(icon, color: Colors.blueAccent),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10.0),
+          borderSide: BorderSide(color: Colors.blueAccent),
+        ),
+      ),
+    );
   }
 
   @override
@@ -199,205 +154,118 @@ class _RegisterPageState extends State<RegisterPage> {
         color: Colors.blueAccent,
         child: Stack(
           children: [
-
             Padding(
-              padding: EdgeInsets.only(
-                top: 30.0,
-                bottom: 45.0,
-                left: 20.0,
-                right: 20.0,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Please Register',
-                    style: TextStyle(fontSize: 50.0),
+                    'Register',
+                    style: TextStyle(fontSize: 40.0, color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
                   ),
-                  // Column(
-                  //   crossAxisAlignment: CrossAxisAlignment.start,
-                  //   children: [
-                  //     Text(
-                  //       'Let\'s get',
-                  //       style: TextStyle(fontSize: 30.0),
-                  //     ),
-                  //     Text(
-                  //       'you on board',
-                  //       style: TextStyle(fontSize: 30.0),
-                  //     ),
-                  //   ],
-                  // ),
-                  Column(
-                    children: [
-                      TextField(
-                        keyboardType: TextInputType.name,
-                        onChanged: (value) {
-                          name = value;
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Username',
-                          errorText: _emptyNameField ? _emptyNameFieldText : null,
-                        ),
-                      ),
-                      SizedBox(height: 20.0),
-                      TextField(
-                        keyboardType: TextInputType.emailAddress,
-                        onChanged: (value) {
-                          email = value;
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Email',
-                          errorText: _wrongEmail ? _emailText : _emptyEmailField ? _emptyEmailFieldText : null,
-                        ),
-                      ),
-                      SizedBox(height: 20.0),
-                      TextField(
-                        obscureText: true,
-                        keyboardType: TextInputType.visiblePassword,
-                        onChanged: (value) {
-                          password = value;
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          errorText: _wrongPassword ? _passwordText : _emptyPasswordField ? _emptyPasswordFieldText : null,
-                        ),
-                      ),
-
-                      SizedBox(height: 20.0),
-                      TextField(
-                        obscureText: true,
-                        keyboardType: TextInputType.visiblePassword,
-                        onChanged: (value) {
-                          confirmPassword = value; // Capture confirm password input
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Confirm Password',
-                          errorText: _passwordMismatch ? _passwordMismatchText : null,
-                        ),
-                      ),
-                      SizedBox(height: 20.0),
-                    ],
+                  SizedBox(height: 20.0),
+                  _buildStyledTextField(
+                    label: 'Name',
+                    icon: Icons.person,
+                    obscureText: false,
+                    onChanged: (value) => name = value,
+                    showError: _emptyNameField,
+                    errorText: 'Please fill in the Name field',
                   ),
+                  SizedBox(height: 20.0),
+                  _buildStyledTextField(
+                    label: 'Email',
+                    icon: Icons.email,
+                    obscureText: false,
+                    onChanged: (value) => email = value,
+                    showError: _wrongEmail || _emptyEmailField,
+                    errorText: 'Please use a valid Email',
+                  ),
+                  SizedBox(height: 20.0),
+                  _buildStyledTextField(
+                    label: 'Password',
+                    icon: Icons.lock,
+                    obscureText: true,
+                    onChanged: (value) => password = value,
+                    showError: _wrongPassword || _emptyPasswordField,
+                    errorText: 'Please use a strong Password',
+                  ),
+                  SizedBox(height: 20.0),
+                  _buildStyledTextField(
+                    label: 'Confirm Password',
+                    icon: Icons.lock_outline,
+                    obscureText: true,
+                    onChanged: (value) => confirmPassword = value,
+                    showError: _passwordMismatch,
+                    errorText: 'Passwords do not match',
+                  ),
+                  SizedBox(height: 30.0),
                   ElevatedButton(
                     onPressed: _register,
                     style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 10.0),
-                      backgroundColor: Color(0xff447def),
+                      backgroundColor: Colors.blueAccent,
+                      padding: EdgeInsets.symmetric(vertical: 15.0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
                     ),
                     child: Text(
                       'Register',
-                      style: TextStyle(fontSize: 25.0, color: Colors.white),
+                      style: TextStyle(fontSize: 20.0, color: Colors.white),
                     ),
                   ),
+                  SizedBox(height: 20.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 10.0),
-                        child: Container(
-                          height: 1.0,
-                          width: 60.0,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      Text(
-                        'Or',
-                        style: TextStyle(fontSize: 25.0),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 10.0),
-                        child: Container(
-                          height: 1.0,
-                          width: 60.0,
-                          color: Colors.black87,
-                        ),
-                      ),
+                      Text('Or', style: TextStyle(fontSize: 20.0)),
                     ],
                   ),
+                  SizedBox(height: 20.0),
                   Row(
                     children: [
                       Expanded(
-                        child: ElevatedButton(
+                        child: ElevatedButton.icon(
                           onPressed: () => _signInWithSocialMedia('google'),
+                          icon: Image.asset('assets/images/google.png', width: 24),
+                          label: Text('Google', style: TextStyle(fontSize: 18.0)),
                           style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 10.0),
-                            backgroundColor: Color(0xff447def), // Blue background color
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.0),
-                              side: BorderSide(width: 0.5, color: Colors.grey[400]!),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'assets/images/google.png',
-                                fit: BoxFit.contain,
-                                width: 40.0,
-                                height: 40.0,
-                              ),
-                              SizedBox(width: 10.0),
-                              Text(
-                                'Google',
-                                style: TextStyle(fontSize: 25.0, color: Colors.white),
-                              ),
-                            ],
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.blueAccent,
+                            side: BorderSide(color: Colors.blueAccent),
                           ),
                         ),
                       ),
                       SizedBox(width: 20.0),
                       Expanded(
-                        child: ElevatedButton(
+                        child: ElevatedButton.icon(
                           onPressed: () => _signInWithSocialMedia('facebook'),
+                          icon: Image.asset('assets/images/facebook.png', width: 24),
+                          label: Text('Facebook', style: TextStyle(fontSize: 18.0)),
                           style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 10.0),
-                            backgroundColor: Color(0xff447def),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.0),
-                              side: BorderSide(width: 0.5, color: Colors.grey[400]!),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'assets/images/facebook.png',
-                                fit: BoxFit.contain,
-                                width: 40.0,
-                                height: 40.0,
-                              ),
-                              SizedBox(width: 10.0),
-                              Text(
-                                'Facebook',
-                                style: TextStyle(fontSize: 25.0, color: Colors.white),
-                              ),
-                            ],
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.blueAccent,
+                            side: BorderSide(color: Colors.blueAccent),
                           ),
                         ),
                       ),
                     ],
                   ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Already have an Account?',
-                          style: TextStyle(fontSize: 15.0),
+                  SizedBox(height: 20.0),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Already have an account?', style: TextStyle(fontSize: 16.0)),
+                      TextButton(
+                        onPressed: () => Navigator.pushNamed(context, LoginPage.id),
+                        child: Text(
+                          'Log In',
+                          style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 16.0),
                         ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, LoginPage.id);
-                          },
-                          child: Text(
-                            'Log In',
-                            style: TextStyle(fontSize: 15.0, color: Colors.blue, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -408,3 +276,56 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 }
+
+
+
+
+Future<void> _signInWithSocialMedia(String provider) async {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  try {
+    if (provider == 'google') {
+      // Google sign-in
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+      if (googleUser != null) {
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        final UserCredential userCredential = await _auth.signInWithCredential(credential);
+        _showSuccessToast('Google Sign-In Successful');
+      }
+    } else if (provider == 'facebook') {
+      // Facebook sign-in
+      final LoginResult result = await FacebookAuth.instance.login();
+
+      if (result.status == LoginStatus.success) {
+        final OAuthCredential facebookAuthCredential = FacebookAuthProvider.credential(result.accessToken!.token);
+
+        final UserCredential userCredential = await _auth.signInWithCredential(facebookAuthCredential);
+        _showSuccessToast('Facebook Sign-In Successful');
+      }
+    }
+  } catch (e) {
+    Fluttertoast.showToast(
+      msg: "Sign-In Failed: ${e.toString()}",
+      toastLength: Toast.LENGTH_SHORT,
+      textColor: Colors.red,
+      fontSize: 16.0,
+    );
+  }
+}
+
+void _showSuccessToast(String message) {
+  Fluttertoast.showToast(
+    msg: message,
+    toastLength: Toast.LENGTH_SHORT,
+    textColor: Colors.blue,
+    fontSize: 16.0,
+  );
+}
+
