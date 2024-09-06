@@ -162,7 +162,7 @@ class _LoginPageState extends State<LoginPage> {
                   SizedBox(height: 15.0),
                   Text(
                     'Welcome back, please login to your Account',
-                    style: TextStyle(fontSize: 18.0, color: Colors.black54),
+                    style: TextStyle(fontSize: 24.0, color: Colors.blueAccent),
                   ),
                   SizedBox(height: 20.0),
                   TextField(
@@ -212,64 +212,70 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   SizedBox(height: 10.0),
-                  ElevatedButton(
-                    onPressed: () async {
-                      setState(() {
-                        _showSpinner = true;
-                        _emptyEmailField = email.isEmpty;
-                        _emptyPasswordField = password.isEmpty;
-                      });
-
-                      if (_emptyEmailField || _emptyPasswordField) {
+                  SizedBox(
+                    width: 80.0, // Adjusted width
+                    child: ElevatedButton(
+                      onPressed: () async {
                         setState(() {
-                          _showSpinner = false;
-                        });
-                        return;
-                      }
-
-                      try {
-                        setState(() {
-                          _wrongEmail = false;
-                          _wrongPassword = false;
+                          _showSpinner = true;
+                          _emptyEmailField = email.isEmpty;
+                          _emptyPasswordField = password.isEmpty;
                         });
 
-                        UserCredential userCredential =
-                        await _auth.signInWithEmailAndPassword(
-                          email: email,
-                          password: password,
-                        );
-
-                        if (userCredential.user != null) {
-                          Navigator.pushNamed(context, Done.id);
-                        }
-                      } on FirebaseAuthException catch (e) {
-                        if (e.code == 'wrong-password') {
+                        if (_emptyEmailField || _emptyPasswordField) {
                           setState(() {
-                            _wrongPassword = true;
+                            _showSpinner = false;
                           });
-                          _showToast("Incorrect Password");
-                        } else if (e.code == 'user-not-found') {
+                          return;
+                        }
+
+                        try {
                           setState(() {
-                            _wrongEmail = true;
+                            _wrongEmail = false;
+                            _wrongPassword = false;
+                          });
+
+                          UserCredential userCredential =
+                          await _auth.signInWithEmailAndPassword(
+                            email: email,
+                            password: password,
+                          );
+
+                          if (userCredential.user != null) {
+                            Navigator.pushNamed(context, Done.id);
+                          }
+                        } on FirebaseAuthException catch (e) {
+                          if (e.code == 'wrong-password') {
+                            setState(() {
+                              _wrongPassword = true;
+                            });
+                            _showToast("Incorrect Password");
+                          } else if (e.code == 'user-not-found') {
+                            setState(() {
+                              _wrongEmail = true;
+                            });
+                          }
+                        } finally {
+                          setState(() {
+                            _showSpinner = false;
                           });
                         }
-                      } finally {
-                        setState(() {
-                          _showSpinner = false;
-                        });
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(
-                          vertical: 15.0, horizontal: 20),
-                      backgroundColor: Colors.blueAccent,
-                      side: BorderSide(width: 0.5, color: Colors.grey[400]!),
-                    ),
-                    child: Text(
-                      'Log In',
-                      style: TextStyle(fontSize: 20.0, color: Colors.white),
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+
+                        padding: EdgeInsets.symmetric(vertical: 13.0, horizontal: 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                      ),
+                      child: Text(
+                        'Log In',
+                        style: TextStyle(fontSize: 20.0, color: Colors.white),
+                      ),
                     ),
                   ),
+
                   SizedBox(height: 5.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -330,7 +336,7 @@ class _LoginPageState extends State<LoginPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Already have an Account?',
+                          'Already have an Account? ',
                           style: TextStyle(fontSize: 15.0),
                         ),
                         GestureDetector(
