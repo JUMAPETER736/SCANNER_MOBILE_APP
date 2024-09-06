@@ -159,7 +159,7 @@ class _LoginPageState extends State<LoginPage> {
                     'Welcome back, please login to your Account',
                     style: TextStyle(fontSize: 30.0, color: Colors.black54),
                   ),
-                  SizedBox(height: 40.0),
+                  SizedBox(height: 20.0),
                   TextField(
                     keyboardType: TextInputType.emailAddress,
                     onChanged: (value) {
@@ -172,7 +172,7 @@ class _LoginPageState extends State<LoginPage> {
                       prefixIcon: Icon(Icons.email, color: Colors.blueAccent),
                     ),
                   ),
-                  SizedBox(height: 20.0),
+                  SizedBox(height: 15.0),
                   TextField(
                     obscureText: true,
                     keyboardType: TextInputType.visiblePassword,
@@ -181,12 +181,12 @@ class _LoginPageState extends State<LoginPage> {
                     },
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      errorText: _wrongPassword ? _wrongPasswordFieldText : _emptyPasswordField ? _emptyPasswordFieldText : _wrongPassword ? _passwordText : null,
+                      errorText: _wrongPassword ? _wrongPasswordFieldText : _emptyPasswordField ? _emptyPasswordFieldText : _passwordText,
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.lock, color: Colors.blueAccent),
                     ),
                   ),
-                  SizedBox(height: 10.0),
+                  SizedBox(height: 8.0),
                   Align(
                     alignment: Alignment.topRight,
                     child: GestureDetector(
@@ -199,7 +199,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 30.0),
+                  SizedBox(height: 10.0),
                   ElevatedButton(
                     onPressed: () async {
                       setState(() {
@@ -253,11 +253,11 @@ class _LoginPageState extends State<LoginPage> {
                       side: BorderSide(width: 0.5, color: Colors.grey[400]!),
                     ),
                     child: Text(
-                      'Login',
+                      'Log In',
                       style: TextStyle(fontSize: 20.0, color: Colors.white),
                     ),
                   ),
-                  SizedBox(height: 20.0),
+                  SizedBox(height: 5.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -272,7 +272,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 10.0),
+                  SizedBox(height: 5.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
