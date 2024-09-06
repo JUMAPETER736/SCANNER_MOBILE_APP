@@ -144,6 +144,43 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
+  Future<void> _signInWithSocialMedia(String provider) async {
+    try {
+      if (provider == 'google') {
+        // Google sign-in
+        final GoogleSignIn googleSignIn = GoogleSignIn();
+        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+        if (googleUser != null) {
+          final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+          final AuthCredential credential = GoogleAuthProvider.credential(
+            accessToken: googleAuth.accessToken,
+            idToken: googleAuth.idToken,
+          );
+
+          final UserCredential userCredential = await _auth.signInWithCredential(credential);
+          Navigator.pushNamed(context, Done.id);
+        }
+      } else if (provider == 'facebook') {
+        // Facebook sign-in
+        final LoginResult loginResult = await FacebookAuth.instance.login();
+
+        if (loginResult.status == LoginStatus.success) {
+          final AuthCredential credential = FacebookAuthProvider.credential(loginResult.accessToken!.token);
+          final UserCredential userCredential = await _auth.signInWithCredential(credential);
+          Navigator.pushNamed(context, Done.id);
+        }
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Sign-in failed",
+        toastLength: Toast.LENGTH_SHORT,
+        textColor: Colors.red,
+        fontSize: 16.0,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -230,7 +267,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                   ],
                 ),
-                SizedBox(height: 20.0),
+                SizedBox(height: 10.0),
                 Row(
                   children: [
                     Expanded(
@@ -260,19 +297,27 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                   ],
                 ),
-                SizedBox(height: 20.0),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('Already have an account?', style: TextStyle(fontSize: 16.0)),
-                    TextButton(
-                      onPressed: () => Navigator.pushNamed(context, LoginPage.id),
-                      child: Text(
-                        'Log In',
-                        style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 16.0),
+                SizedBox(height: 10.0),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Already have an Account?',
+                        style: TextStyle(fontSize: 15.0),
                       ),
-                    ),
-                  ],
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, LoginPage.id);
+                        },
+                        child: Text(
+                          'Log In',
+                          style: TextStyle(fontSize: 15.0, color: Colors.blue, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -280,42 +325,5 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       ),
     );
-  }
-
-  Future<void> _signInWithSocialMedia(String provider) async {
-    try {
-      if (provider == 'google') {
-        // Google sign-in
-        final GoogleSignIn googleSignIn = GoogleSignIn();
-        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-
-        if (googleUser != null) {
-          final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-          final AuthCredential credential = GoogleAuthProvider.credential(
-            accessToken: googleAuth.accessToken,
-            idToken: googleAuth.idToken,
-          );
-
-          final UserCredential userCredential = await _auth.signInWithCredential(credential);
-          Navigator.pushNamed(context, Done.id);
-        }
-      } else if (provider == 'facebook') {
-        // Facebook sign-in
-        final LoginResult loginResult = await FacebookAuth.instance.login();
-
-        if (loginResult.status == LoginStatus.success) {
-          final AuthCredential credential = FacebookAuthProvider.credential(loginResult.accessToken!.token);
-          final UserCredential userCredential = await _auth.signInWithCredential(credential);
-          Navigator.pushNamed(context, Done.id);
-        }
-      }
-    } catch (e) {
-      Fluttertoast.showToast(
-        msg: "Sign-in failed",
-        toastLength: Toast.LENGTH_SHORT,
-        textColor: Colors.red,
-        fontSize: 16.0,
-      );
-    }
   }
 }
