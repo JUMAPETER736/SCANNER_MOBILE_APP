@@ -85,14 +85,16 @@ class _LoginPageState extends State<LoginPage> {
   Future<User?> _handleGoogleSignIn() async {
     final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
     if (googleUser != null) {
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = await googleUser
+          .authentication;
 
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      UserCredential userCredential = await _auth.signInWithCredential(credential);
+      UserCredential userCredential = await _auth.signInWithCredential(
+          credential);
       return userCredential.user;
     }
     return null;
@@ -103,9 +105,11 @@ class _LoginPageState extends State<LoginPage> {
 
     if (result.status == LoginStatus.success) {
       final AccessToken accessToken = result.accessToken!;
-      final AuthCredential credential = FacebookAuthProvider.credential(accessToken.token);
+      final AuthCredential credential = FacebookAuthProvider.credential(
+          accessToken.token);
 
-      UserCredential userCredential = await _auth.signInWithCredential(credential);
+      UserCredential userCredential = await _auth.signInWithCredential(
+          credential);
       return userCredential.user;
     }
     return null;
@@ -168,7 +172,9 @@ class _LoginPageState extends State<LoginPage> {
                     },
                     decoration: InputDecoration(
                       labelText: 'Email',
-                      errorText: _emptyEmailField ? _emptyEmailFieldText : _wrongEmail ? _emailText : null,
+                      errorText: _emptyEmailField
+                          ? _emptyEmailFieldText
+                          : _wrongEmail ? _emailText : null,
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.email, color: Colors.blueAccent),
                     ),
@@ -182,7 +188,11 @@ class _LoginPageState extends State<LoginPage> {
                     },
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      errorText: _wrongPassword ? _wrongPasswordFieldText : _emptyPasswordField ? _emptyPasswordFieldText : _passwordText,
+                      errorText: _wrongPassword
+                          ? _wrongPasswordFieldText
+                          : _emptyPasswordField
+                          ? _emptyPasswordFieldText
+                          : _passwordText,
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.lock, color: Colors.blueAccent),
                     ),
@@ -196,7 +206,8 @@ class _LoginPageState extends State<LoginPage> {
                       },
                       child: Text(
                         'Forgot Password?',
-                        style: TextStyle(fontSize: 16.0, color: Colors.blueAccent),
+                        style: TextStyle(
+                            fontSize: 16.0, color: Colors.blueAccent),
                       ),
                     ),
                   ),
@@ -249,7 +260,8 @@ class _LoginPageState extends State<LoginPage> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20),
+                      padding: EdgeInsets.symmetric(
+                          vertical: 15.0, horizontal: 20),
                       backgroundColor: Colors.blueAccent,
                       side: BorderSide(width: 0.5, color: Colors.grey[400]!),
                     ),
@@ -266,7 +278,8 @@ class _LoginPageState extends State<LoginPage> {
                         child: Divider(color: Colors.blueAccent),
                       ),
                       SizedBox(width: 10.0),
-                      Text('Or', style: TextStyle(fontSize: 20.0, color: Colors.blueAccent)),
+                      Text('Or', style: TextStyle(
+                          fontSize: 20.0, color: Colors.blueAccent)),
                       SizedBox(width: 10.0),
                       Expanded(
                         child: Divider(color: Colors.blueAccent),
@@ -274,62 +287,61 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                   ),
                   SizedBox(height: 10.0),
-                  ElevatedButton(
-                    onPressed: () => _signInWithSocialMedia('google'),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20),
-                      backgroundColor: Colors.blueAccent,
-                      side: BorderSide(width: 0.5, color: Colors.grey[400]!),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset('assets/images/google_logo.png', height: 24.0),
-                        SizedBox(width: 10.0),
-                        Text(
-                          'Sign In with Google',
-                          style: TextStyle(fontSize: 20.0, color: Colors.white),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 150.0, // Adjust width as needed
+                        child: ElevatedButton.icon(
+                          onPressed: () => _signInWithSocialMedia('google'),
+                          icon: Image.asset(
+                              'assets/images/google.png', width: 24),
+                          label: Text('Google', style: TextStyle(
+                              fontSize: 18.0)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.blueAccent,
+                            side: BorderSide(color: Colors.blueAccent),
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                      SizedBox(width: 12.0),
+                      Container(
+                        width: 150.0, // Adjust width as needed
+                        child: ElevatedButton.icon(
+                          onPressed: () => _signInWithSocialMedia('facebook'),
+                          icon: Image.asset(
+                              'assets/images/facebook.png', width: 24),
+                          label: Text('Facebook', style: TextStyle(
+                              fontSize: 18.0)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.blueAccent,
+                            side: BorderSide(color: Colors.blueAccent),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   SizedBox(height: 10.0),
-                  ElevatedButton(
-                    onPressed: () => _signInWithSocialMedia('facebook'),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20),
-                      backgroundColor: Colors.blueAccent,
-                      side: BorderSide(width: 0.5, color: Colors.grey[400]!),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset('assets/images/facebook_logo.png', height: 24.0),
-                        SizedBox(width: 10.0),
-                        Text(
-                          'Sign In with Facebook',
-                          style: TextStyle(fontSize: 20.0, color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 5.0),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 10.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Don’t have an Account?',
+                          'Already have an Account?',
                           style: TextStyle(fontSize: 15.0),
                         ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.pushNamed(context, RegisterPage.id);
-                            },
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pushNamed(context, RegisterPage.id);
+                          },
                           child: Text(
                             'Sign Up',
-                            style: TextStyle(fontSize: 15.0, color: Colors.blue, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 15.0,
+                                color: Colors.blue,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
