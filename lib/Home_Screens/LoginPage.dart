@@ -35,7 +35,7 @@ class _LoginPageState extends State<LoginPage> {
   String password = '';
   User? _user;
 
-  void onGoogleSignIn(BuildContext context) async {
+  Future<void> onGoogleSignIn(BuildContext context) async {
     setState(() {
       _showSpinner = true;
     });
@@ -54,8 +54,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     } else {
-      // Handle sign-in failure
-      // You can show a dialog or message indicating failure
+      _showToast("Google sign-in failed");
     }
   }
 
@@ -78,8 +77,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     } else {
-      // Handle sign-in failure
-      // You can show a dialog or message indicating failure
+      _showToast("Facebook sign-in failed");
     }
   }
 
@@ -94,60 +92,9 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       UserCredential userCredential = await _auth.signInWithCredential(credential);
-      _user = userCredential.user;
+      return userCredential.user;
     }
-
-    return _user;
-  }
-
-  Future<void> loginWithFacebook() async {
-    try {
-      // Trigger Facebook login
-      final LoginResult result = await FacebookAuth.instance.login();
-
-      // Check if Facebook login is successful
-      if (result.status == LoginStatus.success) {
-        final AccessToken accessToken = result.accessToken!;
-        final AuthCredential credential = FacebookAuthProvider.credential(accessToken.token);
-
-        UserCredential userCredential = await _auth.signInWithCredential(credential);
-        _user = userCredential.user;
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Done(), // Navigate to your desired screen
-          ),
-        );
-      } else {
-        _showToast('Facebook login failed');
-      }
-    } catch (e) {
-      _showToast('Error while Facebook login: $e');
-    }
-  }
-
-  void onFacebookSignIn(BuildContext context) async {
-    setState(() {
-      _showSpinner = true;
-    });
-
-    User? user = await _handleFacebookSignIn();
-
-    setState(() {
-      _showSpinner = false;
-    });
-
-    if (user != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => Done(), // Navigate to your desired screen
-        ),
-      );
-    } else {
-      _showToast("Facebook sign-in failed");
-    }
+    return null;
   }
 
   Future<User?> _handleFacebookSignIn() async {
@@ -158,10 +105,9 @@ class _LoginPageState extends State<LoginPage> {
       final AuthCredential credential = FacebookAuthProvider.credential(accessToken.token);
 
       UserCredential userCredential = await _auth.signInWithCredential(credential);
-      _user = userCredential.user;
+      return userCredential.user;
     }
-
-    return _user;
+    return null;
   }
 
   void _showToast(String message) {
@@ -183,7 +129,6 @@ class _LoginPageState extends State<LoginPage> {
       await onFacebookSignIn(context);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -290,7 +235,7 @@ class _LoginPageState extends State<LoginPage> {
                           setState(() {
                             _wrongPassword = true;
                           });
-                          _showToast("Incorrect Password"); // Show toast message
+                          _showToast("Incorrect Password");
                         } else if (e.code == 'user-not-found') {
                           setState(() {
                             _wrongEmail = true;
