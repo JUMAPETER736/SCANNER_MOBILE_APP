@@ -45,11 +45,20 @@ class StudentSubjects extends StatelessWidget {
             var subjects = data['subjects'];
 
             if (subjects is List<dynamic>) {
+              // Sort subjects alphabetically
+              List<Map<String, dynamic>> sortedSubjects = subjects
+                  .map((subject) => subject is Map<String, dynamic> ? subject : {'name': subject, 'grade': 'N/A'})
+                  .toList();
+
+              sortedSubjects.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
+
               return ListView.separated(
-                itemCount: subjects.length,
+                itemCount: sortedSubjects.length,
                 separatorBuilder: (context, index) => Divider(color: Colors.blueAccent, thickness: 1.5),
                 itemBuilder: (context, index) {
-                  var subjectName = subjects[index] ?? 'N/A';
+                  var subject = sortedSubjects[index];
+                  String subjectName = subject['name'] ?? 'N/A';
+                  String grade = subject['grade'] ?? 'N/A';
 
                   return Container(
                     width: double.infinity,
@@ -75,6 +84,14 @@ class StudentSubjects extends StatelessWidget {
                           color: Colors.blueAccent,
                         ),
                       ),
+                      trailing: Text(
+                        grade,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blueAccent,
+                        ),
+                      ),
                       tileColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -85,7 +102,7 @@ class StudentSubjects extends StatelessWidget {
                 },
               );
             } else {
-              return Center(child: Text('Subjects DATA is not in the expected format.'));
+              return Center(child: Text('Subjects data is not in the expected format.'));
             }
           },
         ),
