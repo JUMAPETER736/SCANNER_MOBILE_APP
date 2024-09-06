@@ -4,7 +4,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:scanna/Results_Screen/GoogleDone.dart';
 import 'package:scanna/Results_Screen/ForgotPassword.dart';
-import 'package:scanna/Home_Screens/RegisterPage.dart';
 import 'package:scanna/Results_Screen/Done.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -55,8 +54,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     } else {
-      // Handle sign-in failure
-      // You can show a dialog or message indicating failure
+      _showToast("Google sign-in failed");
     }
   }
 
@@ -84,20 +82,23 @@ class _LoginPageState extends State<LoginPage> {
 
       // Check if Facebook login is successful
       if (result.status == LoginStatus.success) {
-        // Get Facebook user profile
         final AccessToken accessToken = result.accessToken!;
-        final userData = await FacebookAuth.instance.getUserData();
+        final AuthCredential credential = FacebookAuthProvider.credential(accessToken.token);
 
-        // Navigate to the appropriate screen after successful login
-        // Example:
-        // Navigator.push(context, MaterialPageRoute(builder: (context) => MyHomePage()));
+        UserCredential userCredential = await _auth.signInWithCredential(credential);
+        _user = userCredential.user;
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Done(), // Navigate to your desired screen
+          ),
+        );
       } else {
-        // Handle if login is cancelled or failed
-        print('Facebook login failed');
+        _showToast('Facebook login failed');
       }
     } catch (e) {
-      // Handle error
-      print('Error while Facebook login: $e');
+      _showToast('Error while Facebook login: $e');
     }
   }
 
@@ -120,8 +121,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     } else {
-      // Handle sign-in failure
-      // You can show a dialog or message indicating failure
+      _showToast("Facebook sign-in failed");
     }
   }
 
@@ -149,6 +149,14 @@ class _LoginPageState extends State<LoginPage> {
       textColor: Colors.white,
       fontSize: 16.0,
     );
+  }
+
+  void _signInWithSocialMedia(String provider) async {
+    if (provider == 'google') {
+      await onGoogleSignIn(context);
+    } else if (provider == 'facebook') {
+      await onFacebookSignIn(context);
+    }
   }
 
   @override
@@ -298,7 +306,7 @@ class _LoginPageState extends State<LoginPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: 150.0, // Adjust width as needed
+                        width: 150.0,
                         child: ElevatedButton.icon(
                           onPressed: () => _signInWithSocialMedia('google'),
                           icon: Image.asset('assets/images/google.png', width: 24),
@@ -312,7 +320,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       SizedBox(width: 12.0),
                       Container(
-                        width: 150.0, // Adjust width as needed
+                        width: 150.0,
                         child: ElevatedButton.icon(
                           onPressed: () => _signInWithSocialMedia('facebook'),
                           icon: Image.asset('assets/images/facebook.png', width: 24),
@@ -326,33 +334,12 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 10.0),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Already have an Account?',
-                          style: TextStyle(fontSize: 15.0),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, LoginPage.id);
-                          },
-                          child: Text(
-                            'Sign Up',
-                            style: TextStyle(fontSize: 15.0, color: Colors.blue, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
+            ),
+          ],
+        ),
       ),
-    ),
-    ),
     );
   }
 }
