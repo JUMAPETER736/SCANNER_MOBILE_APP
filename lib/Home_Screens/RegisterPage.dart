@@ -282,7 +282,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
                     ),
-                    SizedBox(width: 20.0),
+                    SizedBox(width: 12.0),
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () => _signInWithSocialMedia('facebook'),
