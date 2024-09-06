@@ -238,18 +238,22 @@ class _RegisterPageState extends State<RegisterPage> {
                   errorText: 'Passwords do not match',
                 ),
                 SizedBox(height: 30.0),
-                ElevatedButton(
-                  onPressed: _register,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    padding: EdgeInsets.symmetric(vertical: 15.0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.0),
+                Container(
+                  width: 350.0, // Adjust width as needed
+                  alignment: Alignment.center,
+                  child: ElevatedButton(
+                    onPressed: _register,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      padding: EdgeInsets.symmetric(vertical: 13.0, horizontal: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    'Register',
-                    style: TextStyle(fontSize: 20.0, color: Colors.white),
+                    child: Text(
+                      'Register',
+                      style: TextStyle(fontSize: 20.0, color: Colors.white),
+                    ),
                   ),
                 ),
                 SizedBox(height: 20.0),
@@ -269,8 +273,10 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 SizedBox(height: 10.0),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Expanded(
+                    Container(
+                      width: 150.0, // Adjust width as needed
                       child: ElevatedButton.icon(
                         onPressed: () => _signInWithSocialMedia('google'),
                         icon: Image.asset('assets/images/google.png', width: 24),
@@ -283,7 +289,8 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                     ),
                     SizedBox(width: 12.0),
-                    Expanded(
+                    Container(
+                      width: 150.0, // Adjust width as needed
                       child: ElevatedButton.icon(
                         onPressed: () => _signInWithSocialMedia('facebook'),
                         icon: Image.asset('assets/images/facebook.png', width: 24),
