@@ -7,7 +7,7 @@ import 'package:scanna/Results_Screen/ForgotPassword.dart';
 import 'package:scanna/Home_Screens/RegisterPage.dart';
 import 'package:scanna/Results_Screen/Done.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
-import 'package:fluttertoast/fluttertoast.dart'; // Import FlutterToast
+import 'package:fluttertoast/fluttertoast.dart';
 
 class LoginPage extends StatefulWidget {
   static String id = '/LoginPage';
@@ -22,7 +22,6 @@ class _LoginPageState extends State<LoginPage> {
   bool _wrongPassword = false;
   bool _emptyEmailField = false;
   bool _emptyPasswordField = false;
-
 
   String _emailText = 'Please use a valid Email';
   String _passwordText = 'Please use a strong Password';
@@ -162,75 +161,66 @@ class _LoginPageState extends State<LoginPage> {
         color: Colors.blueAccent,
         child: Stack(
           children: [
-
             Padding(
-              padding: EdgeInsets.only(
-                  top: 60.0, bottom: 20.0, left: 20.0, right: 20.0),
+              padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 40.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     'Login',
-                    style: TextStyle(fontSize: 50.0),
+                    style: TextStyle(
+                      fontSize: 50.0,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueAccent,
+                    ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Welcome back,',
-                        style: TextStyle(fontSize: 30.0),
-                      ),
-                      Text(
-                        'please login',
-                        style: TextStyle(fontSize: 30.0),
-                      ),
-                      Text(
-                        'to your Account',
-                        style: TextStyle(fontSize: 30.0),
-                      ),
-                    ],
+                  SizedBox(height: 15.0),
+                  Text(
+                    'Welcome back, please login to your Account',
+                    style: TextStyle(fontSize: 30.0, color: Colors.black54),
                   ),
-                  Column(
-                    children: [
-                      TextField(
-                        keyboardType: TextInputType.emailAddress,
-                        onChanged: (value) {
-                          email = value;
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Email',
-                          errorText: _emptyEmailField ? _emptyEmailFieldText : _wrongEmail ? _emailText : null,
-                        ),
-                      ),
-                      SizedBox(height: 20.0),
-                      TextField(
-                        obscureText: true,
-                        keyboardType: TextInputType.visiblePassword,
-                        onChanged: (value) {
-                          password = value;
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          errorText: _wrongPassword ? _wrongPasswordFieldText : _emptyPasswordField ? _emptyPasswordFieldText : _wrongPassword ? _passwordText : null,
-
-                        ),
-                      ),
-                      SizedBox(height: 10.0),
-                      Align(
-                        alignment: Alignment.topRight,
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.pushNamed(context, ForgotPassword.id);
-                          },
-                          child: Text(
-                            'Forgot Password?',
-                            style: TextStyle(fontSize: 20.0, color: Colors.blue),
-                          ),
-                        ),
-                      ),
-                    ],
+                  SizedBox(height: 40.0),
+                  TextField(
+                    keyboardType: TextInputType.emailAddress,
+                    onChanged: (value) {
+                      email = value;
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      errorText: _emptyEmailField ? _emptyEmailFieldText : _wrongEmail ? _emailText : null,
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.email, color: Colors.blueAccent),
+                    ),
                   ),
+                  SizedBox(height: 20.0),
+                  TextField(
+                    obscureText: true,
+                    keyboardType: TextInputType.visiblePassword,
+                    onChanged: (value) {
+                      password = value;
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      errorText: _wrongPassword ? _wrongPasswordFieldText : _emptyPasswordField ? _emptyPasswordFieldText : _wrongPassword ? _passwordText : null,
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.lock, color: Colors.blueAccent),
+                    ),
+                  ),
+                  SizedBox(height: 10.0),
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pushNamed(context, ForgotPassword.id);
+                      },
+                      child: Text(
+                        'Forgot Password?',
+                        style: TextStyle(fontSize: 16.0, color: Colors.blueAccent),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 30.0),
                   ElevatedButton(
                     onPressed: () async {
                       setState(() {
@@ -279,127 +269,90 @@ class _LoginPageState extends State<LoginPage> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 10.0),
-                      backgroundColor: Color(0xff447def),
+                      padding: EdgeInsets.symmetric(vertical: 15.0),
+                      backgroundColor: Colors.blueAccent,
                       side: BorderSide(width: 0.5, color: Colors.grey[400]!),
                     ),
                     child: Text(
                       'Login',
-                      style: TextStyle(fontSize: 25.0, color: Colors.white),
+                      style: TextStyle(fontSize: 20.0, color: Colors.white),
                     ),
                   ),
+                  SizedBox(height: 20.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 10.0),
-                        child: Container(
-                          height: 1.0,
-                          width: 60.0,
-                          color: Colors.black87,
-                        ),
+                      Expanded(
+                        child: Divider(color: Colors.blueAccent),
                       ),
-                      Text(
-                        'Or',
-                        style: TextStyle(fontSize: 25.0),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 10.0),
-                        child: Container(
-                          height: 1.0,
-                          width: 60.0,
-                          color: Colors.black87,
-                        ),
+                      SizedBox(width: 10.0),
+                      Text('Or', style: TextStyle(fontSize: 20.0, color: Colors.blueAccent)),
+                      SizedBox(width: 10.0),
+                      Expanded(
+                        child: Divider(color: Colors.blueAccent),
                       ),
                     ],
                   ),
+                  SizedBox(height: 10.0),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            onGoogleSignIn(context);
-                          },
+                      Container(
+                        width: 150.0, // Adjust width as needed
+                        child: ElevatedButton.icon(
+                          onPressed: () => _signInWithSocialMedia('google'),
+                          icon: Image.asset('assets/images/google.png', width: 24),
+                          label: Text('Google', style: TextStyle(fontSize: 18.0)),
                           style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 10.0),
-                            backgroundColor: Color(0xff447def),
-                            side: BorderSide(width: 0.5, color: Colors.grey[400]!),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'assets/images/google.png',
-                                fit: BoxFit.contain,
-                                width: 40.0,
-                                height: 40.0,
-                              ),
-                              SizedBox(width: 10.0),
-                              Text(
-                                'Google',
-                                style: TextStyle(fontSize: 25.0, color: Colors.white),
-                              ),
-                            ],
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.blueAccent,
+                            side: BorderSide(color: Colors.blueAccent),
                           ),
                         ),
                       ),
-                      SizedBox(width: 20.0),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            onFacebookSignIn(context);
-                          },
+                      SizedBox(width: 12.0),
+                      Container(
+                        width: 150.0, // Adjust width as needed
+                        child: ElevatedButton.icon(
+                          onPressed: () => _signInWithSocialMedia('facebook'),
+                          icon: Image.asset('assets/images/facebook.png', width: 24),
+                          label: Text('Facebook', style: TextStyle(fontSize: 18.0)),
                           style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 10.0),
-                            backgroundColor: Color(0xff447def),
-                            side: BorderSide(width: 0.5, color: Colors.grey[400]!),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'assets/images/facebook.png',
-                                fit: BoxFit.cover,
-                                width: 40.0,
-                                height: 40.0,
-                              ),
-                              SizedBox(width: 10.0),
-                              Text(
-                                'Facebook',
-                                style: TextStyle(fontSize: 25.0, color: Colors.white),
-                              ),
-                            ],
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.blueAccent,
+                            side: BorderSide(color: Colors.blueAccent),
                           ),
                         ),
                       ),
                     ],
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Don\'t have an Account?',
-                        style: TextStyle(fontSize: 15.0),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, RegisterPage.id);
-                        },
-                        child: Text(
-                          ' Sign Up',
-                          style: TextStyle(fontSize: 15.0, color: Colors.blue, fontWeight: FontWeight.bold),
+                  SizedBox(height: 10.0),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Already have an Account?',
+                          style: TextStyle(fontSize: 15.0),
                         ),
-                      ),
-                    ],
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, LoginPage.id);
+                          },
+                          child: Text(
+                            'Sign Up',
+                            style: TextStyle(fontSize: 15.0, color: Colors.blue, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
       ),
+    ),
+    ),
     );
   }
 }
-
-
