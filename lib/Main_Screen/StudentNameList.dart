@@ -13,7 +13,8 @@ class StudentNameList extends StatelessWidget {
     if (loggedInUser == null) {
       return Scaffold(
         appBar: AppBar(
-          title: Text('Name of Students',
+          title: Text(
+            'Name of Students',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           backgroundColor: Colors.blueAccent,
@@ -28,7 +29,10 @@ class StudentNameList extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Name of Students', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Name of Students',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
       ),
@@ -46,6 +50,7 @@ class StudentNameList extends StatelessWidget {
               .collection('Students')
               .doc(userId)
               .collection('StudentDetails')
+              .orderBy('lastName', descending: false) // Sorting by last name in ascending order
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -81,7 +86,7 @@ class StudentNameList extends StatelessWidget {
                   child: ListTile(
                     contentPadding: EdgeInsets.all(16),
                     title: Text(
-                      '$firstName $lastName',
+                      '$lastName $firstName', // Display last name first
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -104,7 +109,7 @@ class StudentNameList extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => StudentSubjects(
-                            studentName: '$firstName $lastName',
+                            studentName: '$lastName $firstName', // Pass last name first
                             studentClass: studentClass,
                           ),
                         ),
