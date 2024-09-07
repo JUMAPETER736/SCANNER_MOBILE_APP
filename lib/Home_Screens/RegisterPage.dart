@@ -235,7 +235,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   obscureText: true,
                   onChanged: (value) => confirmPassword = value,
                   showError: _passwordMismatch,
-                  errorText: 'Passwords do not match',
+                  errorText: 'Passwords do NOT match',
                 ),
                 SizedBox(height: 30.0),
                 Container(

@@ -1,3 +1,6 @@
+
+
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -26,7 +29,6 @@ class StudentNameList extends StatelessWidget {
     }
 
     String userId = loggedInUser!.uid;
-    print('Logged in user ID: $userId'); // Debug print for logged-in user ID
 
     return Scaffold(
       appBar: AppBar(
@@ -46,95 +48,77 @@ class StudentNameList extends StatelessWidget {
           ),
         ),
         padding: const EdgeInsets.all(16.0),
-        child: FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance
-              .collection('Users') // Verify the correct collection name
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('Students')
               .doc(userId)
-              .get(),
-          builder: (context, userSnapshot) {
-            if (userSnapshot.connectionState == ConnectionState.waiting) {
+              .collection('StudentDetails')
+              .orderBy('lastName', descending: false) // Sorting by last name in ascending order
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator());
             }
-            if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
-              print('User snapshot data: ${userSnapshot.data}');
-              return Center(child: Text('User not found.'));
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Center(child: Text('No students found.'));
             }
 
-            var userClass = userSnapshot.data!['classes'] ?? 'N/A';
-            print('User class: $userClass'); // Debug print for user class
+            return ListView.separated(
+              itemCount: snapshot.data!.docs.length,
+              separatorBuilder: (context, index) => SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                var student = snapshot.data!.docs[index];
+                var firstName = student['firstName'] ?? 'N/A';
+                var lastName = student['lastName'] ?? 'N/A';
+                var studentClass = student['studentClass'] ?? 'N/A'; // Retrieve class
 
-            return StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('Students')
-                  .where('studentClass', isEqualTo: userClass)
-                  .orderBy('lastName', descending: false)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(child: Text('No students found.'));
-                }
-
-                return ListView.separated(
-                  itemCount: snapshot.data!.docs.length,
-                  separatorBuilder: (context, index) => SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    var student = snapshot.data!.docs[index];
-                    var firstName = student['firstName'] ?? 'N/A';
-                    var lastName = student['lastName'] ?? 'N/A';
-                    var studentClass = student['studentClass'] ?? 'N/A';
-
-                    return Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 4,
-                            offset: Offset(2, 2),
-                          ),
-                        ],
+                return Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 4,
+                        offset: Offset(2, 2),
                       ),
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.all(16),
-                        title: Text(
-                          '$lastName $firstName',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blueAccent,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'Class: $studentClass',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.black,
-                          ),
-                        ),
-                        trailing: Icon(
-                          Icons.arrow_forward,
-                          color: Colors.blueAccent,
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => StudentSubjects(
-                                studentName: '$lastName $firstName',
-                                studentClass: studentClass,
-                              ),
-                            ),
-                          );
-                        },
+                    ],
+                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.all(16),
+                    title: Text(
+                      '$lastName $firstName', // Display last name first
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blueAccent,
                       ),
-                    );
-                  },
+                    ),
+                    subtitle: Text(
+                      'Class: $studentClass',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.arrow_forward,
+                      color: Colors.blueAccent,
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StudentSubjects(
+                            studentName: '$lastName $firstName', // Pass last name first
+                            studentClass: studentClass,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 );
               },
             );
