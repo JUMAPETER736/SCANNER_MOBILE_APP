@@ -152,7 +152,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Change Password', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+            'Change Password', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
       ),
@@ -198,7 +199,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent, // Cancel button color
+                        backgroundColor: Colors.redAccent,
+                        // Cancel button color
                         padding: EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -207,21 +209,24 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                       onPressed: () {
                         Navigator.of(context).pop();
                       },
-                      child: Text('Cancel', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: Text('Cancel', style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   SizedBox(width: 20),
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.greenAccent, // Change Password button color
+                        backgroundColor: Colors.greenAccent,
+                        // Change Password button color
                         padding: EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                       onPressed: _handleChangePassword,
-                      child: Text('Change Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: Text('Change Password', style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -265,11 +270,19 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   }
 
   Future<void> _handleChangePassword() async {
+    if (FirebaseAuth.instance.currentUser == null) {
+      setState(() {
+        errorMessage = 'User is not logged in';
+      });
+      return;
+    }
+
     String oldPassword = _oldPasswordController.text.trim();
     String newPassword = _newPasswordController.text.trim();
     String reEnterNewPassword = _reEnterNewPasswordController.text.trim();
 
-    if (oldPassword.isEmpty || newPassword.isEmpty || reEnterNewPassword.isEmpty) {
+    if (oldPassword.isEmpty || newPassword.isEmpty ||
+        reEnterNewPassword.isEmpty) {
       setState(() {
         errorMessage = 'Please fill in all fields';
       });
@@ -278,7 +291,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
     if (newPassword != reEnterNewPassword) {
       setState(() {
-        errorMessage = 'Passwords do Not match';
+        errorMessage = 'Passwords do not match';
       });
       return;
     }
@@ -286,22 +299,39 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     await changePassword(oldPassword, newPassword);
   }
 
+
   Future<void> changePassword(String oldPassword, String newPassword) async {
     try {
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
         email: widget.user?.email ?? '',
         password: oldPassword,
       );
 
       await userCredential.user!.updatePassword(newPassword);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Password changed Successfully!')),
+        SnackBar(content: Text('Password changed successfully!')),
       );
       Navigator.of(context).pop();
     } catch (e) {
-      setState(() {
-        errorMessage = 'Failed to change Password: $e';
-      });
+      if (e is FirebaseAuthException) {
+        print('Error code: ${e.code}');
+        print('Error message: ${e.message}');
+
+        if (e.code == 'wrong-password') {
+          setState(() {
+            errorMessage = 'Old Password is incorrect';
+          });
+        } else {
+          setState(() {
+            errorMessage = 'Failed to change password: ${e.message}';
+          });
+        }
+      } else {
+        setState(() {
+          errorMessage = 'Failed to change password: ${e.toString()}';
+        });
+      }
     }
   }
 }
