@@ -31,9 +31,29 @@ class _StudentNameListState extends State<StudentNameList> {
 
       if (userSnapshot.exists) {
         Map<String, dynamic>? userData = userSnapshot.data() as Map<String, dynamic>?;
-        setState(() {
-          userClass = userData?['studentClass'] ?? 'N/A';
-        });
+
+        // Debugging output
+        print('Fetched user data: ${userData.toString()}');
+
+        var classData = userData?['classes'];
+
+        // Check the type of classData
+        if (classData is List) {
+          // If it's a list, take the first element or handle accordingly
+          setState(() {
+            userClass = classData.isNotEmpty ? classData.first.toString() : 'N/A';
+          });
+        } else if (classData is String) {
+          // If it's a string, use it directly
+          setState(() {
+            userClass = classData;
+          });
+        } else {
+          // Handle unexpected types
+          setState(() {
+            userClass = 'Invalid class Data';
+          });
+        }
       } else {
         setState(() {
           userClass = 'No class assigned. Please complete your profile.';
@@ -41,6 +61,7 @@ class _StudentNameListState extends State<StudentNameList> {
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +85,16 @@ class _StudentNameListState extends State<StudentNameList> {
       );
     }
 
+    if (userClass == 'N/A' || userClass == 'No class assigned. Please complete your profile.') {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('Name of Students', style: TextStyle(fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.blueAccent,
+        ),
+        body: Center(child: Text(userClass!)),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Name of Students', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -81,8 +112,8 @@ class _StudentNameListState extends State<StudentNameList> {
         padding: const EdgeInsets.all(16.0),
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
-              .collection('students')
-              .where('studentClass', isEqualTo: userClass)
+              .collection('Students')
+              .where('studentClass', isEqualTo: userClass)  // Filter students by studentClass
               .orderBy('lastName', descending: false)
               .snapshots(),
           builder: (context, snapshot) {
@@ -90,7 +121,7 @@ class _StudentNameListState extends State<StudentNameList> {
               return Center(child: CircularProgressIndicator());
             }
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return Center(child: Text('No students found.'));
+              return Center(child: Text('No students found for your class.'));
             }
 
             return ListView.separated(
@@ -98,9 +129,12 @@ class _StudentNameListState extends State<StudentNameList> {
               separatorBuilder: (context, index) => SizedBox(height: 10),
               itemBuilder: (context, index) {
                 var student = snapshot.data!.docs[index];
-                var firstName = student['firstName'] ?? 'N/A';
-                var lastName = student['lastName'] ?? 'N/A';
-                var studentClass = student['studentClass'] ?? 'N/A';
+                var firstName = student.get('firstName') as String? ?? 'N/A';
+                var lastName = student.get('lastName') as String? ?? 'N/A';
+                var studentClass = student.get('studentClass') as String? ?? 'N/A';
+
+                // Debugging output
+                print('Fetched student: firstName=$firstName, lastName=$lastName, studentClass=$studentClass');
 
                 return Container(
                   width: double.infinity,
