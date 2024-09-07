@@ -3,36 +3,70 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/Main_Screen/StudentSubjects.dart';
 
-class StudentNameList extends StatelessWidget {
+class StudentNameList extends StatefulWidget {
   final User? loggedInUser;
 
   const StudentNameList({Key? key, this.loggedInUser}) : super(key: key);
 
   @override
+  _StudentNameListState createState() => _StudentNameListState();
+}
+
+class _StudentNameListState extends State<StudentNameList> {
+  String? userClass;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserClass();
+  }
+
+  Future<void> _fetchUserClass() async {
+    if (widget.loggedInUser != null) {
+      String userId = widget.loggedInUser!.uid;
+      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (userSnapshot.exists) {
+        Map<String, dynamic>? userData = userSnapshot.data() as Map<String, dynamic>?;
+        setState(() {
+          userClass = userData?['studentClass'] ?? 'N/A';
+        });
+      } else {
+        setState(() {
+          userClass = 'No class assigned. Please complete your profile.';
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (loggedInUser == null) {
+    if (widget.loggedInUser == null) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(
-            'Name of Students',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          title: Text('Name of Students', style: TextStyle(fontWeight: FontWeight.bold)),
           backgroundColor: Colors.blueAccent,
         ),
-        body: Center(
-          child: Text('No user is logged in.'),
-        ),
+        body: Center(child: Text('No user is logged in.')),
       );
     }
 
-    String userId = loggedInUser!.uid;
+    if (userClass == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('Name of Students', style: TextStyle(fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.blueAccent,
+        ),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Name of Students',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: Text('Name of Students', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
       ),
@@ -47,10 +81,9 @@ class StudentNameList extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
-              .collection('Students')
-              .doc(userId)
-              .collection('StudentDetails')
-              .orderBy('lastName', descending: false) // Sorting by last name in ascending order
+              .collection('students')
+              .where('studentClass', isEqualTo: userClass)
+              .orderBy('lastName', descending: false)
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -67,7 +100,7 @@ class StudentNameList extends StatelessWidget {
                 var student = snapshot.data!.docs[index];
                 var firstName = student['firstName'] ?? 'N/A';
                 var lastName = student['lastName'] ?? 'N/A';
-                var studentClass = student['studentClass'] ?? 'N/A'; // Retrieve class
+                var studentClass = student['studentClass'] ?? 'N/A';
 
                 return Container(
                   width: double.infinity,
@@ -86,7 +119,7 @@ class StudentNameList extends StatelessWidget {
                   child: ListTile(
                     contentPadding: EdgeInsets.all(16),
                     title: Text(
-                      '$lastName $firstName', // Display last name first
+                      '$lastName $firstName',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -109,7 +142,7 @@ class StudentNameList extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => StudentSubjects(
-                            studentName: '$lastName $firstName', // Pass last name first
+                            studentName: '$lastName $firstName',
                             studentClass: studentClass,
                           ),
                         ),

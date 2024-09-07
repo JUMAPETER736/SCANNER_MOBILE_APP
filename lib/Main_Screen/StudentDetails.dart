@@ -385,3 +385,4 @@ class _StudentDetailsState extends State<StudentDetails> {
     );
   }
 }
+
