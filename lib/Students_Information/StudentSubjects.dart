@@ -26,12 +26,12 @@ class _StudentSubjectsState extends State<StudentSubjects> {
   @override
   void initState() {
     super.initState();
-    _initializeDefaultSubjects(widget.studentClass);
+    _initializeDefaultSubjects();
     _checkSavedSelections();
   }
 
-  Future<void> _initializeDefaultSubjects(String className) async {
-    final subjects = {
+  Future<void> _initializeDefaultSubjects() async {
+    final defaultSubjects = {
       'FORM 1': [
         Subject(name: 'AGRICULTURE'),
         Subject(name: 'BIOLOGY'),
@@ -68,31 +68,35 @@ class _StudentSubjectsState extends State<StudentSubjects> {
       ],
     };
 
-    final subjectList = subjects[className] ?? [];
+    final studentRef = _firestore
+        .collection('Students')
+        .doc(widget.studentClass)
+        .collection('StudentDetails')
+        .doc(widget.studentName);
 
-    final classRef = _firestore.collection('StudentSubjects').doc(className);
-
-    DocumentSnapshot docSnapshot = await classRef.get();
+    DocumentSnapshot docSnapshot = await studentRef.get();
     if (docSnapshot.exists) {
-      final existingSubjects =
-      (docSnapshot.data() as Map<String, dynamic>)['Subjects'] as List<dynamic>?;
-      if (existingSubjects == null || existingSubjects.isEmpty) {
-        await classRef.update({
-          'Subjects': subjectList.map((subject) => subject.toMap()).toList(),
-        });
-      }
+      // If the student already exists, load the existing subjects
+      _fetchSubjects();
     } else {
-      await classRef.set({
+      // If the student does not exist, create the student document with default subjects
+      final subjectList = defaultSubjects[widget.studentClass] ?? [];
+      await studentRef.set({
         'Subjects': subjectList.map((subject) => subject.toMap()).toList(),
       });
+      _fetchSubjects();
     }
-
-    _fetchSubjects(className);
   }
 
-  Future<void> _fetchSubjects(String className) async {
+  Future<void> _fetchSubjects() async {
     try {
-      final snapshot = await _firestore.collection('StudentSubjects').doc(className).get();
+      final studentRef = _firestore
+          .collection('Students')
+          .doc(widget.studentClass)
+          .collection('StudentDetails')
+          .doc(widget.studentName);
+
+      final snapshot = await studentRef.get();
       if (snapshot.exists) {
         var data = snapshot.data() as Map<String, dynamic>;
         var subjects = data['Subjects'] as List<dynamic>?;
@@ -100,7 +104,8 @@ class _StudentSubjectsState extends State<StudentSubjects> {
         if (subjects != null) {
           setState(() {
             _subjects = subjects
-                .map((subjectData) => Subject.fromMap(subjectData as Map<String, dynamic>))
+                .map((subjectData) =>
+                Subject.fromMap(subjectData as Map<String, dynamic>))
                 .toList();
           });
         }
@@ -112,11 +117,18 @@ class _StudentSubjectsState extends State<StudentSubjects> {
 
   void _updateSubjectGrade(Subject subject, String newGrade) async {
     try {
-      final classRef = _firestore.collection('StudentSubjects').doc(widget.studentClass);
-      await classRef.update({
-        'Subjects': _subjects.map((sub) => sub.name == subject.name
+      final studentRef = _firestore
+          .collection('Students')
+          .doc(widget.studentClass)
+          .collection('StudentDetails')
+          .doc(widget.studentName);
+
+      await studentRef.update({
+        'Subjects': _subjects
+            .map((sub) => sub.name == subject.name
             ? subject.copyWith(grade: newGrade).toMap()
-            : sub.toMap()).toList(),
+            : sub.toMap())
+            .toList(),
       });
 
       setState(() {
@@ -133,7 +145,10 @@ class _StudentSubjectsState extends State<StudentSubjects> {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       String userId = user.uid; // Get user's ID
-      DocumentSnapshot doc = await FirebaseFirestore.instance.collection('Teacher').doc(userId).get();
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection('Teacher')
+          .doc(userId)
+          .get();
       if (doc.exists && doc['classes'] != null && doc['subjects'] != null) {
         setState(() {
           // Load saved subjects for the teacher
@@ -148,7 +163,8 @@ class _StudentSubjectsState extends State<StudentSubjects> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Subjects for ${widget.studentName}', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('Subjects for ${widget.studentName}',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
       ),
@@ -165,7 +181,8 @@ class _StudentSubjectsState extends State<StudentSubjects> {
             ? Center(child: CircularProgressIndicator())
             : ListView.separated(
           itemCount: _subjects.length,
-          separatorBuilder: (context, index) => Divider(color: Colors.blueAccent, thickness: 1.5),
+          separatorBuilder: (context, index) =>
+              Divider(color: Colors.blueAccent, thickness: 1.5),
           itemBuilder: (context, index) {
             var subject = _subjects[index];
 
@@ -215,22 +232,33 @@ class _StudentSubjectsState extends State<StudentSubjects> {
                             context: context,
                             builder: (context) {
                               TextEditingController gradeController =
-                              TextEditingController(text: subject.grade);
+                              TextEditingController(
+                                  text: subject.grade);
                               return AlertDialog(
-                                title: Text('Edit Grade for ${subject.name} in %'),
+                                title: Text(
+                                    'Edit Grade for ${subject.name} in %'),
                                 content: TextField(
                                   controller: gradeController,
-                                  decoration: InputDecoration(labelText: 'New Grade (%)'),
-                                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                  decoration: InputDecoration(
+                                      labelText: 'New Grade (%)'),
+                                  keyboardType:
+                                  TextInputType.numberWithOptions(
+                                      decimal: true),
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter
+                                        .digitsOnly
+                                  ],
                                 ),
                                 actions: [
                                   TextButton(
-                                    onPressed: () => Navigator.of(context).pop(),
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(),
                                     child: Text('Cancel'),
                                   ),
                                   TextButton(
-                                    onPressed: () => Navigator.of(context).pop(gradeController.text),
+                                    onPressed: () =>
+                                        Navigator.of(context)
+                                            .pop(gradeController.text),
                                     child: Text('Save'),
                                   ),
                                 ],
@@ -278,9 +306,9 @@ class Subject {
     };
   }
 
-  factory Subject.fromMap(Map<String, dynamic> map) {
+  static Subject fromMap(Map<String, dynamic> map) {
     return Subject(
-      name: map['name'] ?? 'N/A',
+      name: map['name'],
       grade: map['grade'] ?? 'N/A',
     );
   }
