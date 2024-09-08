@@ -3,9 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:scanna/Settings/SettingsPage.dart';
 import 'package:scanna/Main_Screen/GradeAnalytics.dart';
 import 'package:scanna/Main_Screen/ClassSelection.dart';
-import 'package:scanna/Main_Screen/StudentDetails.dart';
+import 'package:scanna/Students_Information/StudentDetails.dart';
 import 'package:scanna/Main_Screen/Help.dart';
-import 'package:scanna/Main_Screen/StudentNameList.dart';
+import 'package:scanna/Students_Information/StudentNameList.dart';
 import 'package:scanna/Main_Screen/QRCodeScan.dart';
 import 'package:scanna/Main_Screen/SchoolReports.dart'; // Import SchoolReports
 import 'package:scanna/Home_Screens/LoginPage.dart'; // Import LoginPage

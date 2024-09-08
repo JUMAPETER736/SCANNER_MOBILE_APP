@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
 
 class StudentSubjects extends StatefulWidget {
   final String studentName;
@@ -20,11 +20,14 @@ class StudentSubjects extends StatefulWidget {
 class _StudentSubjectsState extends State<StudentSubjects> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<Subject> _subjects = [];
+  List<String> selectedSubjects = []; // Holds the teacher's selected subjects
+  bool isSaved = false;
 
   @override
   void initState() {
     super.initState();
     _initializeDefaultSubjects(widget.studentClass);
+    _checkSavedSelections();
   }
 
   Future<void> _initializeDefaultSubjects(String className) async {
@@ -69,18 +72,16 @@ class _StudentSubjectsState extends State<StudentSubjects> {
 
     final classRef = _firestore.collection('StudentSubjects').doc(className);
 
-    // Get current document data
     DocumentSnapshot docSnapshot = await classRef.get();
     if (docSnapshot.exists) {
-      // Update existing document if subjects do not exist
-      final existingSubjects = (docSnapshot.data() as Map<String, dynamic>)['Subjects'] as List<dynamic>?;
+      final existingSubjects =
+      (docSnapshot.data() as Map<String, dynamic>)['Subjects'] as List<dynamic>?;
       if (existingSubjects == null || existingSubjects.isEmpty) {
         await classRef.update({
           'Subjects': subjectList.map((subject) => subject.toMap()).toList(),
         });
       }
     } else {
-      // Create new document with subjects
       await classRef.set({
         'Subjects': subjectList.map((subject) => subject.toMap()).toList(),
       });
@@ -128,6 +129,21 @@ class _StudentSubjectsState extends State<StudentSubjects> {
     }
   }
 
+  void _checkSavedSelections() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      String userId = user.uid; // Get user's ID
+      DocumentSnapshot doc = await FirebaseFirestore.instance.collection('Teacher').doc(userId).get();
+      if (doc.exists && doc['classes'] != null && doc['subjects'] != null) {
+        setState(() {
+          // Load saved subjects for the teacher
+          selectedSubjects = List<String>.from(doc['subjects']);
+          isSaved = true; // Mark as saved
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -152,6 +168,10 @@ class _StudentSubjectsState extends State<StudentSubjects> {
           separatorBuilder: (context, index) => Divider(color: Colors.blueAccent, thickness: 1.5),
           itemBuilder: (context, index) {
             var subject = _subjects[index];
+
+            // Check if the subject is in the teacher's selected subjects
+            bool canEdit = selectedSubjects.contains(subject.name);
+
             return Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -187,39 +207,41 @@ class _StudentSubjectsState extends State<StudentSubjects> {
                         color: Colors.blueAccent,
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(Icons.edit, color: Colors.blueAccent),
-                      onPressed: () async {
-                        String? newGrade = await showDialog<String>(
-                          context: context,
-                          builder: (context) {
-                            TextEditingController gradeController = TextEditingController(text: subject.grade);
-                            return AlertDialog(
-                              title: Text('Edit Grade for ${subject.name} in %'),
-                              content: TextField(
-                                controller: gradeController,
-                                decoration: InputDecoration(labelText: 'New Grade (%)'),
-                                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: Text('Cancel'),
+                    if (canEdit) // Only show the edit button if the teacher selected the subject
+                      IconButton(
+                        icon: Icon(Icons.edit, color: Colors.blueAccent),
+                        onPressed: () async {
+                          String? newGrade = await showDialog<String>(
+                            context: context,
+                            builder: (context) {
+                              TextEditingController gradeController =
+                              TextEditingController(text: subject.grade);
+                              return AlertDialog(
+                                title: Text('Edit Grade for ${subject.name} in %'),
+                                content: TextField(
+                                  controller: gradeController,
+                                  decoration: InputDecoration(labelText: 'New Grade (%)'),
+                                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                 ),
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(gradeController.text),
-                                  child: Text('Save'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                        if (newGrade != null && newGrade.isNotEmpty) {
-                          _updateSubjectGrade(subject, newGrade);
-                        }
-                      },
-                    ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(),
+                                    child: Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(gradeController.text),
+                                    child: Text('Save'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                          if (newGrade != null && newGrade.isNotEmpty) {
+                            _updateSubjectGrade(subject, newGrade);
+                          }
+                        },
+                      ),
                   ],
                 ),
                 tileColor: Colors.white,

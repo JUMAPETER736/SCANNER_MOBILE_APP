@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:scanna/Main_Screen/StudentSubjects.dart';
+import 'package:scanna/Students_Information/StudentSubjects.dart';
 
 class StudentNameList extends StatelessWidget {
   final User? loggedInUser;
@@ -59,12 +59,12 @@ class StudentNameList extends StatelessWidget {
         // Handle the case where teacherClass might be a list or a string
         var teacherData = teacherSnapshot.data!.data() as Map<String, dynamic>;
         var classes = teacherData['classes'] as List<dynamic>? ?? [];
-        var teacherClass = classes.isNotEmpty ? classes[0] : 'N/A'; // Use the first class if available
+        var teacherClass = classes.isNotEmpty ? classes[0] : 'N/A';
 
         return Scaffold(
           appBar: AppBar(
             title: Text(
-              ' $teacherClass STUDENTS', // Title reflects the teacher's class
+              ' $teacherClass STUDENTS',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             centerTitle: true,
@@ -82,9 +82,9 @@ class StudentNameList extends StatelessWidget {
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('Students')
-                  .doc(teacherClass) // Use teacherClass as document ID
+                  .doc(teacherClass)
                   .collection('StudentDetails')
-                  .orderBy('lastName', descending: false) // Sorting by last name in ascending order
+                  .orderBy('lastName', descending: false)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -101,7 +101,7 @@ class StudentNameList extends StatelessWidget {
                     var student = snapshot.data!.docs[index];
                     var firstName = student['firstName'] ?? 'N/A';
                     var lastName = student['lastName'] ?? 'N/A';
-                    var studentClass = student['studentClass'] ?? 'N/A'; // Retrieve class
+                    var studentClass = student['studentClass'] ?? 'N/A';
 
                     return Container(
                       width: double.infinity,

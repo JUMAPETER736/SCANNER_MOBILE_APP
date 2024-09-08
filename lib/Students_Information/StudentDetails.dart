@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barcode_widget/barcode_widget.dart';
-import 'package:scanna/Main_Screen/ScannedStudentDetails.dart';
+import 'package:scanna/Students_Information/ScannedStudentDetails.dart';
 
 
 
@@ -67,10 +67,10 @@ class _StudentDetailsState extends State<StudentDetails> {
 
       try {
         await _firestore
-            .collection('Students') // Collection for all student details
-            .doc(studentClass) // Document for the selected class
-            .collection('StudentDetails') // Subcollection for student details
-            .doc(studentID) // Document for the specific student
+            .collection('Students')
+            .doc(studentClass)
+            .collection('StudentDetails')
+            .doc(studentID)
             .set({
           ...studentDetails,
           'timestamp': FieldValue.serverTimestamp(),
