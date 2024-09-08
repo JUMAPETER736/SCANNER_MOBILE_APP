@@ -282,7 +282,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Grade: ${subject.grade}%',
+                      'Grade: ${subject.grade == '0' ? '_' : subject.grade}%',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -293,42 +293,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
                       IconButton(
                         icon: Icon(Icons.edit, color: Colors.blueAccent),
                         onPressed: () async {
-                          String? newGrade = await showDialog<String>(
-                            context: context,
-                            builder: (context) {
-                              TextEditingController gradeController =
-                              TextEditingController(text: subject.grade);
-                              return AlertDialog(
-                                title: Text('Edit Grade for ${subject.name} in %'),
-                                content: TextField(
-                                  controller: gradeController,
-                                  decoration: InputDecoration(
-                                    hintText: 'Enter new grade',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                    LengthLimitingTextInputFormatter(3),
-                                  ],
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                    child: Text('Cancel'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context).pop(gradeController.text);
-                                    },
-                                    child: Text('Save'),
-                                  ),
-                                ],
-                              );
-                            },
-                          );
+                          String? newGrade = await _showGradeDialog(subject.grade);
                           if (newGrade != null) {
                             _updateSubjectGrade(subject, newGrade);
                           }
@@ -341,7 +306,43 @@ class _StudentSubjectsState extends State<StudentSubjects> {
           },
         ),
       ),
+    );
+  }
 
+  Future<String?> _showGradeDialog(String currentGrade) async {
+    TextEditingController gradeController = TextEditingController();
+    gradeController.text = currentGrade == '_' ? '' : currentGrade;
+
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Enter Grade'),
+          content: TextField(
+            controller: gradeController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              hintText: 'Enter grade',
+              suffixText: '%',
+            ),
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(null); // Cancel
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(gradeController.text.trim()); // Save
+              },
+              child: Text('Save'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -350,10 +351,7 @@ class Subject {
   final String name;
   final String grade;
 
-  Subject({
-    required this.name,
-    this.grade = '0',
-  });
+  Subject({required this.name, this.grade = '_'});
 
   Subject copyWith({String? name, String? grade}) {
     return Subject(
@@ -372,7 +370,7 @@ class Subject {
   factory Subject.fromMap(Map<String, dynamic> map) {
     return Subject(
       name: map['name'] ?? '',
-      grade: map['grade'] ?? '0',
+      grade: map['grade'] ?? '_',
     );
   }
 }
