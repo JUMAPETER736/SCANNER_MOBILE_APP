@@ -22,6 +22,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
   List<Subject> _subjects = [];
   List<String> selectedSubjects = []; // Holds the teacher's selected subjects
   bool isSaved = false;
+  String searchQuery = ''; // For filtering subjects
 
   @override
   void initState() {
@@ -132,9 +133,10 @@ class _StudentSubjectsState extends State<StudentSubjects> {
       });
 
       setState(() {
-        _subjects = _subjects.map((sub) => sub.name == subject.name
-            ? subject.copyWith(grade: newGrade)
-            : sub).toList();
+        _subjects = _subjects
+            .map((sub) =>
+        sub.name == subject.name ? subject.copyWith(grade: newGrade) : sub)
+            .toList();
       });
     } catch (e) {
       print(e);
@@ -159,14 +161,75 @@ class _StudentSubjectsState extends State<StudentSubjects> {
     }
   }
 
+  void _showSearchDialog() async {
+    TextEditingController searchController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Search Subjects'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: searchController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Enter subject name',
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    searchQuery = value;
+                  });
+                },
+              ),
+              SizedBox(height: 10),
+              if (searchQuery.isNotEmpty &&
+                  _subjects
+                      .where((subject) => subject.name
+                      .toLowerCase()
+                      .contains(searchQuery.toLowerCase()))
+                      .isEmpty)
+                Text(
+                  'Sorry, no subject found',
+                  style: TextStyle(color: Colors.red),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    List<Subject> filteredSubjects = _subjects
+        .where((subject) =>
+        subject.name.toLowerCase().contains(searchQuery.toLowerCase()))
+        .toList();
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Subjects for ${widget.studentName}',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Subjects for ${widget.studentName}',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: _showSearchDialog,
+          ),
+        ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -179,12 +242,14 @@ class _StudentSubjectsState extends State<StudentSubjects> {
         padding: const EdgeInsets.all(16.0),
         child: _subjects.isEmpty
             ? Center(child: CircularProgressIndicator())
+            : filteredSubjects.isEmpty
+            ? Center(child: Text('Subject NOT Found'))
             : ListView.separated(
-          itemCount: _subjects.length,
+          itemCount: filteredSubjects.length,
           separatorBuilder: (context, index) =>
               Divider(color: Colors.blueAccent, thickness: 1.5),
           itemBuilder: (context, index) {
-            var subject = _subjects[index];
+            var subject = filteredSubjects[index];
 
             // Check if the subject is in the teacher's selected subjects
             bool canEdit = selectedSubjects.contains(subject.name);
@@ -206,7 +271,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
               child: ListTile(
                 contentPadding: EdgeInsets.all(16),
                 title: Text(
-                  subject.name,
+                  '${index + 1}. ${subject.name}', // Show numbering
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -232,56 +297,51 @@ class _StudentSubjectsState extends State<StudentSubjects> {
                             context: context,
                             builder: (context) {
                               TextEditingController gradeController =
-                              TextEditingController(
-                                  text: subject.grade);
+                              TextEditingController(text: subject.grade);
                               return AlertDialog(
-                                title: Text(
-                                    'Edit Grade for ${subject.name} in %'),
+                                title: Text('Edit Grade for ${subject.name} in %'),
                                 content: TextField(
                                   controller: gradeController,
                                   decoration: InputDecoration(
-                                      labelText: 'New Grade (%)'),
-                                  keyboardType:
-                                  TextInputType.numberWithOptions(
-                                      decimal: true),
+                                    hintText: 'Enter new grade',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  keyboardType: TextInputType.number,
                                   inputFormatters: [
-                                    FilteringTextInputFormatter
-                                        .digitsOnly
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(3),
                                   ],
                                 ),
                                 actions: [
                                   TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(),
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
                                     child: Text('Cancel'),
                                   ),
                                   TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(context)
-                                            .pop(gradeController.text),
+                                    onPressed: () {
+                                      Navigator.of(context).pop(gradeController.text);
+                                    },
                                     child: Text('Save'),
                                   ),
                                 ],
                               );
                             },
                           );
-                          if (newGrade != null && newGrade.isNotEmpty) {
+                          if (newGrade != null) {
                             _updateSubjectGrade(subject, newGrade);
                           }
                         },
                       ),
                   ],
                 ),
-                tileColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                leading: Icon(Icons.book, color: Colors.blueAccent),
               ),
             );
           },
         ),
       ),
+
     );
   }
 }
@@ -290,7 +350,10 @@ class Subject {
   final String name;
   final String grade;
 
-  Subject({required this.name, this.grade = 'N/A'});
+  Subject({
+    required this.name,
+    this.grade = '0',
+  });
 
   Subject copyWith({String? name, String? grade}) {
     return Subject(
@@ -306,10 +369,10 @@ class Subject {
     };
   }
 
-  static Subject fromMap(Map<String, dynamic> map) {
+  factory Subject.fromMap(Map<String, dynamic> map) {
     return Subject(
-      name: map['name'],
-      grade: map['grade'] ?? 'N/A',
+      name: map['name'] ?? '',
+      grade: map['grade'] ?? '0',
     );
   }
 }

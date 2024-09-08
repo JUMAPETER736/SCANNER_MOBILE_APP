@@ -3,14 +3,22 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/Students_Information/StudentSubjects.dart';
 
-class StudentNameList extends StatelessWidget {
+class StudentNameList extends StatefulWidget {
   final User? loggedInUser;
 
   const StudentNameList({Key? key, this.loggedInUser}) : super(key: key);
 
   @override
+  _StudentNameListState createState() => _StudentNameListState();
+}
+
+class _StudentNameListState extends State<StudentNameList> {
+  String _searchQuery = '';
+  TextEditingController _searchController = TextEditingController();
+
+  @override
   Widget build(BuildContext context) {
-    if (loggedInUser == null) {
+    if (widget.loggedInUser == null) {
       return Scaffold(
         appBar: AppBar(
           title: Text(
@@ -28,7 +36,7 @@ class StudentNameList extends StatelessWidget {
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance
           .collection('Teacher')
-          .doc(loggedInUser!.uid)
+          .doc(widget.loggedInUser!.uid)
           .get(),
       builder: (context, teacherSnapshot) {
         if (teacherSnapshot.connectionState == ConnectionState.waiting) {
@@ -69,6 +77,14 @@ class StudentNameList extends StatelessWidget {
             ),
             centerTitle: true,
             backgroundColor: Colors.blueAccent,
+            actions: [
+              IconButton(
+                icon: Icon(Icons.search),
+                onPressed: () {
+                  showSearchDialog(context);
+                },
+              ),
+            ],
           ),
           body: Container(
             decoration: BoxDecoration(
@@ -94,11 +110,22 @@ class StudentNameList extends StatelessWidget {
                   return Center(child: Text('No Students found.'));
                 }
 
+                var filteredDocs = snapshot.data!.docs.where((doc) {
+                  var firstName = doc['firstName'] ?? '';
+                  var lastName = doc['lastName'] ?? '';
+                  return firstName
+                      .toLowerCase()
+                      .contains(_searchQuery.toLowerCase()) ||
+                      lastName
+                          .toLowerCase()
+                          .contains(_searchQuery.toLowerCase());
+                }).toList();
+
                 return ListView.separated(
-                  itemCount: snapshot.data!.docs.length,
+                  itemCount: filteredDocs.length,
                   separatorBuilder: (context, index) => SizedBox(height: 10),
                   itemBuilder: (context, index) {
-                    var student = snapshot.data!.docs[index];
+                    var student = filteredDocs[index];
                     var firstName = student['firstName'] ?? 'N/A';
                     var lastName = student['lastName'] ?? 'N/A';
                     var studentClass = student['studentClass'] ?? 'N/A';
@@ -119,6 +146,13 @@ class StudentNameList extends StatelessWidget {
                       margin: const EdgeInsets.symmetric(vertical: 8.0),
                       child: ListTile(
                         contentPadding: EdgeInsets.all(16),
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.blueAccent,
+                          child: Text(
+                            '${index + 1}',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
                         title: Text(
                           '$lastName $firstName', // Display last name first
                           style: TextStyle(
@@ -136,8 +170,7 @@ class StudentNameList extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) => StudentSubjects(
-
-                                studentName: '$lastName $firstName', // Pass last name first
+                                studentName: '$lastName $firstName',
                                 studentClass: studentClass,
                               ),
                             ),
@@ -154,4 +187,45 @@ class StudentNameList extends StatelessWidget {
       },
     );
   }
+
+  // Method to show search dialog
+  void showSearchDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Search Student'),
+          content: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Enter first or last name',
+            ),
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                setState(() {
+                  _searchQuery = _searchController.text;
+                });
+              },
+              child: Text('Search'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 }
