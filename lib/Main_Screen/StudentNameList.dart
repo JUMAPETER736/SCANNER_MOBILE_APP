@@ -60,7 +60,7 @@ class StudentNameList extends StatelessWidget {
               return Center(child: CircularProgressIndicator());
             }
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return Center(child: Text('No students found.'));
+              return Center(child: Text('No Students found.'));
             }
 
             return ListView.separated(

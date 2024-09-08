@@ -29,20 +29,28 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _emptyEmailField = false;
   bool _emptyPasswordField = false;
   bool _passwordMismatch = false;
+  bool _passwordTooShort = false;
+
+
+  bool isValidEmail(String email) {
+    final regex = RegExp(
+        r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    return regex.hasMatch(email);
+  }
+
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Future<void> _register() async {
     setState(() {
       _wrongEmail = false;
-      _wrongPassword = false;
       _emptyNameField = false;
       _emptyEmailField = false;
       _emptyPasswordField = false;
       _passwordMismatch = false;
+      _passwordTooShort = false;
     });
 
-    // Input validations
     if (name == null || name!.isEmpty) {
       setState(() {
         _emptyNameField = true;
@@ -52,6 +60,10 @@ class _RegisterPageState extends State<RegisterPage> {
     if (email == null || email!.isEmpty) {
       setState(() {
         _emptyEmailField = true;
+      });
+    } else if (!isValidEmail(email!)) {
+      setState(() {
+        _wrongEmail = true;
       });
     }
 
@@ -67,15 +79,13 @@ class _RegisterPageState extends State<RegisterPage> {
       });
     }
 
-    if (_emptyNameField || _emptyEmailField || _emptyPasswordField || _passwordMismatch) {
-      return;
+    if (password != null && password!.length < 6) {
+      setState(() {
+        _passwordTooShort = true;
+      });
     }
 
-    if (!validator.isEmail(email!) || !validator.isLength(password!, 6)) {
-      setState(() {
-        if (!validator.isEmail(email!)) _wrongEmail = true;
-        if (!validator.isLength(password!, 6)) _wrongPassword = true;
-      });
+    if (_emptyNameField || _emptyEmailField || _emptyPasswordField || _passwordMismatch || _passwordTooShort) {
       return;
     }
 
@@ -90,10 +100,14 @@ class _RegisterPageState extends State<RegisterPage> {
         _showSuccessToast();
         Navigator.pushNamed(context, Done.id);
       }
+
     } on FirebaseAuthException catch (e) {
       setState(() {
         _showSpinner = false;
-        if (e.code == 'email-already-in-use') _wrongEmail = true;
+        if (e.code == 'email-already-in-use') {
+          _wrongEmail = true;
+          _emptyEmailField = false;
+        }
       });
     } finally {
       setState(() {
@@ -102,12 +116,15 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
+
   Future<void> _saveUserDetails(User user) async {
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+
+    await FirebaseFirestore.instance.collection('Teacher').doc(user.uid).set({
       'name': name ?? 'Unknown',
       'email': email ?? 'Unknown',
       'createdAt': Timestamp.now(),
       'profilePictureUrl': '',
+
     });
   }
 
@@ -210,23 +227,27 @@ class _RegisterPageState extends State<RegisterPage> {
                   showError: _emptyNameField,
                   errorText: 'Please fill in the Name field',
                 ),
-                SizedBox(height: 20.0),
+
                 _buildStyledTextField(
                   label: 'Email',
                   icon: Icons.email,
                   obscureText: false,
                   onChanged: (value) => email = value,
                   showError: _wrongEmail || _emptyEmailField,
-                  errorText: 'Please use a valid Email',
+                  errorText: _emptyEmailField ? 'Email cannot be empty' :
+                  _wrongEmail ? 'Email is already in use' :
+                  'Please use a valid Email',
                 ),
+
+
                 SizedBox(height: 20.0),
                 _buildStyledTextField(
                   label: 'Password',
                   icon: Icons.lock,
                   obscureText: true,
                   onChanged: (value) => password = value,
-                  showError: _wrongPassword || _emptyPasswordField,
-                  errorText: 'Please use a strong Password',
+                  showError: _wrongPassword || _emptyPasswordField || _passwordTooShort,
+                  errorText: _passwordTooShort ? 'Password is too short, Password should be atleast 6 Charecters' : 'Please use a strong Password',
                 ),
                 SizedBox(height: 20.0),
                 _buildStyledTextField(
@@ -271,7 +292,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                   ],
                 ),
-                SizedBox(height: 10.0),
+                SizedBox(height: 20.0),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -279,8 +300,10 @@ class _RegisterPageState extends State<RegisterPage> {
                       width: 150.0, // Adjust width as needed
                       child: ElevatedButton.icon(
                         onPressed: () => _signInWithSocialMedia('google'),
-                        icon: Image.asset('assets/images/google.png', width: 24),
-                        label: Text('Google', style: TextStyle(fontSize: 18.0)),
+                        icon: Image.asset(
+                            'assets/images/google.png', width: 24),
+                        label: Text('Google', style: TextStyle(
+                            fontSize: 18.0)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: Colors.blueAccent,
@@ -293,8 +316,10 @@ class _RegisterPageState extends State<RegisterPage> {
                       width: 150.0, // Adjust width as needed
                       child: ElevatedButton.icon(
                         onPressed: () => _signInWithSocialMedia('facebook'),
-                        icon: Image.asset('assets/images/facebook.png', width: 24),
-                        label: Text('Facebook', style: TextStyle(fontSize: 18.0)),
+                        icon: Image.asset(
+                            'assets/images/facebook.png', width: 24),
+                        label: Text('Facebook', style: TextStyle(
+                            fontSize: 18.0)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: Colors.blueAccent,
@@ -304,27 +329,18 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                   ],
                 ),
-                SizedBox(height: 10.0),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Already have an Account?',
-                        style: TextStyle(fontSize: 15.0),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, LoginPage.id);
-                        },
-                        child: Text(
-                          'Log In',
-                          style: TextStyle(fontSize: 15.0, color: Colors.blue, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
+                SizedBox(height: 20.0),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Already have an Account?'),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, LoginPage.id);
+                      },
+                      child: Text('Log In', style: TextStyle(color: Colors.blueAccent)),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -334,3 +350,4 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 }
+

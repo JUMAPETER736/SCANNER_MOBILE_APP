@@ -50,6 +50,7 @@ class _StudentDetailsState extends State<StudentDetails> {
     return id.toString();
   }
 
+
   void saveStudentDetails() async {
     if (_formKey.currentState!.validate()) {
       studentID = generateRandomStudentID();
@@ -65,11 +66,12 @@ class _StudentDetailsState extends State<StudentDetails> {
       };
 
       try {
+        // Save the student details under the selected class document
         await _firestore
-            .collection('Students')
-            .doc(loggedInUser?.uid)
-            .collection('StudentDetails')
-            .doc(studentID)
+            .collection('Students') // Collection for all student details
+            .doc(studentClass) // Document for the selected class
+            .collection('StudentDetails') // Subcollection for student details
+            .doc(studentID) // Document for the specific student
             .set({
           ...studentDetails,
           'timestamp': FieldValue.serverTimestamp(),
@@ -86,8 +88,6 @@ class _StudentDetailsState extends State<StudentDetails> {
           ),
         );
 
-
-
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -98,7 +98,6 @@ class _StudentDetailsState extends State<StudentDetails> {
       }
     }
   }
-
 
 
 

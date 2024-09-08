@@ -54,7 +54,7 @@ class _ClassSelectionState extends State<ClassSelection> {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       String userId = user.uid; // Get user's ID
-      DocumentSnapshot doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      DocumentSnapshot doc = await FirebaseFirestore.instance.collection('Teacher').doc(userId).get();
       if (doc.exists && doc['classes'] != null && doc['subjects'] != null) {
         setState(() {
           selectedClasses = List<String>.from(doc['classes']);
@@ -69,16 +69,16 @@ class _ClassSelectionState extends State<ClassSelection> {
   Future<void> _saveSelection() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      String userId = user.uid; // Use user ID for the document reference
+      String teacherId = user.uid; // Use user ID for the document reference
       try {
-        await FirebaseFirestore.instance.collection('users').doc(userId).set({
+        await FirebaseFirestore.instance.collection('Teacher').doc(teacherId).set({
           'classes': selectedClasses,
           'subjects': selectedSubjects,
         }, SetOptions(merge: true)); // Use merge to update existing data
         setState(() {
           isSaved = true; // Mark as saved
         });
-        _showToast("Selections saved successfully!"); // Show success message
+        _showToast("Selections saved Successfully!"); // Show success message
       } catch (e) {
         print('Error saving classes and subjects: $e');
         _showToast("Error saving selections."); // Show error message
@@ -150,8 +150,7 @@ class _ClassSelectionState extends State<ClassSelection> {
                                 style: TextStyle(color: Colors.black, fontSize: 18),
                               ),
                               value: selectedClasses.contains(className),
-                              onChanged: isSaved || selectedClasses.length >= 1 && selectedClasses.contains(className)
-                                  ? null // Disable if already saved or if it's already selected
+                              onChanged: isSaved ? null // Disable if already saved
                                   : (bool? value) {
                                 setState(() {
                                   if (value == true) {
@@ -216,8 +215,8 @@ class _ClassSelectionState extends State<ClassSelection> {
                                 style: TextStyle(color: Colors.black, fontSize: 18),
                               ),
                               value: selectedSubjects.contains(subject),
-                              onChanged: isSaved
-                                  ? null // Disable if already saved
+                              onChanged: isSaved // Disable if already saved
+                                  ? null
                                   : (bool? value) {
                                 setState(() {
                                   if (value == true) {
@@ -245,16 +244,14 @@ class _ClassSelectionState extends State<ClassSelection> {
                   Center(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue, // Set button color to blue
+                        backgroundColor: Colors.blueAccent,
                         padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                      onPressed: (selectedClasses.isNotEmpty && selectedSubjects.isNotEmpty)
-                          ? _saveSelection
-                          : null, // Disable button if no selection
-                      child: Text(
-                        'Save Selections',
-                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
+                      onPressed: _saveSelection,
+                      child: Text('Save Selections', style: TextStyle(fontSize: 18, color: Colors.white)),
                     ),
                   ),
               ],
@@ -265,25 +262,25 @@ class _ClassSelectionState extends State<ClassSelection> {
     );
   }
 
-  // Function to show toast messages
+  // Get available subjects based on the selected class
+  List<String> _getAvailableSubjects() {
+    if (selectedClasses.isEmpty) {
+      return [];
+    } else {
+      return classSubjects[selectedClasses[0]] ?? [];
+    }
+  }
+
+  // Show a toast message
   void _showToast(String message) {
     Fluttertoast.showToast(
       msg: message,
       toastLength: Toast.LENGTH_SHORT,
       gravity: ToastGravity.BOTTOM,
       timeInSecForIosWeb: 1,
-      backgroundColor: Colors.blueAccent,
+      backgroundColor: Colors.black54,
       textColor: Colors.white,
       fontSize: 16.0,
     );
-  }
-
-  // Get subjects based on selected class
-  List<String> _getAvailableSubjects() {
-    List<String> availableSubjects = [];
-    for (var className in selectedClasses) {
-      availableSubjects.addAll(classSubjects[className]!);
-    }
-    return availableSubjects;
   }
 }
