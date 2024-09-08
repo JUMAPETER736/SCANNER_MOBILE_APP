@@ -64,7 +64,7 @@ class StudentNameList extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: Text(
-              'Name of $teacherClass Students', // Title reflects the teacher's class
+              ' $teacherClass STUDENTS', // Title reflects the teacher's class
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             centerTitle: true,

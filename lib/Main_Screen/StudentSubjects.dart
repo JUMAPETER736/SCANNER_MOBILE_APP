@@ -47,7 +47,7 @@ class StudentSubjects extends StatelessWidget {
                   return Center(child: CircularProgressIndicator());
                 }
                 if (!snapshot.hasData || !snapshot.data!.exists) {
-                  return Center(child: Text('No subjects found for class $studentClass.'));
+                  return Center(child: Text('No subjects found for Class $studentClass.'));
                 }
 
                 var data = snapshot.data!.data() as Map<String, dynamic>;
@@ -107,7 +107,7 @@ class StudentSubjects extends StatelessWidget {
                     },
                   );
                 } else {
-                  return Center(child: Text('Subjects data is not in the expected format.'));
+                  return Center(child: Text('Subjects data is NOT in the expected format.'));
                 }
               },
             );
@@ -120,18 +120,38 @@ class StudentSubjects extends StatelessWidget {
   Future<void> _initializeDefaultSubjects(String className) async {
     final subjects = {
       'FORM 1': [
-        Subject(name: 'Mathematics'),
-        Subject(name: 'English'),
-        Subject(name: 'Science'),
-        Subject(name: 'Social Studies'),
-        Subject(name: 'Chichewa'),
+        Subject(name: 'AGRICULTURE'),
+        Subject(name: 'BIOLOGY'),
+        Subject(name: 'BIBLE KNOWLEDGE'),
+        Subject(name: 'CHEMISTRY'),
+        Subject(name: 'CHICHEWA'),
+        Subject(name: 'ENGLISH'),
+        Subject(name: 'LIFE SKILLS'),
+        Subject(name: 'MATHEMATICS'),
+        Subject(name: 'PHYSICS'),
+        Subject(name: 'SOCIAL STUDIES'),
       ],
       'FORM 2': [
-        Subject(name: 'Mathematics'),
-        Subject(name: 'English'),
-        Subject(name: 'Physics'),
-        Subject(name: 'Chemistry'),
-        Subject(name: 'Biology'),
+        Subject(name: 'AGRICULTURE'),
+        Subject(name: 'BIOLOGY'),
+        Subject(name: 'BIBLE KNOWLEDGE'),
+        Subject(name: 'CHEMISTRY'),
+        Subject(name: 'CHICHEWA'),
+        Subject(name: 'ENGLISH'),
+        Subject(name: 'LIFE SKILLS'),
+        Subject(name: 'MATHEMATICS'),
+        Subject(name: 'PHYSICS'),
+        Subject(name: 'SOCIAL STUDIES'),
+      ],
+      'FORM 3': [
+        Subject(name: 'BIOLOGY'),
+        Subject(name: 'ENGLISH'),
+        Subject(name: 'MATHEMATICS'),
+      ],
+      'FORM 4': [
+        Subject(name: 'BIOLOGY'),
+        Subject(name: 'ENGLISH'),
+        Subject(name: 'MATHEMATICS'),
       ],
     };
 
