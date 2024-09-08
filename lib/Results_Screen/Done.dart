@@ -7,8 +7,8 @@ import 'package:scanna/Main_Screen/StudentDetails.dart';
 import 'package:scanna/Main_Screen/Help.dart';
 import 'package:scanna/Main_Screen/StudentNameList.dart';
 import 'package:scanna/Main_Screen/QRCodeScan.dart';
+import 'package:scanna/Main_Screen/SchoolReports.dart'; // Import SchoolReports
 import 'package:scanna/Home_Screens/LoginPage.dart'; // Import LoginPage
-
 
 User? loggedInUser;
 
@@ -137,6 +137,21 @@ class _DoneState extends State<Done> {
                       icon: Icons.qr_code_scanner,
                       text: 'QR Scan',
                       color: Color.fromARGB(255, 59, 61, 60),
+                    ),
+                  ),
+                  // School Reports
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => SchoolReports()),
+                      );
+                    },
+                    child: _buildSquareCard(
+                      icon: Icons.school,
+                      text: 'School Reports',
+                      color: Colors.redAccent,
                     ),
                   ),
                   // List Students
