@@ -58,7 +58,7 @@ class _StudentDetailsState extends State<StudentDetails> {
       Map<String, String> studentDetails = {
         'firstName': _firstNameController.text.trim(),
         'lastName': _lastNameController.text.trim(),
-        'studentClass': studentClass!,
+        'studentClass': studentClass!, // Ensure this matches Firestore rules
         'studentAge': _ageController.text.trim(),
         'studentGender': studentGender!,
         'studentID': studentID!,
@@ -66,7 +66,6 @@ class _StudentDetailsState extends State<StudentDetails> {
       };
 
       try {
-        // Save the student details under the selected class document
         await _firestore
             .collection('Students') // Collection for all student details
             .doc(studentClass) // Document for the selected class
