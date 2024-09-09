@@ -32,42 +32,65 @@ class _StudentSubjectsState extends State<StudentSubjects> {
   }
 
   Future<void> _initializeDefaultSubjects() async {
+
     final defaultSubjects = {
       'FORM 1': [
         Subject(name: 'AGRICULTURE'),
-        Subject(name: 'BIOLOGY'),
         Subject(name: 'BIBLE KNOWLEDGE'),
+        Subject(name: 'BIOLOGY'),
         Subject(name: 'CHEMISTRY'),
         Subject(name: 'CHICHEWA'),
+        Subject(name: 'COMPUTER SCIENCE'),
         Subject(name: 'ENGLISH'),
         Subject(name: 'LIFE SKILLS'),
         Subject(name: 'MATHEMATICS'),
         Subject(name: 'PHYSICS'),
         Subject(name: 'SOCIAL STUDIES'),
       ],
+
       'FORM 2': [
         Subject(name: 'AGRICULTURE'),
-        Subject(name: 'BIOLOGY'),
         Subject(name: 'BIBLE KNOWLEDGE'),
+        Subject(name: 'BIOLOGY'),
         Subject(name: 'CHEMISTRY'),
         Subject(name: 'CHICHEWA'),
+        Subject(name: 'COMPUTER SCIENCE'),
         Subject(name: 'ENGLISH'),
         Subject(name: 'LIFE SKILLS'),
         Subject(name: 'MATHEMATICS'),
         Subject(name: 'PHYSICS'),
         Subject(name: 'SOCIAL STUDIES'),
       ],
+
       'FORM 3': [
+        Subject(name: 'AGRICULTURE'),
+        Subject(name: 'BIBLE KNOWLEDGE'),
         Subject(name: 'BIOLOGY'),
+        Subject(name: 'CHEMISTRY'),
+        Subject(name: 'CHICHEWA'),
+        Subject(name: 'COMPUTER SCIENCE'),
         Subject(name: 'ENGLISH'),
+        Subject(name: 'LIFE SKILLS'),
         Subject(name: 'MATHEMATICS'),
+        Subject(name: 'PHYSICS'),
+        Subject(name: 'SOCIAL STUDIES'),
       ],
+
       'FORM 4': [
+        Subject(name: 'AGRICULTURE'),
+        Subject(name: 'BIBLE KNOWLEDGE'),
         Subject(name: 'BIOLOGY'),
+        Subject(name: 'CHEMISTRY'),
+        Subject(name: 'CHICHEWA'),
+        Subject(name: 'COMPUTER SCIENCE'),
         Subject(name: 'ENGLISH'),
+        Subject(name: 'LIFE SKILLS'),
         Subject(name: 'MATHEMATICS'),
+        Subject(name: 'PHYSICS'),
+        Subject(name: 'SOCIAL STUDIES'),
       ],
     };
+
 
     final studentRef = _firestore
         .collection('Students')
@@ -76,11 +99,12 @@ class _StudentSubjectsState extends State<StudentSubjects> {
         .doc(widget.studentName);
 
     DocumentSnapshot docSnapshot = await studentRef.get();
+
     if (docSnapshot.exists) {
-      // If the student already exists, load the existing subjects
+
       _fetchSubjects();
     } else {
-      // If the student does not exist, create the student document with default subjects
+
       final subjectList = defaultSubjects[widget.studentClass] ?? [];
       await studentRef.set({
         'Subjects': subjectList.map((subject) => subject.toMap()).toList(),
@@ -175,7 +199,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
                 controller: searchController,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: 'Enter subject name',
+                  hintText: 'Enter Subject Name',
                 ),
                 onChanged: (value) {
                   setState(() {
@@ -191,8 +215,15 @@ class _StudentSubjectsState extends State<StudentSubjects> {
                       .contains(searchQuery.toLowerCase()))
                       .isEmpty)
                 Text(
-                  'Sorry, no subject found',
-                  style: TextStyle(color: Colors.red),
+
+                    'Sorry, NO Subject found',
+
+                    style: TextStyle(color: Colors.red,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+
+
+                    ),
                 ),
             ],
           ),
@@ -215,6 +246,11 @@ class _StudentSubjectsState extends State<StudentSubjects> {
         .where((subject) =>
         subject.name.toLowerCase().contains(searchQuery.toLowerCase()))
         .toList();
+
+    // Get the list of selected subjects for display
+    String selectedSubjectsText = selectedSubjects.isEmpty
+        ? 'No subjects selected'
+        : selectedSubjects.join(', ');
 
     return Scaffold(
       appBar: AppBar(
@@ -240,70 +276,100 @@ class _StudentSubjectsState extends State<StudentSubjects> {
           ),
         ),
         padding: const EdgeInsets.all(16.0),
-        child: _subjects.isEmpty
-            ? Center(child: CircularProgressIndicator())
-            : filteredSubjects.isEmpty
-            ? Center(child: Text('Subject NOT Found'))
-            : ListView.separated(
-          itemCount: filteredSubjects.length,
-          separatorBuilder: (context, index) =>
-              Divider(color: Colors.blueAccent, thickness: 1.5),
-          itemBuilder: (context, index) {
-            var subject = filteredSubjects[index];
-
-            // Check if the subject is in the teacher's selected subjects
-            bool canEdit = selectedSubjects.contains(subject.name);
-
-            return Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 4,
-                    offset: Offset(2, 2),
-                  ),
-                ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Add the text message here
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Text(
+                'You can only Edit for: $selectedSubjectsText',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
               ),
-              margin: const EdgeInsets.symmetric(vertical: 4.0),
-              child: ListTile(
-                contentPadding: EdgeInsets.all(16),
-                title: Text(
-                  '${index + 1}. ${subject.name}', // Show numbering
+            ),
+            // Display a loading indicator if subjects are being fetched
+            if (_subjects.isEmpty)
+              Center(child: CircularProgressIndicator())
+            else if (filteredSubjects.isEmpty)
+              Center(
+                child: Text(
+                  'Subject NOT Found',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blueAccent,
+                    color: Colors.red,
                   ),
                 ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Grade: ${subject.grade == '0' ? '_' : subject.grade}%',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
+              )
+            else
+              Expanded(
+                child: ListView.separated(
+                  itemCount: filteredSubjects.length,
+                  separatorBuilder: (context, index) =>
+                      Divider(color: Colors.blueAccent, thickness: 1.5),
+                  itemBuilder: (context, index) {
+                    var subject = filteredSubjects[index];
+
+                    // Check if the subject is in the teacher's selected subjects
+                    bool canEdit = selectedSubjects.contains(subject.name);
+
+                    return Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 4,
+                            offset: Offset(2, 2),
+                          ),
+                        ],
                       ),
-                    ),
-                    if (canEdit) // Only show the edit button if the teacher selected the subject
-                      IconButton(
-                        icon: Icon(Icons.edit, color: Colors.blueAccent),
-                        onPressed: () async {
-                          String? newGrade = await _showGradeDialog(subject.grade);
-                          if (newGrade != null) {
-                            _updateSubjectGrade(subject, newGrade);
-                          }
-                        },
+                      margin: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: ListTile(
+                        contentPadding: EdgeInsets.all(16),
+                        title: Text(
+                          '${index + 1}. ${subject.name}', // Show numbering
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent,
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Grade: ${subject.grade == '0' ? '_' : subject.grade}%',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blueAccent,
+                              ),
+                            ),
+                            if (canEdit) // Only show the edit button if the teacher selected the subject
+                              IconButton(
+                                icon: Icon(Icons.edit, color: Colors.blueAccent),
+                                onPressed: () async {
+                                  String? newGrade = await _showGradeDialog(subject.grade);
+                                  if (newGrade != null) {
+                                    _updateSubjectGrade(subject, newGrade);
+                                  }
+                                },
+                              ),
+                          ],
+                        ),
                       ),
-                  ],
+                    );
+                  },
                 ),
               ),
-            );
-          },
+          ],
         ),
       ),
     );
@@ -322,7 +388,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
             controller: gradeController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              hintText: 'Enter grade',
+              hintText: 'Enter Grade',
               suffixText: '%',
             ),
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],

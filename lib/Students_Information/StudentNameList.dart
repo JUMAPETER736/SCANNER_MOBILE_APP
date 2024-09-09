@@ -103,7 +103,15 @@ class _StudentNameListState extends State<StudentNameList> {
               return Center(child: CircularProgressIndicator());
             }
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return Center(child: Text('No Students found.'));
+              return Center(
+                child: Text(
+                  'No Student found.',
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red),
+                ),
+              );
             }
 
             var filteredDocs = snapshot.data!.docs.where((doc) {
@@ -112,10 +120,22 @@ class _StudentNameListState extends State<StudentNameList> {
               return firstName
                   .toLowerCase()
                   .contains(_searchQuery.toLowerCase()) ||
-                  lastName
-                      .toLowerCase()
-                      .contains(_searchQuery.toLowerCase());
+                  lastName.toLowerCase().contains(_searchQuery.toLowerCase());
             }).toList();
+
+            // Show "Student NOT found" if the filtered list is empty
+            if (filteredDocs.isEmpty) {
+              return Center(
+                child: Text(
+                  'Student NOT found',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+              );
+            }
 
             return ListView.separated(
               itemCount: filteredDocs.length,
@@ -180,7 +200,7 @@ class _StudentNameListState extends State<StudentNameList> {
         )
             : Center(
           child: Text(
-            'Please select Class and Subject First',
+            'Please select Class & Subject First',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -211,6 +231,14 @@ class _StudentNameListState extends State<StudentNameList> {
             },
           ),
           actions: [
+
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
@@ -220,12 +248,7 @@ class _StudentNameListState extends State<StudentNameList> {
               },
               child: Text('Search'),
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
-            ),
+
           ],
         );
       },

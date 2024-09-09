@@ -20,8 +20,13 @@ class _SchoolReportsState extends State<SchoolReports> {
 
   void _fetchStudents() async {
     try {
-      // Replace 'FORM 1' with the actual class if needed
-      final snapshot = await _firestore.collection('Students').doc('FORM 1').collection('StudentDetails').get();
+
+      final snapshot = await _firestore
+
+          .collection('Students')
+          .doc('FORM 1').collection('StudentDetails')
+          .get();
+
       final List<Map<String, dynamic>> students = snapshot.docs.map((doc) => {
         'name': doc['name'],
         'position': doc['position']
@@ -39,8 +44,12 @@ class _SchoolReportsState extends State<SchoolReports> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('School Reports'),
-        backgroundColor: Colors.teal,
+        title: Text(
+
+            'School Reports',
+             style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.blueAccent,
       ),
       body: ListView.builder(
         itemCount: _students.length,
