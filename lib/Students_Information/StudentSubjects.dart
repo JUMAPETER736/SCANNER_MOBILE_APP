@@ -169,7 +169,6 @@ class _StudentSubjectsState extends State<StudentSubjects> {
       print(e);
     }
   }
-
   Future<void> _saveToSchoolReports() async {
     try {
       final studentRef = _firestore
@@ -190,10 +189,16 @@ class _StudentSubjectsState extends State<StudentSubjects> {
             0,
                 (previousValue, subject) {
               final gradeStr = (subject as Map<String, dynamic>)['grade'] ?? '0';
-              final grade = int.tryParse(gradeStr as String) ?? 0;
+              final grade = int.tryParse(gradeStr) ?? 0;
               return previousValue + grade;
             },
           );
+
+          // Calculate teacherTotalMarks based on the number of grades that are not "N/A"
+          int teacherTotalMarks = subjects.where((subject) {
+            final gradeStr = (subject as Map<String, dynamic>)['grade'] ?? 'N/A';
+            return gradeStr != 'N/A';
+          }).length * 100;
 
           await _firestore
               .collection('SchoolReports')
@@ -205,18 +210,20 @@ class _StudentSubjectsState extends State<StudentSubjects> {
             'lastName': widget.studentName.split(' ').last,
             'grades': subjects,
             'totalMarks': totalMarks,
-            'studentId': FirebaseAuth.instance.currentUser?.uid, // Ensure studentId is set
+            'teacherTotalMarks': teacherTotalMarks, // Updated calculation
+            'studentId': FirebaseAuth.instance.currentUser?.uid,
           }, SetOptions(merge: true));
         } else {
-          print('Subjects field is null or not a list');
+          print('Subjects field is null or NOT a list');
         }
       } else {
-        print('Student document does not exist');
+        print('Student document does NOT exist');
       }
     } catch (e) {
-      print('Error fetching student data: $e');
+      print('Error fetching Student DATA: $e');
     }
   }
+
 
 
   void _checkSavedSelections() async {
@@ -336,7 +343,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
             Padding(
               padding: const EdgeInsets.only(bottom: 16.0),
               child: Text(
-                'You can only Edit for: $selectedSubjectsText',
+                'You can only Edit Grade for: $selectedSubjectsText',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -461,7 +468,14 @@ class _StudentSubjectsState extends State<StudentSubjects> {
               onPressed: () {
                 Navigator.of(context).pop(null); // Cancel
               },
-              child: Text('Cancel'),
+              child: Text(
+
+                          'Cancel',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                              color: Colors.red
+                          ),
+              ),
             ),
             TextButton(
               onPressed: () {
@@ -471,13 +485,22 @@ class _StudentSubjectsState extends State<StudentSubjects> {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Invalid Grade. Enter a number between 0 and 100.'),
+                      content: Text('Invalid Grade. Enter a number from 0 up to 100.'),
                       backgroundColor: Colors.red,
                     ),
                   );
                 }
               },
-              child: Text('Save'),
+
+              child: Text(
+
+                          'Save',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent,
+
+                          )
+              ),
             ),
           ],
         );

@@ -7,8 +7,8 @@ import 'package:scanna/Students_Information/StudentDetails.dart';
 import 'package:scanna/Main_Screen/Help.dart';
 import 'package:scanna/Students_Information/StudentNameList.dart';
 import 'package:scanna/Main_Screen/QRCodeScan.dart';
-import 'package:scanna/Main_Screen/SchoolReports.dart'; // Import SchoolReports
-import 'package:scanna/Home_Screens/LoginPage.dart'; // Import LoginPage
+import 'package:scanna/Main_Screen/SchoolReports.dart';
+import 'package:scanna/Home_Screens/LoginPage.dart';
 
 User? loggedInUser;
 

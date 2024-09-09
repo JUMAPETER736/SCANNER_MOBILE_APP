@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:fluttertoast/fluttertoast.dart'; // Import the toast package
+import 'package:fluttertoast/fluttertoast.dart';
 
 class ClassSelection extends StatefulWidget {
   @override
@@ -9,19 +9,19 @@ class ClassSelection extends StatefulWidget {
 }
 
 class _ClassSelectionState extends State<ClassSelection> {
-  List<String> selectedClasses = []; // List to hold selected classes
-  List<String> selectedSubjects = []; // List to hold selected subjects
-  bool isSaved = false; // Track if the selection is saved
+  List<String> selectedClasses = [];
+  List<String> selectedSubjects = [];
+  bool isSaved = false;
 
   // Define the classSubjects in Firestore
   final List<String> classes = ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'];
 
   final Map<String, List<String>> classSubjects = {
 
-    'FORM 1':  ['AGRICULTURE', 'BIOLOGY', 'BIBLE KNOWLEDGE', 'CHEMISTRY', 'CHICHEWA', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
-    'FORM 2':  ['AGRICULTURE', 'BIOLOGY', 'BIBLE KNOWLEDGE', 'CHEMISTRY', 'CHICHEWA', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
-    'FORM 3':  ['AGRICULTURE', 'BIOLOGY', 'BIBLE KNOWLEDGE', 'CHEMISTRY', 'CHICHEWA', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
-    'FORM 4':  ['AGRICULTURE', 'BIOLOGY', 'BIBLE KNOWLEDGE', 'CHEMISTRY', 'CHICHEWA', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES']
+    'FORM 1':  ['AGRICULTURE', 'BIOLOGY', 'BIBLE KNOWLEDGE', 'COMPUTER SCIENCE', 'CHEMISTRY', 'CHICHEWA', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
+    'FORM 2':  ['AGRICULTURE', 'BIOLOGY', 'BIBLE KNOWLEDGE', 'COMPUTER SCIENCE', 'CHEMISTRY', 'CHICHEWA', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
+    'FORM 3':  ['AGRICULTURE', 'BIOLOGY', 'BIBLE KNOWLEDGE', 'COMPUTER SCIENCE', 'CHEMISTRY', 'CHICHEWA', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
+    'FORM 4':  ['AGRICULTURE', 'BIOLOGY', 'BIBLE KNOWLEDGE', 'COMPUTER SCIENCE', 'CHEMISTRY', 'CHICHEWA', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES']
 
 
   };

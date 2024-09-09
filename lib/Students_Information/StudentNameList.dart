@@ -236,7 +236,16 @@ class _StudentNameListState extends State<StudentNameList> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Cancel'),
+              child: Text(
+
+                          'Cancel',
+                          style: TextStyle(
+
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+
+              ),
             ),
 
             TextButton(
@@ -246,7 +255,15 @@ class _StudentNameListState extends State<StudentNameList> {
                   _searchQuery = _searchController.text;
                 });
               },
-              child: Text('Search'),
+              child: Text(
+
+                          'Search',
+                          style: TextStyle(
+
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent,
+                          ),
+              ),
             ),
 
           ],
