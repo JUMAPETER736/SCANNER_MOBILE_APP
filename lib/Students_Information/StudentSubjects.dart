@@ -101,10 +101,8 @@ class _StudentSubjectsState extends State<StudentSubjects> {
     DocumentSnapshot docSnapshot = await studentRef.get();
 
     if (docSnapshot.exists) {
-
       _fetchSubjects();
     } else {
-
       final subjectList = defaultSubjects[widget.studentClass] ?? [];
       await studentRef.set({
         'Subjects': subjectList.map((subject) => subject.toMap()).toList(),
@@ -140,7 +138,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
     }
   }
 
-  void _updateSubjectGrade(Subject subject, String newGrade) async {
+  Future<void> _updateSubjectGrade(Subject subject, String newGrade) async {
     try {
       final studentRef = _firestore
           .collection('Students')
@@ -148,6 +146,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
           .collection('StudentDetails')
           .doc(widget.studentName);
 
+      // Update the subject's grade
       await studentRef.update({
         'Subjects': _subjects
             .map((sub) => sub.name == subject.name
@@ -156,16 +155,69 @@ class _StudentSubjectsState extends State<StudentSubjects> {
             .toList(),
       });
 
+      // Update local state
       setState(() {
         _subjects = _subjects
             .map((sub) =>
         sub.name == subject.name ? subject.copyWith(grade: newGrade) : sub)
             .toList();
       });
+
+      // Save to SchoolReports
+      await _saveToSchoolReports();
     } catch (e) {
       print(e);
     }
   }
+
+  Future<void> _saveToSchoolReports() async {
+    try {
+      final studentRef = _firestore
+          .collection('Students')
+          .doc(widget.studentClass)
+          .collection('StudentDetails')
+          .doc(widget.studentName);
+
+      final studentSnapshot = await studentRef.get();
+
+      if (studentSnapshot.exists) {
+        var data = studentSnapshot.data() as Map<String, dynamic>?;
+        var subjects = data?['Subjects'] as List<dynamic>?;
+
+        if (subjects != null) {
+          // Calculate total marks for the student
+          int totalMarks = subjects.fold<int>(
+            0,
+                (previousValue, subject) {
+              final gradeStr = (subject as Map<String, dynamic>)['grade'] ?? '0';
+              final grade = int.tryParse(gradeStr as String) ?? 0;
+              return previousValue + grade;
+            },
+          );
+
+          await _firestore
+              .collection('SchoolReports')
+              .doc(widget.studentClass)
+              .collection('StudentReports')
+              .doc(widget.studentName)
+              .set({
+            'firstName': widget.studentName.split(' ').first,
+            'lastName': widget.studentName.split(' ').last,
+            'grades': subjects,
+            'totalMarks': totalMarks,
+            'studentId': FirebaseAuth.instance.currentUser?.uid, // Ensure studentId is set
+          }, SetOptions(merge: true));
+        } else {
+          print('Subjects field is null or not a list');
+        }
+      } else {
+        print('Student document does not exist');
+      }
+    } catch (e) {
+      print('Error fetching student data: $e');
+    }
+  }
+
 
   void _checkSavedSelections() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -239,6 +291,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
       },
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -384,14 +437,24 @@ class _StudentSubjectsState extends State<StudentSubjects> {
       builder: (context) {
         return AlertDialog(
           title: Text('Enter Grade'),
-          content: TextField(
-            controller: gradeController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              hintText: 'Enter Grade',
-              suffixText: '%',
-            ),
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: gradeController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  hintText: 'Enter Grade',
+                  suffixText: '%',
+                ),
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              ),
+              if (gradeController.text.isNotEmpty && !_isValidGrade(gradeController.text))
+                Padding(
+                  padding: const EdgeInsets.only(top: 10.0),
+
+                ),
+            ],
           ),
           actions: [
             TextButton(
@@ -402,7 +465,17 @@ class _StudentSubjectsState extends State<StudentSubjects> {
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(gradeController.text.trim()); // Save
+                final grade = gradeController.text.trim();
+                if (_isValidGrade(grade)) {
+                  Navigator.of(context).pop(grade); // Save
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Invalid Grade. Enter a number between 0 and 100.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               child: Text('Save'),
             ),
@@ -411,6 +484,14 @@ class _StudentSubjectsState extends State<StudentSubjects> {
       },
     );
   }
+
+  bool _isValidGrade(String grade) {
+    final int? value = int.tryParse(grade);
+    return value != null && value >= 0 && value <= 100;
+  }
+
+
+
 }
 
 class Subject {

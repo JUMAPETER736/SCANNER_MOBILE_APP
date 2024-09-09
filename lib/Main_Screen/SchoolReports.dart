@@ -19,7 +19,7 @@ class _SchoolReportsState extends State<SchoolReports> {
     _fetchData();
   }
 
-  void _fetchData() async {
+  Future<void> _fetchData() async {
     User? user = _auth.currentUser;
 
     if (user == null) {
@@ -28,11 +28,31 @@ class _SchoolReportsState extends State<SchoolReports> {
     }
 
     try {
-      // Fetch students' data
+      // Fetch class information for the current teacher
+      final teacherDoc = await _firestore
+          .collection('Teacher')
+          .doc(user.uid) // Assuming user ID is the document ID
+          .get();
+
+      if (!teacherDoc.exists) {
+        print('Teacher document not found');
+        return;
+      }
+
+      final teacherData = teacherDoc.data();
+      final teacherClasses = teacherData?['classes'] as List<dynamic>?;
+
+      if (teacherClasses == null || teacherClasses.isEmpty) {
+        print('No classes found for teacher');
+        return;
+      }
+
+      // Fetch student reports for the first class
+      final classId = teacherClasses.first; // Get the first class or replace with specific class
       final studentSnapshot = await _firestore
-          .collection('Students')
-          .doc('FORM 1') // Replace with actual class name
-          .collection('StudentDetails')
+          .collection('SchoolReports') // Root collection
+          .doc(classId) // Document for the class
+          .collection('StudentReports') // Subcollection for student reports
           .get();
 
       if (studentSnapshot.docs.isEmpty) {
@@ -65,19 +85,19 @@ class _SchoolReportsState extends State<SchoolReports> {
       students.sort((a, b) => b['totalMarks'].compareTo(a['totalMarks']));
 
       // Fetch teacher's total marks
-      final teacherSnapshot = await _firestore
+      final teacherDetailsSnapshot = await _firestore
           .collection('Teacher')
-          .doc('TeacherID') // Replace with actual teacher document ID
+          .doc(user.uid)
           .collection('TeacherDetails')
-          .doc('TeacherDocumentID') // Replace with actual teacher document ID
+          .doc('TeacherDocumentID') // Replace with the actual teacher document ID
           .get();
 
-      if (!teacherSnapshot.exists) {
+      if (!teacherDetailsSnapshot.exists) {
         print('Teacher document not found');
         return;
       }
 
-      final teacherMarks = teacherSnapshot.data()?['totalMarks'] ?? 0;
+      final teacherMarks = teacherDetailsSnapshot.data()?['totalMarks'] ?? 0;
 
       setState(() {
         _students = students;
