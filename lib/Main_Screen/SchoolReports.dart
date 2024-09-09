@@ -17,7 +17,7 @@ class _SchoolReportsState extends State<SchoolReports> {
     try {
       QuerySnapshot querySnapshot = await _firestore
           .collection('SchoolReports')
-          .orderBy('studentTotalMarks', descending: true) // Order by student marks
+          .orderBy('studentTotalMarks', descending: true) 
           .get();
 
       // Map the fetched data into a list of maps
