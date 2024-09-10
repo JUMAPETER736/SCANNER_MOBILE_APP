@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:scanna/Students_Information/StudentSubjectGrade.dart';
 
-class SchoolReports extends StatefulWidget {
+class StudentSubjectGrade extends StatefulWidget {
+  final String studentId;
+  final String firstName;
+  final String lastName;
+
+  StudentSubjectGrade({
+    required this.studentId,
+    required this.firstName,
+    required this.lastName,
+  });
+
   @override
-  _SchoolReportsState createState() => _SchoolReportsState();
+  _StudentSubjectGradeState createState() => _StudentSubjectGradeState();
 }
 
-class _SchoolReportsState extends State<SchoolReports> {
+class _StudentSubjectGradeState extends State<StudentSubjectGrade> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   String? _userClass;
@@ -39,42 +48,41 @@ class _SchoolReportsState extends State<SchoolReports> {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchSchoolReports() async {
+  Future<List<Map<String, dynamic>>> _fetchStudentSubjectGrades() async {
     if (_userClass == null) {
       return [];
     }
 
     try {
-      List<Map<String, dynamic>> allReports = [];
+      List<Map<String, dynamic>> allGrades = [];
 
-      QuerySnapshot reportQuerySnapshot = await _firestore
+      QuerySnapshot gradeQuerySnapshot = await _firestore
           .collection('SchoolReports')
           .doc(_userClass!)
           .collection('StudentReports')
           .get();
 
-      allReports = reportQuerySnapshot.docs.map((doc) {
+      allGrades = gradeQuerySnapshot.docs.map((doc) {
         return {
-          'studentId': doc.id, // Assuming the document ID is the studentId
+          'studentId': doc.id,
           'firstName': doc['firstName'],
           'lastName': doc['lastName'],
+          'grades': doc['grades'] ?? '', // Ensure 'name' is not null
           'totalMarks': doc['totalMarks'] ?? 0,
           'teacherTotalMarks': doc['teacherTotalMarks'] ?? 0,
+          'grades': doc['grades'] ?? [], // Ensure 'grades' is a list
         };
       }).toList();
 
-      if (allReports.isEmpty) {
-        print('No documents found for class $_userClass');
+      if (allGrades.isEmpty) {
+        print('No documents found for student ${widget.studentId}');
       } else {
-        print('Documents found: ${allReports.length}');
+        print('Documents found: ${allGrades.length}');
       }
 
-      // Sort the reports by totalMarks in descending order
-      allReports.sort((a, b) => (b['totalMarks'] as int).compareTo(a['totalMarks'] as int));
-
-      return allReports;
+      return allGrades;
     } catch (e) {
-      print('Error fetching School Reports: $e');
+      print('Error fetching Student Subject Grades: $e');
       return [];
     }
   }
@@ -85,7 +93,7 @@ class _SchoolReportsState extends State<SchoolReports> {
       appBar: AppBar(
         title: Center(
           child: Text(
-            _userClass != null ? '$_userClass SCHOOL REPORTS' : 'Loading...',
+            '${widget.lastName} ${widget.firstName} Subject Grade',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20,
@@ -104,7 +112,7 @@ class _SchoolReportsState extends State<SchoolReports> {
         ),
         padding: const EdgeInsets.all(16.0),
         child: FutureBuilder<List<Map<String, dynamic>>>(
-          future: _fetchSchoolReports(),
+          future: _fetchStudentSubjectGrades(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator());
@@ -118,7 +126,7 @@ class _SchoolReportsState extends State<SchoolReports> {
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return Center(
                 child: Text(
-                  'No School Reports found',
+                  'No Subjects & Grades found',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -128,13 +136,13 @@ class _SchoolReportsState extends State<SchoolReports> {
               );
             }
 
-            List<Map<String, dynamic>> reports = snapshot.data!;
+            List<Map<String, dynamic>> grades = snapshot.data!;
 
             return ListView.separated(
-              itemCount: reports.length,
+              itemCount: grades.length,
               separatorBuilder: (context, index) => SizedBox(height: 10),
               itemBuilder: (context, index) {
-                var report = reports[index];
+                var grade = grades[index];
 
                 return Container(
                   width: double.infinity,
@@ -160,40 +168,20 @@ class _SchoolReportsState extends State<SchoolReports> {
                       ),
                     ),
                     title: Text(
-                      '${report['lastName'].toUpperCase()} ${report['firstName'].toUpperCase()}',
+                      '${grade['grades']?.toUpperCase() ?? 'UNKNOWN SUBJECT'}', // Handle null values
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.blueAccent,
                       ),
                     ),
-                    subtitle: Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        'Total Marks: ${report['totalMarks']} / ${report['teacherTotalMarks']}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
+                    subtitle: Text(
+                      'Grade: ${grade['grade'] ?? 'N/A'}', // Handle null values
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.black,
                       ),
                     ),
-                    trailing: Icon(
-                      Icons.arrow_forward,
-                      color: Colors.blueAccent,
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => StudentSubjectGrade(
-                            studentId: report['studentId'], // Pass the studentId
-                            firstName: report['firstName'],
-                            lastName: report['lastName'],
-                          ),
-                        ),
-                      );
-                    },
                   ),
                 );
               },
