@@ -54,35 +54,21 @@ class _StudentSubjectGradeState extends State<StudentSubjectGrade> {
     }
 
     try {
-      List<Map<String, dynamic>> allGrades = [];
-
-      QuerySnapshot gradeQuerySnapshot = await _firestore
+      DocumentSnapshot studentDoc = await _firestore
           .collection('SchoolReports')
           .doc(_userClass!)
           .collection('StudentReports')
+          .doc(widget.studentId)
           .get();
 
-      allGrades = gradeQuerySnapshot.docs.map((doc) {
-        return {
-          'studentId': doc.id,
-          'firstName': doc['firstName'],
-          'lastName': doc['lastName'],
-          'grades': doc['grades'] ?? '', // Ensure 'name' is not null
-          'totalMarks': doc['totalMarks'] ?? 0,
-          'teacherTotalMarks': doc['teacherTotalMarks'] ?? 0,
-          'grades': doc['grades'] ?? [], // Ensure 'grades' is a list
-        };
-      }).toList();
-
-      if (allGrades.isEmpty) {
-        print('No documents found for student ${widget.studentId}');
+      if (studentDoc.exists) {
+        List<Map<String, dynamic>> grades = List<Map<String, dynamic>>.from(studentDoc['grades']);
+        return grades;
       } else {
-        print('Documents found: ${allGrades.length}');
+        return [];
       }
-
-      return allGrades;
     } catch (e) {
-      print('Error fetching Student Subject Grades: $e');
+      print('Error fetching Student Subjects & Grades: $e');
       return [];
     }
   }
@@ -140,9 +126,15 @@ class _StudentSubjectGradeState extends State<StudentSubjectGrade> {
 
             return ListView.separated(
               itemCount: grades.length,
-              separatorBuilder: (context, index) => SizedBox(height: 10),
+              separatorBuilder: (context, index) => SizedBox(height: 5),
               itemBuilder: (context, index) {
-                var grade = grades[index];
+                var subject = grades[index]['name'] ?? 'Unknown Subject';
+                var grade = grades[index]['grade'] ?? 'N/A';
+
+                // Check if the grade is a number and append '%' if true
+                if (grade is int || grade is double) {
+                  grade = '$grade%';
+                }
 
                 return Container(
                   width: double.infinity,
@@ -157,29 +149,31 @@ class _StudentSubjectGradeState extends State<StudentSubjectGrade> {
                       ),
                     ],
                   ),
-                  margin: const EdgeInsets.symmetric(vertical: 8.0),
+                  margin: const EdgeInsets.symmetric(vertical: 4.0),
                   child: ListTile(
-                    contentPadding: EdgeInsets.all(16),
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.blueAccent,
-                      child: Text(
-                        '${index + 1}',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                    title: Text(
-                      '${grade['grades']?.toUpperCase() ?? 'UNKNOWN SUBJECT'}', // Handle null values
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: Text(
+                      '${index + 1}', // Displaying just the number
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
+                        color: Colors.black,
                       ),
                     ),
-                    subtitle: Text(
-                      'Grade: ${grade['grade'] ?? 'N/A'}', // Handle null values
+                    title: Text(
+                      subject,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                         color: Colors.black,
+                      ),
+                    ),
+                    trailing: Text(
+                      'Grade: $grade', // Grade shown on the right with %
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black54,
                       ),
                     ),
                   ),
