@@ -8,83 +8,67 @@ class SchoolReports extends StatefulWidget {
 }
 
 class _SchoolReportsState extends State<SchoolReports> {
-
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  String? _userClass;
 
+  @override
+  void initState() {
+    super.initState();
+    _getUserClass();
+  }
 
-  Future<List<Map<String, dynamic>>> _fetchSchoolReports() async {
+  Future<void> _getUserClass() async {
     try {
-      QuerySnapshot querySnapshot = await _firestore
-          .collection('SchoolReports')
-          .orderBy('studentTotalMarks', descending: true) 
-          .get();
+      User? user = _auth.currentUser;
 
-      // Map the fetched data into a list of maps
-      return querySnapshot.docs.map((doc) {
-        return {
-          'firstName': doc['firstName'],
-          'lastName': doc['lastName'],
-          'studentTotalMarks': doc['studentTotalMarks'],
-          'teacherTotalMarks': doc['teacherTotalMarks'],
-        };
-      }).toList();
+      if (user != null) {
+        DocumentSnapshot userDoc = await _firestore.collection('Teacher').doc(user.uid).get();
+        if (userDoc.exists) {
+          var classes = userDoc['classes'] as List<dynamic>? ?? [];
+          if (classes.isNotEmpty) {
+            setState(() {
+              _userClass = classes[0]; // Assume the first class is selected
+            });
+          }
+        }
+      }
     } catch (e) {
-      print('Error fetching School Reports: $e');
-      return [];
+      print('Error fetching user class: $e');
     }
   }
 
+  Future<List<Map<String, dynamic>>> _fetchSchoolReports() async {
+    if (_userClass == null) {
+      return [];
+    }
 
-  // Save School Reports to Firestore
-  Future<void> _saveToSchoolReports(String studentClass, String studentName) async {
     try {
-      final studentRef = _firestore
-          .collection('Students')
-          .doc(studentClass)
-          .collection('StudentDetails')
-          .doc(studentName);
+      List<Map<String, dynamic>> allReports = [];
 
-      final studentSnapshot = await studentRef.get();
+      QuerySnapshot reportQuerySnapshot = await _firestore
+          .collection('SchoolReports')
+          .doc(_userClass!)
+          .collection('StudentReports')
+          .get();
 
-      if (studentSnapshot.exists) {
-        var data = studentSnapshot.data() as Map<String, dynamic>?;
-        var subjects = data?['Subjects'] as List<dynamic>?;
+      allReports = reportQuerySnapshot.docs.map((doc) {
+        return {
+          'firstName': doc['firstName'],
+          'lastName': doc['lastName'],
+        };
+      }).toList();
 
-        if (subjects != null) {
-          // Calculate total marks for the student
-          int studentTotalMarks = subjects.fold<int>(
-            0,
-                (previousValue, subject) {
-              final gradeStr = (subject as Map<String, dynamic>)['grade'] ?? '0';
-              final grade = int.tryParse(gradeStr as String) ?? 0;
-              return previousValue + grade;
-            },
-          );
-
-          // Set teacherTotalMarks to a fixed value (e.g., 100)
-          const int teacherTotalMarks = 100;
-
-          await _firestore
-              .collection('SchoolReports')
-              .doc(studentClass)
-              .collection('StudentReports')
-              .doc(studentName)
-              .set({
-            'firstName': studentName.split(' ').first,
-            'lastName': studentName.split(' ').last,
-            'studentTotalMarks': studentTotalMarks, // Calculated based on grades
-            'teacherTotalMarks': teacherTotalMarks, // Fixed value for teacher total marks
-            'studentId': _auth.currentUser?.uid,
-          }, SetOptions(merge: true));
-        } else {
-          print('Subjects field is null or NOT a list');
-        }
+      if (allReports.isEmpty) {
+        print('No documents found for class $_userClass');
       } else {
-        print('Student document does NOT exist');
+        print('Documents found: ${allReports.length}');
       }
+
+      return allReports;
     } catch (e) {
-      print('Error saving to School Reports: $e');
+      print('Error fetching School Reports: $e');
+      return [];
     }
   }
 
@@ -103,10 +87,9 @@ class _SchoolReportsState extends State<SchoolReports> {
           } else if (snapshot.hasError) {
             return Center(child: Text('Error fetching data'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No data available'));
+            return Center(child: Text('No Student DATA found'));
           }
 
-          // Data is available and sorted by student marks
           List<Map<String, dynamic>> reports = snapshot.data!;
 
           return ListView.builder(
@@ -119,7 +102,6 @@ class _SchoolReportsState extends State<SchoolReports> {
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,17 +113,7 @@ class _SchoolReportsState extends State<SchoolReports> {
                               fontSize: 16.0,
                             ),
                           ),
-                          SizedBox(height: 4.0),
-                          Text(
-                            'Student Marks: ${report['studentTotalMarks']}',
-                          ),
                         ],
-                      ),
-                      Text(
-                        'Teacher Marks: ${report['teacherTotalMarks']}',
-                        style: TextStyle(
-                          fontSize: 16.0,
-                        ),
                       ),
                     ],
                   ),
