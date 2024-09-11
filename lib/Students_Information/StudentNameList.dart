@@ -148,6 +148,7 @@ class _StudentNameListState extends State<StudentNameList> {
                 var studentGender = student['studentGender'] ?? 'N/A';
                 var studentClass = student['studentClass'] ?? 'N/A';
 
+// Reduced vertical size for the student name box
                 return Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
@@ -161,37 +162,33 @@ class _StudentNameListState extends State<StudentNameList> {
                       ),
                     ],
                   ),
-                  margin: const EdgeInsets.symmetric(vertical: 8.0),
+                  margin: const EdgeInsets.symmetric(vertical: 4.0), // Reduced the margin to shrink height
                   child: ListTile(
-                    contentPadding: EdgeInsets.all(16),
-
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Reduced vertical padding
                     leading: Text(
-                      '${index + 1}', // Displaying just the number
+                      '${index + 1}.',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.blueAccent,
                       ),
                     ),
-
                     title: Text(
                       '${lastName.toUpperCase()} ${firstName.toUpperCase()}',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 18, // Slightly reduced font size
                         fontWeight: FontWeight.bold,
                         color: Colors.blueAccent,
                       ),
                     ),
-
-                    subtitle: Text( // Display the student's gender here
+                    subtitle: Text(
                       'Gender: $studentGender',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 14, // Reduced font size
                         fontWeight: FontWeight.bold,
                         color: Colors.black54,
                       ),
                     ),
-
                     trailing: Icon(
                       Icons.arrow_forward,
                       color: Colors.blueAccent,
@@ -202,7 +199,7 @@ class _StudentNameListState extends State<StudentNameList> {
                         MaterialPageRoute(
                           builder: (context) => StudentSubjects(
                             studentName: '$lastName $firstName',
-                            studentGender: '$studentGender', // Passing gender to the next screen
+                            studentGender: '$studentGender',
                             studentClass: studentClass,
                           ),
                         ),
@@ -210,6 +207,7 @@ class _StudentNameListState extends State<StudentNameList> {
                     },
                   ),
                 );
+
               },
             );
 

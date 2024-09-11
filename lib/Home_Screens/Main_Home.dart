@@ -105,7 +105,7 @@ class _DoneState extends State<Done> {
                     },
                     child: _buildSquareCard(
                       icon: Icons.analytics,
-                      text: 'View Grade Analytics',
+                      text: 'Grade Analytics',
                       color: Colors.greenAccent,
                     ),
                   ),
@@ -120,7 +120,7 @@ class _DoneState extends State<Done> {
                     },
                     child: _buildSquareCard(
                       icon: Icons.person_add,
-                      text: 'Enter Student Details',
+                      text: 'Add Student',
                       color: Colors.orangeAccent,
                     ),
                   ),
@@ -217,7 +217,7 @@ class _DoneState extends State<Done> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Scanna Dashboard',
+          'Scanna',
           style: TextStyle(fontWeight: FontWeight.bold), // Text in bold
         ),
         backgroundColor: Colors.teal,

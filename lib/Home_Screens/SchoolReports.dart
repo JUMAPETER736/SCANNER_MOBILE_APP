@@ -63,13 +63,6 @@ class _SchoolReportsState extends State<SchoolReports> {
         };
       }).toList();
 
-      if (allReports.isEmpty) {
-        print('No documents found for Class $_userClass');
-      } else {
-        print('Documents found: ${allReports.length}');
-      }
-
-      // Sort the reports by totalMarks in descending order
       allReports.sort((a, b) => (b['totalMarks'] as int).compareTo(a['totalMarks'] as int));
 
       return allReports;
@@ -88,7 +81,7 @@ class _SchoolReportsState extends State<SchoolReports> {
             _userClass != null ? '$_userClass SCHOOL REPORTS' : 'Loading...',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 20,
+              fontSize: 18,
             ),
           ),
         ),
@@ -102,7 +95,7 @@ class _SchoolReportsState extends State<SchoolReports> {
             end: Alignment.bottomRight,
           ),
         ),
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(10.0), // Reduced padding
         child: FutureBuilder<List<Map<String, dynamic>>>(
           future: _fetchSchoolReports(),
           builder: (context, snapshot) {
@@ -112,7 +105,7 @@ class _SchoolReportsState extends State<SchoolReports> {
               return Center(
                 child: Text(
                   'Error fetching DATA',
-                  style: TextStyle(fontSize: 18, color: Colors.red),
+                  style: TextStyle(fontSize: 16, color: Colors.red),
                 ),
               );
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -120,7 +113,7 @@ class _SchoolReportsState extends State<SchoolReports> {
                 child: Text(
                   'No School Reports found',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.blueAccent,
                   ),
@@ -132,7 +125,7 @@ class _SchoolReportsState extends State<SchoolReports> {
 
             return ListView.separated(
               itemCount: reports.length,
-              separatorBuilder: (context, index) => SizedBox(height: 10),
+              separatorBuilder: (context, index) => SizedBox(height: 8), // Reduced separator height
               itemBuilder: (context, index) {
                 var report = reports[index];
 
@@ -140,30 +133,30 @@ class _SchoolReportsState extends State<SchoolReports> {
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8), // Reduced corner radius
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 4,
-                        offset: Offset(2, 2),
+                        color: Colors.black12, // Lighter shadow
+                        blurRadius: 3, // Reduced blur radius
+                        offset: Offset(1, 1),
                       ),
                     ],
                   ),
-                  margin: const EdgeInsets.symmetric(vertical: 8.0),
+                  margin: const EdgeInsets.symmetric(vertical: 4.0), // Reduced margin for height
                   child: ListTile(
-                    contentPadding: EdgeInsets.all(16),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4), // Reduced padding for height
                     leading: Text(
-                      '${index + 1}', // Displaying just the number
+                      '${index + 1}.', // Displaying just the number
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 14, // Reduced font size
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                        color: Colors.blueAccent,
                       ),
                     ),
                     title: Text(
                       '${report['lastName'].toUpperCase()} ${report['firstName'].toUpperCase()}',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 14, // Reduced font size
                         fontWeight: FontWeight.bold,
                         color: Colors.blueAccent,
                       ),
@@ -173,7 +166,7 @@ class _SchoolReportsState extends State<SchoolReports> {
                       child: Text(
                         'Total Marks: ${report['totalMarks']} / ${report['teacherTotalMarks']}',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 12, // Reduced font size
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
                         ),
@@ -182,13 +175,14 @@ class _SchoolReportsState extends State<SchoolReports> {
                     trailing: Icon(
                       Icons.arrow_forward,
                       color: Colors.blueAccent,
+                      size: 18, // Reduced icon size
                     ),
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => StudentSubjectGrade(
-                            studentId: report['studentId'], // Pass the studentId
+                            studentId: report['studentId'],
                             firstName: report['firstName'],
                             lastName: report['lastName'],
                           ),

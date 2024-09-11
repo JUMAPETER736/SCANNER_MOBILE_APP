@@ -97,8 +97,14 @@ class _RegisterPageState extends State<RegisterPage> {
       final newUser = await _auth.createUserWithEmailAndPassword(email: email!, password: password!);
       if (newUser.user != null) {
         await _saveUserDetails(newUser.user!);
-        _showSuccessToast();
-        Navigator.pushNamed(context, Done.id);
+
+        // Show the success SnackBar instead of navigating to Done page
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Registered Successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
 
     } on FirebaseAuthException catch (e) {
@@ -115,6 +121,7 @@ class _RegisterPageState extends State<RegisterPage> {
       });
     }
   }
+
 
 
   Future<void> _saveUserDetails(User user) async {
@@ -338,7 +345,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       onPressed: () {
                         Navigator.pushNamed(context, LoginPage.id);
                       },
-                      child: Text('Log In', style: TextStyle(color: Colors.blueAccent)),
+                      child: Text('Log In', style:
+                                TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 15.0,),
+                        ),
                     ),
                   ],
                 ),
@@ -351,3 +360,4 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 }
 
+//there is a problem whereby when the user clicks the Register Button it Logs in the USer so i want you to stop it from doing that in stead when the user clicks the register button with all fields inserted it should just show a Snack Bar of  Register Successfully and when the user wants to log in its all about  clicking the Log in Button, so do that and give me full working code

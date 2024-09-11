@@ -131,8 +131,10 @@ class _StudentSubjectGradeState extends State<StudentSubjectGrade> {
                 var subject = grades[index]['name'] ?? 'Unknown Subject';
                 var grade = grades[index]['grade'] ?? 'N/A';
 
-                // Check if the grade is a number and append '%' if true
-                if (grade is int || grade is double) {
+                // Check if grade is numeric and append '%' if applicable
+                if (grade is String && double.tryParse(grade) != null) {
+                  grade = '${double.parse(grade)}%';
+                } else if (grade is int || grade is double) {
                   grade = '$grade%';
                 }
 
@@ -153,7 +155,7 @@ class _StudentSubjectGradeState extends State<StudentSubjectGrade> {
                   child: ListTile(
                     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     leading: Text(
-                      '${index + 1}', // Displaying just the number
+                      '${index + 1}.', // Displaying just the number
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -165,7 +167,7 @@ class _StudentSubjectGradeState extends State<StudentSubjectGrade> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                        color: Colors.blueAccent,
                       ),
                     ),
                     trailing: Text(
