@@ -399,7 +399,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blueAccent,
+                            color: Colors.black,
                           ),
                         ),
                         trailing: Row(

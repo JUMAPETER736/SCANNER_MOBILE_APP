@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:scanna/Settings/SecurityQuestionsPage.dart';
-import 'package:scanna/Settings/TwoFactorAuthenticationPage.dart';
+import 'package:scanna/Settings/SecurityQuestions.dart';
+import 'package:scanna/Settings/TwoFactorAuthentication.dart';
 
-class SecuritySettingsPage extends StatefulWidget {
+class SecuritySettings extends StatefulWidget {
   @override
-  _SecuritySettingsPageState createState() => _SecuritySettingsPageState();
+  _SecuritySettingsState createState() => _SecuritySettingsState();
 }
 
-class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
+class _SecuritySettingsState extends State<SecuritySettings> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final LocalAuthentication _localAuth = LocalAuthentication();
@@ -68,7 +68,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => TwoFactorAuthenticationPage()),
+                    MaterialPageRoute(builder: (context) => TwoFactorAuthentication()),
                   );
                 },
               ),
@@ -87,7 +87,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => SecurityQuestionsPage()),
+                    MaterialPageRoute(builder: (context) => SecurityQuestions()),
                   );
                 },
               ),

@@ -162,13 +162,16 @@ class _StudentNameListState extends State<StudentNameList> {
                   margin: const EdgeInsets.symmetric(vertical: 8.0),
                   child: ListTile(
                     contentPadding: EdgeInsets.all(16),
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.blueAccent,
-                      child: Text(
-                        '${index + 1}',
-                        style: TextStyle(color: Colors.white),
+
+                    leading: Text(
+                      '${index + 1}', // Displaying just the number
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
                       ),
                     ),
+
                     title: Text(
                       '$lastName $firstName', // Display last name first
                       style: TextStyle(

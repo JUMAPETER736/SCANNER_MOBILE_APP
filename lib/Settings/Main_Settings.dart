@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:scanna/Settings/UserDetailsPage.dart';
-import 'package:scanna/Settings/ThemeDisplaySettingsPage.dart';
-import 'package:scanna/Settings/BackupSyncPage.dart';
-import 'package:scanna/Settings/AppInfoPage.dart';
-import 'package:scanna/Settings/GradeSettingsPage.dart';
-import 'package:scanna/Settings/NotificationSettingsPage.dart';
-import 'package:scanna/Settings/QRCodeSettingsPage.dart';
-import 'package:scanna/Settings/SecuritySettingsPage.dart';
+import 'package:scanna/Settings/UserDetails.dart';
+import 'package:scanna/Settings/ThemeDisplaySettings.dart';
+import 'package:scanna/Settings/BackupSync.dart';
+import 'package:scanna/Settings/AppInfo.dart';
+import 'package:scanna/Settings/GradeSettings.dart';
+import 'package:scanna/Settings/NotificationSettings.dart';
+import 'package:scanna/Settings/QRCodeSettings.dart';
+import 'package:scanna/Settings/SecuritySettings.dart';
 
-class SettingsPage extends StatefulWidget {
+class Main_Settings extends StatefulWidget {
   final User? user;
 
-  SettingsPage({required this.user});
+  Main_Settings({required this.user});
 
   @override
-  _SettingsPageState createState() => _SettingsPageState();
+  _Main_SettingsState createState() => _Main_SettingsState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
+class _Main_SettingsState extends State<Main_Settings> {
   final List<String> languages = ['English', 'Spanish', 'French', 'German', 'Chinese', 'Chichewa'];
   String defaultLanguage = 'English';
 
@@ -56,7 +56,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => UserDetailsPage(user: widget.user),
+                    builder: (context) => UserDetails(user: widget.user),
                   ),
                 );
               },
@@ -68,7 +68,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => QRCodeSettingsPage(),
+                    builder: (context) => QRCodeSettings(),
                   ),
                 );
               },
@@ -80,7 +80,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => GradeSettingsPage(),
+                    builder: (context) => GradeSettings(),
                   ),
                 );
               },
@@ -93,7 +93,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => BackupSyncPage(),
+                    builder: (context) => BackupSync(),
                   ),
                 );
               },
@@ -105,7 +105,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => ThemeDisplaySettingsPage(),
+                    builder: (context) => ThemeDisplaySettings(),
                   ),
                 );
               },
@@ -117,7 +117,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => NotificationSettingsPage(),
+                    builder: (context) => NotificationSettings(),
                   ),
                 );
               },
@@ -129,7 +129,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => SecuritySettingsPage(),
+                    builder: (context) => SecuritySettings(),
                   ),
                 );
               },
@@ -141,7 +141,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => AppInfoPage(),
+                    builder: (context) => AppInfo(),
                   ),
                 );
               },

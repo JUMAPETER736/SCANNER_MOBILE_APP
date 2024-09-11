@@ -13,17 +13,17 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: NotificationSettingsPage(),
+      home: NotificationSettings(),
     );
   }
 }
 
-class NotificationSettingsPage extends StatefulWidget {
+class NotificationSettings extends StatefulWidget {
   @override
-  _NotificationSettingsPageState createState() => _NotificationSettingsPageState();
+  _NotificationSettingsState createState() => _NotificationSettingsState();
 }
 
-class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
+class _NotificationSettingsState extends State<NotificationSettings> {
   bool _notificationsEnabled = true; // State management for notifications
   TimeOfDay _startTime = TimeOfDay(hour: 22, minute: 0); // Default start time
   TimeOfDay _endTime = TimeOfDay(hour: 7, minute: 0); // Default end time

@@ -1,26 +1,31 @@
 import 'package:flutter/material.dart';
 
 class GradeAnalytics extends StatelessWidget {
-  final List<Map<String, String>> juniorGradeRanges = [
-    {'range': '80 - 100%', 'grade': 'A'},
-    {'range': '70 - 79%', 'grade': 'B'},
-    {'range': '60 - 69%', 'grade': 'C'},
-    {'range': '50 - 59%', 'grade': 'D'},
-    {'range': '40 - 49%', 'grade': 'E'},
-    {'range': '0 - 39%', 'grade': 'F'},
-  ];
 
-  final List<Map<String, String>> seniorGradeRanges = [
-    {'range': '80 - 100%', 'grade': '1'},
-    {'range': '75 - 79%', 'grade': '2'},
-    {'range': '70 - 74%', 'grade': '3'},
-    {'range': '65 - 69%', 'grade': '4'},
-    {'range': '60 - 64%', 'grade': '5'},
-    {'range': '55 - 59%', 'grade': '6'},
-    {'range': '50 - 54%', 'grade': '7'},
-    {'range': '40 - 49%', 'grade': '8'},
-    {'range': '0 - 39%', 'grade': '9'},
-  ];
+      final List<Map<String, String>> juniorGradeRanges = [
+
+        {'range': '80 - 100%', 'grade': 'A'},
+        {'range': '70 - 79%', 'grade': 'B'},
+        {'range': '60 - 69%', 'grade': 'C'},
+        {'range': '50 - 59%', 'grade': 'D'},
+        {'range': '40 - 49%', 'grade': 'E'},
+        {'range': '0 - 39%', 'grade': 'F'},
+
+      ];
+
+      final List<Map<String, String>> seniorGradeRanges = [
+
+        {'range': '80 - 100%', 'grade': '1'},
+        {'range': '75 - 79%', 'grade': '2'},
+        {'range': '70 - 74%', 'grade': '3'},
+        {'range': '65 - 69%', 'grade': '4'},
+        {'range': '60 - 64%', 'grade': '5'},
+        {'range': '55 - 59%', 'grade': '6'},
+        {'range': '50 - 54%', 'grade': '7'},
+        {'range': '40 - 49%', 'grade': '8'},
+        {'range': '0 - 39%', 'grade': '9'},
+
+      ];
 
   @override
   Widget build(BuildContext context) {

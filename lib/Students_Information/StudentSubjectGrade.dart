@@ -105,7 +105,7 @@ class _StudentSubjectGradeState extends State<StudentSubjectGrade> {
             } else if (snapshot.hasError) {
               return Center(
                 child: Text(
-                  'Error fetching data',
+                  'Error fetching DATA',
                   style: TextStyle(fontSize: 18, color: Colors.red),
                 ),
               );

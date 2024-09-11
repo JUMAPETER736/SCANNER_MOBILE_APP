@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:scanna/Results_Screen/ForgotPassword.dart';
-import 'package:scanna/Home_Screens/LoginPage.dart';
-import 'package:scanna/Home_Screens/RegisterPage.dart';
-import 'package:scanna/Results_Screen/Done.dart';
+import 'package:scanna/Log_In_And_Register_Screens/ForgotPassword.dart';
+import 'package:scanna/Log_In_And_Register_Screens/LoginPage.dart';
+import 'package:scanna/Log_In_And_Register_Screens/RegisterPage.dart';
+import 'package:scanna/Home_Screens/Main_Home.dart';
 import 'firebase_options.dart';
 
 void main() async {

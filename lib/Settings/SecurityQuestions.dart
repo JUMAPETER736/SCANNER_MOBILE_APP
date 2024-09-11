@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class SecurityQuestionsPage extends StatefulWidget {
+class SecurityQuestions extends StatefulWidget {
   @override
-  _SecurityQuestionsPageState createState() => _SecurityQuestionsPageState();
+  _SecurityQuestionsState createState() => _SecurityQuestionsState();
 }
 
-class _SecurityQuestionsPageState extends State<SecurityQuestionsPage> {
+class _SecurityQuestionsState extends State<SecurityQuestions> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 

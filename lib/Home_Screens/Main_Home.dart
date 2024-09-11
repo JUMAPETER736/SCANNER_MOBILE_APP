@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:scanna/Settings/SettingsPage.dart';
-import 'package:scanna/Main_Screen/GradeAnalytics.dart';
-import 'package:scanna/Main_Screen/ClassSelection.dart';
+import 'package:scanna/Settings/Main_Settings.dart';
+import 'package:scanna/Home_Screens/GradeAnalytics.dart';
+import 'package:scanna/Home_Screens/ClassSelection.dart';
 import 'package:scanna/Students_Information/StudentDetails.dart';
-import 'package:scanna/Main_Screen/Help.dart';
+import 'package:scanna/Home_Screens/Help.dart';
 import 'package:scanna/Students_Information/StudentNameList.dart';
-import 'package:scanna/Main_Screen/QRCodeScan.dart';
-import 'package:scanna/Main_Screen/SchoolReports.dart';
-import 'package:scanna/Home_Screens/LoginPage.dart';
+import 'package:scanna/Home_Screens/QRCodeScan.dart';
+import 'package:scanna/Home_Screens/SchoolReports.dart';
+import 'package:scanna/Log_In_And_Register_Screens/LoginPage.dart';
 
 User? loggedInUser;
 
@@ -209,7 +209,7 @@ class _DoneState extends State<Done> {
   }
 
   Widget _buildSettings() {
-    return SettingsPage(user: loggedInUser!);
+    return Main_Settings(user: loggedInUser!);
   }
 
   @override

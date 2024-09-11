@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-import 'package:scanna/Results_Screen/GoogleDone.dart';
-import 'package:scanna/Results_Screen/ForgotPassword.dart';
-import 'package:scanna/Results_Screen/Done.dart';
-import 'package:scanna/Home_Screens/RegisterPage.dart';
+import 'package:scanna/Log_In_And_Register_Screens/GoogleDone.dart';
+import 'package:scanna/Log_In_And_Register_Screens/ForgotPassword.dart';
+import 'package:scanna/Home_Screens/Main_Home.dart';
+import 'package:scanna/Log_In_And_Register_Screens/RegisterPage.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 

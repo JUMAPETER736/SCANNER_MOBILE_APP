@@ -64,7 +64,7 @@ class _SchoolReportsState extends State<SchoolReports> {
       }).toList();
 
       if (allReports.isEmpty) {
-        print('No documents found for class $_userClass');
+        print('No documents found for Class $_userClass');
       } else {
         print('Documents found: ${allReports.length}');
       }
@@ -111,7 +111,7 @@ class _SchoolReportsState extends State<SchoolReports> {
             } else if (snapshot.hasError) {
               return Center(
                 child: Text(
-                  'Error fetching data',
+                  'Error fetching DATA',
                   style: TextStyle(fontSize: 18, color: Colors.red),
                 ),
               );
@@ -152,11 +152,12 @@ class _SchoolReportsState extends State<SchoolReports> {
                   margin: const EdgeInsets.symmetric(vertical: 8.0),
                   child: ListTile(
                     contentPadding: EdgeInsets.all(16),
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.blueAccent,
-                      child: Text(
-                        '${index + 1}',
-                        style: TextStyle(color: Colors.white),
+                    leading: Text(
+                      '${index + 1}', // Displaying just the number
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
                       ),
                     ),
                     title: Text(

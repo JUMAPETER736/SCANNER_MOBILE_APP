@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class UserDetailsPage extends StatefulWidget {
+class UserDetails extends StatefulWidget {
   final User? user;
 
-  UserDetailsPage({required this.user});
+  UserDetails({required this.user});
 
   @override
-  _UserDetailsPageState createState() => _UserDetailsPageState();
+  _UserDetailsState createState() => _UserDetailsState();
 }
 
-class _UserDetailsPageState extends State<UserDetailsPage> {
+class _UserDetailsState extends State<UserDetails> {
   String _username = '';
   List<String> _selectedClasses = [];
   List<String> _selectedSubjects = [];
