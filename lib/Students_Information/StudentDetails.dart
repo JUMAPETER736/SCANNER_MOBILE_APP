@@ -52,13 +52,15 @@ class _StudentDetailsState extends State<StudentDetails> {
 
 
   void saveStudentDetails() async {
+
     if (_formKey.currentState!.validate()) {
       studentID = generateRandomStudentID();
 
       Map<String, String> studentDetails = {
+
         'firstName': _firstNameController.text.trim(),
         'lastName': _lastNameController.text.trim(),
-        'studentClass': studentClass!, // Ensure this matches Firestore rules
+        'studentClass': studentClass!,
         'studentAge': _ageController.text.trim(),
         'studentGender': studentGender!,
         'studentID': studentID!,

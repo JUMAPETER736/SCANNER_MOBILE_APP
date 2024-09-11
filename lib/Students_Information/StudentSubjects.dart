@@ -6,16 +6,19 @@ import 'package:firebase_auth/firebase_auth.dart';
 class StudentSubjects extends StatefulWidget {
   final String studentName;
   final String studentClass;
+  final String studentGender; // Add this field
 
   const StudentSubjects({
     Key? key,
     required this.studentName,
     required this.studentClass,
+    required this.studentGender, // Add this to the constructor
   }) : super(key: key);
 
   @override
   _StudentSubjectsState createState() => _StudentSubjectsState();
 }
+
 
 class _StudentSubjectsState extends State<StudentSubjects> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -399,7 +402,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: Colors.blueAccent,
                           ),
                         ),
                         trailing: Row(

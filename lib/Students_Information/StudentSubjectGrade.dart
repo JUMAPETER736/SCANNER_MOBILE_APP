@@ -157,7 +157,7 @@ class _StudentSubjectGradeState extends State<StudentSubjectGrade> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                        color: Colors.blueAccent,
                       ),
                     ),
                     title: Text(

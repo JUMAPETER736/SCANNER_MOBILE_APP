@@ -117,6 +117,7 @@ class _StudentNameListState extends State<StudentNameList> {
             var filteredDocs = snapshot.data!.docs.where((doc) {
               var firstName = doc['firstName'] ?? '';
               var lastName = doc['lastName'] ?? '';
+              var studentGender = doc['studentGender'] ?? '';
               return firstName
                   .toLowerCase()
                   .contains(_searchQuery.toLowerCase()) ||
@@ -144,6 +145,7 @@ class _StudentNameListState extends State<StudentNameList> {
                 var student = filteredDocs[index];
                 var firstName = student['firstName'] ?? 'N/A';
                 var lastName = student['lastName'] ?? 'N/A';
+                var studentGender = student['studentGender'] ?? 'N/A';
                 var studentClass = student['studentClass'] ?? 'N/A';
 
                 return Container(
@@ -168,18 +170,28 @@ class _StudentNameListState extends State<StudentNameList> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                        color: Colors.blueAccent,
                       ),
                     ),
 
                     title: Text(
-                      '$lastName $firstName', // Display last name first
+                      '${lastName.toUpperCase()} ${firstName.toUpperCase()}',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors.blueAccent,
                       ),
                     ),
+
+                    subtitle: Text( // Display the student's gender here
+                      'Gender: $studentGender',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black54,
+                      ),
+                    ),
+
                     trailing: Icon(
                       Icons.arrow_forward,
                       color: Colors.blueAccent,
@@ -190,6 +202,7 @@ class _StudentNameListState extends State<StudentNameList> {
                         MaterialPageRoute(
                           builder: (context) => StudentSubjects(
                             studentName: '$lastName $firstName',
+                            studentGender: '$studentGender', // Passing gender to the next screen
                             studentClass: studentClass,
                           ),
                         ),
@@ -199,6 +212,9 @@ class _StudentNameListState extends State<StudentNameList> {
                 );
               },
             );
+
+
+
           },
         )
             : Center(
