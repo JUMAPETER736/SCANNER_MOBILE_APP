@@ -17,28 +17,28 @@ class _ForgotPasswordState extends State<ForgotPassword> {
   String errorMessage = '';
 
   // Function to reset password using Firebase Authentication
-  Future<void> resetPassword(String email) async {
+  Future<void> resetPassword(String email, String name) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
-      // Show success dialog on successful password reset email send
+
+      // Show success dialog with customized greeting
       AwesomeDialog(
         context: context,
         dialogType: DialogType.success,
         animType: AnimType.scale,
         title: 'Email Sent ✈️',
-        desc: 'Check your Email to reset your Password!',
+        desc: 'Hello $name, Check your Email to reset your Password!',
         btnOkText: 'OK',
         btnOkOnPress: () {},
       )..show();
     } catch (e) {
-      // Handle errors such as invalid email or network issues
       print('Failed to send reset Email: $e');
       AwesomeDialog(
         context: context,
         dialogType: DialogType.error,
         animType: AnimType.scale,
         title: 'Failed to Reset Password',
-        desc: 'Error: ${e.toString()}', // Show error message in the dialog
+        desc: 'Error: ${e.toString()}',
         btnOkText: 'OK',
         btnOkOnPress: () {},
       )..show();
@@ -55,9 +55,9 @@ class _ForgotPasswordState extends State<ForgotPassword> {
     }
 
     try {
-      // Check if the email exists in Firestore under the 'users' collection
+      // Query Firestore to get user info based on the email
       final userDoc = await _firestore
-          .collection('users')
+          .collection('Teacher')
           .where('email', isEqualTo: email)
           .get();
 
@@ -68,8 +68,12 @@ class _ForgotPasswordState extends State<ForgotPassword> {
         return;
       }
 
-      // If email is valid and exists, proceed to reset password
-      await resetPassword(email);
+      // Get the first and last name from Firestore
+      final name = userDoc.docs.first.data()['name'];
+
+
+      // If email is valid and exists, proceed to reset password with customized message
+      await resetPassword(email, name);
     } catch (e) {
       print('Error checking Email in Firestore: $e');
       setState(() {
@@ -123,15 +127,15 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                     style: TextStyle(color: Colors.red),
                   ),
                 ),
-              SizedBox(height: 30.0), // Increased space above the button
+              SizedBox(height: 30.0),
               ElevatedButton(
                 onPressed: () {
                   final email = _emailController.text.trim();
                   validateAndResetPassword(email);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.greenAccent, // Button color
-                  padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0), // Increased horizontal padding
+                  backgroundColor: Colors.greenAccent,
+                  padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -148,7 +152,6 @@ class _ForgotPasswordState extends State<ForgotPassword> {
     );
   }
 
-  // Reusable widget to create styled text fields
   Widget _buildStyledTextField({
     required TextEditingController controller,
     required String labelText,

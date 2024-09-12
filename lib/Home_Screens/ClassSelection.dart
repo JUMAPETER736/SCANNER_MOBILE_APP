@@ -9,9 +9,13 @@ class ClassSelection extends StatefulWidget {
 }
 
 class _ClassSelectionState extends State<ClassSelection> {
+
   List<String> selectedClasses = [];
   List<String> selectedSubjects = [];
   bool isSaved = false;
+
+  List<String> unavailableClasses = [];
+  List<String> unavailableSubjects = [];
 
   // Define the classSubjects in Firestore
   final List<String> classes = ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'];
@@ -31,71 +35,196 @@ class _ClassSelectionState extends State<ClassSelection> {
     super.initState();
     _initializeFirestoreData(); // Initialize Firestore data
     _checkSavedSelections();
+    _buildClassSelection();
+    _buildSubjectSelection();
   }
 
-  // Initialize Firestore with class subjects
   void _initializeFirestoreData() async {
     try {
-      for (var className in classes) {
-        // Check if the class already exists
-        DocumentSnapshot doc = await FirebaseFirestore.instance.collection('classSubjects').doc(className).get();
-        if (!doc.exists) {
-          // If it doesn't exist, create it
-          await FirebaseFirestore.instance.collection('classSubjects').doc(className).set({
-            'subjects': classSubjects[className],
-          });
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('Teacher').get();
+      List<DocumentSnapshot> documents = querySnapshot.docs;
+
+      for (var doc in documents) {
+        // Ensure the fields exist before attempting to access them
+        if (doc.data() != null) {
+          var data = doc.data() as Map<String, dynamic>;
+          if (data.containsKey('classes')) {
+            List<String> classes = List<String>.from(data['classes']);
+            unavailableClasses.addAll(classes);
+          }
+          if (data.containsKey('subjects')) {
+            List<String> subjects = List<String>.from(data['subjects']);
+            unavailableSubjects.addAll(subjects);
+          }
         }
       }
-      print('Firestore initialized with class subjects.');
     } catch (e) {
       print('Error initializing Firestore data: $e');
     }
   }
 
-  // Check saved selections from Firestore
+
+
+  Widget _buildClassSelection() {
+    return Container(
+      // ... other properties
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Selected Classes', style: TextStyle(color: Colors.blueAccent, fontSize: 24, fontWeight: FontWeight.bold)),
+          if (isSaved)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Text(selectedClasses.join(', '), style: TextStyle(color: Colors.black, fontSize: 18)),
+            )
+          else
+            ...classes.map((className) {
+              return Card(
+                // ... other properties
+                child: CheckboxListTile(
+                  title: Text(className, style: TextStyle(color: Colors.black, fontSize: 18)),
+                  value: selectedClasses.contains(className),
+                  onChanged: unavailableClasses.contains(className) || isSaved
+                      ? null // Disable if unavailable or already saved
+                      : (bool? value) {
+                    setState(() {
+                      if (value == true) {
+                        if (selectedClasses.length < 1) {
+                          selectedClasses.add(className);
+                        } else {
+                          _showToast("You can't select more than 1 class");
+                        }
+                      } else {
+                        selectedClasses.remove(className);
+                      }
+                    });
+                  },
+                  activeColor: Colors.blue,
+                  checkColor: Colors.white,
+                ),
+              );
+            }).toList(),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildSubjectSelection() {
+    List<String> availableSubjects = _getAvailableSubjects();
+    return Container(
+      // ... other properties
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Selected Subjects', style: TextStyle(color: Colors.blueAccent, fontSize: 24, fontWeight: FontWeight.bold)),
+          if (isSaved)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Text(selectedSubjects.join(', '), style: TextStyle(color: Colors.black, fontSize: 18)),
+            )
+          else
+            ...availableSubjects.map((subject) {
+              return Card(
+                // ... other properties
+                child: CheckboxListTile(
+                  title: Text(subject, style: TextStyle(color: Colors.black, fontSize: 18)),
+                  value: selectedSubjects.contains(subject),
+                  onChanged: isSaved
+                      ? null
+                      : (bool? value) {
+                    setState(() {
+                      if (value == true) {
+                        if (selectedSubjects.length < 2) {
+                          selectedSubjects.add(subject);
+                        } else {
+                          _showToast("You can't select more than 2 subjects");
+                        }
+                      } else {
+                        selectedSubjects.remove(subject);
+                      }
+                    });
+                  },
+                  activeColor: Colors.blue,
+                  checkColor: Colors.white,
+                ),
+              );
+            }).toList(),
+        ],
+      ),
+    );
+  }
+
+
+
   void _checkSavedSelections() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      String userId = user.uid; // Get user's ID
+      String userId = user.uid;
       DocumentSnapshot doc = await FirebaseFirestore.instance.collection('Teacher').doc(userId).get();
-      if (doc.exists && doc['classes'] != null && doc['subjects'] != null) {
-        setState(() {
-          selectedClasses = List<String>.from(doc['classes']);
-          selectedSubjects = List<String>.from(doc['subjects']);
-          isSaved = true; // Mark as saved
-        });
+      if (doc.exists && doc.data() != null) {
+        var data = doc.data() as Map<String, dynamic>;
+        if (data.containsKey('classes')) {
+          setState(() {
+            selectedClasses = List<String>.from(data['classes']);
+            // Reload subjects based on the selected classes
+            if (selectedClasses.isNotEmpty) {
+              selectedSubjects = List<String>.from(data['subjects']);
+            }
+          });
+        }
+        if (data.containsKey('subjects')) {
+          setState(() {
+            selectedSubjects = List<String>.from(data['subjects']);
+            isSaved = true;
+          });
+        }
       }
     }
   }
 
-  // Save selected classes and subjects to Firestore
+
   Future<void> _saveSelection() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      String teacherId = user.uid; // Use user ID for the document reference
+      String teacherId = user.uid;
       try {
         await FirebaseFirestore.instance.collection('Teacher').doc(teacherId).set({
           'classes': selectedClasses,
           'subjects': selectedSubjects,
-        }, SetOptions(merge: true)); // Use merge to update existing data
+        }, SetOptions(merge: true));
+
+        unavailableClasses.addAll(selectedClasses);
+        unavailableSubjects.addAll(selectedSubjects);
+
         setState(() {
-          isSaved = true; // Mark as saved
+          isSaved = true;
         });
-        _showToast("Selections saved Successfully!"); // Show success message
+
+        _showToast("Selections saved Successfully!");
       } catch (e) {
         print('Error saving classes and subjects: $e');
-        _showToast("Error saving selections."); // Show error message
+        _showToast("Error saving selections.");
       }
     }
   }
 
+
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,  // This will extend the body behind the AppBar
       appBar: AppBar(
-        title: Text('Selected Class and Subject', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Selected Class and Subject',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Colors.blueAccent.withOpacity(0.8),  // Make the AppBar slightly transparent
+        elevation: 0,  // Remove AppBar shadow
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -105,159 +234,169 @@ class _ClassSelectionState extends State<ClassSelection> {
             end: Alignment.bottomRight,
           ),
         ),
-        child: SingleChildScrollView( // Enable scrolling
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Class Selection
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 4,
-                        offset: Offset(2, 2),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.all(16.0),
-                  margin: const EdgeInsets.only(bottom: 20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Selected Classes',
-                        style: TextStyle(color: Colors.blueAccent, fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                      if (isSaved)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Text(
-                            selectedClasses.join(', '), // Display saved classes
-                            style: TextStyle(color: Colors.black, fontSize: 18),
-                          ),
-                        )
-                      else
-                        ...classes.map((className) {
-                          return Card(
-                            elevation: 4,
-                            margin: const EdgeInsets.symmetric(vertical: 8.0),
-                            child: CheckboxListTile(
-                              title: Text(
-                                className,
-                                style: TextStyle(color: Colors.black, fontSize: 18),
-                              ),
-                              value: selectedClasses.contains(className),
-                              onChanged: isSaved ? null // Disable if already saved
-                                  : (bool? value) {
-                                setState(() {
-                                  if (value == true) {
-                                    if (selectedClasses.length < 1) {
-                                      selectedClasses.add(className);
-                                    } else {
-                                      _showToast("You can't select more than 1 class");
-                                    }
-                                  } else {
-                                    selectedClasses.remove(className);
-                                  }
-                                });
-                              },
-                              activeColor: Colors.blue,
-                              checkColor: Colors.white,
-                            ),
-                          );
-                        }).toList(),
-                    ],
-                  ),
-                ),
-
-                // Subject Selection
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 4,
-                        offset: Offset(2, 2),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.all(16.0),
-                  margin: const EdgeInsets.only(bottom: 20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Selected Subjects',
-                        style: TextStyle(color: Colors.blueAccent, fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                      if (isSaved)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Text(
-                            selectedSubjects.join(', '), // Display saved subjects
-                            style: TextStyle(color: Colors.black, fontSize: 18),
-                          ),
-                        )
-                      else
-                        ..._getAvailableSubjects().map((subject) {
-                          return Card(
-                            elevation: 4,
-                            margin: const EdgeInsets.symmetric(vertical: 8.0),
-                            child: CheckboxListTile(
-                              title: Text(
-                                subject,
-                                style: TextStyle(color: Colors.black, fontSize: 18),
-                              ),
-                              value: selectedSubjects.contains(subject),
-                              onChanged: isSaved // Disable if already saved
-                                  ? null
-                                  : (bool? value) {
-                                setState(() {
-                                  if (value == true) {
-                                    if (selectedSubjects.length < 2) {
-                                      selectedSubjects.add(subject);
-                                    } else {
-                                      _showToast("You can't select more than 2 subjects");
-                                    }
-                                  } else {
-                                    selectedSubjects.remove(subject);
-                                  }
-                                });
-                              },
-                              activeColor: Colors.blue,
-                              checkColor: Colors.white,
-                            ),
-                          );
-                        }).toList(),
-                    ],
-                  ),
-                ),
-
-                // Save Button
-                if (!isSaved) // Show save button only if not saved
-                  Center(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+        child: SafeArea(  // Ensures content is placed correctly below the AppBar
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Class Selection
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(2, 2),
                         ),
-                      ),
-                      onPressed: _saveSelection,
-                      child: Text('Save Selections', style: TextStyle(fontSize: 18, color: Colors.white)),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(16.0),
+                    margin: const EdgeInsets.only(bottom: 20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Selected Classes',
+                          style: TextStyle(
+                            color: Colors.blueAccent,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (isSaved)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Text(
+                              selectedClasses.join(', '), // Display saved classes
+                              style: TextStyle(color: Colors.black, fontSize: 18),
+                            ),
+                          )
+                        else
+                          ...classes.map((className) {
+                            return Card(
+                              elevation: 4,
+                              margin: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: CheckboxListTile(
+                                title: Text(
+                                  className,
+                                  style: TextStyle(color: Colors.black, fontSize: 18),
+                                ),
+                                value: selectedClasses.contains(className),
+                                onChanged: isSaved ? null // Disable if already saved
+                                    : (bool? value) {
+                                  setState(() {
+                                    if (value == true) {
+                                      if (selectedClasses.length < 1) {
+                                        selectedClasses.add(className);
+                                      } else {
+                                        _showToast("You can't select more than 1 class");
+                                      }
+                                    } else {
+                                      selectedClasses.remove(className);
+                                    }
+                                  });
+                                },
+                                activeColor: Colors.blue,
+                                checkColor: Colors.white,
+                              ),
+                            );
+                          }).toList(),
+                      ],
                     ),
                   ),
-              ],
+
+                  // Subject Selection
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(2, 2),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(16.0),
+                    margin: const EdgeInsets.only(bottom: 20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Selected Subjects',
+                          style: TextStyle(
+                            color: Colors.blueAccent,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (isSaved)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Text(
+                              selectedSubjects.join(', '), // Display saved subjects
+                              style: TextStyle(color: Colors.black, fontSize: 18),
+                            ),
+                          )
+                        else
+                          ..._getAvailableSubjects().map((subject) {
+                            return Card(
+                              elevation: 4,
+                              margin: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: CheckboxListTile(
+                                title: Text(
+                                  subject,
+                                  style: TextStyle(color: Colors.black, fontSize: 18),
+                                ),
+                                value: selectedSubjects.contains(subject),
+                                onChanged: isSaved // Disable if already saved
+                                    ? null
+                                    : (bool? value) {
+                                  setState(() {
+                                    if (value == true) {
+                                      if (selectedSubjects.length < 2) {
+                                        selectedSubjects.add(subject);
+                                      } else {
+                                        _showToast("You can't select more than 2 subjects");
+                                      }
+                                    } else {
+                                      selectedSubjects.remove(subject);
+                                    }
+                                  });
+                                },
+                                activeColor: Colors.blue,
+                                checkColor: Colors.white,
+                              ),
+                            );
+                          }).toList(),
+                      ],
+                    ),
+                  ),
+
+                  // Save Button
+                  if (!isSaved) // Show save button only if not saved
+                    Center(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: _saveSelection,
+                        child: Text('Save Selections', style: TextStyle(fontSize: 18, color: Colors.white)),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -265,7 +404,8 @@ class _ClassSelectionState extends State<ClassSelection> {
     );
   }
 
-  // Get available subjects based on the selected class
+
+
   List<String> _getAvailableSubjects() {
     if (selectedClasses.isEmpty) {
       return [];
@@ -273,6 +413,7 @@ class _ClassSelectionState extends State<ClassSelection> {
       return classSubjects[selectedClasses[0]] ?? [];
     }
   }
+
 
   // Show a toast message
   void _showToast(String message) {
