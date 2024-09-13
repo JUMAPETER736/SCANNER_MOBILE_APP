@@ -107,7 +107,8 @@ class _LoginPageState extends State<LoginPage> {
     if (result.status == LoginStatus.success) {
       final AccessToken accessToken = result.accessToken!;
       final AuthCredential credential = FacebookAuthProvider.credential(
-          accessToken.token);
+          accessToken.tokenString
+      );
 
       UserCredential userCredential = await _auth.signInWithCredential(
           credential);

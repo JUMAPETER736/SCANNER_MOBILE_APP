@@ -2,13 +2,29 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// The plugins block must come first
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id 'com.android.application' version '7.0.0' apply false
+    id 'com.android.library' version '7.0.0' apply false
+}
+
 include ':app'
 
+// After the plugins block, define the local properties and other configurations
 def localPropertiesFile = new File(rootProject.projectDir, "local.properties")
 def properties = new Properties()
 
-assert localPropertiesFile.exists()
-localPropertiesFile.withReader("UTF-8") { reader -> properties.load(reader) }
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader("UTF-8") { reader -> properties.load(reader) }
+}
 
 def flutterSdkPath = properties.getProperty("flutter.sdk")
 assert flutterSdkPath != null, "flutter.sdk not set in local.properties"

@@ -1,5 +1,6 @@
-package com.deliciafernandes.scanna
+package com.deliciafernandes.task
 
 import io.flutter.embedding.android.FlutterActivity
 
-class MainActivity: FlutterActivity()
+class MainActivity : FlutterActivity() {
+}

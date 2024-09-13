@@ -190,7 +190,7 @@ class _RegisterPageState extends State<RegisterPage> {
         final LoginResult loginResult = await FacebookAuth.instance.login();
 
         if (loginResult.status == LoginStatus.success) {
-          final AuthCredential credential = FacebookAuthProvider.credential(loginResult.accessToken!.token);
+          final AuthCredential credential = FacebookAuthProvider.credential(loginResult.accessToken!.tokenString);
           final UserCredential userCredential = await _auth.signInWithCredential(credential);
           Navigator.pushNamed(context, Done.id);
         }

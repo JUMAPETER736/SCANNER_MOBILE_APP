@@ -9,23 +9,24 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_facebook_auth: ^5.0.7
-  modal_progress_hud_nsn: ^0.1.0-nullsafety-0
-  google_fonts: ^2.3.2
+  flutter_facebook_auth: ^7.1.1
+  modal_progress_hud_nsn: ^0.5.1
+  google_fonts: ^6.2.1
   awesome_dialog: ^3.1.1
   cupertino_icons: ^1.0.5
-  firebase_auth: ^4.8.1
-  firebase_core: ^2.15.0
-  cloud_firestore: ^4.17.5
-  google_sign_in: ^5.1.0
+  firebase_auth: ^5.2.1
+  firebase_core: ^3.4.1
+  firebase_auth_web: ^5.8.13 
+  cloud_firestore: ^5.4.1
+  google_sign_in: ^6.2.1
   validators: ^3.0.0
   fluttertoast: ^8.2.6
   provider: ^6.0.3
   local_auth: ^2.1.7
   shared_preferences: ^2.3.2
-  firebase_database: ^10.0.12
-  flutter_local_notifications: ^13.0.0
-  mobile_scanner: ^3.3.0
+  firebase_database: ^11.1.2
+  flutter_local_notifications: ^17.2.2
+  mobile_scanner: ^5.2.3
   qr_code_scanner: ^1.0.0
   qr_flutter: ^4.1.0
   barcode: ^2.2.8 
@@ -50,4 +51,4 @@ flutter:
         - asset: assets/fonts/Abel-Regular.ttf
 
 l10n:
-  path: l10n
+  path: l10n   please update all of them to the latest versions
