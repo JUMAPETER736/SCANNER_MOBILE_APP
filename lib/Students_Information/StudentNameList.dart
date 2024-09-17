@@ -29,7 +29,7 @@ class _StudentNameListState extends State<StudentNameList> {
     if (widget.loggedInUser != null) {
       var teacherSnapshot = await FirebaseFirestore.instance
           .collection('Teacher')
-          .doc(widget.loggedInUser!.uid)
+          .doc(widget.loggedInUser!.email)
           .get();
 
       if (teacherSnapshot.exists) {

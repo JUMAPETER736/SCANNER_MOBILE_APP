@@ -9,6 +9,7 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
+
 class RegisterPage extends StatefulWidget {
   static String id = '/RegisterPage';
 
@@ -98,7 +99,7 @@ class _RegisterPageState extends State<RegisterPage> {
       if (newUser.user != null) {
         await _saveUserDetails(newUser.user!);
 
-        // Show the success SnackBar instead of navigating to Done page
+        // Show the success SnackBar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Registered Successfully!'),
@@ -126,7 +127,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Future<void> _saveUserDetails(User user) async {
 
-    await FirebaseFirestore.instance.collection('Teacher').doc(user.uid).set({
+    await FirebaseFirestore.instance.collection('Teacher').doc(user.email).set({
       'name': name ?? 'Unknown',
       'email': email ?? 'Unknown',
       'createdAt': Timestamp.now(),
@@ -360,4 +361,3 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 }
 
-//there is a problem whereby when the user clicks the Register Button it Logs in the USer so i want you to stop it from doing that in stead when the user clicks the register button with all fields inserted it should just show a Snack Bar of  Register Successfully and when the user wants to log in its all about  clicking the Log in Button, so do that and give me full working code

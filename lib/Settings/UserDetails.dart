@@ -26,7 +26,7 @@ class _UserDetailsState extends State<UserDetails> {
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
           .collection('Teacher')
-          .doc(widget.user?.uid)
+          .doc(widget.user?.email)
           .get();
       if (snapshot.exists) {
         setState(() {
@@ -309,8 +309,14 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       );
 
       await userCredential.user!.updatePassword(newPassword);
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Password changed successfully!')),
+
+        SnackBar(
+            content: Text('Password changed Successfully!'),
+
+              backgroundColor: Colors.green,
+        ),
       );
       Navigator.of(context).pop();
     } catch (e) {
@@ -320,16 +326,16 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
         if (e.code == 'wrong-password') {
           setState(() {
-            errorMessage = 'Old Password is incorrect';
+            errorMessage = 'Old Password is Incorrect';
           });
         } else {
           setState(() {
-            errorMessage = 'Failed to change password: ${e.message}';
+            errorMessage = 'Failed to change Password: ${e.message}';
           });
         }
       } else {
         setState(() {
-          errorMessage = 'Failed to change password: ${e.toString()}';
+          errorMessage = 'Failed to change Password: ${e.toString()}';
         });
       }
     }

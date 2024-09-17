@@ -269,7 +269,7 @@ class _LoginPageState extends State<LoginPage> {
                               setState(() {
                                 _emailNotRegistered = true; // Set email not registered error
                               });
-                              _showToast("Email not registered");
+                              _showToast("Email not Registered");
                             }
                           } finally {
                             setState(() {
