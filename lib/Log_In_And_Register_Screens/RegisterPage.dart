@@ -31,6 +31,8 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _emptyPasswordField = false;
   bool _passwordMismatch = false;
   bool _passwordTooShort = false;
+  bool _isPasswordVisible = false; // For Password field
+  bool _isConfirmPasswordVisible = false;
 
 
   bool isValidEmail(String email) {
@@ -149,10 +151,10 @@ class _RegisterPageState extends State<RegisterPage> {
     required String label,
     required IconData icon,
     required bool obscureText,
-    String? Function(String?)? validator,
     Function(String)? onChanged,
     bool showError = false,
     String? errorText,
+    Widget? suffixIcon, // Add suffixIcon parameter here
   }) {
     return TextField(
       obscureText: obscureText,
@@ -165,9 +167,11 @@ class _RegisterPageState extends State<RegisterPage> {
           borderRadius: BorderRadius.circular(10.0),
           borderSide: BorderSide(color: Colors.blueAccent),
         ),
+        suffixIcon: suffixIcon, // Include the suffixIcon in the decoration
       ),
     );
   }
+
 
   Future<void> _signInWithSocialMedia(String provider) async {
     try {
@@ -236,6 +240,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   errorText: 'Please fill in the Name field',
                 ),
 
+                SizedBox(height: 20.0),
+
                 _buildStyledTextField(
                   label: 'Email',
                   icon: Icons.email,
@@ -249,23 +255,51 @@ class _RegisterPageState extends State<RegisterPage> {
 
 
                 SizedBox(height: 20.0),
+
+                // Password Field
+                // Password Field
                 _buildStyledTextField(
                   label: 'Password',
                   icon: Icons.lock,
-                  obscureText: true,
+                  obscureText: !_isPasswordVisible, // Toggle visibility
                   onChanged: (value) => password = value,
                   showError: _wrongPassword || _emptyPasswordField || _passwordTooShort,
-                  errorText: _passwordTooShort ? 'Password is too short, Password should be atleast 6 Charecters' : 'Please use a strong Password',
+                  errorText: _passwordTooShort
+                      ? 'Password is too short, Password should be at least 6 Characters'
+                      : 'Please use a strong Password',
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
+                    },
+                  ),
                 ),
                 SizedBox(height: 20.0),
+
+// Confirm Password Field
                 _buildStyledTextField(
                   label: 'Confirm Password',
                   icon: Icons.lock_outline,
-                  obscureText: true,
+                  obscureText: !_isConfirmPasswordVisible, // Toggle visibility
                   onChanged: (value) => confirmPassword = value,
                   showError: _passwordMismatch,
                   errorText: 'Passwords do NOT match',
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                      });
+                    },
+                  ),
                 ),
+
                 SizedBox(height: 30.0),
                 Container(
                   width: 350.0, // Adjust width as needed

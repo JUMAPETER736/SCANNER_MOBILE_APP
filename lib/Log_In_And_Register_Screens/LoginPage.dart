@@ -23,6 +23,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _emptyEmailField = false;
   bool _emptyPasswordField = false;
   bool _emailNotRegistered = false; // New state variable
+  bool _isPasswordVisible = false;
 
   String _emailText = 'Please use a valid Email';
   String _emptyEmailFieldText = 'Please fill in the Email field';
@@ -191,8 +192,9 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   SizedBox(height: 15.0),
+
                   TextField(
-                    obscureText: true,
+                    obscureText: !_isPasswordVisible,
                     keyboardType: TextInputType.visiblePassword,
                     onChanged: (value) {
                       password = value;
@@ -201,6 +203,7 @@ class _LoginPageState extends State<LoginPage> {
                         _emptyPasswordField = password.isEmpty;
                       });
                     },
+
                     decoration: InputDecoration(
                       labelText: 'Password',
                       errorText: _emptyPasswordField
@@ -208,8 +211,22 @@ class _LoginPageState extends State<LoginPage> {
                           : _wrongPassword ? _wrongPasswordFieldText : null,
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.lock, color: Colors.blueAccent),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isPasswordVisible = !_isPasswordVisible;
+                          });
+                        },
+                      ),
                     ),
                   ),
+
+
                   SizedBox(height: 1.0),
                   Align(
                     alignment: Alignment.topRight,
