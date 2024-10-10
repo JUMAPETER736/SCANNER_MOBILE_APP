@@ -83,10 +83,8 @@ class _ClassSelectionState extends State<ClassSelection> {
   }
 
 
-
   Widget _buildClassSelection() {
     return Container(
-      // ... other properties
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -94,12 +92,11 @@ class _ClassSelectionState extends State<ClassSelection> {
           if (isSaved)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Text(selectedClasses.join(', '), style: TextStyle(color: Colors.black, fontSize: 18)),
+              child: Text(selectedClasses.join(', '), style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
             )
           else
             ...classes.map((className) {
               return Card(
-                // ... other properties
                 child: CheckboxListTile(
                   title: Text(className, style: TextStyle(color: Colors.black, fontSize: 18)),
                   value: selectedClasses.contains(className),
@@ -128,10 +125,10 @@ class _ClassSelectionState extends State<ClassSelection> {
     );
   }
 
+
   Widget _buildSubjectSelection() {
     List<String> availableSubjects = _getAvailableSubjects();
     return Container(
-      // ... other properties
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -139,17 +136,16 @@ class _ClassSelectionState extends State<ClassSelection> {
           if (isSaved)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Text(selectedSubjects.join(', '), style: TextStyle(color: Colors.black, fontSize: 18)),
+              child: Text(selectedSubjects.join(', '), style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
             )
           else
             ...availableSubjects.map((subject) {
               return Card(
-                // ... other properties
                 child: CheckboxListTile(
                   title: Text(subject, style: TextStyle(color: Colors.black, fontSize: 18)),
                   value: selectedSubjects.contains(subject),
-                  onChanged: isSaved
-                      ? null // Disable if already saved
+                  onChanged: isSaved // Disable if already saved
+                      ? null
                       : (bool? value) {
                     setState(() {
                       if (value == true) {
@@ -172,8 +168,6 @@ class _ClassSelectionState extends State<ClassSelection> {
       ),
     );
   }
-
-
 
 
 
