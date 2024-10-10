@@ -28,7 +28,7 @@ class _StudentNameListState extends State<StudentNameList> {
   void _checkTeacherSelection() async {
     if (widget.loggedInUser != null) {
       var teacherSnapshot = await FirebaseFirestore.instance
-          .collection('Teacher')
+          .collection('Teacher_Details')
           .doc(widget.loggedInUser!.email)
           .get();
 
@@ -93,9 +93,9 @@ class _StudentNameListState extends State<StudentNameList> {
         child: _hasSelectedClass
             ? StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
-              .collection('Students')
+              .collection('Students_Details')
               .doc(teacherClass!)
-              .collection('StudentDetails')
+              .collection('Student_Details')
               .orderBy('lastName', descending: false)
               .snapshots(),
           builder: (context, snapshot) {

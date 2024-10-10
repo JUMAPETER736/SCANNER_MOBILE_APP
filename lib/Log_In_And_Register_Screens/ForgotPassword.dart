@@ -57,7 +57,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
     try {
       // Query Firestore to get user info based on the email
       final userDoc = await _firestore
-          .collection('Teacher')
+          .collection('TeachersDetails')
           .where('email', isEqualTo: email)
           .get();
 

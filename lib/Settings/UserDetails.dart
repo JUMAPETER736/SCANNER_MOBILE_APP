@@ -24,21 +24,26 @@ class _UserDetailsState extends State<UserDetails> {
 
   Future<void> fetchUserDetails() async {
     try {
-      DocumentSnapshot snapshot = await FirebaseFirestore.instance
-          .collection('Teacher')
-          .doc(widget.user?.email)
-          .get();
-      if (snapshot.exists) {
-        setState(() {
-          _username = snapshot['name'] ?? '';
-          _selectedClasses = List<String>.from(snapshot['classes'] ?? []);
-          _selectedSubjects = List<String>.from(snapshot['subjects'] ?? []);
-        });
+      // Ensure the user is authenticated
+      if (widget.user == null) {
+        print('User is not authenticated.');
+        return;
       }
+
+      // Fetching user details from the Teachers_Details collection using the user's email
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('Teachers_Details') // Corrected the collection name
+          .doc('Teachers_Class') // Assuming you're fetching from the Teachers_Class document
+          .collection('Classes') // Accessing the Classes collection
+          .doc('FORM 1') // Modify this if you want to fetch a specific class
+          .get();
+
+
     } catch (e) {
       print('Error fetching User Details: $e');
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

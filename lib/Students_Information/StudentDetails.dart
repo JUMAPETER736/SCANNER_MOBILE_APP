@@ -69,9 +69,9 @@ class _StudentDetailsState extends State<StudentDetails> {
 
       try {
         await _firestore
-            .collection('Students')
+            .collection('Students_Details')
             .doc(studentClass)
-            .collection('StudentDetails')
+            .collection('Student_Details')
             .doc(studentID)
             .set({
           ...studentDetails,

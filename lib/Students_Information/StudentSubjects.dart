@@ -96,9 +96,9 @@ class _StudentSubjectsState extends State<StudentSubjects> {
 
 
     final studentRef = _firestore
-        .collection('Students')
+        .collection('Students_Details')
         .doc(widget.studentClass)
-        .collection('StudentDetails')
+        .collection('Student_Details')
         .doc(widget.studentName);
 
     DocumentSnapshot docSnapshot = await studentRef.get();
@@ -117,9 +117,9 @@ class _StudentSubjectsState extends State<StudentSubjects> {
   Future<void> _fetchSubjects() async {
     try {
       final studentRef = _firestore
-          .collection('Students')
+          .collection('Students_Details')
           .doc(widget.studentClass)
-          .collection('StudentDetails')
+          .collection('Student_Details')
           .doc(widget.studentName);
 
       final snapshot = await studentRef.get();
@@ -144,9 +144,9 @@ class _StudentSubjectsState extends State<StudentSubjects> {
   Future<void> _updateSubjectGrade(Subject subject, String newGrade) async {
     try {
       final studentRef = _firestore
-          .collection('Students')
+          .collection('Students_Details')
           .doc(widget.studentClass)
-          .collection('StudentDetails')
+          .collection('Student_Details')
           .doc(widget.studentName);
 
       // Update the subject's grade
@@ -176,9 +176,9 @@ class _StudentSubjectsState extends State<StudentSubjects> {
   Future<void> _saveToSchoolReports() async {
     try {
       final studentRef = _firestore
-          .collection('Students')
+          .collection('Students_Details')
           .doc(widget.studentClass)
-          .collection('StudentDetails')
+          .collection('Student_Details')
           .doc(widget.studentName);
 
       final studentSnapshot = await studentRef.get();
@@ -235,7 +235,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
     if (user != null) {
       String userId = user.uid; // Get user's ID
       DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection('Teacher')
+          .collection('Teachers_Details')
           .doc(userId)
           .get();
       if (doc.exists && doc['classes'] != null && doc['subjects'] != null) {

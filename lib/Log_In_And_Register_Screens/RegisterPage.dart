@@ -22,6 +22,8 @@ class _RegisterPageState extends State<RegisterPage> {
   String? email;
   String? password;
   String? confirmPassword;
+  String? selectedClass;
+  String? selectedSubject;
 
   bool _showSpinner = false;
   bool _wrongEmail = false;
@@ -76,7 +78,8 @@ class _RegisterPageState extends State<RegisterPage> {
       });
     }
 
-    if (confirmPassword == null || confirmPassword!.isEmpty || password != confirmPassword) {
+    if (confirmPassword == null || confirmPassword!.isEmpty ||
+        password != confirmPassword) {
       setState(() {
         _passwordMismatch = true;
       });
@@ -88,7 +91,8 @@ class _RegisterPageState extends State<RegisterPage> {
       });
     }
 
-    if (_emptyNameField || _emptyEmailField || _emptyPasswordField || _passwordMismatch || _passwordTooShort) {
+    if (_emptyNameField || _emptyEmailField || _emptyPasswordField ||
+        _passwordMismatch || _passwordTooShort) {
       return;
     }
 
@@ -97,9 +101,11 @@ class _RegisterPageState extends State<RegisterPage> {
     });
 
     try {
-      final newUser = await _auth.createUserWithEmailAndPassword(email: email!, password: password!);
+      final newUser = await _auth.createUserWithEmailAndPassword(
+          email: email!, password: password!);
       if (newUser.user != null) {
-        await _saveUserDetails(newUser.user!);
+        await _saveUserDetails(newUser.user!, selectedClass!, selectedSubject!);
+
 
         // Show the success SnackBar
         ScaffoldMessenger.of(context).showSnackBar(
@@ -109,7 +115,6 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         );
       }
-
     } on FirebaseAuthException catch (e) {
       setState(() {
         _showSpinner = false;
@@ -126,17 +131,24 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
 
-
-  Future<void> _saveUserDetails(User user) async {
-
-    await FirebaseFirestore.instance.collection('Teacher').doc(user.email).set({
+  Future<void> _saveUserDetails(User user, String className,
+      String subject) async {
+  
+    await FirebaseFirestore.instance.collection('Teachers_Details').doc(
+        className).collection('Teachers_Details').doc(user.email).set({
       'name': name ?? 'Unknown',
-      'email': email ?? 'Unknown',
+      'subject': subject ?? 'Unknown',
+      'class': className, // Store the class name
+      'email': user.email,
       'createdAt': Timestamp.now(),
-      'profilePictureUrl': '',
-
+      'profilePictureUrl': '', // Optional field
     });
   }
+
+
+// match /{document=**} {
+//allow read, write: if request.auth != null;
+//}
 
   void _showSuccessToast([String message = "Registered Successfully"]) {
     Fluttertoast.showToast(
@@ -259,6 +271,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 // Password Field
                 // Password Field
                 _buildStyledTextField(
+
                   label: 'Password',
                   icon: Icons.lock,
                   obscureText: !_isPasswordVisible, // Toggle visibility
@@ -269,7 +282,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       : 'Please use a strong Password',
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                      _isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                     ),
                     onPressed: () {
                       setState(() {
@@ -278,9 +293,9 @@ class _RegisterPageState extends State<RegisterPage> {
                     },
                   ),
                 ),
+
                 SizedBox(height: 20.0),
 
-// Confirm Password Field
                 _buildStyledTextField(
                   label: 'Confirm Password',
                   icon: Icons.lock_outline,
@@ -288,16 +303,19 @@ class _RegisterPageState extends State<RegisterPage> {
                   onChanged: (value) => confirmPassword = value,
                   showError: _passwordMismatch,
                   errorText: 'Passwords do NOT match',
+
                   suffixIcon: IconButton(
-                    icon: Icon(
-                      _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-                      });
-                    },
+                  icon: Icon(
+                    _isPasswordVisible
+                        ? Icons.visibility
+                        : Icons.visibility_off,
                   ),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                ),
                 ),
 
                 SizedBox(height: 30.0),
@@ -381,8 +399,8 @@ class _RegisterPageState extends State<RegisterPage> {
                         Navigator.pushNamed(context, LoginPage.id);
                       },
                       child: Text('Log In', style:
-                                TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 15.0,),
-                        ),
+                      TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 15.0,),
+                      ),
                     ),
                   ],
                 ),
@@ -394,4 +412,3 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 }
-

@@ -41,17 +41,22 @@ class _ClassSelectionState extends State<ClassSelection> {
 
   void _initializeFirestoreData() async {
     try {
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('Teacher').get();
+      // Fetch data for all teachers
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('Teachers_Details').get();
       List<DocumentSnapshot> documents = querySnapshot.docs;
 
       for (var doc in documents) {
         // Ensure the fields exist before attempting to access them
         if (doc.data() != null) {
           var data = doc.data() as Map<String, dynamic>;
+
+          // Check and update unavailable classes
           if (data.containsKey('classes')) {
             List<String> classes = List<String>.from(data['classes']);
             unavailableClasses.addAll(classes);
           }
+
+          // Check and update unavailable subjects
           if (data.containsKey('subjects')) {
             List<String> subjects = List<String>.from(data['subjects']);
             unavailableSubjects.addAll(subjects);
@@ -60,6 +65,20 @@ class _ClassSelectionState extends State<ClassSelection> {
       }
     } catch (e) {
       print('Error initializing Firestore data: $e');
+    }
+  }
+
+// Method to save or update selected classes and subjects
+  Future<void> _saveSelectedClassesAndSubjects(String userEmail, List<String> selectedClasses, List<String> selectedSubjects) async {
+    try {
+      await FirebaseFirestore.instance.collection('Teachers_Details').doc(userEmail).set({
+        'classes': FieldValue.arrayUnion(selectedClasses), // Add selected classes
+        'subjects': FieldValue.arrayUnion(selectedSubjects), // Add selected subjects
+      }, SetOptions(merge: true)); // Merge to update without overwriting
+
+      print('Selected classes and subjects saved successfully.');
+    } catch (e) {
+      print('Error saving selected classes and subjects: $e');
     }
   }
 

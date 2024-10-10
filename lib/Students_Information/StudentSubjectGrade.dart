@@ -33,7 +33,7 @@ class _StudentSubjectGradeState extends State<StudentSubjectGrade> {
       User? user = _auth.currentUser;
 
       if (user != null) {
-        DocumentSnapshot userDoc = await _firestore.collection('Teacher').doc(user.email).get();
+        DocumentSnapshot userDoc = await _firestore.collection('Teachers_Details').doc(user.email).get();
         if (userDoc.exists) {
           var classes = userDoc['classes'] as List<dynamic>? ?? [];
           if (classes.isNotEmpty) {
