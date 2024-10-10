@@ -103,8 +103,8 @@ class _ClassSelectionState extends State<ClassSelection> {
                 child: CheckboxListTile(
                   title: Text(className, style: TextStyle(color: Colors.black, fontSize: 18)),
                   value: selectedClasses.contains(className),
-                  onChanged: unavailableClasses.contains(className) || isSaved
-                      ? null // Disable if unavailable or already saved
+                  onChanged: isSaved || unavailableClasses.contains(className)
+                      ? null // Disable if already saved or unavailable
                       : (bool? value) {
                     setState(() {
                       if (value == true) {
@@ -128,7 +128,6 @@ class _ClassSelectionState extends State<ClassSelection> {
     );
   }
 
-
   Widget _buildSubjectSelection() {
     List<String> availableSubjects = _getAvailableSubjects();
     return Container(
@@ -150,7 +149,7 @@ class _ClassSelectionState extends State<ClassSelection> {
                   title: Text(subject, style: TextStyle(color: Colors.black, fontSize: 18)),
                   value: selectedSubjects.contains(subject),
                   onChanged: isSaved
-                      ? null
+                      ? null // Disable if already saved
                       : (bool? value) {
                     setState(() {
                       if (value == true) {
@@ -176,26 +175,25 @@ class _ClassSelectionState extends State<ClassSelection> {
 
 
 
+
+
   void _checkSavedSelections() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      String userId = user.uid;
-      DocumentSnapshot doc = await FirebaseFirestore.instance.collection('Teacher').doc(userId).get();
+      String userEmail = user.email!;
+      DocumentSnapshot doc = await FirebaseFirestore.instance.collection('Teachers_Details').doc(userEmail).get();
+
       if (doc.exists && doc.data() != null) {
         var data = doc.data() as Map<String, dynamic>;
         if (data.containsKey('classes')) {
           setState(() {
             selectedClasses = List<String>.from(data['classes']);
-            // Reload subjects based on the selected classes
-            if (selectedClasses.isNotEmpty) {
-              selectedSubjects = List<String>.from(data['subjects']);
-            }
           });
         }
         if (data.containsKey('subjects')) {
           setState(() {
             selectedSubjects = List<String>.from(data['subjects']);
-            isSaved = true;
+            isSaved = true; // Set isSaved to true to indicate that selections are saved.
           });
         }
       }
@@ -205,29 +203,44 @@ class _ClassSelectionState extends State<ClassSelection> {
 
   Future<void> _saveSelection() async {
     User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      String teacherId = user.uid;
-      try {
-        await FirebaseFirestore.instance.collection('Teacher').doc(teacherId).set({
-          'classes': selectedClasses,
-          'subjects': selectedSubjects,
-        }, SetOptions(merge: true));
+    if (user == null) {
+      print('User is not authenticated.');
+      return; // Exit if user is not authenticated.
+    }
 
-        unavailableClasses.addAll(selectedClasses);
-        unavailableSubjects.addAll(selectedSubjects);
+    String userEmail = user.email!; // Use the user's email as the document ID
+    try {
+      await FirebaseFirestore.instance.collection('Teachers_Details').doc(userEmail).set({
+        'classes': selectedClasses,
+        'subjects': selectedSubjects,
+      }, SetOptions(merge: true));
 
-        setState(() {
-          isSaved = true;
-        });
+      unavailableClasses.addAll(selectedClasses);
+      unavailableSubjects.addAll(selectedSubjects);
 
-        _showToast("Selections saved Successfully!");
-      } catch (e) {
-        print('Error saving classes and subjects: $e');
-        _showToast("Error saving selections.");
-      }
+      setState(() {
+        isSaved = true; // Set isSaved to true to indicate that selections are saved.
+      });
+
+      // Show the success SnackBar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Selections saved successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print('Error saving classes and subjects: $e');
+
+      // Show the error SnackBar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error in saving selections.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
-
 
 
 
