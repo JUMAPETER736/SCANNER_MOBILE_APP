@@ -104,7 +104,7 @@ class _RegisterPageState extends State<RegisterPage> {
       final newUser = await _auth.createUserWithEmailAndPassword(
           email: email!, password: password!);
       if (newUser.user != null) {
-        await _saveUserDetails(newUser.user!, selectedClass!, selectedSubject!);
+        await _saveUserDetails(newUser.user!, name!);
 
 
         // Show the success SnackBar
@@ -131,19 +131,18 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
 
-  Future<void> _saveUserDetails(User user, String className,
-      String subject) async {
-  
-    await FirebaseFirestore.instance.collection('Teachers_Details').doc(
-        className).collection('Teachers_Details').doc(user.email).set({
-      'name': name ?? 'Unknown',
-      'subject': subject ?? 'Unknown',
-      'class': className, // Store the class name
-      'email': user.email,
-      'createdAt': Timestamp.now(),
-      'profilePictureUrl': '', // Optional field
+  Future<void> _saveUserDetails(User user, String name) async {
+    // Use the user's email as the document ID
+    String userEmail = user.email ?? '';
+
+    // Save only the name and email in Firestore
+    await FirebaseFirestore.instance.collection('Teachers_Details').doc(userEmail).set({
+      'name': name ?? 'Unknown', // Save the user's name
+      'email': userEmail, // Use email as the unique ID
+      'createdAt': Timestamp.now(), // Optionally, save the creation timestamp
     });
   }
+
 
 
 // match /{document=**} {
@@ -306,13 +305,13 @@ class _RegisterPageState extends State<RegisterPage> {
 
                   suffixIcon: IconButton(
                   icon: Icon(
-                    _isPasswordVisible
+                    _isConfirmPasswordVisible
                         ? Icons.visibility
                         : Icons.visibility_off,
                   ),
                   onPressed: () {
                     setState(() {
-                      _isPasswordVisible = !_isPasswordVisible;
+                      _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
                     });
                   },
                 ),
