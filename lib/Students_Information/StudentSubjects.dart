@@ -177,9 +177,9 @@ class _StudentSubjectsState extends State<StudentSubjects> {
     try {
       final studentRef = _firestore
           .collection('Students_Details')
-          .doc(widget.studentClass)
+          .doc(widget.studentClass) // Ensure this is correctly set to the desired form, e.g., 'FORM 2'
           .collection('Student_Details')
-          .doc(widget.studentName);
+          .doc(widget.studentName); // Assuming widget.studentName is the student ID (e.g., '319415')
 
       final studentSnapshot = await studentRef.get();
 
@@ -204,17 +204,14 @@ class _StudentSubjectsState extends State<StudentSubjects> {
             return gradeStr != 'N/A';
           }).length * 100;
 
-          await _firestore
-              .collection('SchoolReports')
-              .doc(widget.studentClass)
-              .collection('StudentReports')
-              .doc(widget.studentName)
-              .set({
+          // Update the student document with the new studentSubjects field
+          await studentRef.set({
             'firstName': widget.studentName.split(' ').first,
             'lastName': widget.studentName.split(' ').last,
             'grades': subjects,
             'totalMarks': totalMarks,
             'teacherTotalMarks': teacherTotalMarks, // Updated calculation
+            'studentSubjects': subjects.map((subject) => subject.toMap()).toList(), // Add studentSubjects
             'studentId': FirebaseAuth.instance.currentUser?.uid,
           }, SetOptions(merge: true));
         } else {
@@ -227,6 +224,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
       print('Error fetching Student DATA: $e');
     }
   }
+
 
 
 

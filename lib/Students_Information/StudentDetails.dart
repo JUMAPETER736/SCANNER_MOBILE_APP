@@ -27,6 +27,7 @@ class _StudentDetailsState extends State<StudentDetails> {
   String? studentGender;
   String? studentID;
   String? generatedQRcode;
+  String? studentFullName;
 
   @override
   void initState() {
@@ -52,34 +53,36 @@ class _StudentDetailsState extends State<StudentDetails> {
 
 
   void saveStudentDetails() async {
-
     if (_formKey.currentState!.validate()) {
-      studentID = generateRandomStudentID();
+      // Create a unique student ID and combine the full name
+      studentFullName = '${_lastNameController.text.trim().toUpperCase()} ${_firstNameController.text.trim().toUpperCase()}';
+      studentID = generateRandomStudentID();  // Generate a new student ID
 
       Map<String, String> studentDetails = {
-
-        'firstName': _firstNameController.text.trim(),
-        'lastName': _lastNameController.text.trim(),
+        'firstName': _firstNameController.text.trim().toUpperCase(), // Save first name in capital letters
+        'lastName': _lastNameController.text.trim().toUpperCase(),   // Save last name in capital letters
         'studentClass': studentClass!,
         'studentAge': _ageController.text.trim(),
         'studentGender': studentGender!,
-        'studentID': studentID!,
+        'studentID': studentID!,   // Still saving the Student ID
         'createdBy': loggedInUser?.email ?? '',
       };
 
       try {
+        // Save the student details in Firestore using lastName_firstName as the document ID
         await _firestore
             .collection('Students_Details')
-            .doc(studentClass)
+            .doc(studentClass)  // Each class has a sub-collection for students
             .collection('Student_Details')
-            .doc(studentID)
+            .doc(studentFullName)  // Use full name (lastName_firstName) for the document ID
             .set({
           ...studentDetails,
           'timestamp': FieldValue.serverTimestamp(),
         });
 
+        // Encode the QR code with the studentID
         setState(() {
-          generatedQRcode = jsonEncode(studentDetails);
+          generatedQRcode = studentID;  // Encode only the studentID in the QR code
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -99,6 +102,15 @@ class _StudentDetailsState extends State<StudentDetails> {
       }
     }
   }
+
+
+
+// Generate a random number to append to the ID for uniqueness
+  String generateRandomNumber() {
+    Random random = Random();
+    return random.nextInt(1000).toString(); // Generate a random number between 0-999
+  }
+
 
 
 
