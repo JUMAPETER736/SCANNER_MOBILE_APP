@@ -30,19 +30,41 @@ class _UserDetailsState extends State<UserDetails> {
         return;
       }
 
-      // Fetching user details from the Teachers_Details collection using the user's email
-      DocumentSnapshot snapshot = await FirebaseFirestore.instance
-          .collection('Teachers_Details') // Corrected the collection name
-          .doc('Teachers_Class') // Assuming you're fetching from the Teachers_Class document
-          .collection('Classes') // Accessing the Classes collection
-          .doc('FORM 1') // Modify this if you want to fetch a specific class
+      // Fetch user details from Firestore
+      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('Teachers_Details') // Access the Teachers_Details collection
+          .doc(widget.user!.email) // Use the user's email as the document ID
           .get();
 
+      // Check if the document exists
+      if (userSnapshot.exists) {
+        final data = userSnapshot.data() as Map<String, dynamic>?; // Cast data to Map
 
+        setState(() {
+          _username = (data != null && data.containsKey('name')) ? data['name'] : 'N/A';
+          _selectedClasses = (data != null && data.containsKey('classes')) ? List<String>.from(data['classes']) : ['N/A'];
+          _selectedSubjects = (data != null && data.containsKey('subjects')) ? List<String>.from(data['subjects']) : ['N/A'];
+        });
+      } else {
+        print('User details not found for: ${widget.user!.email}');
+        // Assign default values if document does not exist
+        setState(() {
+          _username = 'N/A';
+          _selectedClasses = ['N/A'];
+          _selectedSubjects = ['N/A'];
+        });
+      }
     } catch (e) {
       print('Error fetching User Details: $e');
+      // Assign default values in case of error
+      setState(() {
+        _username = 'N/A';
+        _selectedClasses = ['N/A'];
+        _selectedSubjects = ['N/A'];
+      });
     }
   }
+
 
 
   @override
@@ -286,8 +308,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     String newPassword = _newPasswordController.text.trim();
     String reEnterNewPassword = _reEnterNewPasswordController.text.trim();
 
-    if (oldPassword.isEmpty || newPassword.isEmpty ||
-        reEnterNewPassword.isEmpty) {
+    if (oldPassword.isEmpty || newPassword.isEmpty || reEnterNewPassword.isEmpty) {
       setState(() {
         errorMessage = 'Please fill in all fields';
       });
@@ -296,7 +317,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
     if (newPassword != reEnterNewPassword) {
       setState(() {
-        errorMessage = 'Passwords do not match';
+        errorMessage = 'New passwords do not match';
       });
       return;
     }
@@ -304,45 +325,41 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     await changePassword(oldPassword, newPassword);
   }
 
-
   Future<void> changePassword(String oldPassword, String newPassword) async {
     try {
-      UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(
-        email: widget.user?.email ?? '',
+      // Re-authenticate the user
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: widget.user!.email!,
         password: oldPassword,
       );
 
+      // Change the password
       await userCredential.user!.updatePassword(newPassword);
 
+      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
-
         SnackBar(
-            content: Text('Password changed Successfully!'),
-
-              backgroundColor: Colors.green,
+          content: Text('Password changed successfully!'),
+          backgroundColor: Colors.green,
         ),
       );
       Navigator.of(context).pop();
-    } catch (e) {
-      if (e is FirebaseAuthException) {
-        print('Error code: ${e.code}');
-        print('Error message: ${e.message}');
-
-        if (e.code == 'wrong-password') {
-          setState(() {
-            errorMessage = 'Old Password is Incorrect';
-          });
-        } else {
-          setState(() {
-            errorMessage = 'Failed to change Password: ${e.message}';
-          });
-        }
+    } on FirebaseAuthException catch (e) {
+      print('Error code: ${e.code}');
+      print('Error message: ${e.message}');
+      if (e.code == 'wrong-password') {
+        setState(() {
+          errorMessage = 'Old Password is Incorrect';
+        });
       } else {
         setState(() {
-          errorMessage = 'Failed to change Password: ${e.toString()}';
+          errorMessage = 'Failed to change Password: ${e.message}';
         });
       }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Failed to change Password: ${e.toString()}';
+      });
     }
   }
 }
