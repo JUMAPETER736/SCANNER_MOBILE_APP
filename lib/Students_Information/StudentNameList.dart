@@ -28,7 +28,7 @@ class _StudentNameListState extends State<StudentNameList> {
   void _checkTeacherSelection() async {
     if (widget.loggedInUser != null) {
       var teacherSnapshot = await FirebaseFirestore.instance
-          .collection('Teacher_Details')
+          .collection('Teachers_Details')
           .doc(widget.loggedInUser!.email)
           .get();
 
@@ -65,7 +65,7 @@ class _StudentNameListState extends State<StudentNameList> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _hasSelectedClass ? ' $teacherClass STUDENTS' : 'Name of Students',
+          _hasSelectedClass ? '$teacherClass STUDENTS' : 'Name of Students',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -94,8 +94,8 @@ class _StudentNameListState extends State<StudentNameList> {
             ? StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('Students_Details')
-              .doc(teacherClass!)
-              .collection('Student_Details')
+              .doc(teacherClass!) // Ensure you are using the selected class
+              .collection('Student_Details') // Fixed collection name here
               .orderBy('lastName', descending: false)
               .snapshots(),
           builder: (context, snapshot) {
@@ -107,20 +107,19 @@ class _StudentNameListState extends State<StudentNameList> {
                 child: Text(
                   'No Student found.',
                   style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
                 ),
               );
             }
 
+            // Filtered documents based on search query
             var filteredDocs = snapshot.data!.docs.where((doc) {
               var firstName = doc['firstName'] ?? '';
               var lastName = doc['lastName'] ?? '';
-              var studentGender = doc['studentGender'] ?? '';
-              return firstName
-                  .toLowerCase()
-                  .contains(_searchQuery.toLowerCase()) ||
+              return firstName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                   lastName.toLowerCase().contains(_searchQuery.toLowerCase());
             }).toList();
 
@@ -148,7 +147,7 @@ class _StudentNameListState extends State<StudentNameList> {
                 var studentGender = student['studentGender'] ?? 'N/A';
                 var studentClass = student['studentClass'] ?? 'N/A';
 
-// Reduced vertical size for the student name box
+                // Reduced vertical size for the student name box
                 return Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
@@ -162,9 +161,9 @@ class _StudentNameListState extends State<StudentNameList> {
                       ),
                     ],
                   ),
-                  margin: const EdgeInsets.symmetric(vertical: 4.0), // Reduced the margin to shrink height
+                  margin: const EdgeInsets.symmetric(vertical: 4.0),
                   child: ListTile(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Reduced vertical padding
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     leading: Text(
                       '${index + 1}.',
                       style: TextStyle(
@@ -176,7 +175,7 @@ class _StudentNameListState extends State<StudentNameList> {
                     title: Text(
                       '${lastName.toUpperCase()} ${firstName.toUpperCase()}',
                       style: TextStyle(
-                        fontSize: 18, // Slightly reduced font size
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.blueAccent,
                       ),
@@ -184,7 +183,7 @@ class _StudentNameListState extends State<StudentNameList> {
                     subtitle: Text(
                       'Gender: $studentGender',
                       style: TextStyle(
-                        fontSize: 14, // Reduced font size
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: Colors.black54,
                       ),
@@ -207,12 +206,8 @@ class _StudentNameListState extends State<StudentNameList> {
                     },
                   ),
                 );
-
               },
             );
-
-
-
           },
         )
             : Center(
@@ -229,7 +224,6 @@ class _StudentNameListState extends State<StudentNameList> {
     );
   }
 
-  // Method to show search dialog
   void showSearchDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -248,23 +242,18 @@ class _StudentNameListState extends State<StudentNameList> {
             },
           ),
           actions: [
-
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
               child: Text(
-
-                          'Cancel',
-                          style: TextStyle(
-
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red,
-                          ),
-
+                'Cancel',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
               ),
             ),
-
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
@@ -273,16 +262,13 @@ class _StudentNameListState extends State<StudentNameList> {
                 });
               },
               child: Text(
-
-                          'Search',
-                          style: TextStyle(
-
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blueAccent,
-                          ),
+                'Search',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blueAccent,
+                ),
               ),
             ),
-
           ],
         );
       },
