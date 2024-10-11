@@ -97,22 +97,29 @@ class _StudentSubjectsState extends State<StudentSubjects> {
 
     final studentRef = _firestore
         .collection('Students_Details')
-        .doc(widget.studentClass)
+        .doc(widget.studentClass) // e.g., FORM 2
         .collection('Student_Details')
-        .doc(widget.studentName);
+        .doc(widget.studentName); // e.g., PETER JUMA
 
-    DocumentSnapshot docSnapshot = await studentRef.get();
+    try {
+      DocumentSnapshot docSnapshot = await studentRef.get();
 
-    if (docSnapshot.exists) {
-      _fetchSubjects();
-    } else {
-      final subjectList = defaultSubjects[widget.studentClass] ?? [];
-      await studentRef.set({
-        'Subjects': subjectList.map((subject) => subject.toMap()).toList(),
-      });
-      _fetchSubjects();
+      if (!docSnapshot.exists) {
+        final subjectList = defaultSubjects[widget.studentClass] ?? [];
+        // Save the default subjects to 'Student_Subjects'
+        await studentRef.set({
+          'Student_Subjects': subjectList.map((subject) => subject.toMap()).toList(),
+        });
+      }
+
+      // Fetch subjects after ensuring they are set
+      await _fetchSubjects();
+    } catch (e) {
+      print('Error initializing student subjects: $e');
     }
   }
+
+
 
   Future<void> _fetchSubjects() async {
     try {
@@ -125,21 +132,27 @@ class _StudentSubjectsState extends State<StudentSubjects> {
       final snapshot = await studentRef.get();
       if (snapshot.exists) {
         var data = snapshot.data() as Map<String, dynamic>;
-        var subjects = data['Subjects'] as List<dynamic>?;
+        var subjects = data['Student_Subjects'] as List<dynamic>?; // Access 'Student_Subjects'
 
-        if (subjects != null) {
+        if (subjects != null && subjects.isNotEmpty) {
           setState(() {
             _subjects = subjects
-                .map((subjectData) =>
-                Subject.fromMap(subjectData as Map<String, dynamic>))
+                .map((subjectData) => Subject.fromMap(subjectData as Map<String, dynamic>))
                 .toList();
           });
+        } else {
+          // If subjects field is empty, initialize with default subjects
+          _initializeDefaultSubjects();
         }
+      } else {
+        // If the document doesn't exist, initialize with default subjects
+        _initializeDefaultSubjects();
       }
     } catch (e) {
-      print(e);
+      print('Error fetching subjects: $e');
     }
   }
+
 
   Future<void> _updateSubjectGrade(Subject subject, String newGrade) async {
     try {
@@ -149,9 +162,8 @@ class _StudentSubjectsState extends State<StudentSubjects> {
           .collection('Student_Details')
           .doc(widget.studentName);
 
-      // Update the subject's grade
       await studentRef.update({
-        'Subjects': _subjects
+        'Student_Subjects': _subjects
             .map((sub) => sub.name == subject.name
             ? subject.copyWith(grade: newGrade).toMap()
             : sub.toMap())
@@ -161,17 +173,15 @@ class _StudentSubjectsState extends State<StudentSubjects> {
       // Update local state
       setState(() {
         _subjects = _subjects
-            .map((sub) =>
-        sub.name == subject.name ? subject.copyWith(grade: newGrade) : sub)
+            .map((sub) => sub.name == subject.name ? subject.copyWith(grade: newGrade) : sub)
             .toList();
       });
-
-      // Save to SchoolReports
-      await _saveToSchoolReports();
     } catch (e) {
-      print(e);
+      print('Error updating subject grade: $e');
     }
   }
+
+
 
   Future<void> _saveToSchoolReports() async {
     try {
