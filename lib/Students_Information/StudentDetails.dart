@@ -59,26 +59,49 @@ class _StudentDetailsState extends State<StudentDetails> {
       studentID = generateRandomStudentID();  // Generate a new student ID
 
       Map<String, String> studentDetails = {
-        'firstName': _firstNameController.text.trim().toUpperCase(), // Save first name in capital letters
-        'lastName': _lastNameController.text.trim().toUpperCase(),   // Save last name in capital letters
+        'firstName': _firstNameController.text.trim().toUpperCase(),
+        'lastName': _lastNameController.text.trim().toUpperCase(),
         'studentClass': studentClass!,
         'studentAge': _ageController.text.trim(),
         'studentGender': studentGender!,
-        'studentID': studentID!,   // Still saving the Student ID
+        'studentID': studentID!,
         'createdBy': loggedInUser?.email ?? '',
       };
 
+      // Define default subjects for each form
+      final defaultSubjects = {
+        'FORM 1': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
+        'FORM 2': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
+        'FORM 3': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
+        'FORM 4': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
+      };
+
       try {
-        // Save the student details in Firestore using lastName_firstName as the document ID
+        // Save the student details in Firestore
         await _firestore
             .collection('Students_Details')
-            .doc(studentClass)  // Each class has a sub-collection for students
+            .doc(studentClass)
             .collection('Student_Details')
-            .doc(studentFullName)  // Use full name (lastName_firstName) for the document ID
+            .doc(studentFullName)
             .set({
           ...studentDetails,
           'timestamp': FieldValue.serverTimestamp(),
         });
+
+        // Create the Student_Subjects documents with default grades
+        for (String subject in defaultSubjects[studentClass]!) {
+          await _firestore
+              .collection('Students_Details')
+              .doc(studentClass)
+              .collection('Student_Details')
+              .doc(studentFullName)
+              .collection('Student_Subjects')
+              .doc(subject) // Use the subject name as the document ID
+              .set({
+            'Subject_Name': subject,
+            'Subject_Grade': 'N/A', // Default grade for all subjects
+          });
+        }
 
         // Encode the QR code with the studentID
         setState(() {
@@ -102,6 +125,7 @@ class _StudentDetailsState extends State<StudentDetails> {
       }
     }
   }
+
 
 
 
