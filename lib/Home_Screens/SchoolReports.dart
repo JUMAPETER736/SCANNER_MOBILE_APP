@@ -71,31 +71,27 @@ class _SchoolReportsState extends State<SchoolReports> {
 
       // Check if the student document exists
       if (studentDoc.exists) {
-        var subjects = studentDoc.data() as Map<String, dynamic>;
-
         int totalMarks = 0;
         int totalTeacherMarks = 0;
 
+        // Access the Student_Subjects collection for the student
+        var subjectsSnapshot = await studentRef.collection('Student_Subjects').get();
+
         // Iterate through all subjects and sum the grades
-        if (subjects.containsKey('Student_Subjects')) {
-          var studentSubjects = subjects['Student_Subjects'] as Map<String, dynamic>;
+        for (var subjectDoc in subjectsSnapshot.docs) {
+          var subjectData = subjectDoc.data() as Map<String, dynamic>;
 
-          print('Student Subjects: $studentSubjects'); // Debug log
+          // Check if the subject has the grade
+          if (subjectData.containsKey('Subject_Grade')) {
+            var gradeString = subjectData['Subject_Grade'];
 
-          studentSubjects.forEach((key, value) {
-            if (value is Map<String, dynamic> && value.containsKey('Subject_Grade')) {
-              var gradeString = value['Subject_Grade'];
+            // Safely convert the grade to an integer
+            int grade = int.tryParse(gradeString.toString()) ?? 0;
 
-              // Safely convert the grade to an integer
-              int grade = int.tryParse(gradeString.toString()) ?? 0;
-
-              totalMarks += grade;
-              totalTeacherMarks += 100; // Assuming max marks for each subject is 100
-            }
-          });
+            totalMarks += grade;
+            totalTeacherMarks += 100; // Assuming max marks for each subject is 100
+          }
         }
-
-        print('Total Marks: $totalMarks, Teacher Marks: $totalTeacherMarks'); // Debug log
 
         // Update the student document with total marks
         await studentRef.set({
@@ -111,6 +107,8 @@ class _SchoolReportsState extends State<SchoolReports> {
       print('Error updating marks: $e');
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
