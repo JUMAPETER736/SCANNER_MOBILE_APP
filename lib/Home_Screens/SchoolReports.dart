@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:scanna/Students_Information/StudentSubjects.dart';
+
 
 class SchoolReports extends StatefulWidget {
   final User? loggedInUser;
@@ -220,65 +220,50 @@ class _SchoolReportsState extends State<SchoolReports> {
                 var totalMarks = student['Student_Total_Marks'] ?? '0'; // Fetch total marks
                 var teacherMarks = student['Teachers_Total_Marks'] ?? '0'; // Fetch teacher's total marks
 
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => StudentSubjects(
-                          studentName: '$lastName $firstName',
-                          studentGender: studentGender,
-                          studentClass: teacherClass!,
-                        ),
+                return Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 4,
+                        offset: Offset(2, 2),
                       ),
-                    );
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 4,
-                          offset: Offset(2, 2),
+                    ],
+                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: Text(
+                      '${index + 1}.',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blueAccent,
+                      ),
+                    ),
+                    title: Text(
+                      '${lastName.toUpperCase()} ${firstName.toUpperCase()}',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blueAccent,
+                      ),
+                    ),
+                    subtitle: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Gender: $studentGender',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        Text(
+                          'Total Marks: $totalMarks / $teacherMarks',
+                          style: TextStyle(fontSize: 14),
                         ),
                       ],
-                    ),
-                    margin: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: ListTile(
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      leading: Text(
-                        '${index + 1}.',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blueAccent,
-                        ),
-                      ),
-                      title: Text(
-                        '${lastName.toUpperCase()} ${firstName.toUpperCase()}',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blueAccent,
-                        ),
-                      ),
-                      subtitle: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Gender: $studentGender',
-                            style: TextStyle(fontSize: 14),
-                          ),
-                          Text(
-                            'Total Marks: $totalMarks / $teacherMarks',
-                            style: TextStyle(fontSize: 14),
-                          ),
-                        ],
-                      ),
-                      trailing: Icon(Icons.arrow_forward),
                     ),
                   ),
                 );
@@ -295,6 +280,7 @@ class _SchoolReportsState extends State<SchoolReports> {
       ),
     );
   }
+
 
   void showSearchDialog(BuildContext context) {
     showDialog(
