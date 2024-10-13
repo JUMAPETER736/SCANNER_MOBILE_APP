@@ -307,8 +307,10 @@ class _SchoolReportsState extends State<SchoolReports> {
 }
 
 
-import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
+
+
+
 
 class SchoolReportPage extends StatelessWidget {
   final String studentName;
@@ -327,7 +329,7 @@ class SchoolReportPage extends StatelessWidget {
             .collection('Students_Details')
             .doc('FORM 2')
             .collection('Student_Details')
-            .doc(studentName)
+            .doc(studentName) // Use the studentName passed to the constructor
             .collection('Student_Subjects')
             .get(), // Fetching all subjects for the student
         builder: (context, snapshot) {
@@ -352,7 +354,7 @@ class SchoolReportPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Name: $studentName', // Use studentName here for display
+                  'Name: $studentName',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 8),
@@ -373,8 +375,8 @@ class SchoolReportPage extends StatelessWidget {
                 ),
                 SizedBox(height: 16),
                 ...subjectDocs.map((subjectDoc) {
-                  final subjectName = subjectDoc.id; // Get subject name from document ID
-                  final subjectGrade = subjectDoc['Subject_Grade']; // Adjust based on your Firestore data structure
+                  final subjectName = subjectDoc['Subject_Name'] ?? 'Unknown'; // Fetch Subject_Name
+                  final subjectGrade = subjectDoc['Subject_Grade'] ?? 'N/A'; // Fetch Subject_Grade
                   return SubjectReportCard(subject: subjectName, score: subjectGrade);
                 }).toList(),
               ],
