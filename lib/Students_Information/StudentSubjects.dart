@@ -26,7 +26,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
   bool isLoading = true;
   String searchQuery = '';
 
-  // Fetch subjects for the student from Firestore
+  // Fetch subjects for the student from Firestore and exclude 'TOTAL_MARKS'
   Future<void> _fetchSubjects() async {
     try {
       final studentRef = _firestore
@@ -42,6 +42,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
         setState(() {
           _subjects = snapshot.docs
               .map((doc) => Subject.fromMap(doc.data() as Map<String, dynamic>))
+              .where((subject) => subject.name != 'TOTAL_MARKS') // Exclude TOTAL_MARKS
               .toList();
           isLoading = false;
         });
@@ -71,7 +72,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
 
         if (docSnapshot.exists) {
           setState(() {
-            _loggedInUserSubjects = List<String>.from(docSnapshot['subjects']); // Retrieve subjects the user takes
+            _loggedInUserSubjects = List<String>.from(docSnapshot['subjects']); // Retrieve subjects the user teaches
           });
         }
       }

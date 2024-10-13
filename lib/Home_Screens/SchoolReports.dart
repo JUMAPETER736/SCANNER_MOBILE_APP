@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-
 class SchoolReports extends StatefulWidget {
   final User? loggedInUser;
 
@@ -69,31 +68,27 @@ class _SchoolReportsState extends State<SchoolReports> {
 
       DocumentSnapshot studentDoc = await studentRef.get();
 
-      // Check if the student document exists
       if (studentDoc.exists) {
         int totalMarks = 0;
         int totalTeacherMarks = 0;
 
-        // Access the Student_Subjects collection for the student
         var subjectsSnapshot = await studentRef.collection('Student_Subjects').get();
 
-        // Iterate through all subjects and sum the grades
         for (var subjectDoc in subjectsSnapshot.docs) {
           var subjectData = subjectDoc.data() as Map<String, dynamic>;
 
-          // Check if the subject has the grade
           if (subjectData.containsKey('Subject_Grade')) {
             var gradeString = subjectData['Subject_Grade'];
-
-            // Safely convert the grade to an integer
             int grade = int.tryParse(gradeString.toString()) ?? 0;
 
-            totalMarks += grade;
-            totalTeacherMarks += 100; // Assuming max marks for each subject is 100
+            // Only count the subject if the grade is not "N/A"
+            if (gradeString != "N/A") {
+              totalMarks += grade;
+              totalTeacherMarks += 100; // Increase the teacher's total marks by 100 only for valid subjects
+            }
           }
         }
 
-        // Update the student document with total marks
         await studentRef.set({
           'Student_Total_Marks': totalMarks,
           'Teachers_Total_Marks': totalTeacherMarks,
@@ -107,8 +102,6 @@ class _SchoolReportsState extends State<SchoolReports> {
       print('Error updating marks: $e');
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -161,7 +154,7 @@ class _SchoolReportsState extends State<SchoolReports> {
               .collection('Students_Details')
               .doc(teacherClass!)
               .collection('Student_Details')
-              .orderBy('lastName', descending: false)
+              .orderBy('Student_Total_Marks', descending: true)
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -180,7 +173,6 @@ class _SchoolReportsState extends State<SchoolReports> {
               );
             }
 
-            // Filtered documents based on search query
             var filteredDocs = snapshot.data!.docs.where((doc) {
               var firstName = doc['firstName'] ?? '';
               var lastName = doc['lastName'] ?? '';
@@ -188,7 +180,6 @@ class _SchoolReportsState extends State<SchoolReports> {
                   lastName.toLowerCase().contains(_searchQuery.toLowerCase());
             }).toList();
 
-            // Show "Student NOT found" if the filtered list is empty
             if (filteredDocs.isEmpty) {
               return Center(
                 child: Text(
@@ -202,9 +193,8 @@ class _SchoolReportsState extends State<SchoolReports> {
               );
             }
 
-            // Call update marks for each student
             for (var student in filteredDocs) {
-              _calculateAndUpdateMarks(student.id); // Update total marks
+              _calculateAndUpdateMarks(student.id);
             }
 
             return ListView.separated(
@@ -215,8 +205,8 @@ class _SchoolReportsState extends State<SchoolReports> {
                 var firstName = student['firstName'] ?? 'N/A';
                 var lastName = student['lastName'] ?? 'N/A';
                 var studentGender = student['studentGender'] ?? 'N/A';
-                var totalMarks = student['Student_Total_Marks'] ?? '0'; // Fetch total marks
-                var teacherMarks = student['Teachers_Total_Marks'] ?? '0'; // Fetch teacher's total marks
+                var totalMarks = student['Student_Total_Marks'] ?? '0';
+                var teacherMarks = student['Teachers_Total_Marks'] ?? '0';
 
                 return Container(
                   width: double.infinity,
@@ -263,6 +253,14 @@ class _SchoolReportsState extends State<SchoolReports> {
                         ),
                       ],
                     ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SchoolReportPage(studentName: student.id),
+                        ),
+                      );
+                    },
                   ),
                 );
               },
@@ -279,7 +277,6 @@ class _SchoolReportsState extends State<SchoolReports> {
     );
   }
 
-
   void showSearchDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -288,7 +285,7 @@ class _SchoolReportsState extends State<SchoolReports> {
           title: Text('Search Student'),
           content: TextField(
             controller: _searchController,
-            decoration: InputDecoration(hintText: 'Enter student name...'),
+            decoration: InputDecoration(hintText: 'Enter Student Name...'),
             onChanged: (value) {
               setState(() {
                 _searchQuery = value;
@@ -305,6 +302,125 @@ class _SchoolReportsState extends State<SchoolReports> {
           ],
         );
       },
+    );
+  }
+}
+
+
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class SchoolReportPage extends StatelessWidget {
+  final String studentName;
+
+  const SchoolReportPage({Key? key, required this.studentName}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('School Progress Report'),
+        backgroundColor: Colors.black,
+      ),
+      body: FutureBuilder<QuerySnapshot>(
+        future: FirebaseFirestore.instance
+            .collection('Students_Details')
+            .doc('FORM 2')
+            .collection('Student_Details')
+            .doc(studentName)
+            .collection('Student_Subjects')
+            .get(), // Fetching all subjects for the student
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(child: Text('No grades found.'));
+          }
+
+          // Extracting subject grades from the snapshot
+          final subjectDocs = snapshot.data!.docs;
+
+          return SingleChildScrollView(
+            padding: EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Name: $studentName', // Use studentName here for display
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Form: FORM 2',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 16),
+                Center(
+                  child: Text(
+                    'STUDENT SCHOOL REPORT',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueAccent,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16),
+                ...subjectDocs.map((subjectDoc) {
+                  final subjectName = subjectDoc.id; // Get subject name from document ID
+                  final subjectGrade = subjectDoc['Subject_Grade']; // Adjust based on your Firestore data structure
+                  return SubjectReportCard(subject: subjectName, score: subjectGrade);
+                }).toList(),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class SubjectReportCard extends StatelessWidget {
+  final String subject;
+  final dynamic score; // Use dynamic to allow for various data types
+
+  const SubjectReportCard({Key? key, required this.subject, required this.score}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 8.0),
+      padding: EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.blue[100],
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 4,
+            offset: Offset(2, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            subject.toUpperCase(),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            score != null ? score.toString() : 'N/A',
+            style: TextStyle(fontSize: 16),
+          ),
+        ],
+      ),
     );
   }
 }
