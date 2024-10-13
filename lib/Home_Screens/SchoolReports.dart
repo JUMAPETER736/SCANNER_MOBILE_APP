@@ -257,7 +257,10 @@ class _SchoolReportsState extends State<SchoolReports> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => SchoolReportPage(studentName: student.id),
+                          builder: (context) => SchoolReportPage(
+                              studentName: student.id,
+                              studentClass: teacherClass!, // Pass the selected class),
+                          ),
                         ),
                       );
                     },
@@ -308,13 +311,22 @@ class _SchoolReportsState extends State<SchoolReports> {
 
 
 
-
 class SchoolReportPage extends StatelessWidget {
   final String studentName;
+  final String studentClass; // Add form parameter
 
-  const SchoolReportPage({Key? key, required this.studentName}) : super(key: key);
+  const SchoolReportPage({Key? key, required this.studentName, required this.studentClass}) : super(key: key);
 
-  // Define grade ranges as a constant list
+  // Define grade ranges for junior and senior students
+  static const List<Map<String, String>> juniorGradeRanges = [
+    {'range': '80 - 100%', 'grade': 'A'},
+    {'range': '70 - 79%', 'grade': 'B'},
+    {'range': '60 - 69%', 'grade': 'C'},
+    {'range': '50 - 59%', 'grade': 'D'},
+    {'range': '40 - 49%', 'grade': 'E'},
+    {'range': '0 - 39%', 'grade': 'F'},
+  ];
+
   static const List<Map<String, String>> seniorGradeRanges = [
     {'range': '80 - 100%', 'grade': '1'},
     {'range': '75 - 79%', 'grade': '2'},
@@ -332,16 +344,16 @@ class SchoolReportPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('School Progress Report'),
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.blueAccent,
       ),
       body: FutureBuilder<QuerySnapshot>(
         future: FirebaseFirestore.instance
             .collection('Students_Details')
-            .doc('FORM 2')
+            .doc(studentClass) // Use the form parameter
             .collection('Student_Details')
-            .doc(studentName) // Use the studentName passed to the constructor
+            .doc(studentName)
             .collection('Student_Subjects')
-            .get(), // Fetching all subjects for the student
+            .get(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
@@ -355,24 +367,41 @@ class SchoolReportPage extends StatelessWidget {
             return Center(child: Text('No grades found.'));
           }
 
-          // Extracting subject grades from the snapshot
           final subjectDocs = snapshot.data!.docs;
+
+          // Calculate total marks and enrollment
+          int totalMarks = 0;
+          int totalStudents = 0;
+
+          // Get all students in the current form to calculate enrollment
+          FirebaseFirestore.instance
+              .collection('Students_Details')
+              .doc(studentClass) // Use the form parameter
+              .collection('Student_Details')
+              .get()
+              .then((value) {
+            totalStudents = value.docs.length;
+          });
+
+          // Calculate total marks for the position
+          for (var subjectDoc in subjectDocs) {
+            final subjectData = subjectDoc.data() as Map<String, dynamic>;
+            final subjectGrade = (subjectData['Subject_Grade'] is int)
+                ? subjectData['Subject_Grade']
+                : (subjectData['Subject_Grade'] is String)
+                ? int.tryParse(subjectData['Subject_Grade']) ?? 0
+                : 0;
+
+          }
+
+          // Placeholder for position, will be calculated later
+          int position = 1;
 
           return SingleChildScrollView(
             padding: EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Name: $studentName',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Form: FORM 2',
-                  style: TextStyle(fontSize: 16),
-                ),
-                SizedBox(height: 16),
                 Center(
                   child: Text(
                     'STUDENT SCHOOL REPORT',
@@ -384,18 +413,45 @@ class SchoolReportPage extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'NAME: $studentName',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'FORM: $studentClass',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('TERM:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    Text('YEAR:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    Text('ENROLLMENT: $totalStudents', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    Text('POSITION: $position', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                SizedBox(height: 16),
                 DataTable(
+                  border: TableBorder.all(),
+                  dataRowHeight: 40,
+                  headingRowHeight: 50,
+                  columnSpacing: 8,
                   columns: [
-                    DataColumn(label: Text('Subject')),
-                    DataColumn(label: Text('Score')),
-                    DataColumn(label: Text('Grade')),
-                    DataColumn(label: Text("Teacher's Remark")),
-                    DataColumn(label: Text('Signature')),
+                    DataColumn(label: Text('SUBJECTS', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('SCORE', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('GRADE', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text("TEACHER'S REMARK", style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('SIGNATURE', style: TextStyle(fontWeight: FontWeight.bold))),
                   ],
                   rows: subjectDocs.map((subjectDoc) {
                     final subjectData = subjectDoc.data() as Map<String, dynamic>;
 
-                    // Safely access Subject_Name and Subject_Grade
                     final subjectName = subjectData['Subject_Name'] ?? 'Unknown';
                     final subjectGrade = (subjectData['Subject_Grade'] is int)
                         ? subjectData['Subject_Grade']
@@ -404,14 +460,14 @@ class SchoolReportPage extends StatelessWidget {
                         : 0;
 
                     final scorePercentage = '$subjectGrade%'; // Assuming grades are given as integers
-                    final grade = getGrade(subjectGrade);
+                    final grade = getGrade(subjectGrade); // Use the updated getGrade method
 
                     return DataRow(cells: [
                       DataCell(Text(subjectName.toUpperCase())),
                       DataCell(Text(scorePercentage)),
                       DataCell(Text(grade)),
-                      DataCell(Text("Teacher's remark here")), // Placeholder for teacher's remark
-                      DataCell(Text("Signature here")), // Placeholder for signature
+                      DataCell(Text(" ")), // Placeholder for teacher's remark
+                      DataCell(Text(" ")), // Placeholder for signature
                     ]);
                   }).toList(),
                 ),
@@ -425,14 +481,25 @@ class SchoolReportPage extends StatelessWidget {
 
   // Function to determine the grade based on the score
   String getGrade(int score) {
-    if (score >= 80) return '1';
-    if (score >= 75) return '2';
-    if (score >= 70) return '3';
-    if (score >= 65) return '4';
-    if (score >= 60) return '5';
-    if (score >= 55) return '6';
-    if (score >= 50) return '7';
-    if (score >= 40) return '8';
-    return '9'; // 0 - 39%
+    if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
+      // Junior grades A-F
+      if (score >= 80) return 'A';
+      if (score >= 70) return 'B';
+      if (score >= 60) return 'C';
+      if (score >= 50) return 'D';
+      if (score >= 40) return 'E';
+      return 'F'; // 0 - 39%
+    } else {
+      // Senior grades 1-9
+      if (score >= 80) return '1';
+      if (score >= 75) return '2';
+      if (score >= 70) return '3';
+      if (score >= 65) return '4';
+      if (score >= 60) return '5';
+      if (score >= 55) return '6';
+      if (score >= 50) return '7';
+      if (score >= 40) return '8';
+      return '9'; // 0 - 39%
+    }
   }
 }
