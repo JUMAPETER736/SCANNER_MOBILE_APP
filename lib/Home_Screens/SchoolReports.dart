@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+
 class SchoolReports extends StatefulWidget {
   final User? loggedInUser;
 
@@ -455,14 +456,19 @@ class SchoolReportPage extends StatelessWidget {
 
   // Function to determine the grade based on the score
   String getGrade(int score) {
+
     if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
+
       if (score >= 80) return 'A';
       if (score >= 70) return 'B';
       if (score >= 60) return 'C';
       if (score >= 50) return 'D';
       if (score >= 40) return 'E';
+
       return 'F';
+
     } else {
+
       if (score >= 80) return '1';
       if (score >= 75) return '2';
       if (score >= 70) return '3';
@@ -471,7 +477,9 @@ class SchoolReportPage extends StatelessWidget {
       if (score >= 55) return '6';
       if (score >= 50) return '7';
       if (score >= 40) return '8';
+
       return '9';
+
     }
   }
 }
