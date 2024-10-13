@@ -1,91 +1,152 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:scanna/Students_Information/StudentSubjectGrade.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:scanna/Students_Information/StudentSubjects.dart';
 
 class SchoolReports extends StatefulWidget {
+  final User? loggedInUser;
+
+  const SchoolReports({Key? key, this.loggedInUser}) : super(key: key);
+
   @override
   _SchoolReportsState createState() => _SchoolReportsState();
 }
 
 class _SchoolReportsState extends State<SchoolReports> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  String? _userClass;
+  String _searchQuery = '';
+  TextEditingController _searchController = TextEditingController();
+  String? teacherClass;
+  bool _hasSelectedClass = false;
+  User? currentUser;
 
   @override
   void initState() {
     super.initState();
-    _getUserClass();
-  }
+    currentUser = widget.loggedInUser;
 
-  Future<void> _getUserClass() async {
-    try {
-      User? user = _auth.currentUser;
-
-      if (user != null) {
-        DocumentSnapshot userDoc = await _firestore.collection('Teacher').doc(user.uid).get();
-        if (userDoc.exists) {
-          var classes = userDoc['classes'] as List<dynamic>? ?? [];
-          if (classes.isNotEmpty) {
-            setState(() {
-              _userClass = classes[0]; // Assume the first class is selected
-            });
-          }
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      setState(() {
+        currentUser = user;
+        if (currentUser != null) {
+          _checkTeacherSelection();
         }
-      }
-    } catch (e) {
-      print('Error fetching user class: $e');
+      });
+    });
+
+    if (currentUser != null) {
+      _checkTeacherSelection();
     }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchSchoolReports() async {
-    if (_userClass == null) {
-      return [];
-    }
-
-    try {
-      List<Map<String, dynamic>> allReports = [];
-
-      QuerySnapshot reportQuerySnapshot = await _firestore
-          .collection('SchoolReports')
-          .doc(_userClass!)
-          .collection('StudentReports')
+  void _checkTeacherSelection() async {
+    if (currentUser != null) {
+      var teacherSnapshot = await FirebaseFirestore.instance
+          .collection('Teachers_Details')
+          .doc(currentUser!.email)
           .get();
 
-      allReports = reportQuerySnapshot.docs.map((doc) {
-        return {
-          'studentId': doc.id, // Assuming the document ID is the studentId
-          'firstName': doc['firstName'],
-          'lastName': doc['lastName'],
-          'totalMarks': doc['totalMarks'] ?? 0,
-          'teacherTotalMarks': doc['teacherTotalMarks'] ?? 0,
-        };
-      }).toList();
+      if (teacherSnapshot.exists) {
+        var teacherData = teacherSnapshot.data() as Map<String, dynamic>;
+        var classes = teacherData['classes'] as List<dynamic>? ?? [];
 
-      allReports.sort((a, b) => (b['totalMarks'] as int).compareTo(a['totalMarks'] as int));
+        if (classes.isNotEmpty) {
+          setState(() {
+            teacherClass = classes[0];
+            _hasSelectedClass = true;
+          });
+        }
+      }
+    }
+  }
 
-      return allReports;
+  Future<void> _calculateAndUpdateMarks(String studentDocId) async {
+    try {
+      DocumentReference studentRef = FirebaseFirestore.instance
+          .collection('Students_Details')
+          .doc(teacherClass!)
+          .collection('Student_Details')
+          .doc(studentDocId);
+
+      DocumentSnapshot studentDoc = await studentRef.get();
+
+      // Check if the student document exists
+      if (studentDoc.exists) {
+        var subjects = studentDoc.data() as Map<String, dynamic>;
+
+        int totalMarks = 0;
+        int totalTeacherMarks = 0;
+
+        // Iterate through all subjects and sum the grades
+        if (subjects.containsKey('Student_Subjects')) {
+          var studentSubjects = subjects['Student_Subjects'] as Map<String, dynamic>;
+
+          print('Student Subjects: $studentSubjects'); // Debug log
+
+          studentSubjects.forEach((key, value) {
+            if (value is Map<String, dynamic> && value.containsKey('Subject_Grade')) {
+              var gradeString = value['Subject_Grade'];
+
+              // Safely convert the grade to an integer
+              int grade = int.tryParse(gradeString.toString()) ?? 0;
+
+              totalMarks += grade;
+              totalTeacherMarks += 100; // Assuming max marks for each subject is 100
+            }
+          });
+        }
+
+        print('Total Marks: $totalMarks, Teacher Marks: $totalTeacherMarks'); // Debug log
+
+        // Update the student document with total marks
+        await studentRef.set({
+          'Student_Total_Marks': totalMarks,
+          'Teachers_Total_Marks': totalTeacherMarks,
+        }, SetOptions(merge: true));
+
+        print('Updated marks for student: $studentDocId');
+      } else {
+        print('Student document does not exist: $studentDocId');
+      }
     } catch (e) {
-      print('Error fetching School Reports: $e');
-      return [];
+      print('Error updating marks: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (currentUser == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'School Reports',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.blueAccent,
+        ),
+        body: Center(
+          child: Text('No user is logged in.'),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Center(
-          child: Text(
-            _userClass != null ? '$_userClass SCHOOL REPORTS' : 'Loading...',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
+        title: Text(
+          _hasSelectedClass ? '$teacherClass STUDENTS' : 'School Reports',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
+        centerTitle: true,
         backgroundColor: Colors.blueAccent,
+        actions: _hasSelectedClass
+            ? [
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: () {
+              showSearchDialog(context);
+            },
+          ),
+        ]
+            : [],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -95,107 +156,171 @@ class _SchoolReportsState extends State<SchoolReports> {
             end: Alignment.bottomRight,
           ),
         ),
-        padding: const EdgeInsets.all(10.0), // Reduced padding
-        child: FutureBuilder<List<Map<String, dynamic>>>(
-          future: _fetchSchoolReports(),
+        padding: const EdgeInsets.all(16.0),
+        child: _hasSelectedClass
+            ? StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('Students_Details')
+              .doc(teacherClass!)
+              .collection('Student_Details')
+              .orderBy('lastName', descending: false)
+              .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
+            }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
               return Center(
                 child: Text(
-                  'Error fetching DATA',
-                  style: TextStyle(fontSize: 16, color: Colors.red),
-                ),
-              );
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Center(
-                child: Text(
-                  'No School Reports found',
+                  'No Student found.',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blueAccent,
+                    color: Colors.red,
                   ),
                 ),
               );
             }
 
-            List<Map<String, dynamic>> reports = snapshot.data!;
+            // Filtered documents based on search query
+            var filteredDocs = snapshot.data!.docs.where((doc) {
+              var firstName = doc['firstName'] ?? '';
+              var lastName = doc['lastName'] ?? '';
+              return firstName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                  lastName.toLowerCase().contains(_searchQuery.toLowerCase());
+            }).toList();
+
+            // Show "Student NOT found" if the filtered list is empty
+            if (filteredDocs.isEmpty) {
+              return Center(
+                child: Text(
+                  'Student NOT found',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+              );
+            }
+
+            // Call update marks for each student
+            for (var student in filteredDocs) {
+              _calculateAndUpdateMarks(student.id); // Update total marks
+            }
 
             return ListView.separated(
-              itemCount: reports.length,
-              separatorBuilder: (context, index) => SizedBox(height: 8), // Reduced separator height
+              itemCount: filteredDocs.length,
+              separatorBuilder: (context, index) => SizedBox(height: 10),
               itemBuilder: (context, index) {
-                var report = reports[index];
+                var student = filteredDocs[index];
+                var firstName = student['firstName'] ?? 'N/A';
+                var lastName = student['lastName'] ?? 'N/A';
+                var studentGender = student['studentGender'] ?? 'N/A';
+                var totalMarks = student['Student_Total_Marks'] ?? '0'; // Fetch total marks
+                var teacherMarks = student['Teachers_Total_Marks'] ?? '0'; // Fetch teacher's total marks
 
-                return Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(8), // Reduced corner radius
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12, // Lighter shadow
-                        blurRadius: 3, // Reduced blur radius
-                        offset: Offset(1, 1),
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => StudentSubjects(
+                          studentName: '$lastName $firstName',
+                          studentGender: studentGender,
+                          studentClass: teacherClass!,
+                        ),
                       ),
-                    ],
-                  ),
-                  margin: const EdgeInsets.symmetric(vertical: 4.0), // Reduced margin for height
-                  child: ListTile(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4), // Reduced padding for height
-                    leading: Text(
-                      '${index + 1}.', // Displaying just the number
-                      style: TextStyle(
-                        fontSize: 14, // Reduced font size
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
-                      ),
+                    );
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(2, 2),
+                        ),
+                      ],
                     ),
-                    title: Text(
-                      '${report['lastName'].toUpperCase()} ${report['firstName'].toUpperCase()}',
-                      style: TextStyle(
-                        fontSize: 14, // Reduced font size
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
-                      ),
-                    ),
-                    subtitle: Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        'Total Marks: ${report['totalMarks']} / ${report['teacherTotalMarks']}',
+                    margin: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: ListTile(
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: Text(
+                        '${index + 1}.',
                         style: TextStyle(
-                          fontSize: 12, // Reduced font size
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: Colors.blueAccent,
                         ),
                       ),
-                    ),
-                    trailing: Icon(
-                      Icons.arrow_forward,
-                      color: Colors.blueAccent,
-                      size: 18, // Reduced icon size
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => StudentSubjectGrade(
-                            studentId: report['studentId'],
-                            firstName: report['firstName'],
-                            lastName: report['lastName'],
-                          ),
+                      title: Text(
+                        '${lastName.toUpperCase()} ${firstName.toUpperCase()}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blueAccent,
                         ),
-                      );
-                    },
+                      ),
+                      subtitle: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Gender: $studentGender',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          Text(
+                            'Total Marks: $totalMarks / $teacherMarks',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      trailing: Icon(Icons.arrow_forward),
+                    ),
                   ),
                 );
               },
             );
           },
+        )
+            : Center(
+          child: Text(
+            'Please wait while loading...',
+            style: TextStyle(fontSize: 18),
+          ),
         ),
       ),
+    );
+  }
+
+  void showSearchDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Search Student'),
+          content: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(hintText: 'Enter student name...'),
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Close'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
