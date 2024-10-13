@@ -309,13 +309,23 @@ class _SchoolReportsState extends State<SchoolReports> {
 
 
 
-
-
-
 class SchoolReportPage extends StatelessWidget {
   final String studentName;
 
   const SchoolReportPage({Key? key, required this.studentName}) : super(key: key);
+
+  // Define grade ranges as a constant list
+  static const List<Map<String, String>> seniorGradeRanges = [
+    {'range': '80 - 100%', 'grade': '1'},
+    {'range': '75 - 79%', 'grade': '2'},
+    {'range': '70 - 74%', 'grade': '3'},
+    {'range': '65 - 69%', 'grade': '4'},
+    {'range': '60 - 64%', 'grade': '5'},
+    {'range': '55 - 59%', 'grade': '6'},
+    {'range': '50 - 54%', 'grade': '7'},
+    {'range': '40 - 49%', 'grade': '8'},
+    {'range': '0 - 39%', 'grade': '9'},
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -374,11 +384,37 @@ class SchoolReportPage extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 16),
-                ...subjectDocs.map((subjectDoc) {
-                  final subjectName = subjectDoc['Subject_Name'] ?? 'Unknown'; // Fetch Subject_Name
-                  final subjectGrade = subjectDoc['Subject_Grade'] ?? 'N/A'; // Fetch Subject_Grade
-                  return SubjectReportCard(subject: subjectName, score: subjectGrade);
-                }).toList(),
+                DataTable(
+                  columns: [
+                    DataColumn(label: Text('Subject')),
+                    DataColumn(label: Text('Score')),
+                    DataColumn(label: Text('Grade')),
+                    DataColumn(label: Text("Teacher's Remark")),
+                    DataColumn(label: Text('Signature')),
+                  ],
+                  rows: subjectDocs.map((subjectDoc) {
+                    final subjectData = subjectDoc.data() as Map<String, dynamic>;
+
+                    // Safely access Subject_Name and Subject_Grade
+                    final subjectName = subjectData['Subject_Name'] ?? 'Unknown';
+                    final subjectGrade = (subjectData['Subject_Grade'] is int)
+                        ? subjectData['Subject_Grade']
+                        : (subjectData['Subject_Grade'] is String)
+                        ? int.tryParse(subjectData['Subject_Grade']) ?? 0
+                        : 0;
+
+                    final scorePercentage = '$subjectGrade%'; // Assuming grades are given as integers
+                    final grade = getGrade(subjectGrade);
+
+                    return DataRow(cells: [
+                      DataCell(Text(subjectName.toUpperCase())),
+                      DataCell(Text(scorePercentage)),
+                      DataCell(Text(grade)),
+                      DataCell(Text("Teacher's remark here")), // Placeholder for teacher's remark
+                      DataCell(Text("Signature here")), // Placeholder for signature
+                    ]);
+                  }).toList(),
+                ),
               ],
             ),
           );
@@ -386,43 +422,17 @@ class SchoolReportPage extends StatelessWidget {
       ),
     );
   }
-}
 
-class SubjectReportCard extends StatelessWidget {
-  final String subject;
-  final dynamic score; // Use dynamic to allow for various data types
-
-  const SubjectReportCard({Key? key, required this.subject, required this.score}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 8.0),
-      padding: EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.blue[100],
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 4,
-            offset: Offset(2, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            subject.toUpperCase(),
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          Text(
-            score != null ? score.toString() : 'N/A',
-            style: TextStyle(fontSize: 16),
-          ),
-        ],
-      ),
-    );
+  // Function to determine the grade based on the score
+  String getGrade(int score) {
+    if (score >= 80) return '1';
+    if (score >= 75) return '2';
+    if (score >= 70) return '3';
+    if (score >= 65) return '4';
+    if (score >= 60) return '5';
+    if (score >= 55) return '6';
+    if (score >= 50) return '7';
+    if (score >= 40) return '8';
+    return '9'; // 0 - 39%
   }
 }
