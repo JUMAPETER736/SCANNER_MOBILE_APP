@@ -6,447 +6,106 @@ import 'package:firebase_auth/firebase_auth.dart';
 class StudentSubjects extends StatefulWidget {
   final String studentName;
   final String studentClass;
-  final String studentGender; // Add this field
+  final String studentGender;
 
   const StudentSubjects({
     Key? key,
     required this.studentName,
     required this.studentClass,
-    required this.studentGender, // Add this to the constructor
+    required this.studentGender,
   }) : super(key: key);
 
   @override
   _StudentSubjectsState createState() => _StudentSubjectsState();
 }
 
-
 class _StudentSubjectsState extends State<StudentSubjects> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<Subject> _subjects = [];
-  List<String> selectedSubjects = []; // Holds the teacher's selected subjects
-  bool isSaved = false;
-  String searchQuery = ''; // For filtering subjects
+  List<String> _loggedInUserSubjects = []; // Store the subjects taken by the logged-in user
+  bool isLoading = true;
+  String searchQuery = '';
 
-  @override
-  void initState() {
-    super.initState();
-    _initializeDefaultSubjects();
-    _checkSavedSelections();
-  }
-
-  Future<void> _initializeDefaultSubjects() async {
-
-    final defaultSubjects = {
-      'FORM 1': [
-        Subject(name: 'AGRICULTURE'),
-        Subject(name: 'BIBLE KNOWLEDGE'),
-        Subject(name: 'BIOLOGY'),
-        Subject(name: 'CHEMISTRY'),
-        Subject(name: 'CHICHEWA'),
-        Subject(name: 'COMPUTER SCIENCE'),
-        Subject(name: 'ENGLISH'),
-        Subject(name: 'LIFE SKILLS'),
-        Subject(name: 'MATHEMATICS'),
-        Subject(name: 'PHYSICS'),
-        Subject(name: 'SOCIAL STUDIES'),
-      ],
-
-      'FORM 2': [
-        Subject(name: 'AGRICULTURE'),
-        Subject(name: 'BIBLE KNOWLEDGE'),
-        Subject(name: 'BIOLOGY'),
-        Subject(name: 'CHEMISTRY'),
-        Subject(name: 'CHICHEWA'),
-        Subject(name: 'COMPUTER SCIENCE'),
-        Subject(name: 'ENGLISH'),
-        Subject(name: 'LIFE SKILLS'),
-        Subject(name: 'MATHEMATICS'),
-        Subject(name: 'PHYSICS'),
-        Subject(name: 'SOCIAL STUDIES'),
-      ],
-
-      'FORM 3': [
-        Subject(name: 'AGRICULTURE'),
-        Subject(name: 'BIBLE KNOWLEDGE'),
-        Subject(name: 'BIOLOGY'),
-        Subject(name: 'CHEMISTRY'),
-        Subject(name: 'CHICHEWA'),
-        Subject(name: 'COMPUTER SCIENCE'),
-        Subject(name: 'ENGLISH'),
-        Subject(name: 'LIFE SKILLS'),
-        Subject(name: 'MATHEMATICS'),
-        Subject(name: 'PHYSICS'),
-        Subject(name: 'SOCIAL STUDIES'),
-      ],
-
-      'FORM 4': [
-        Subject(name: 'AGRICULTURE'),
-        Subject(name: 'BIBLE KNOWLEDGE'),
-        Subject(name: 'BIOLOGY'),
-        Subject(name: 'CHEMISTRY'),
-        Subject(name: 'CHICHEWA'),
-        Subject(name: 'COMPUTER SCIENCE'),
-        Subject(name: 'ENGLISH'),
-        Subject(name: 'LIFE SKILLS'),
-        Subject(name: 'MATHEMATICS'),
-        Subject(name: 'PHYSICS'),
-        Subject(name: 'SOCIAL STUDIES'),
-      ],
-    };
-
-
-    final studentRef = _firestore
-        .collection('Students_Details')
-        .doc(widget.studentClass) // e.g., FORM 2
-        .collection('Student_Details')
-        .doc(widget.studentName); // e.g., PETER JUMA
-
-    try {
-      DocumentSnapshot docSnapshot = await studentRef.get();
-
-      if (!docSnapshot.exists) {
-        final subjectList = defaultSubjects[widget.studentClass] ?? [];
-        // Save the default subjects to 'Student_Subjects'
-        await studentRef.set({
-          'Student_Subjects': subjectList.map((subject) => subject.toMap()).toList(),
-        });
-      }
-
-      // Fetch subjects after ensuring they are set
-      await _fetchSubjects();
-    } catch (e) {
-      print('Error initializing student subjects: $e');
-    }
-  }
-
-
-
+  // Fetch subjects for the student from Firestore
   Future<void> _fetchSubjects() async {
     try {
       final studentRef = _firestore
           .collection('Students_Details')
           .doc(widget.studentClass)
           .collection('Student_Details')
-          .doc(widget.studentName);
+          .doc(widget.studentName)
+          .collection('Student_Subjects');
 
       final snapshot = await studentRef.get();
-      if (snapshot.exists) {
-        var data = snapshot.data() as Map<String, dynamic>;
-        var subjects = data['Student_Subjects'] as List<dynamic>?; // Access 'Student_Subjects'
 
-        if (subjects != null && subjects.isNotEmpty) {
-          setState(() {
-            _subjects = subjects
-                .map((subjectData) => Subject.fromMap(subjectData as Map<String, dynamic>))
-                .toList();
-          });
-        } else {
-          // If subjects field is empty, initialize with default subjects
-          _initializeDefaultSubjects();
-        }
+      if (snapshot.docs.isNotEmpty) {
+        setState(() {
+          _subjects = snapshot.docs
+              .map((doc) => Subject.fromMap(doc.data() as Map<String, dynamic>))
+              .toList();
+          isLoading = false;
+        });
       } else {
-        // If the document doesn't exist, initialize with default subjects
-        _initializeDefaultSubjects();
+        setState(() {
+          isLoading = false;
+        });
       }
     } catch (e) {
       print('Error fetching subjects: $e');
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
+  // Fetch the logged-in user's subjects
+  Future<void> _fetchLoggedInUserSubjects() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        final userRef = _firestore
+            .collection('Teachers_Details')
+            .doc(currentUser.email); // Assume the teacher is logged in by email
 
+        final docSnapshot = await userRef.get();
+
+        if (docSnapshot.exists) {
+          setState(() {
+            _loggedInUserSubjects = List<String>.from(docSnapshot['subjects']); // Retrieve subjects the user takes
+          });
+        }
+      }
+    } catch (e) {
+      print('Error fetching logged-in user subjects: $e');
+    }
+  }
+
+  // Update the subject grade
   Future<void> _updateSubjectGrade(Subject subject, String newGrade) async {
     try {
-      final studentRef = _firestore
+      final subjectRef = _firestore
           .collection('Students_Details')
           .doc(widget.studentClass)
           .collection('Student_Details')
-          .doc(widget.studentName);
+          .doc(widget.studentName)
+          .collection('Student_Subjects')
+          .doc(subject.name);
 
-      await studentRef.update({
-        'Student_Subjects': _subjects
-            .map((sub) => sub.name == subject.name
-            ? subject.copyWith(grade: newGrade).toMap()
-            : sub.toMap())
-            .toList(),
-      });
+      await subjectRef.update({'Subject_Grade': newGrade});
 
-      // Update local state
       setState(() {
-        _subjects = _subjects
-            .map((sub) => sub.name == subject.name ? subject.copyWith(grade: newGrade) : sub)
-            .toList();
+        _subjects = _subjects.map((sub) {
+          return sub.name == subject.name
+              ? subject.copyWith(grade: newGrade)
+              : sub;
+        }).toList();
       });
     } catch (e) {
       print('Error updating subject grade: $e');
     }
   }
 
-
-
-  Future<void> _saveToSchoolReports() async {
-    try {
-      final studentRef = _firestore
-          .collection('Students_Details')
-          .doc(widget.studentClass) // Ensure this is correctly set to the desired form, e.g., 'FORM 2'
-          .collection('Student_Details')
-          .doc(widget.studentName); // Assuming widget.studentName is the student ID (e.g., '319415')
-
-      final studentSnapshot = await studentRef.get();
-
-      if (studentSnapshot.exists) {
-        var data = studentSnapshot.data() as Map<String, dynamic>?;
-        var subjects = data?['Subjects'] as List<dynamic>?;
-
-        if (subjects != null) {
-          // Calculate total marks for the student
-          int totalMarks = subjects.fold<int>(
-            0,
-                (previousValue, subject) {
-              final gradeStr = (subject as Map<String, dynamic>)['grade'] ?? '0';
-              final grade = int.tryParse(gradeStr) ?? 0;
-              return previousValue + grade;
-            },
-          );
-
-          // Calculate teacherTotalMarks based on the number of grades that are not "N/A"
-          int teacherTotalMarks = subjects.where((subject) {
-            final gradeStr = (subject as Map<String, dynamic>)['grade'] ?? 'N/A';
-            return gradeStr != 'N/A';
-          }).length * 100;
-
-          // Update the student document with the new studentSubjects field
-          await studentRef.set({
-            'firstName': widget.studentName.split(' ').first,
-            'lastName': widget.studentName.split(' ').last,
-            'grades': subjects,
-            'totalMarks': totalMarks,
-            'teacherTotalMarks': teacherTotalMarks, // Updated calculation
-            'studentSubjects': subjects.map((subject) => subject.toMap()).toList(), // Add studentSubjects
-            'studentId': FirebaseAuth.instance.currentUser?.uid,
-          }, SetOptions(merge: true));
-        } else {
-          print('Subjects field is null or NOT a list');
-        }
-      } else {
-        print('Student document does NOT exist');
-      }
-    } catch (e) {
-      print('Error fetching Student DATA: $e');
-    }
-  }
-
-
-
-
-  void _checkSavedSelections() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      String userId = user.uid; // Get user's ID
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection('Teachers_Details')
-          .doc(userId)
-          .get();
-      if (doc.exists && doc['classes'] != null && doc['subjects'] != null) {
-        setState(() {
-          // Load saved subjects for the teacher
-          selectedSubjects = List<String>.from(doc['subjects']);
-          isSaved = true; // Mark as saved
-        });
-      }
-    }
-  }
-
-  void _showSearchDialog() async {
-    TextEditingController searchController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Search Subjects'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: searchController,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'Enter Subject Name',
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    searchQuery = value;
-                  });
-                },
-              ),
-              SizedBox(height: 10),
-              if (searchQuery.isNotEmpty &&
-                  _subjects
-                      .where((subject) => subject.name
-                      .toLowerCase()
-                      .contains(searchQuery.toLowerCase()))
-                      .isEmpty)
-                Text(
-
-                    'Sorry, NO Subject found',
-
-                    style: TextStyle(color: Colors.red,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-
-
-                    ),
-                ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-
-  @override
-  Widget build(BuildContext context) {
-    List<Subject> filteredSubjects = _subjects
-        .where((subject) =>
-        subject.name.toLowerCase().contains(searchQuery.toLowerCase()))
-        .toList();
-
-    // Get the list of selected subjects for display
-    String selectedSubjectsText = selectedSubjects.isEmpty
-        ? 'No subjects selected'
-        : selectedSubjects.join(', ');
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Subjects for ${widget.studentName}',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.blueAccent,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.search),
-            onPressed: _showSearchDialog,
-          ),
-        ],
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blueAccent, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Add the text message here
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: Text(
-                'You can only Edit Grade for: $selectedSubjectsText',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-            // Display a loading indicator if subjects are being fetched
-            if (_subjects.isEmpty)
-              Center(child: CircularProgressIndicator())
-            else if (filteredSubjects.isEmpty)
-              Center(
-                child: Text(
-                  'Subject NOT Found',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                  ),
-                ),
-              )
-            else
-              Expanded(
-                child: ListView.separated(
-                  itemCount: filteredSubjects.length,
-                  separatorBuilder: (context, index) =>
-                      Divider(color: Colors.blueAccent, thickness: 1.5),
-                  itemBuilder: (context, index) {
-                    var subject = filteredSubjects[index];
-
-                    // Check if the subject is in the teacher's selected subjects
-                    bool canEdit = selectedSubjects.contains(subject.name);
-
-                    return Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 4,
-                            offset: Offset(2, 2),
-                          ),
-                        ],
-                      ),
-                      margin: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.all(16),
-                        title: Text(
-                          '${index + 1}. ${subject.name}', // Show numbering
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blueAccent,
-                          ),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Grade: ${subject.grade == '0' ? '_' : subject.grade}%',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blueAccent,
-                              ),
-                            ),
-                            if (canEdit) // Only show the edit button if the teacher selected the subject
-                              IconButton(
-                                icon: Icon(Icons.edit, color: Colors.blueAccent),
-                                onPressed: () async {
-                                  String? newGrade = await _showGradeDialog(subject.grade);
-                                  if (newGrade != null) {
-                                    _updateSubjectGrade(subject, newGrade);
-                                  }
-                                },
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
+  // Show grade input dialog
   Future<String?> _showGradeDialog(String currentGrade) async {
     TextEditingController gradeController = TextEditingController();
     gradeController.text = currentGrade == '_' ? '' : currentGrade;
@@ -468,51 +127,31 @@ class _StudentSubjectsState extends State<StudentSubjects> {
                 ),
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               ),
-              if (gradeController.text.isNotEmpty && !_isValidGrade(gradeController.text))
-                Padding(
-                  padding: const EdgeInsets.only(top: 10.0),
-
-                ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(null); // Cancel
+                Navigator.of(context).pop(null);
               },
-              child: Text(
-
-                          'Cancel',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                              color: Colors.red
-                          ),
-              ),
+              child: Text('Cancel', style: TextStyle(color: Colors.red)),
             ),
             TextButton(
               onPressed: () {
                 final grade = gradeController.text.trim();
                 if (_isValidGrade(grade)) {
-                  Navigator.of(context).pop(grade); // Save
+                  Navigator.of(context).pop(grade);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Invalid Grade. Enter a number from 0 up to 100.'),
+                      content: Text(
+                          'Invalid Grade. Enter a number from 0 up to 100.'),
                       backgroundColor: Colors.red,
                     ),
                   );
                 }
               },
-
-              child: Text(
-
-                          'Save',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blueAccent,
-
-                          )
-              ),
+              child: Text('Save', style: TextStyle(color: Colors.blueAccent)),
             ),
           ],
         );
@@ -525,34 +164,161 @@ class _StudentSubjectsState extends State<StudentSubjects> {
     return value != null && value >= 0 && value <= 100;
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _fetchSubjects();
+    _fetchLoggedInUserSubjects(); // Fetch the logged-in user's subjects
+  }
 
+  @override
+  Widget build(BuildContext context) {
+    List<Subject> filteredSubjects = _subjects
+        .where((subject) =>
+        subject.name.toLowerCase().contains(searchQuery.toLowerCase()))
+        .toList();
 
+    String editableSubjectsText = _loggedInUserSubjects.isEmpty
+        ? 'No subjects available for editing'
+        : 'Subjects you can Edit: ${_loggedInUserSubjects.join(', ')}';
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Subjects for ${widget.studentName}',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
+      ),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _subjects.isEmpty
+          ? Center(
+        child: Text(
+          'No subjects available.',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.red,
+          ),
+        ),
+      )
+          : Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blueAccent, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Text(
+                editableSubjectsText,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: filteredSubjects.length,
+                itemBuilder: (context, index) {
+                  var subject = filteredSubjects[index];
+                  bool canEdit = _loggedInUserSubjects
+                      .contains(subject.name); // Check if user can edit
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(2, 2),
+                        ),
+                      ],
+                    ),
+                    margin: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: ListTile(
+                      contentPadding: EdgeInsets.all(16),
+                      title: Text(
+                        '${index + 1}. ${subject.name}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blueAccent,
+                        ),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Grade: ${subject.grade == '0' ? '_' : subject.grade}%',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blueAccent,
+                            ),
+                          ),
+                          if (canEdit)
+                            IconButton(
+                              icon: Icon(Icons.edit,
+                                  color: Colors.blueAccent),
+                              onPressed: () async {
+                                String? newGrade =
+                                await _showGradeDialog(
+                                    subject.grade);
+                                if (newGrade != null) {
+                                  _updateSubjectGrade(
+                                      subject, newGrade);
+                                }
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class Subject {
   final String name;
   final String grade;
 
-  Subject({required this.name, this.grade = '_'});
+  Subject({
+    required this.name,
+    required this.grade,
+  });
 
-  Subject copyWith({String? name, String? grade}) {
+  factory Subject.fromMap(Map<String, dynamic> data) {
     return Subject(
-      name: name ?? this.name,
-      grade: grade ?? this.grade,
+      name: data['Subject_Name'] ?? 'Unknown',
+      grade: data['Subject_Grade'] ?? 'N/A',
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'grade': grade,
-    };
-  }
-
-  factory Subject.fromMap(Map<String, dynamic> map) {
+  Subject copyWith({
+    String? name,
+    String? grade,
+  }) {
     return Subject(
-      name: map['name'] ?? '',
-      grade: map['grade'] ?? '_',
+      name: name ?? this.name,
+      grade: grade ?? this.grade,
     );
   }
 }
