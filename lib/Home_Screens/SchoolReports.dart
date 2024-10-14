@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-
 class SchoolReports extends StatefulWidget {
   final User? loggedInUser;
 
@@ -69,31 +68,24 @@ class _SchoolReportsState extends State<SchoolReports> {
 
       DocumentSnapshot studentDoc = await studentRef.get();
 
-      // Check if the student document exists
       if (studentDoc.exists) {
         int totalMarks = 0;
         int totalTeacherMarks = 0;
 
-        // Access the Student_Subjects collection for the student
         var subjectsSnapshot = await studentRef.collection('Student_Subjects').get();
 
-        // Iterate through all subjects and sum the grades
         for (var subjectDoc in subjectsSnapshot.docs) {
           var subjectData = subjectDoc.data() as Map<String, dynamic>;
 
-          // Check if the subject has the grade
           if (subjectData.containsKey('Subject_Grade')) {
             var gradeString = subjectData['Subject_Grade'];
-
-            // Safely convert the grade to an integer
             int grade = int.tryParse(gradeString.toString()) ?? 0;
 
             totalMarks += grade;
-            totalTeacherMarks += 100; // Assuming max marks for each subject is 100
+            totalTeacherMarks += 100; // Adjust this according to your grading scale
           }
         }
 
-        // Update the student document with total marks
         await studentRef.set({
           'Student_Total_Marks': totalMarks,
           'Teachers_Total_Marks': totalTeacherMarks,
@@ -108,6 +100,33 @@ class _SchoolReportsState extends State<SchoolReports> {
     }
   }
 
+  Future<List<Map<String, dynamic>>> _getStudentNames() async {
+    List<Map<String, dynamic>> studentNames = [];
+    QuerySnapshot studentsSnapshot = await FirebaseFirestore.instance
+        .collection('Students_Details')
+        .doc(teacherClass!)
+        .collection('Student_Details')
+        .get();
+
+    for (var studentDoc in studentsSnapshot.docs) {
+      var personalInfoDoc = await studentDoc.reference.collection('Personal_Information')
+          .doc('Registered_Information').get();
+
+      if (personalInfoDoc.exists) {
+        var personalInfo = personalInfoDoc.data() as Map<String, dynamic>;
+        var firstName = personalInfo['firstName'] ?? 'N/A';
+        var lastName = personalInfo['lastName'] ?? 'N/A';
+        var gender = personalInfo['studentGender'] ?? 'N/A';
+
+        studentNames.add({
+          'fullName': '$lastName $firstName',
+          'gender': gender,
+          'id': studentDoc.id,
+        });
+      }
+    }
+    return studentNames;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -155,17 +174,14 @@ class _SchoolReportsState extends State<SchoolReports> {
         ),
         padding: const EdgeInsets.all(16.0),
         child: _hasSelectedClass
-            ?StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('Students_Details')
-              .doc(teacherClass!)
-              .collection('Student_Details')
-              .snapshots(),
+            ? FutureBuilder<List<Map<String, dynamic>>>(
+          future: _getStudentNames(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator());
             }
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return Center(
                 child: Text(
                   'No Student found.',
@@ -178,16 +194,11 @@ class _SchoolReportsState extends State<SchoolReports> {
               );
             }
 
-            // Filter the documents based on the search query
-            var filteredDocs = snapshot.data!.docs.where((doc) {
-              var firstName = doc['firstName'] ?? '';
-              var lastName = doc['lastName'] ?? '';
-              return firstName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                  lastName.toLowerCase().contains(_searchQuery.toLowerCase());
+            var filteredStudents = snapshot.data!.where((student) {
+              return student['fullName'].toLowerCase().contains(_searchQuery.toLowerCase());
             }).toList();
 
-            // Check if any student was found after filtering
-            if (filteredDocs.isEmpty) {
+            if (filteredStudents.isEmpty) {
               return Center(
                 child: Text(
                   'Student NOT found',
@@ -200,23 +211,18 @@ class _SchoolReportsState extends State<SchoolReports> {
               );
             }
 
-            // Calculate and update marks for students without total marks
-            for (var student in filteredDocs) {
-              if (student['Student_Total_Marks'] == null) {
-                _calculateAndUpdateMarks(student.id);
-              }
+            // Update marks for each student
+            for (var student in filteredStudents) {
+              _calculateAndUpdateMarks(student['id']);
             }
 
             return ListView.separated(
-              itemCount: filteredDocs.length,
+              itemCount: filteredStudents.length,
               separatorBuilder: (context, index) => SizedBox(height: 10),
               itemBuilder: (context, index) {
-                var student = filteredDocs[index];
-                var firstName = student['firstName'] ?? 'N/A';
-                var lastName = student['lastName'] ?? 'N/A';
-                var studentGender = student['studentGender'] ?? 'N/A';
-                var totalMarks = student['Student_Total_Marks'] ?? '0';
-                var teacherMarks = student['Teachers_Total_Marks'] ?? '0';
+                var student = filteredStudents[index];
+                var fullName = student['fullName'];
+                var studentGender = student['gender'] ?? 'N/A';
 
                 return Container(
                   width: double.infinity,
@@ -243,33 +249,24 @@ class _SchoolReportsState extends State<SchoolReports> {
                       ),
                     ),
                     title: Text(
-                      '${lastName.toUpperCase()} ${firstName.toUpperCase()}',
+                      fullName.toUpperCase(),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.blueAccent,
                       ),
                     ),
-                    subtitle: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Gender: $studentGender',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'Total Marks: $totalMarks / $teacherMarks',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                        ),
-                      ],
+                    subtitle: Text(
+                      'Gender: $studentGender',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => SchoolReportPage(
-                            studentName: student.id,
-                            studentClass: teacherClass!, // Pass the selected class
+                            studentName: student['id'],
+                            studentClass: teacherClass!,
                           ),
                         ),
                       );
@@ -280,7 +277,6 @@ class _SchoolReportsState extends State<SchoolReports> {
             );
           },
         )
-
             : Center(
           child: Text(
             'Please wait while loading...',
@@ -309,7 +305,7 @@ class _SchoolReportsState extends State<SchoolReports> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.pop(context);
               },
               child: Text('Close'),
             ),
@@ -319,6 +315,9 @@ class _SchoolReportsState extends State<SchoolReports> {
     );
   }
 }
+
+
+
 
 
 
