@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+
 
 class SchoolReports extends StatefulWidget {
   final User? loggedInUser;
@@ -361,6 +365,14 @@ class SchoolReportPage extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold), // Make the title bold
         ),
         backgroundColor: Colors.blueAccent,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.print),
+            onPressed: () async {
+              await _generateAndPrintPDF();
+            },
+          ),
+        ],
       ),
       body: FutureBuilder<QuerySnapshot>(
         future: FirebaseFirestore.instance
@@ -531,5 +543,34 @@ class SchoolReportPage extends StatelessWidget {
       if (score >= 40) return 'NEED SUPPORT';
       return 'FAIL';
     }
+  }
+
+  // Function to generate and print the PDF report
+  Future<void> _generateAndPrintPDF() async {
+    final pdf = pw.Document();
+
+    // Add content to PDF
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('STUDENT SCHOOL REPORT', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 20),
+              pw.Text('STUDENT NAME: $studentName', style: pw.TextStyle(fontSize: 18)),
+              pw.Text('CLASS: $studentClass', style: pw.TextStyle(fontSize: 18)),
+              pw.Text('YEAR: ${DateTime.now().year}', style: pw.TextStyle(fontSize: 18)),
+              pw.SizedBox(height: 20),
+              // Add table for subjects and grades here
+              // You can customize this table as needed
+            ],
+          );
+        },
+      ),
+    );
+
+    // Print or save the PDF
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 }

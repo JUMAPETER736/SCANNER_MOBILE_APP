@@ -31,6 +31,11 @@ dependencies:
   qr_flutter: ^4.1.0
   barcode: ^2.2.8 
   barcode_widget: ^2.0.0
+  path_provider: ^2.0.15
+  pdf: ^3.8.0
+  printing: ^5.11.0
+
+
 
   flutter_localizations:
     sdk: flutter
