@@ -16,7 +16,7 @@ class _StudentNameListState extends State<StudentNameList> {
   String _searchQuery = '';
   TextEditingController _searchController = TextEditingController();
   String? teacherClass;
-  bool _hasSelectedClass = false; // To check if the class and subjects are selected
+  bool _hasSelectedClass = false;
 
   @override
   void initState() {
@@ -24,7 +24,7 @@ class _StudentNameListState extends State<StudentNameList> {
     _checkTeacherSelection();
   }
 
-  // Method to check if the teacher has selected a class and subjects
+  // Method to check if the teacher has selected a class
   void _checkTeacherSelection() async {
     if (widget.loggedInUser != null) {
       var teacherSnapshot = await FirebaseFirestore.instance
@@ -37,7 +37,7 @@ class _StudentNameListState extends State<StudentNameList> {
         var classes = teacherData['classes'] as List<dynamic>? ?? [];
         if (classes.isNotEmpty) {
           setState(() {
-            teacherClass = classes[0];
+            teacherClass = classes[0]; // Set the first selected class
             _hasSelectedClass = true;
           });
         }
@@ -94,9 +94,8 @@ class _StudentNameListState extends State<StudentNameList> {
             ? StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('Students_Details')
-              .doc(teacherClass!) // Ensure you are using the selected class
-              .collection('Student_Details') // Fixed collection name here
-              .orderBy('lastName', descending: false)
+              .doc(teacherClass!)
+              .collection('Student_Details')
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -115,96 +114,125 @@ class _StudentNameListState extends State<StudentNameList> {
               );
             }
 
-            // Filtered documents based on search query
-            var filteredDocs = snapshot.data!.docs.where((doc) {
-              var firstName = doc['firstName'] ?? '';
-              var lastName = doc['lastName'] ?? '';
-              return firstName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                  lastName.toLowerCase().contains(_searchQuery.toLowerCase());
-            }).toList();
+            // Get the list of students
+            var studentDocs = snapshot.data!.docs;
+            List<Map<String, dynamic>> students = [];
 
-            // Show "Student NOT found" if the filtered list is empty
-            if (filteredDocs.isEmpty) {
-              return Center(
-                child: Text(
-                  'Student NOT found',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                  ),
-                ),
-              );
+            for (var studentDoc in studentDocs) {
+              var studentName = studentDoc.id; // Student full name
+              students.add({
+                'name': studentName,
+                'reference': studentDoc.reference,
+              });
             }
 
-            return ListView.separated(
-              itemCount: filteredDocs.length,
-              separatorBuilder: (context, index) => SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                var student = filteredDocs[index];
-                var firstName = student['firstName'] ?? 'N/A';
-                var lastName = student['lastName'] ?? 'N/A';
-                var studentGender = student['studentGender'] ?? 'N/A';
-                var studentClass = student['studentClass'] ?? 'N/A';
-
-                // Reduced vertical size for the student name box
-                return Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 4,
-                        offset: Offset(2, 2),
-                      ),
-                    ],
-                  ),
-                  margin: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: ListTile(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: Text(
-                      '${index + 1}.',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
-                      ),
-                    ),
-                    title: Text(
-                      '${lastName.toUpperCase()} ${firstName.toUpperCase()}',
+            // Retrieve first and last names for each student
+            return FutureBuilder<List<Map<String, dynamic>>>(
+              future: _getStudentNames(students),
+              builder: (context, namesSnapshot) {
+                if (namesSnapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (!namesSnapshot.hasData || namesSnapshot.data!.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No Student found.',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
+                        color: Colors.red,
                       ),
                     ),
-                    subtitle: Text(
-                      'Gender: $studentGender',
+                  );
+                }
+
+                // Filtered documents based on search query
+                var filteredDocs = namesSnapshot.data!.where((student) {
+                  var fullName = student['fullName'] ?? '';
+                  return fullName.toLowerCase().contains(_searchQuery.toLowerCase());
+                }).toList();
+
+                // Show "Student NOT found" if the filtered list is empty
+                if (filteredDocs.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'Student NOT found',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black54,
+                        color: Colors.red,
                       ),
                     ),
-                    trailing: Icon(
-                      Icons.arrow_forward,
-                      color: Colors.blueAccent,
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => StudentSubjects(
-                            studentName: '$lastName $firstName',
-                            studentGender: '$studentGender',
-                            studentClass: studentClass,
+                  );
+                }
+
+                return ListView.separated(
+                  itemCount: filteredDocs.length,
+                  separatorBuilder: (context, index) => SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    var student = filteredDocs[index];
+                    var fullName = student['fullName'] ?? 'N/A';
+                    var studentGender = student['gender'] ?? 'N/A';
+
+                    return Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 4,
+                            offset: Offset(2, 2),
+                          ),
+                        ],
+                      ),
+                      margin: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: ListTile(
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: Text(
+                          '${index + 1}.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent,
                           ),
                         ),
-                      );
-                    },
-                  ),
+                        title: Text(
+                          fullName.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Gender: $studentGender',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        trailing: Icon(
+                          Icons.arrow_forward,
+                          color: Colors.blueAccent,
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => StudentSubjects(
+                                studentName: fullName,
+                                studentClass: teacherClass!,
+                                studentGender: studentGender,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
                 );
               },
             );
@@ -222,6 +250,28 @@ class _StudentNameListState extends State<StudentNameList> {
         ),
       ),
     );
+  }
+
+  // Fetch first and last names from Firestore
+  Future<List<Map<String, dynamic>>> _getStudentNames(List<Map<String, dynamic>> students) async {
+    List<Map<String, dynamic>> studentNames = [];
+
+    for (var student in students) {
+      var studentRef = student['reference'];
+      var personalInfoDoc = await studentRef.collection('Personal_Information').doc('Registered_Information').get();
+      if (personalInfoDoc.exists) {
+        var personalInfo = personalInfoDoc.data() as Map<String, dynamic>;
+        var firstName = personalInfo['firstName'] ?? 'N/A';
+        var lastName = personalInfo['lastName'] ?? 'N/A';
+        var gender = personalInfo['studentGender'] ?? 'N/A';
+
+        studentNames.add({
+          'fullName': '$lastName $firstName',
+          'gender': gender,
+        });
+      }
+    }
+    return studentNames;
   }
 
   void showSearchDialog(BuildContext context) {

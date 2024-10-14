@@ -69,27 +69,31 @@ class _SchoolReportsState extends State<SchoolReports> {
 
       DocumentSnapshot studentDoc = await studentRef.get();
 
+      // Check if the student document exists
       if (studentDoc.exists) {
         int totalMarks = 0;
         int totalTeacherMarks = 0;
 
+        // Access the Student_Subjects collection for the student
         var subjectsSnapshot = await studentRef.collection('Student_Subjects').get();
 
+        // Iterate through all subjects and sum the grades
         for (var subjectDoc in subjectsSnapshot.docs) {
           var subjectData = subjectDoc.data() as Map<String, dynamic>;
 
+          // Check if the subject has the grade
           if (subjectData.containsKey('Subject_Grade')) {
             var gradeString = subjectData['Subject_Grade'];
+
+            // Safely convert the grade to an integer
             int grade = int.tryParse(gradeString.toString()) ?? 0;
 
-            // Only count the subject if the grade is not "N/A"
-            if (gradeString != "N/A") {
-              totalMarks += grade;
-              totalTeacherMarks += 100; // Increase the teacher's total marks by 100 only for valid subjects
-            }
+            totalMarks += grade;
+            totalTeacherMarks += 100; // Assuming max marks for each subject is 100
           }
         }
 
+        // Update the student document with total marks
         await studentRef.set({
           'Student_Total_Marks': totalMarks,
           'Teachers_Total_Marks': totalTeacherMarks,
@@ -103,6 +107,7 @@ class _SchoolReportsState extends State<SchoolReports> {
       print('Error updating marks: $e');
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -150,12 +155,11 @@ class _SchoolReportsState extends State<SchoolReports> {
         ),
         padding: const EdgeInsets.all(16.0),
         child: _hasSelectedClass
-            ? StreamBuilder<QuerySnapshot>(
+            ?StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('Students_Details')
               .doc(teacherClass!)
               .collection('Student_Details')
-              .orderBy('Student_Total_Marks', descending: true)
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -174,6 +178,7 @@ class _SchoolReportsState extends State<SchoolReports> {
               );
             }
 
+            // Filter the documents based on the search query
             var filteredDocs = snapshot.data!.docs.where((doc) {
               var firstName = doc['firstName'] ?? '';
               var lastName = doc['lastName'] ?? '';
@@ -181,6 +186,7 @@ class _SchoolReportsState extends State<SchoolReports> {
                   lastName.toLowerCase().contains(_searchQuery.toLowerCase());
             }).toList();
 
+            // Check if any student was found after filtering
             if (filteredDocs.isEmpty) {
               return Center(
                 child: Text(
@@ -194,8 +200,11 @@ class _SchoolReportsState extends State<SchoolReports> {
               );
             }
 
+            // Calculate and update marks for students without total marks
             for (var student in filteredDocs) {
-              _calculateAndUpdateMarks(student.id);
+              if (student['Student_Total_Marks'] == null) {
+                _calculateAndUpdateMarks(student.id);
+              }
             }
 
             return ListView.separated(
@@ -259,8 +268,8 @@ class _SchoolReportsState extends State<SchoolReports> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => SchoolReportPage(
-                              studentName: student.id,
-                              studentClass: teacherClass!, // Pass the selected class),
+                            studentName: student.id,
+                            studentClass: teacherClass!, // Pass the selected class
                           ),
                         ),
                       );
@@ -271,6 +280,7 @@ class _SchoolReportsState extends State<SchoolReports> {
             );
           },
         )
+
             : Center(
           child: Text(
             'Please wait while loading...',
@@ -328,7 +338,6 @@ class SchoolReportPage extends StatelessWidget {
         ),
         backgroundColor: Colors.blueAccent,
       ),
-
       body: FutureBuilder<QuerySnapshot>(
         future: FirebaseFirestore.instance
             .collection('Students_Details')
@@ -434,12 +443,13 @@ class SchoolReportPage extends StatelessWidget {
 
                         final scorePercentage = '$subjectGrade%';
                         final grade = getGrade(subjectGrade);
+                        final teacherRemark = getTeacherRemark(subjectGrade);
 
                         return DataRow(cells: [
                           DataCell(Text(subjectName.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold))),
                           DataCell(Text(scorePercentage, style: TextStyle(fontWeight: FontWeight.bold))),
                           DataCell(Text(grade, style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataCell(Text(" ", style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataCell(Text(teacherRemark, style: TextStyle(fontWeight: FontWeight.bold))),
                           DataCell(Text(" ", style: TextStyle(fontWeight: FontWeight.bold))),
                         ]);
                       }).toList(),
@@ -456,7 +466,6 @@ class SchoolReportPage extends StatelessWidget {
 
   // Function to determine the grade based on the score
   String getGrade(int score) {
-
     if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
 
       if (score >= 80) return 'A';
@@ -466,6 +475,7 @@ class SchoolReportPage extends StatelessWidget {
       if (score >= 40) return 'E';
 
       return 'F';
+
 
     } else {
 
@@ -482,5 +492,30 @@ class SchoolReportPage extends StatelessWidget {
 
     }
   }
-}
 
+  // Function to return the teacher's remark based on the score
+  String getTeacherRemark(int score) {
+    if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
+      // Remarks for FORM 1 & 2
+      if (score >= 80) return 'EXCELLENT';
+      if (score >= 70) return 'VERY GOOD';
+      if (score >= 60) return 'GOOD';
+      if (score >= 50) return 'AVERAGE';
+      if (score >= 40) return 'NEEDS IMPROVEMENT';
+      return 'FAIL';
+
+    } else {
+      // Remarks for FORM 3 & 4
+      if (score >= 80) return 'EXCELLENT';
+      if (score >= 75) return 'VERY GOOD';
+      if (score >= 70) return 'GOOD';
+      if (score >= 65) return 'STRONG CREDIT';
+      if (score >= 60) return 'WEAK CREDIT';
+      if (score >= 50) return 'PASS';
+      if (score >= 40) return 'NEED SUPPORT';
+
+      return 'FAIL';
+
+    }
+  }
+}

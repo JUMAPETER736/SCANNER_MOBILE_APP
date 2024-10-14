@@ -84,8 +84,26 @@ class _StudentDetailsState extends State<StudentDetails> {
             .collection('Student_Details')
             .doc(studentFullName)
             .set({
-          ...studentDetails,
           'timestamp': FieldValue.serverTimestamp(),
+        });
+
+        // Create the Student_Biography document containing student details
+        await _firestore
+            .collection('Students_Details')
+            .doc(studentClass)
+            .collection('Student_Details')
+            .doc(studentFullName)
+            .collection('Personal_Information')
+            .doc('Registered_Information') // Single document for biography details
+            .set({
+          'firstName': _firstNameController.text.trim().toUpperCase(),
+          'lastName': _lastNameController.text.trim().toUpperCase(),
+          'studentClass': studentClass!,
+          'studentAge': _ageController.text.trim(),
+          'studentGender': studentGender!,
+          'studentID': studentID!,
+          'createdBy': loggedInUser?.email ?? '',
+          'timestamp': FieldValue.serverTimestamp(), // Timestamp
         });
 
         // Create the Student_Subjects documents with default grades
@@ -103,6 +121,19 @@ class _StudentDetailsState extends State<StudentDetails> {
           });
         }
 
+        // Add TOTAL_MARKS document
+        await _firestore
+            .collection('Students_Details')
+            .doc(studentClass)
+            .collection('Student_Details')
+            .doc(studentFullName)
+            .collection('TOTAL_MARKS')
+            .doc('Marks') // Single document for total marks
+            .set({
+          'Student_Total_Marks': '0', // Default total marks
+          'Teacher_Total_Marks': '0',
+        });
+
         // Encode the QR code with the studentID
         setState(() {
           generatedQRcode = studentID;  // Encode only the studentID in the QR code
@@ -114,7 +145,6 @@ class _StudentDetailsState extends State<StudentDetails> {
             backgroundColor: Colors.green,
           ),
         );
-
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -125,7 +155,6 @@ class _StudentDetailsState extends State<StudentDetails> {
       }
     }
   }
-
 
 
 
