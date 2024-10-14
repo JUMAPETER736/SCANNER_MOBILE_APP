@@ -118,13 +118,24 @@ class _SchoolReportsState extends State<SchoolReports> {
         var lastName = personalInfo['lastName'] ?? 'N/A';
         var gender = personalInfo['studentGender'] ?? 'N/A';
 
+        // Fetch total marks
+        var totalMarksData = studentDoc.data() as Map<String, dynamic>;
+        var studentTotalMarks = totalMarksData['Student_Total_Marks'] ?? 0;
+        var teachersTotalMarks = totalMarksData['Teachers_Total_Marks'] ?? 0;
+
         studentNames.add({
           'fullName': '$lastName $firstName',
           'gender': gender,
           'id': studentDoc.id,
+          'studentTotalMarks': studentTotalMarks,
+          'teachersTotalMarks': teachersTotalMarks,
         });
       }
     }
+
+    // Sort students by total marks in descending order
+    studentNames.sort((a, b) => b['studentTotalMarks'].compareTo(a['studentTotalMarks']));
+
     return studentNames;
   }
 
@@ -174,7 +185,7 @@ class _SchoolReportsState extends State<SchoolReports> {
         ),
         padding: const EdgeInsets.all(16.0),
         child: _hasSelectedClass
-            ? FutureBuilder<List<Map<String, dynamic>>>(
+            ? FutureBuilder<List<Map<String, dynamic>>>(  // FutureBuilder to fetch student names
           future: _getStudentNames(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -223,6 +234,8 @@ class _SchoolReportsState extends State<SchoolReports> {
                 var student = filteredStudents[index];
                 var fullName = student['fullName'];
                 var studentGender = student['gender'] ?? 'N/A';
+                var studentTotalMarks = student['studentTotalMarks'] ?? 0; // Use default value if null
+                var teachersTotalMarks = student['teachersTotalMarks'] ?? 0; // Use default value if null
 
                 return Container(
                   width: double.infinity,
@@ -256,9 +269,18 @@ class _SchoolReportsState extends State<SchoolReports> {
                         color: Colors.blueAccent,
                       ),
                     ),
-                    subtitle: Text(
-                      'Gender: $studentGender',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    subtitle: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween, // Aligns content to the ends
+                      children: [
+                        Text(
+                          'Gender: $studentGender',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Total: $studentTotalMarks/$teachersTotalMarks', // Format for total marks
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
                     onTap: () {
                       Navigator.push(
@@ -278,10 +300,7 @@ class _SchoolReportsState extends State<SchoolReports> {
           },
         )
             : Center(
-          child: Text(
-            'Please wait while loading...',
-            style: TextStyle(fontSize: 18),
-          ),
+          child: CircularProgressIndicator(),
         ),
       ),
     );
@@ -295,19 +314,28 @@ class _SchoolReportsState extends State<SchoolReports> {
           title: Text('Search Student'),
           content: TextField(
             controller: _searchController,
-            decoration: InputDecoration(hintText: 'Enter Student Name...'),
+            decoration: InputDecoration(hintText: 'Enter student name'),
             onChanged: (value) {
               setState(() {
-                _searchQuery = value;
+                _searchQuery = value; // Update search query
               });
             },
           ),
           actions: [
             TextButton(
+              child: Text('Cancel'),
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.of(context).pop();
               },
-              child: Text('Close'),
+            ),
+            TextButton(
+              child: Text('Search'),
+              onPressed: () {
+                setState(() {
+                  _searchQuery = _searchController.text; // Update search query
+                });
+                Navigator.of(context).pop();
+              },
             ),
           ],
         );
@@ -315,7 +343,6 @@ class _SchoolReportsState extends State<SchoolReports> {
     );
   }
 }
-
 
 
 
