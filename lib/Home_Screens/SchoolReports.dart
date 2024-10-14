@@ -91,12 +91,12 @@ class _SchoolReportsState extends State<SchoolReports> {
           'Teachers_Total_Marks': totalTeacherMarks,
         }, SetOptions(merge: true));
 
-        print('Updated marks for student: $studentDocId');
+        print('Updated Marks for Student: $studentDocId');
       } else {
-        print('Student document does not exist: $studentDocId');
+        print('Student document does NOT Exist: $studentDocId');
       }
     } catch (e) {
-      print('Error updating marks: $e');
+      print('Error updating Marks: $e');
     }
   }
 
@@ -277,7 +277,7 @@ class _SchoolReportsState extends State<SchoolReports> {
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          'Total: $studentTotalMarks/$teachersTotalMarks', // Format for total marks
+                          'Total Marks: $studentTotalMarks/$teachersTotalMarks', // Format for total marks
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -343,8 +343,6 @@ class _SchoolReportsState extends State<SchoolReports> {
     );
   }
 }
-
-
 
 
 
@@ -439,7 +437,7 @@ class SchoolReportPage extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('TERM:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                        Text('YEAR:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                        Text('YEAR: ${DateTime.now().year}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), // Display current year
                         Text('ENROLLMENT: $totalStudents', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                         Text('POSITION: $position', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                       ],
@@ -493,18 +491,13 @@ class SchoolReportPage extends StatelessWidget {
   // Function to determine the grade based on the score
   String getGrade(int score) {
     if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
-
       if (score >= 80) return 'A';
       if (score >= 70) return 'B';
       if (score >= 60) return 'C';
       if (score >= 50) return 'D';
       if (score >= 40) return 'E';
-
       return 'F';
-
-
     } else {
-
       if (score >= 80) return '1';
       if (score >= 75) return '2';
       if (score >= 70) return '3';
@@ -513,9 +506,7 @@ class SchoolReportPage extends StatelessWidget {
       if (score >= 55) return '6';
       if (score >= 50) return '7';
       if (score >= 40) return '8';
-
       return '9';
-
     }
   }
 
@@ -529,7 +520,6 @@ class SchoolReportPage extends StatelessWidget {
       if (score >= 50) return 'AVERAGE';
       if (score >= 40) return 'NEEDS IMPROVEMENT';
       return 'FAIL';
-
     } else {
       // Remarks for FORM 3 & 4
       if (score >= 80) return 'EXCELLENT';
@@ -539,9 +529,7 @@ class SchoolReportPage extends StatelessWidget {
       if (score >= 60) return 'WEAK CREDIT';
       if (score >= 50) return 'PASS';
       if (score >= 40) return 'NEED SUPPORT';
-
       return 'FAIL';
-
     }
   }
 }
