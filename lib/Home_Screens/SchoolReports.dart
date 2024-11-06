@@ -318,7 +318,7 @@ class _SchoolReportsState extends State<SchoolReports> {
           title: Text('Search Student'),
           content: TextField(
             controller: _searchController,
-            decoration: InputDecoration(hintText: 'Enter student name'),
+            decoration: InputDecoration(hintText: 'Enter Student Name'),
             onChanged: (value) {
               setState(() {
                 _searchQuery = value; // Update search query
@@ -354,6 +354,56 @@ class SchoolReportPage extends StatelessWidget {
   final String studentName;
   final String studentClass;
 
+
+  // Function to determine the grade based on the score
+  String getGrade(int score) {
+
+    if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
+      if (score >= 80) return 'A';
+      if (score >= 70) return 'B';
+      if (score >= 60) return 'C';
+      if (score >= 50) return 'D';
+      if (score >= 40) return 'E';
+      return 'F';
+
+    } else {
+      if (score >= 80) return '1';
+      if (score >= 75) return '2';
+      if (score >= 70) return '3';
+      if (score >= 65) return '4';
+      if (score >= 60) return '5';
+      if (score >= 55) return '6';
+      if (score >= 50) return '7';
+      if (score >= 40) return '8';
+      return '9';
+    }
+  }
+
+  // Function to return the teacher's remark based on the score
+  String getTeacherRemark(int score) {
+
+    if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
+      // Remarks for FORM 1 & 2
+      if (score >= 80) return 'EXCELLENT';
+      if (score >= 70) return 'VERY GOOD';
+      if (score >= 60) return 'GOOD';
+      if (score >= 50) return 'AVERAGE';
+      if (score >= 40) return 'NEED SUPPORT';
+      return 'FAIL';
+
+    } else {
+      // Remarks for FORM 3 & 4
+      if (score >= 80) return 'EXCELLENT';
+      if (score >= 75) return 'VERY GOOD';
+      if (score >= 70) return 'GOOD';
+      if (score >= 65) return 'STRONG CREDIT';
+      if (score >= 60) return 'WEAK CREDIT';
+      if (score >= 50) return 'PASS';
+      if (score >= 40) return 'NEED SUPPORT';
+      return 'FAIL';
+    }
+  }
+
   const SchoolReportPage({Key? key, required this.studentName, required this.studentClass}) : super(key: key);
 
   @override
@@ -361,7 +411,7 @@ class SchoolReportPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'School Progress Report',
+          'SCHOOL PROGRESS REPORT',
           style: TextStyle(fontWeight: FontWeight.bold), // Make the title bold
         ),
         backgroundColor: Colors.blueAccent,
@@ -500,54 +550,7 @@ class SchoolReportPage extends StatelessWidget {
     );
   }
 
-  // Function to determine the grade based on the score
-  String getGrade(int score) {
 
-    if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
-      if (score >= 80) return 'A';
-      if (score >= 70) return 'B';
-      if (score >= 60) return 'C';
-      if (score >= 50) return 'D';
-      if (score >= 40) return 'E';
-      return 'F';
-
-    } else {
-      if (score >= 80) return '1';
-      if (score >= 75) return '2';
-      if (score >= 70) return '3';
-      if (score >= 65) return '4';
-      if (score >= 60) return '5';
-      if (score >= 55) return '6';
-      if (score >= 50) return '7';
-      if (score >= 40) return '8';
-      return '9';
-    }
-  }
-
-  // Function to return the teacher's remark based on the score
-  String getTeacherRemark(int score) {
-
-    if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
-      // Remarks for FORM 1 & 2
-      if (score >= 80) return 'EXCELLENT';
-      if (score >= 70) return 'VERY GOOD';
-      if (score >= 60) return 'GOOD';
-      if (score >= 50) return 'AVERAGE';
-      if (score >= 40) return 'NEED SUPPORT';
-      return 'FAIL';
-
-    } else {
-      // Remarks for FORM 3 & 4
-      if (score >= 80) return 'EXCELLENT';
-      if (score >= 75) return 'VERY GOOD';
-      if (score >= 70) return 'GOOD';
-      if (score >= 65) return 'STRONG CREDIT';
-      if (score >= 60) return 'WEAK CREDIT';
-      if (score >= 50) return 'PASS';
-      if (score >= 40) return 'NEED SUPPORT';
-      return 'FAIL';
-    }
-  }
 
 
 
@@ -564,10 +567,21 @@ class SchoolReportPage extends StatelessWidget {
         .get();
 
     if (subjectSnapshot.docs.isEmpty) {
-      // If no subjects are found, handle the case
-      print('No subject data available');
+      print('No subjects available');
       return;
     }
+
+    // Fetch total students and determine position
+    final studentsSnapshot = await FirebaseFirestore.instance
+        .collection('Students_Details')
+        .doc(studentClass)
+        .collection('Student_Details')
+        .orderBy('Student_Total_Marks', descending: true)
+        .get();
+
+    int totalStudents = studentsSnapshot.docs.length;
+    int position = studentsSnapshot.docs
+        .indexWhere((doc) => doc.id == studentName) + 1;
 
     // Map the subjects data into a list of maps
     final List<Map<String, dynamic>> subjects = subjectSnapshot.docs.map((doc) {
@@ -598,22 +612,22 @@ class SchoolReportPage extends StatelessWidget {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('School Progress Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              pw.Text('SCHOOL PROGRESS REPORT', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 20),
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('STUDENT NAME: $studentName', style: pw.TextStyle(fontSize: 16)),
-                  pw.Text('CLASS: $studentClass', style: pw.TextStyle(fontSize: 16)),
+                  pw.Text('STUDENT NAME: $studentName', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('CLASS: $studentClass', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
                 ],
               ),
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('TERM:', style: pw.TextStyle(fontSize: 16)),
-                  pw.Text('YEAR: ${DateTime.now().year}', style: pw.TextStyle(fontSize: 16)),
-                  pw.Text('ENROLLMENT: 4', style: pw.TextStyle(fontSize: 16)),
-                  pw.Text('POSITION: 1', style: pw.TextStyle(fontSize: 16)),
+                  pw.Text('TERM:', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('YEAR: ${DateTime.now().year}', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('ENROLLMENT: $totalStudents', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('POSITION: $position', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
                 ],
               ),
               pw.SizedBox(height: 20),
@@ -622,7 +636,6 @@ class SchoolReportPage extends StatelessWidget {
               pw.Table(
                 border: pw.TableBorder.all(width: 0.5),
                 children: [
-                  // Table header row
                   pw.TableRow(
                     decoration: pw.BoxDecoration(color: PdfColors.grey300),
                     children: [
@@ -633,8 +646,6 @@ class SchoolReportPage extends StatelessWidget {
                       pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text('SIGNATURE', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
                     ],
                   ),
-
-                  // Data rows
                   ...subjects.map((subject) {
                     return pw.TableRow(
                       children: [
@@ -660,5 +671,6 @@ class SchoolReportPage extends StatelessWidget {
     // Print or save the PDF
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
+
 
 }
