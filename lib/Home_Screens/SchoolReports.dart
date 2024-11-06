@@ -502,6 +502,7 @@ class SchoolReportPage extends StatelessWidget {
 
   // Function to determine the grade based on the score
   String getGrade(int score) {
+
     if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
       if (score >= 80) return 'A';
       if (score >= 70) return 'B';
@@ -509,6 +510,7 @@ class SchoolReportPage extends StatelessWidget {
       if (score >= 50) return 'D';
       if (score >= 40) return 'E';
       return 'F';
+
     } else {
       if (score >= 80) return '1';
       if (score >= 75) return '2';
@@ -524,14 +526,16 @@ class SchoolReportPage extends StatelessWidget {
 
   // Function to return the teacher's remark based on the score
   String getTeacherRemark(int score) {
+
     if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
       // Remarks for FORM 1 & 2
       if (score >= 80) return 'EXCELLENT';
       if (score >= 70) return 'VERY GOOD';
       if (score >= 60) return 'GOOD';
       if (score >= 50) return 'AVERAGE';
-      if (score >= 40) return 'NEEDS IMPROVEMENT';
+      if (score >= 40) return 'NEED SUPPORT';
       return 'FAIL';
+
     } else {
       // Remarks for FORM 3 & 4
       if (score >= 80) return 'EXCELLENT';
@@ -545,25 +549,108 @@ class SchoolReportPage extends StatelessWidget {
     }
   }
 
-  // Function to generate and print the PDF report
+
+
   Future<void> _generateAndPrintPDF() async {
     final pdf = pw.Document();
 
-    // Add content to PDF
+    // Fetching the subjects dynamically from Firestore
+    final subjectSnapshot = await FirebaseFirestore.instance
+        .collection('Students_Details')
+        .doc(studentClass)
+        .collection('Student_Details')
+        .doc(studentName)
+        .collection('Student_Subjects')
+        .get();
+
+    if (subjectSnapshot.docs.isEmpty) {
+      // If no subjects are found, handle the case
+      print('No subject data available');
+      return;
+    }
+
+    // Map the subjects data into a list of maps
+    final List<Map<String, dynamic>> subjects = subjectSnapshot.docs.map((doc) {
+      final subjectData = doc.data() as Map<String, dynamic>;
+      final subjectName = subjectData['Subject_Name'] ?? 'Unknown';
+      final subjectGrade = (subjectData['Subject_Grade'] is int)
+          ? subjectData['Subject_Grade']
+          : (subjectData['Subject_Grade'] is String)
+          ? int.tryParse(subjectData['Subject_Grade']) ?? 0
+          : 0;
+
+      final scorePercentage = '$subjectGrade%';
+      final grade = getGrade(subjectGrade);
+      final teacherRemark = getTeacherRemark(subjectGrade);
+
+      return {
+        'subject': subjectName,
+        'score': scorePercentage,
+        'grade': grade,
+        'remark': teacherRemark,
+        'signature': '', // Add any dynamic signature data if required
+      };
+    }).toList();
+
     pdf.addPage(
       pw.Page(
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('STUDENT SCHOOL REPORT', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              pw.Text('School Progress Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 20),
-              pw.Text('STUDENT NAME: $studentName', style: pw.TextStyle(fontSize: 18)),
-              pw.Text('CLASS: $studentClass', style: pw.TextStyle(fontSize: 18)),
-              pw.Text('YEAR: ${DateTime.now().year}', style: pw.TextStyle(fontSize: 18)),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('STUDENT NAME: $studentName', style: pw.TextStyle(fontSize: 16)),
+                  pw.Text('CLASS: $studentClass', style: pw.TextStyle(fontSize: 16)),
+                ],
+              ),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('TERM:', style: pw.TextStyle(fontSize: 16)),
+                  pw.Text('YEAR: ${DateTime.now().year}', style: pw.TextStyle(fontSize: 16)),
+                  pw.Text('ENROLLMENT: 4', style: pw.TextStyle(fontSize: 16)),
+                  pw.Text('POSITION: 1', style: pw.TextStyle(fontSize: 16)),
+                ],
+              ),
               pw.SizedBox(height: 20),
-              // Add table for subjects and grades here
-              // You can customize this table as needed
+
+              // Table for subjects and details
+              pw.Table(
+                border: pw.TableBorder.all(width: 0.5),
+                children: [
+                  // Table header row
+                  pw.TableRow(
+                    decoration: pw.BoxDecoration(color: PdfColors.grey300),
+                    children: [
+                      pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text('SUBJECTS', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                      pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text('SCORE', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                      pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text('GRADE', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                      pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text("TEACHER'S REMARK", style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                      pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text('SIGNATURE', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                    ],
+                  ),
+
+                  // Data rows
+                  ...subjects.map((subject) {
+                    return pw.TableRow(
+                      children: [
+                        pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text(subject['subject'])),
+                        pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text(subject['score'])),
+                        pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text(subject['grade'])),
+                        pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text(subject['remark'])),
+                        pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text(subject['signature'])),
+                      ],
+                    );
+                  }).toList(),
+                ],
+              ),
+
+              pw.SizedBox(height: 20),
+              pw.Text('Generated on: ${DateTime.now()}'),
             ],
           );
         },
@@ -573,4 +660,5 @@ class SchoolReportPage extends StatelessWidget {
     // Print or save the PDF
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
+
 }

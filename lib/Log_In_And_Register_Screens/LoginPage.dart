@@ -199,16 +199,18 @@ class _LoginPageState extends State<LoginPage> {
                     onChanged: (value) {
                       password = value;
                       setState(() {
-                        _wrongPassword = false;
-                        _emptyPasswordField = password.isEmpty;
+                        _wrongPassword = false; // Reset wrong password state
+                        _emptyPasswordField = password.isEmpty; // Check if empty
                       });
                     },
-
                     decoration: InputDecoration(
                       labelText: 'Password',
                       errorText: _emptyPasswordField
                           ? _emptyPasswordFieldText
-                          : _wrongPassword ? _wrongPasswordFieldText : null,
+                          : _wrongPassword
+                          ? _wrongPasswordFieldText
+                          : null,
+                      errorStyle: TextStyle(color: Colors.red), // Set error text color to red
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.lock, color: Colors.blueAccent),
                       suffixIcon: IconButton(
@@ -219,7 +221,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         onPressed: () {
                           setState(() {
-                            _isPasswordVisible = !_isPasswordVisible;
+                            _isPasswordVisible = !_isPasswordVisible; // Toggle visibility
                           });
                         },
                       ),
@@ -246,54 +248,65 @@ class _LoginPageState extends State<LoginPage> {
                     child: SizedBox(
                       width: 88.0, // Set a fixed width for the button
                       child: ElevatedButton(
-                        onPressed: () async {
-                          setState(() {
-                            _showSpinner = true;
-                            _emptyEmailField = email.isEmpty;
-                            _emptyPasswordField = password.isEmpty;
-                          });
-
-                          if (_emptyEmailField || _emptyPasswordField) {
+                          onPressed: () async {
                             setState(() {
-                              _showSpinner = false;
-                            });
-                            return;
-                          }
-
-                          try {
-                            setState(() {
-                              _wrongEmail = false;
-                              _wrongPassword = false;
-                              _emailNotRegistered = false; // Reset email not registered error
+                              _showSpinner = true; // Show the spinner
+                              _emptyEmailField = email.isEmpty; // Check if email field is empty
+                              _emptyPasswordField = password.isEmpty; // Check if password field is empty
                             });
 
-                            UserCredential userCredential =
-                            await _auth.signInWithEmailAndPassword(
-                              email: email,
-                              password: password,
-                            );
-
-                            if (userCredential.user != null) {
-                              Navigator.pushNamed(context, Done.id);
-                            }
-                          } on FirebaseAuthException catch (e) {
-                            if (e.code == 'wrong-password') {
+                            if (_emptyEmailField || _emptyPasswordField) {
                               setState(() {
-                                _wrongPassword = true;
+                                _showSpinner = false; // Hide the spinner if fields are empty
                               });
-                              _showToast("Incorrect Password");
-                            } else if (e.code == 'user-not-found') {
-                              setState(() {
-                                _emailNotRegistered = true; // Set email not registered error
-                              });
-                              _showToast("Email not Registered");
+                              return; // Exit if either field is empty
                             }
-                          } finally {
-                            setState(() {
-                              _showSpinner = false;
-                            });
-                          }
-                        },
+
+                            try {
+                              setState(() {
+                                _wrongEmail = false; // Reset wrong email flag
+                                _wrongPassword = false; // Reset wrong password flag
+                                _emailNotRegistered = false; // Reset email not registered error
+                              });
+
+                              // Attempt to sign in
+                              UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+                                email: email,
+                                password: password,
+                              );
+
+                              // Check if the user credential is valid
+                              if (userCredential.user != null) {
+                                Navigator.pushNamed(context, Done.id); // Navigate on success
+                              }
+                            } on FirebaseAuthException catch (e) {
+                              // Handle different error cases
+                              if (e.code == 'wrong-password') {
+                                setState(() {
+                                  _wrongPassword = true; // Set wrong password flag
+                                  _showSpinner = false; // Hide the spinner
+                                });
+                                _showToast("Incorrect Password"); // Show error toast
+                              } else if (e.code == 'user-not-found') {
+                                setState(() {
+                                  _emailNotRegistered = true; // Set email not registered flag
+                                  _showSpinner = false; // Hide the spinner
+                                });
+                                _showToast("Email not Registered"); // Show error toast
+                              } else {
+                                // Handle other exceptions as needed
+                                setState(() {
+                                  _showSpinner = false; // Hide spinner in case of other errors
+                                });
+                              }
+                            } finally {
+                              // Make sure to hide the spinner after the operation
+                              setState(() {
+                                _showSpinner = false;
+                              });
+                            }
+                          },
+
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blueAccent,
                           padding: EdgeInsets.symmetric(vertical: 13.0, horizontal: 20),
