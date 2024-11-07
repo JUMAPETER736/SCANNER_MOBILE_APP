@@ -42,6 +42,16 @@ class SchoolReportPDFGenerator extends StatelessWidget {
     }
   }
 
+  // Function to determine the aggregate score based on all subjects for FORM 1 or FORM 2
+  String getAggregateGrade(int studentTotalMarks) {
+    if (studentTotalMarks >= 950 && studentTotalMarks <= 1100) return 'A';
+    if (studentTotalMarks >= 750 && studentTotalMarks < 950) return 'B';
+    if (studentTotalMarks >= 600 && studentTotalMarks < 750) return 'C';
+    if (studentTotalMarks >= 500 && studentTotalMarks < 600) return 'D';
+    if (studentTotalMarks >= 400 && studentTotalMarks < 500) return 'E';
+    return 'F';
+  }
+
   // Function to return the teacher's remark based on the score
   String getTeacherRemark(int score) {
     if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
@@ -178,10 +188,28 @@ class SchoolReportPDFGenerator extends StatelessWidget {
             return grade;
           }).toList();
 
+          // Calculate the total marks by summing all grades
+          int totalMarks = subjectGrades.reduce((a, b) => a + b);
+
+          // Get the aggregate grade based on the total marks of all subjects
+          String aggregateGrade = getAggregateGrade(totalMarks);
+
+          // Output the total marks and aggregate grade for debugging
+          print("Total Marks: $totalMarks with Grade: $aggregateGrade");
+
+
 
           // Sorting grades to find the best six scores
           subjectGrades.sort((a, b) => b.compareTo(a));
-          int aggregate = subjectGrades.take(6).reduce((a, b) => a + b);
+
+          // Now, instead of adding the actual grades, we calculate the aggregate based on your grading scale
+          int aggregate = subjectGrades
+              .take(6) // Take the top 6 grades
+              .map((grade) => int.parse(getGrade(grade))) // Convert each grade to its corresponding value
+              .reduce((a, b) => a + b); // Sum the values
+
+          // Output the aggregate
+          print("AGGREGATE: $aggregate");
 
           return FutureBuilder<QuerySnapshot>(
             future: FirebaseFirestore.instance
@@ -307,8 +335,6 @@ class SchoolReportPDFGenerator extends StatelessWidget {
       ),
     );
   }
-
-
 
 
 
@@ -486,7 +512,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('AGGREGATE: $studentTotalMarks', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('AGGREGATE: $studentTotalMarks ', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
                   pw.Text('EXAM REWARD: ${getExamReward()}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
                 ],
 
