@@ -74,44 +74,56 @@ class SchoolReportPDFGenerator extends StatelessWidget {
     return 'FAIL';
   }
 
-
-  // Function to get grade key ranges based on student class
+// Function to get grade key ranges based on student class
   Widget getGradeKey() {
     if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      return Wrap(
+        alignment: WrapAlignment.start,
         children: [
-          Text('GRADE KEY:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          SizedBox(height: 8),
-
-          Text('80% - 100% =  EXCELLENT', style: TextStyle(fontSize: 14)),
+          Text('GRADE KEY: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          SizedBox(width: 16),
+          Text('80% - 100% = EXCELLENT', style: TextStyle(fontSize: 14)),
+          SizedBox(width: 16),
           Text('70% - 79% = VERY GOOD', style: TextStyle(fontSize: 14)),
+          SizedBox(width: 16),
           Text('60% - 69% = GOOD', style: TextStyle(fontSize: 14)),
+          SizedBox(width: 16),
           Text('50% - 59% = PASS', style: TextStyle(fontSize: 14)),
+          SizedBox(width: 16),
           Text('40% - 49% = NEED SUPPORT', style: TextStyle(fontSize: 14)),
+          SizedBox(width: 16),
           Text('0% - 39% = FAIL', style: TextStyle(fontSize: 14)),
         ],
       );
     } else {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      return Wrap(
+        alignment: WrapAlignment.start,
         children: [
-          Text('GRADE KEY:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          SizedBox(height: 8),
-
+          Text('GRADE KEY: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          SizedBox(width: 16),
           Text('85% - 100% = 1', style: TextStyle(fontSize: 14)),
-          Text('70% - 84% = 2', style: TextStyle(fontSize: 14)),
+          SizedBox(width: 16),
+          Text('80% - 84% = 2', style: TextStyle(fontSize: 14)),
+          SizedBox(width: 16),
           Text('75% - 79% = 3', style: TextStyle(fontSize: 14)),
+          SizedBox(width: 16),
           Text('70% - 74% = 4', style: TextStyle(fontSize: 14)),
+          SizedBox(width: 16),
           Text('65% - 69% = 5', style: TextStyle(fontSize: 14)),
+          SizedBox(width: 16),
           Text('60% - 64% = 6', style: TextStyle(fontSize: 14)),
+          SizedBox(width: 16),
           Text('50% - 59% = 7', style: TextStyle(fontSize: 14)),
+          SizedBox(width: 16),
           Text('40% - 49% = 8', style: TextStyle(fontSize: 14)),
+          SizedBox(width: 16),
           Text('0% - 39% = 9', style: TextStyle(fontSize: 14)),
         ],
       );
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -352,6 +364,56 @@ class SchoolReportPDFGenerator extends StatelessWidget {
       };
     }).toList();
 
+    pw.Widget getGradeKey() {
+      if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
+        return pw.Wrap(
+          alignment: pw.WrapAlignment.start,
+          children: [
+            pw.Text('GRADE KEY: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
+            pw.SizedBox(width: 16),
+            pw.Text('80% - 100% = EXCELLENT', style: pw.TextStyle(fontSize: 14)),
+            pw.SizedBox(width: 16),
+            pw.Text('70% - 79% = VERY GOOD', style: pw.TextStyle(fontSize: 14)),
+            pw.SizedBox(width: 16),
+            pw.Text('60% - 69% = GOOD', style: pw.TextStyle(fontSize: 14)),
+            pw.SizedBox(width: 16),
+            pw.Text('50% - 59% = PASS', style: pw.TextStyle(fontSize: 14)),
+            pw.SizedBox(width: 16),
+            pw.Text('40% - 49% = NEED SUPPORT', style: pw.TextStyle(fontSize: 14)),
+            pw.SizedBox(width: 16),
+            pw.Text('0% - 39% = FAIL', style: pw.TextStyle(fontSize: 14)),
+          ],
+        );
+      } else {
+        return pw.Wrap(
+          alignment: pw.WrapAlignment.start,
+          children: [
+            pw.Text('GRADE KEY: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
+            pw.SizedBox(width: 16),
+            pw.Text('85% - 100% = 1', style: pw.TextStyle(fontSize: 14)),
+            pw.SizedBox(width: 16),
+            pw.Text('80% - 84% = 2', style: pw.TextStyle(fontSize: 14)),
+            pw.SizedBox(width: 16),
+            pw.Text('75% - 79% = 3', style: pw.TextStyle(fontSize: 14)),
+            pw.SizedBox(width: 16),
+            pw.Text('70% - 74% = 4', style: pw.TextStyle(fontSize: 14)),
+            pw.SizedBox(width: 16),
+            pw.Text('65% - 69% = 5', style: pw.TextStyle(fontSize: 14)),
+            pw.SizedBox(width: 16),
+            pw.Text('60% - 64% = 6', style: pw.TextStyle(fontSize: 14)),
+            pw.SizedBox(width: 16),
+            pw.Text('50% - 59% = 7', style: pw.TextStyle(fontSize: 14)),
+            pw.SizedBox(width: 16),
+            pw.Text('40% - 49% = 8', style: pw.TextStyle(fontSize: 14)),
+            pw.SizedBox(width: 16),
+            pw.Text('0% - 39% = 9', style: pw.TextStyle(fontSize: 14)),
+          ],
+        );
+      }
+    }
+
+
+
     pdf.addPage(
       pw.Page(
         build: (pw.Context context) {
@@ -414,7 +476,11 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                 ],
               ),
 
+
               pw.SizedBox(height: 20),
+
+
+
 
               // Displaying aggregate and exam reward
               pw.Row(
@@ -423,7 +489,12 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                   pw.Text('AGGREGATE: $studentTotalMarks', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
                   pw.Text('EXAM REWARD: ${getExamReward()}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
                 ],
+
               ),
+
+              // Displaying grade key
+              getGradeKey(),
+
               pw.Text('Generated on: ${DateTime.now()}'),
             ],
           );
