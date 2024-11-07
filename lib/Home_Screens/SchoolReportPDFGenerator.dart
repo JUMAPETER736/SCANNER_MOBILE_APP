@@ -179,11 +179,11 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                       headingRowHeight: 50,
                       columnSpacing: 8,
                       columns: [
-                        DataColumn(label: Text('SUBJECTS', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('SCORE', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('GRADE', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text("TEACHER'S REMARK", style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('SIGNATURE', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('SUBJECTS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('SCORE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('GRADE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text("TEACHER'S REMARK", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('SIGNATURE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
                       ],
                       rows: subjectDocs.map((subjectDoc) {
                         final subjectData = subjectDoc.data() as Map<String, dynamic>;
@@ -292,37 +292,44 @@ class SchoolReportPDFGenerator extends StatelessWidget {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('TERM:', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                  pw.Text('YEAR: ${DateTime.now().year}', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                  pw.Text('TOTAL MARKS: $studentTotalMarks/$teachersTotalMarks', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                  pw.Text('ENROLLMENT: $totalStudents', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                  pw.Text('POSITION: $position', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('TERM:', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('YEAR: ${DateTime.now().year}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('TOTAL MARKS: $studentTotalMarks/$teachersTotalMarks', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('ENROLLMENT: $totalStudents', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('POSITION: $position', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
                 ],
               ),
               pw.SizedBox(height: 20),
 
               // Table for subjects and details
               pw.Table(
-                border: pw.TableBorder.all(width: 0.5),
+                border: pw.TableBorder.all(width: 1), // Increased the vertical line size here
+                columnWidths: {
+                  0: pw.FlexColumnWidth(2), // Increased horizontal space for subjects column
+                  1: pw.FlexColumnWidth(1),
+                  2: pw.FlexColumnWidth(1),
+                  3: pw.FlexColumnWidth(3), // Adjusted for remarks
+                  4: pw.FlexColumnWidth(2),
+                },
                 children: [
                   pw.TableRow(
                     decoration: pw.BoxDecoration(color: PdfColors.grey300),
                     children: [
-                      pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text('SUBJECTS', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                      pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text('SCORE', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                      pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text('GRADE', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                      pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text("TEACHER'S REMARK", style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                      pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text('SIGNATURE', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                      pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text('SUBJECTS', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold))),
+                      pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text('SCORE', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold))),
+                      pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text('GRADE', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold))),
+                      pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text("TEACHER'S REMARK", style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold))),
+                      pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text('SIGNATURE', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold))),
                     ],
                   ),
                   ...subjects.map((subject) {
                     return pw.TableRow(
                       children: [
-                        pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text(subject['subject'])),
-                        pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text(subject['score'])),
-                        pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text(subject['grade'])),
-                        pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text(subject['remark'])),
-                        pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text(subject['signature'])),
+                        pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text(subject['subject'], style: pw.TextStyle(fontSize: 8))),
+                        pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text(subject['score'], style: pw.TextStyle(fontSize: 8))),
+                        pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text(subject['grade'], style: pw.TextStyle(fontSize: 8))),
+                        pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text(subject['remark'], style: pw.TextStyle(fontSize: 8))),
+                        pw.Padding(padding: pw.EdgeInsets.all(8), child: pw.Text(subject['signature'], style: pw.TextStyle(fontSize: 8))),
                       ],
                     );
                   }).toList(),
@@ -340,6 +347,5 @@ class SchoolReportPDFGenerator extends StatelessWidget {
     // Print or save the PDF
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
-
 
 }
