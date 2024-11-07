@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,18 +5,23 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
-
-
 class SchoolReportPDFGenerator extends StatelessWidget {
   final String studentName;
   final String studentClass;
-  final int studentTotalMarks; // Define studentTotalMarks variable
-  final int teachersTotalMarks; // Define teachersTotalMarks variable
+  final int studentTotalMarks;
+  final int teachersTotalMarks;
 
+  // Constructor
+  const SchoolReportPDFGenerator({
+    Key? key,
+    required this.studentName,
+    required this.studentClass,
+    required this.studentTotalMarks,
+    required this.teachersTotalMarks,
+  }) : super(key: key);
 
   // Function to determine the grade based on the score
   String getGrade(int score) {
-
     if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
       if (score >= 80) return 'A';
       if (score >= 70) return 'B';
@@ -25,9 +29,8 @@ class SchoolReportPDFGenerator extends StatelessWidget {
       if (score >= 50) return 'D';
       if (score >= 40) return 'E';
       return 'F';
-
     } else {
-      if (score >= 80) return '1';
+      if (score >= 85) return '1';
       if (score >= 75) return '2';
       if (score >= 70) return '3';
       if (score >= 65) return '4';
@@ -41,18 +44,14 @@ class SchoolReportPDFGenerator extends StatelessWidget {
 
   // Function to return the teacher's remark based on the score
   String getTeacherRemark(int score) {
-
     if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
-      // Remarks for FORM 1 & 2
       if (score >= 80) return 'EXCELLENT';
       if (score >= 70) return 'VERY GOOD';
       if (score >= 60) return 'GOOD';
       if (score >= 50) return 'AVERAGE';
       if (score >= 40) return 'NEED SUPPORT';
       return 'FAIL';
-
     } else {
-      // Remarks for FORM 3 & 4
       if (score >= 80) return 'EXCELLENT';
       if (score >= 75) return 'VERY GOOD';
       if (score >= 70) return 'GOOD';
@@ -64,14 +63,17 @@ class SchoolReportPDFGenerator extends StatelessWidget {
     }
   }
 
-  const SchoolReportPDFGenerator(
+  // Function to get the Exam Reward based on studentTotalMarks
+  String getExamReward() {
+    if (studentTotalMarks >= 950 && studentTotalMarks <= 1100) return 'DISTINCTION';
+    if (studentTotalMarks >= 750 && studentTotalMarks < 950) return 'STRONG CREDIT';
+    if (studentTotalMarks >= 600 && studentTotalMarks < 750) return 'WEAK CREDIT';
+    if (studentTotalMarks >= 500 && studentTotalMarks < 600) return 'PASS';
+    if (studentTotalMarks >= 400 && studentTotalMarks < 500) return 'NEED SUPPORT';
+    return 'FAIL';
+  }
 
-      {Key? key,
-        required this.studentName,
-        required this.studentClass,
-        required this.studentTotalMarks,
-        required this.teachersTotalMarks
-      }) : super(key: key);
+
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +81,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'SCHOOL PROGRESS REPORT',
-          style: TextStyle(fontWeight: FontWeight.bold), // Make the title bold
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.blueAccent,
         actions: [
@@ -100,19 +102,36 @@ class SchoolReportPDFGenerator extends StatelessWidget {
             .collection('Student_Subjects')
             .get(),
         builder: (context, snapshot) {
+          // Handling loading state
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
 
+          // Handling errors
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
 
+          // Handling case when no data is found
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(child: Text('No grades found.'));
           }
 
           final subjectDocs = snapshot.data!.docs;
+
+          // List of subject grades from Firestore data
+          List<int> subjectGrades = subjectDocs.map<int>((doc) {
+            final subjectData = doc.data() as Map<String, dynamic>;
+            final grade = (subjectData['Subject_Grade'] is int)
+                ? subjectData['Subject_Grade']
+                : int.tryParse(subjectData['Subject_Grade'].toString()) ?? 0;
+            return grade;
+          }).toList();
+
+
+          // Sorting grades to find the best six scores
+          subjectGrades.sort((a, b) => b.compareTo(a));
+          int aggregate = subjectGrades.take(6).reduce((a, b) => a + b);
 
           return FutureBuilder<QuerySnapshot>(
             future: FirebaseFirestore.instance
@@ -126,10 +145,9 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                 return Center(child: CircularProgressIndicator());
               }
 
-              // Calculate position
               int position = studentSnapshot.data!.docs
-                  .indexWhere((doc) => doc.id == studentName) + 1; // +1 to make it 1-based index
-
+                  .indexWhere((doc) => doc.id == studentName) +
+                  1;
               int totalStudents = studentSnapshot.data!.docs.length;
 
               return SingleChildScrollView(
@@ -137,6 +155,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Header with student info
                     Center(
                       child: Text(
                         'STUDENT SCHOOL REPORT',
@@ -166,13 +185,15 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('TERM:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                        Text('YEAR: ${DateTime.now().year}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), // Display current year
+                        Text('YEAR: ${DateTime.now().year}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                         Text('TOTAL MARKS: $studentTotalMarks/$teachersTotalMarks', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                         Text('ENROLLMENT: $totalStudents', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                         Text('POSITION: $position', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                       ],
                     ),
                     SizedBox(height: 16),
+
+                    // Table to display subjects, scores, grades, and remarks
                     DataTable(
                       border: TableBorder.all(),
                       dataRowHeight: 40,
@@ -191,9 +212,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                         final subjectName = subjectData['Subject_Name'] ?? 'Unknown';
                         final subjectGrade = (subjectData['Subject_Grade'] is int)
                             ? subjectData['Subject_Grade']
-                            : (subjectData['Subject_Grade'] is String)
-                            ? int.tryParse(subjectData['Subject_Grade']) ?? 0
-                            : 0;
+                            : int.tryParse(subjectData['Subject_Grade']) ?? 0;
 
                         final scorePercentage = '$subjectGrade%';
                         final grade = getGrade(subjectGrade);
@@ -208,6 +227,23 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                         ]);
                       }).toList(),
                     ),
+                    SizedBox(height: 16),
+
+                    // Displaying aggregate and exam reward
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'AGGREGATE: $aggregate',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'EXAM REWARD: ${getExamReward()}',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16),
                   ],
                 ),
               );
@@ -337,6 +373,15 @@ class SchoolReportPDFGenerator extends StatelessWidget {
               ),
 
               pw.SizedBox(height: 20),
+
+              // Displaying aggregate and exam reward
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('AGGREGATE: $studentTotalMarks', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('EXAM REWARD: ${getExamReward()}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                ],
+              ),
               pw.Text('Generated on: ${DateTime.now()}'),
             ],
           );
@@ -347,6 +392,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
     // Print or save the PDF
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
+
 
 }
 
