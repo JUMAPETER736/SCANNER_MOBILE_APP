@@ -19,6 +19,7 @@ class _SchoolReportsState extends State<SchoolReports> {
   String? teacherClass;
   bool _hasSelectedClass = false;
   User? currentUser;
+  //String formNumber = 'FORM 2'; // Example form number, modify based on your logic
 
   @override
   void initState() {
@@ -291,6 +292,7 @@ class _SchoolReportsState extends State<SchoolReports> {
                           builder: (context) => SchoolReportPDFGenerator(
                             studentName: student['id'],
                             studentClass: teacherClass!,
+
                             studentTotalMarks: studentTotalMarks,  // Pass studentTotalMarks
                             teachersTotalMarks: teachersTotalMarks, // Pass teachersTotalMarks if needed
                           ),
