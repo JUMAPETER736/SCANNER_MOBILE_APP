@@ -195,7 +195,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
           String aggregateGrade = getAggregateGrade(totalMarks);
 
           // Output the total marks and aggregate grade for debugging
-          print("Total Marks: $totalMarks with Grade: $aggregateGrade");
+          print("AGGREGATE:$aggregateGrade");
 
 
 
@@ -252,6 +252,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                           'STUDENT NAME: $studentName',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
+
                         Text(
                           'CLASS: $studentClass',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -335,6 +336,8 @@ class SchoolReportPDFGenerator extends StatelessWidget {
       ),
     );
   }
+
+
 
 
 
