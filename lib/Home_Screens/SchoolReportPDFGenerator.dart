@@ -52,6 +52,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
       if (score >= 40) return 'NEED SUPPORT';
       return 'FAIL';
     } else {
+      if (score >= 85) return 'DISTINCTION';
       if (score >= 80) return 'EXCELLENT';
       if (score >= 75) return 'VERY GOOD';
       if (score >= 70) return 'GOOD';
@@ -74,6 +75,43 @@ class SchoolReportPDFGenerator extends StatelessWidget {
   }
 
 
+  // Function to get grade key ranges based on student class
+  Widget getGradeKey() {
+    if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('GRADE KEY:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          SizedBox(height: 8),
+
+          Text('80% - 100% =  EXCELLENT', style: TextStyle(fontSize: 14)),
+          Text('70% - 79% = VERY GOOD', style: TextStyle(fontSize: 14)),
+          Text('60% - 69% = GOOD', style: TextStyle(fontSize: 14)),
+          Text('50% - 59% = PASS', style: TextStyle(fontSize: 14)),
+          Text('40% - 49% = NEED SUPPORT', style: TextStyle(fontSize: 14)),
+          Text('0% - 39% = FAIL', style: TextStyle(fontSize: 14)),
+        ],
+      );
+    } else {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('GRADE KEY:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          SizedBox(height: 8),
+
+          Text('85% - 100% = 1', style: TextStyle(fontSize: 14)),
+          Text('70% - 84% = 2', style: TextStyle(fontSize: 14)),
+          Text('75% - 79% = 3', style: TextStyle(fontSize: 14)),
+          Text('70% - 74% = 4', style: TextStyle(fontSize: 14)),
+          Text('65% - 69% = 5', style: TextStyle(fontSize: 14)),
+          Text('60% - 64% = 6', style: TextStyle(fontSize: 14)),
+          Text('50% - 59% = 7', style: TextStyle(fontSize: 14)),
+          Text('40% - 49% = 8', style: TextStyle(fontSize: 14)),
+          Text('0% - 39% = 9', style: TextStyle(fontSize: 14)),
+        ],
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -243,6 +281,10 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                         ),
                       ],
                     ),
+                    SizedBox(height: 16),
+
+                    // Display GRADE KEY below AGGREGATE section
+                    getGradeKey(),
                     SizedBox(height: 16),
                   ],
                 ),
