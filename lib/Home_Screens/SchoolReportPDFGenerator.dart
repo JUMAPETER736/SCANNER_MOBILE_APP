@@ -6,10 +6,12 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 class SchoolReportPDFGenerator extends StatelessWidget {
+
   final String studentName;
   final String studentClass;
   final int studentTotalMarks;
   final int teachersTotalMarks;
+
 
   // Constructor
   const SchoolReportPDFGenerator({
@@ -60,8 +62,11 @@ class SchoolReportPDFGenerator extends StatelessWidget {
       if (score >= 60) return 'GOOD';
       if (score >= 50) return 'AVERAGE';
       if (score >= 40) return 'NEED SUPPORT';
+
       return 'FAIL';
-    } else {
+    }
+
+    else {
       if (score >= 85) return 'DISTINCTION';
       if (score >= 80) return 'EXCELLENT';
       if (score >= 75) return 'VERY GOOD';
@@ -72,15 +77,28 @@ class SchoolReportPDFGenerator extends StatelessWidget {
       if (score >= 40) return 'NEED SUPPORT';
       return 'FAIL';
     }
+
   }
 
   // Function to get the Exam Reward based on studentTotalMarks
-  String getExamReward() {
+  String getExamRewardJunior() {
+    if (studentTotalMarks >= 950 && studentTotalMarks <= 1100) return 'EXCELLENT';
+    if (studentTotalMarks >= 750 && studentTotalMarks < 950) return 'VERY GOOD';
+    if (studentTotalMarks >= 600 && studentTotalMarks < 750) return 'GOOD';
+    if (studentTotalMarks >= 500 && studentTotalMarks < 600) return 'PASS';
+    if (studentTotalMarks >= 400 && studentTotalMarks < 500) return 'NEED SUPPORT';
+
+    return 'FAIL';
+  }
+
+  // Function to get the Exam Reward based on studentTotalMarks
+  String getExamRewardSenior() {
     if (studentTotalMarks >= 950 && studentTotalMarks <= 1100) return 'DISTINCTION';
     if (studentTotalMarks >= 750 && studentTotalMarks < 950) return 'STRONG CREDIT';
     if (studentTotalMarks >= 600 && studentTotalMarks < 750) return 'WEAK CREDIT';
     if (studentTotalMarks >= 500 && studentTotalMarks < 600) return 'PASS';
     if (studentTotalMarks >= 400 && studentTotalMarks < 500) return 'NEED SUPPORT';
+
     return 'FAIL';
   }
 
@@ -174,42 +192,55 @@ class SchoolReportPDFGenerator extends StatelessWidget {
 
           // Handling case when no data is found
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text('No grades found.'));
+            return Center(child: Text('No Grades found.'));
           }
 
           final subjectDocs = snapshot.data!.docs;
 
-          // List of subject grades from Firestore data
-          List<int> subjectGrades = subjectDocs.map<int>((doc) {
+          final subjectGrades = subjectDocs.map<int>((doc) {
             final subjectData = doc.data() as Map<String, dynamic>;
-            final grade = (subjectData['Subject_Grade'] is int)
+
+            final subjectGrade = (subjectData['Subject_Grade'] is int)
                 ? subjectData['Subject_Grade']
-                : int.tryParse(subjectData['Subject_Grade'].toString()) ?? 0;
-            return grade;
+                : (subjectData['Subject_Grade'] is String)
+                ? int.tryParse(subjectData['Subject_Grade']) ?? 0
+                : 0;
+
+            int parsedGrade = 0; // Default grade if data is invalid
+
+            // Ensure grade exists and is valid
+            if (subjectGrade != null) {
+              if (subjectGrade is int) {
+                parsedGrade = subjectGrade;
+              } else {
+                parsedGrade = int.tryParse(subjectGrade.toString()) ?? 0; // Default to 0 if parsing fails
+              }
+            }
+
+            return parsedGrade;
           }).toList();
 
           // Calculate the total marks by summing all grades
           int totalMarks = subjectGrades.reduce((a, b) => a + b);
 
           // Get the aggregate grade based on the total marks of all subjects
-          String aggregateGrade = getAggregateGrade(totalMarks);
+          String juniorAggregate = getAggregateGrade(totalMarks);
 
           // Output the total marks and aggregate grade for debugging
-          print("AGGREGATE:$aggregateGrade");
-
+          print("AGGREGATE:$juniorAggregate");
 
 
           // Sorting grades to find the best six scores
           subjectGrades.sort((a, b) => b.compareTo(a));
 
           // Now, instead of adding the actual grades, we calculate the aggregate based on your grading scale
-          int aggregate = subjectGrades
+          int seniorAggregate = subjectGrades
               .take(6) // Take the top 6 grades
               .map((grade) => int.parse(getGrade(grade))) // Convert each grade to its corresponding value
               .reduce((a, b) => a + b); // Sum the values
 
           // Output the aggregate
-          print("AGGREGATE: $aggregate");
+          print("AGGREGATE: $seniorAggregate");
 
           return FutureBuilder<QuerySnapshot>(
             future: FirebaseFirestore.instance
@@ -308,19 +339,22 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                     ),
                     SizedBox(height: 16),
 
-                    // Displaying aggregate and exam reward
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'AGGREGATE: $aggregate',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'EXAM REWARD: ${getExamReward()}',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                        ),
-                      ],
+
+                    // Aggregate grade, reward, and other summary information
+                    Center(
+                      child: Column(
+                        children: [
+                          Text(
+                            'AGGREGATE GRADE: ${studentClass == 'FORM 1' || studentClass == 'FORM 2' ? juniorAggregate : seniorAggregate.toString()}',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'EXAM REWARD: ${studentClass == 'FORM 1' || studentClass == 'FORM 2' ? getExamRewardJunior() : getExamRewardSenior()}',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
                     ),
                     SizedBox(height: 16),
 
@@ -340,6 +374,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
 
 
 
+//PDF Generating of the School Report
 
   Future<void> _generateAndPrintPDF() async {
     final pdf = pw.Document();
@@ -508,17 +543,15 @@ class SchoolReportPDFGenerator extends StatelessWidget {
 
               pw.SizedBox(height: 20),
 
+              //
+              // pw.Text(
+              //   'AGGREGATE GRADE: ${studentClass == 'FORM 1' || studentClass == 'FORM 2' ? juniorAggregate : seniorAggregate.toString()}',
+              //   style: pw.TextStyle(fontSize: 14),
+              // ),
 
-
-
-              // Displaying aggregate and exam reward
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text('AGGREGATE: $studentTotalMarks ', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                  pw.Text('EXAM REWARD: ${getExamReward()}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                ],
-
+              pw.Text(
+                'EXAM REWARD: ${studentClass == 'FORM 1' || studentClass == 'FORM 2' ? getExamRewardJunior() : getExamRewardSenior()}',
+                style: pw.TextStyle(fontSize: 14),
               ),
 
               // Displaying grade key
@@ -534,7 +567,6 @@ class SchoolReportPDFGenerator extends StatelessWidget {
     // Print or save the PDF
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
-
 
 }
 
