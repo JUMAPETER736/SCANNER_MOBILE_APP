@@ -137,37 +137,49 @@ class SchoolReportPDFGenerator extends StatelessWidget {
   Widget getTeacherRemarksSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 16),
-        Text("TEACHER'S COMMENT _____________________________________", style: TextStyle(fontWeight: FontWeight.bold)),
-        SizedBox(height: 8),
-        Row(
-          children: [
-            Text('CONDUCT: ', style: TextStyle(fontWeight: FontWeight.bold)),
-            Text('Excellent', style: TextStyle(fontWeight: FontWeight.normal)),
-          ],
-        ),
-        SizedBox(height: 8),
-        Row(
-          children: [
-            Text('SIGNATURE:__________________ DATE: ', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        SizedBox(height: 16),
-        Text("HEAD TEACHER'S REMARK: ___________________________________", style: TextStyle(fontWeight: FontWeight.bold)),
-        SizedBox(height: 8),
-        Row(
-          children: [
-            Text('SIGNATURE:__________________________ DATE:_________________________', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        SizedBox(height: 16),
-        Row(
-          children: [
-            Text("NEXT TERM OPENS:________________", style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ],
+
+        children: [
+          SizedBox(height: 16),
+          Text("TEACHER'S COMMENT ___________________________________", style: TextStyle(fontWeight: FontWeight.bold)),
+          SizedBox(height: 8),
+          Row(
+            children: [
+              Text('CONDUCT:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Expanded(child: Text('____________________________________________', style: TextStyle(fontWeight: FontWeight.bold))),
+            ],
+          ),
+          SizedBox(height: 8),
+          Row(
+            children: [
+              Text('SIGNATURE:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Expanded(child: Text('__________________', style: TextStyle(fontWeight: FontWeight.bold))),
+              SizedBox(width: 6), // Adding some space between SIGNATURE and DATE
+              Text('DATE:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Expanded(child: Text('_______________', style: TextStyle(fontWeight: FontWeight.bold))),
+            ],
+          ),
+          SizedBox(height: 16),
+          Text("HEAD TEACHER'S REMARK: ________________________________", style: TextStyle(fontWeight: FontWeight.bold)),
+          SizedBox(height: 8),
+          Row(
+            children: [
+              Text('SIGNATURE:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Expanded(child: Text('__________________', style: TextStyle(fontWeight: FontWeight.bold))),
+              SizedBox(width: 6), // Adding some space between SIGNATURE and DATE
+              Text('DATE:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Expanded(child: Text('_______________', style: TextStyle(fontWeight: FontWeight.bold))),
+            ],
+          ),
+          SizedBox(height: 16),
+          Row(
+            children: [
+              Text("NEXT TERM OPENS:", style: TextStyle(fontWeight: FontWeight.bold)),
+              Expanded(child: Text('________________', style: TextStyle(fontWeight: FontWeight.bold))),
+            ],
+          ),
+        ]
+
+
     );
   }
 
@@ -347,22 +359,28 @@ class SchoolReportPDFGenerator extends StatelessWidget {
 
                     // Displaying aggregate and exam reward
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.start, // Align items to the start
                       children: [
                         Text(
                           'AGGREGATE: $aggregate',
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                         ),
+                        SizedBox(width: 24), // Adjust the width to control the space
                         Text(
                           'EXAM REWARD: ${getExamReward()}',
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
+
                     SizedBox(height: 16),
 
                     // Display GRADE KEY below AGGREGATE section
                     getGradeKey(),
+
+                    // Display teacher's remark
+                    getTeacherRemarksSection(),
+
                     SizedBox(height: 16),
                   ],
                 ),
@@ -504,11 +522,11 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                   pw.Text('ENROLLMENT: $totalStudents', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
                   pw.Text('POSITION: $position', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
                   pw.Text("TEACHER'S COMMENT:________________", style: pw.TextStyle(fontSize: 14)),
-                  pw.Text('Conduct: Excellent', style: pw.TextStyle(fontSize: 14)),
+                  pw.Text('CONDUCT', style: pw.TextStyle(fontSize: 14)),
                   pw.Text('SIGNATURE: ___________________ DATE: ____________', style: pw.TextStyle(fontSize: 14)),
                   pw.SizedBox(height: 16),
                   pw.Text("HEAD TEACHER'S REMARK: __________________", style: pw.TextStyle(fontSize: 14)),
-                  pw.Text("Next Term Opens: ________", style: pw.TextStyle(fontSize: 14)),
+                  pw.Text("NEXT TERM OPENS: ________", style: pw.TextStyle(fontSize: 14)),
                 ],
               ),
               pw.SizedBox(height: 20),
@@ -556,7 +574,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
 
               // Displaying aggregate and exam reward
               pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: pw.MainAxisAlignment.start,
                 children: [
                   pw.Text('AGGREGATE: $studentTotalMarks ', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
                   pw.Text('EXAM REWARD: ${getExamReward()}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
