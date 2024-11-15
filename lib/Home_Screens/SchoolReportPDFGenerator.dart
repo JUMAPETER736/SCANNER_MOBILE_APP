@@ -238,28 +238,39 @@ class SchoolReportPDFGenerator extends StatelessWidget {
             return grade;
           }).toList();
 
+
+          // Assuming formLevel is a variable that holds the current form (e.g., FORM 1, FORM 2, FORM 3, FORM 4)
+          String formLevel = "FORM 1";  // Example, replace with actual logic
+
+          // Initialize aggregate with a default value of 0
+          int aggregate = 0;
+
           // Calculate the total marks by summing all grades
           int totalMarks = subjectGrades.reduce((a, b) => a + b);
 
-          // Get the aggregate grade based on the total marks of all subjects
-          String aggregateGrade = getAggregateGrade(totalMarks);
+          // Initialize the variables
+          String aggregateGrade;
 
-          // Output the total marks and aggregate grade for debugging
-          print("AGGREGATE:$aggregateGrade");
+          if (formLevel == "FORM 1" || formLevel == "FORM 2") {
+            // For FORM 1 and FORM 2, calculate the aggregate grade based on total marks
+            aggregateGrade = getAggregateGrade(totalMarks);
 
+            // Output the aggregate grade for debugging
+            print("AGGREGATE GRADE (FORM 1/2): $aggregateGrade");
+          } else if (formLevel == "FORM 3" || formLevel == "FORM 4") {
+            // For FORM 3 and FORM 4, calculate the aggregate based on the best 6 grades
+            subjectGrades.sort((a, b) => b.compareTo(a)); // Sort grades in descending order
 
+            // Now, instead of adding the actual grades, we calculate the aggregate based on your grading scale
+            aggregate = subjectGrades
+                .take(6) // Take the top 6 grades
+                .map((grade) => int.parse(getGrade(grade))) // Convert each grade to its corresponding value
+                .reduce((a, b) => a + b); // Sum the values
 
-          // Sorting grades to find the best six scores
-          subjectGrades.sort((a, b) => b.compareTo(a));
+            // Output the aggregate for FORM 3/4
+            print("AGGREGATE (FORM 3/4): $aggregate");
+          }
 
-          // Now, instead of adding the actual grades, we calculate the aggregate based on your grading scale
-          int aggregate = subjectGrades
-              .take(6) // Take the top 6 grades
-              .map((grade) => int.parse(getGrade(grade))) // Convert each grade to its corresponding value
-              .reduce((a, b) => a + b); // Sum the values
-
-          // Output the aggregate
-          print("AGGREGATE: $aggregate");
 
           return FutureBuilder<QuerySnapshot>(
             future: FirebaseFirestore.instance
