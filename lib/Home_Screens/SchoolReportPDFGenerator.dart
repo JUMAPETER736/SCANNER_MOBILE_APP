@@ -238,37 +238,41 @@ class SchoolReportPDFGenerator extends StatelessWidget {
             return grade;
           }).toList();
 
-
           // Assuming formLevel is a variable that holds the current form (e.g., FORM 1, FORM 2, FORM 3, FORM 4)
           String formLevel = "FORM 1";  // Example, replace with actual logic
 
           // Initialize aggregate with a default value of 0
           int aggregate = 0;
+          String aggregateGrade = ''; // String to hold grade or reward
 
           // Calculate the total marks by summing all grades
           int totalMarks = subjectGrades.reduce((a, b) => a + b);
 
-          // Initialize the variables
-          String aggregateGrade;
-
+          // For FORM 1 or FORM 2 (Junior Forms)
           if (formLevel == "FORM 1" || formLevel == "FORM 2") {
-            // For FORM 1 and FORM 2, calculate the aggregate grade based on total marks
+            // Calculate the aggregate grade based on the total marks using the junior grading scale
             aggregateGrade = getAggregateGrade(totalMarks);
 
             // Output the aggregate grade for debugging
             print("AGGREGATE GRADE (FORM 1/2): $aggregateGrade");
-          } else if (formLevel == "FORM 3" || formLevel == "FORM 4") {
-            // For FORM 3 and FORM 4, calculate the aggregate based on the best 6 grades
+
+          }
+
+          // For FORM 3 or FORM 4 (Senior Forms)
+          else if (formLevel == "FORM 3" || formLevel == "FORM 4") {
+            // Sort grades in descending order
             subjectGrades.sort((a, b) => b.compareTo(a)); // Sort grades in descending order
 
-            // Now, instead of adding the actual grades, we calculate the aggregate based on your grading scale
+            // Calculate the aggregate based on the best 6 grades and map to grading scale
             aggregate = subjectGrades
                 .take(6) // Take the top 6 grades
                 .map((grade) => int.parse(getGrade(grade))) // Convert each grade to its corresponding value
                 .reduce((a, b) => a + b); // Sum the values
 
+
             // Output the aggregate for FORM 3/4
             print("AGGREGATE (FORM 3/4): $aggregate");
+            print("EXAM REWARD (FORM 3/4): $aggregateGrade");
           }
 
 
