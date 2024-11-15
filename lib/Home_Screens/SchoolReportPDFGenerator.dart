@@ -149,6 +149,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
             ],
           ),
           SizedBox(height: 8),
+
           Row(
             children: [
               Text('SIGNATURE:', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -394,8 +395,6 @@ class SchoolReportPDFGenerator extends StatelessWidget {
 
 
 
-
-
   Future<void> _generateAndPrintPDF() async {
     final pdf = pw.Document();
 
@@ -496,6 +495,56 @@ class SchoolReportPDFGenerator extends StatelessWidget {
       }
     }
 
+    // Function to display teacher's remarks section as a pdf widget
+    pw.Widget getTeacherRemarksSection() {
+      return pw.Container(
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.SizedBox(height: 16),
+            pw.Text("TEACHER'S COMMENT: _________________________________", style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 8),
+            pw.Row(
+              children: [
+                pw.Text('CONDUCT:', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                pw.Expanded(child: pw.Text('__________________________', style: pw.TextStyle(fontSize: 12))),
+              ],
+            ),
+            pw.SizedBox(height: 8),
+            pw.Row(
+              children: [
+                pw.Text('SIGNATURE:', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                pw.Expanded(child: pw.Text('________________', style: pw.TextStyle(fontSize: 12))),
+                pw.SizedBox(width: 6),
+                pw.Text('DATE:', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                pw.Expanded(child: pw.Text('_______________', style: pw.TextStyle(fontSize: 12))),
+              ],
+            ),
+            pw.SizedBox(height: 16),
+            pw.Text("HEAD TEACHER'S REMARK: ____________________________", style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 8),
+            pw.Row(
+              children: [
+                pw.Text('SIGNATURE:', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                pw.Expanded(child: pw.Text('________________', style: pw.TextStyle(fontSize: 12))),
+                pw.SizedBox(width: 6),
+                pw.Text('DATE:', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                pw.Expanded(child: pw.Text('_______________', style: pw.TextStyle(fontSize: 12))),
+              ],
+            ),
+            pw.SizedBox(height: 16),
+            pw.Row(
+              children: [
+                pw.Text("NEXT TERM OPENS:", style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                pw.Expanded(child: pw.Text('________________', style: pw.TextStyle(fontSize: 12))),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+
 
 
     pdf.addPage(
@@ -584,6 +633,9 @@ class SchoolReportPDFGenerator extends StatelessWidget {
 
               // Displaying grade key
               getGradeKey(),
+
+              // Display teacher's remark
+              getTeacherRemarksSection(),
 
               pw.Text('Generated on: ${DateTime.now()}'),
             ],
