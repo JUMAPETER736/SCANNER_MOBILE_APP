@@ -250,21 +250,26 @@ class SchoolReportPDFGenerator extends StatelessWidget {
           // Assuming formLevel is a variable that holds the current form (e.g., FORM 1, FORM 2, FORM 3, FORM 4)
           String formLevel = "FORM 1"; // Example, replace with actual logic
 
-// Initialize aggregate appropriately
-          var aggregate = (formLevel == "FORM 1" || formLevel == "FORM 2") ? "" : 0;
-          String aggregateGrade = ''; // String to hold grade or reward
+          // Declare aggregate variables globally so they are accessible
 
-// Calculate the total marks by summing all grades
+          int aggregateSenior = 0;
+
+
+          // Initialize aggregate appropriately
+          var aggregateJunior = (formLevel == "FORM 1" || formLevel == "FORM 2") ? "" : 0;
+          String aggregateGradeJunior = ''; // String to hold grade or reward
+
+          // Calculate the total marks by summing all grades
           int totalMarks = subjectGrades.reduce((a, b) => a + b);
 
-// For FORM 1 or FORM 2 (Junior Forms)
+          // For FORM 1 or FORM 2 (Junior Forms)
           if (formLevel == "FORM 1" || formLevel == "FORM 2") {
             // Calculate the aggregate grade based on the total marks using the junior grading scale
-            aggregate = getAggregateGrade(totalMarks); // Aggregate is now a string
+            aggregateJunior = getAggregateGrade(totalMarks); // Aggregate is now a string
 
             // Output the aggregate grade for debugging
-            print("AGGREGATE GRADE (FORM 1 or 2): $aggregate");
-            print("EXAM REWARD (FORM 1 or 2): $aggregateGrade");
+            print("AGGREGATE GRADE (FORM 1 or 2): $aggregateJunior");
+            print("EXAM REWARD (FORM 1 or 2): $aggregateGradeJunior");
           }
 
           // For FORM 3 or FORM 4 (Senior Forms)
@@ -272,15 +277,16 @@ class SchoolReportPDFGenerator extends StatelessWidget {
             // Sort grades in descending order
             subjectGrades.sort((a, b) => b.compareTo(a)); // Sort grades in descending order
 
-            // Calculate the aggregate based on the best 6 grades and map to grading scale
-            aggregate = subjectGrades
+            String aggregateGradeSenior = ''; // String to hold grade or reward
+            // Take the best 6 subjects and compute the aggregate
+            aggregateSenior = subjectGrades
                 .take(6) // Take the top 6 grades
-                .map((grade) => int.parse(getGrade(grade))) // Convert each grade to its corresponding value
+                .map((grade) => int.parse(getGrade(grade))) // Convert each grade to its corresponding grading scale value
                 .reduce((a, b) => a + b); // Sum the values
 
             // Output the aggregate for FORM 3/4
-            print("AGGREGATE (FORM 3 or 4): $aggregate");
-            print("EXAM REWARD (FORM 3 or 4): $aggregateGrade");
+            print("AGGREGATE (FORM 3 or 4): $aggregateSenior");
+            print("EXAM REWARD (FORM 3 or 4): $aggregateGradeSenior");
           }
 
 
@@ -387,10 +393,12 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.start, // Align items to the start
                       children: [
                         Text(
-                          'AGGREGATE: $aggregate',
+                          'AGGREGATE: $aggregateJunior',
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                         ),
+
                         SizedBox(width: 24), // Adjust the width to control the space
+
                         Text(
                           'EXAM REWARD: ${getExamReward()}',
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
