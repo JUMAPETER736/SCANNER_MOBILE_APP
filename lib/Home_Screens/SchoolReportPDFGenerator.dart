@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -54,14 +53,19 @@ class SchoolReportPDFGenerator extends StatelessWidget {
 
   // Function to return the teacher's remark based on the score
   String getTeacherRemark(int score) {
+
     if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
+
       if (score >= 80) return 'EXCELLENT';
       if (score >= 70) return 'VERY GOOD';
       if (score >= 60) return 'GOOD';
       if (score >= 50) return 'AVERAGE';
       if (score >= 40) return 'NEED SUPPORT';
       return 'FAIL';
-    } else {
+    }
+
+    else {
+
       if (score >= 85) return 'DISTINCTION';
       if (score >= 80) return 'EXCELLENT';
       if (score >= 75) return 'VERY GOOD';
@@ -76,6 +80,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
 
   // Function to get the Exam Reward based on studentTotalMarks
   String getExamReward() {
+
     if (studentTotalMarks >= 950 && studentTotalMarks <= 1100) return 'DISTINCTION';
     if (studentTotalMarks >= 750 && studentTotalMarks < 950) return 'STRONG CREDIT';
     if (studentTotalMarks >= 600 && studentTotalMarks < 750) return 'WEAK CREDIT';
@@ -105,7 +110,9 @@ class SchoolReportPDFGenerator extends StatelessWidget {
           Text('0% - 39% = FAIL', style: TextStyle(fontSize: 14)),
         ],
       );
-    } else {
+    }
+
+    else {
       return Wrap(
         alignment: WrapAlignment.start,
         children: [
@@ -238,24 +245,26 @@ class SchoolReportPDFGenerator extends StatelessWidget {
             return grade;
           }).toList();
 
-          // Assuming formLevel is a variable that holds the current form (e.g., FORM 1, FORM 2, FORM 3, FORM 4)
-          String formLevel = "FORM 1";  // Example, replace with actual logic
 
-          // Initialize aggregate with a default value of 0
-          int aggregate = 0;
+
+          // Assuming formLevel is a variable that holds the current form (e.g., FORM 1, FORM 2, FORM 3, FORM 4)
+          String formLevel = "FORM 1"; // Example, replace with actual logic
+
+// Initialize aggregate appropriately
+          var aggregate = (formLevel == "FORM 1" || formLevel == "FORM 2") ? "" : 0;
           String aggregateGrade = ''; // String to hold grade or reward
 
-          // Calculate the total marks by summing all grades
+// Calculate the total marks by summing all grades
           int totalMarks = subjectGrades.reduce((a, b) => a + b);
 
-          // For FORM 1 or FORM 2 (Junior Forms)
+// For FORM 1 or FORM 2 (Junior Forms)
           if (formLevel == "FORM 1" || formLevel == "FORM 2") {
             // Calculate the aggregate grade based on the total marks using the junior grading scale
-            aggregateGrade = getAggregateGrade(totalMarks);
+            aggregate = getAggregateGrade(totalMarks); // Aggregate is now a string
 
             // Output the aggregate grade for debugging
-            print("AGGREGATE GRADE (FORM 1/2): $aggregateGrade");
-
+            print("AGGREGATE GRADE (FORM 1 or 2): $aggregate");
+            print("EXAM REWARD (FORM 1 or 2): $aggregateGrade");
           }
 
           // For FORM 3 or FORM 4 (Senior Forms)
@@ -269,11 +278,11 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                 .map((grade) => int.parse(getGrade(grade))) // Convert each grade to its corresponding value
                 .reduce((a, b) => a + b); // Sum the values
 
-
             // Output the aggregate for FORM 3/4
-            print("AGGREGATE (FORM 3/4): $aggregate");
-            print("EXAM REWARD (FORM 3/4): $aggregateGrade");
+            print("AGGREGATE (FORM 3 or 4): $aggregate");
+            print("EXAM REWARD (FORM 3 or 4): $aggregateGrade");
           }
+
 
 
           return FutureBuilder<QuerySnapshot>(
@@ -340,7 +349,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                     // Table to display subjects, scores, grades, and remarks
                     DataTable(
                       border: TableBorder.all(),
-                      dataRowHeight: 40,
+                      
                       headingRowHeight: 50,
                       columnSpacing: 8,
                       columns: [
@@ -560,8 +569,6 @@ class SchoolReportPDFGenerator extends StatelessWidget {
     }
 
 
-
-
     pdf.addPage(
       pw.Page(
         build: (pw.Context context) {
@@ -632,8 +639,6 @@ class SchoolReportPDFGenerator extends StatelessWidget {
 
 
               pw.SizedBox(height: 20),
-
-
 
 
               // Displaying aggregate and exam reward
