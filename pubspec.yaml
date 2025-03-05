@@ -1,0 +1,59 @@
+name: scanna
+description: A new Flutter application.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_facebook_auth: ^7.1.1
+  modal_progress_hud_nsn: ^0.5.1
+  google_fonts: ^6.2.1
+  awesome_dialog: ^3.1.1
+  cupertino_icons: ^1.0.5
+  firebase_auth: ^5.2.1
+  firebase_core: ^3.4.1
+  firebase_auth_web: ^5.8.13 
+  cloud_firestore: ^5.4.1
+  google_sign_in: ^6.2.1
+  validators: ^3.0.0
+  fluttertoast: ^8.2.6
+  provider: ^6.0.3
+  local_auth: ^2.1.7
+  shared_preferences: ^2.3.2
+  firebase_database: ^11.1.2
+  flutter_local_notifications: ^17.2.2
+  mobile_scanner: ^5.2.3
+  qr_code_scanner: ^1.0.0
+  qr_flutter: ^4.1.0
+  barcode: ^2.2.8 
+  barcode_widget: ^2.0.0
+  path_provider: ^2.0.15
+  pdf: ^3.8.0
+  printing: ^5.11.0
+
+
+
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.19.0  
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/images/
+  fonts:
+    - family: Abel
+      fonts:
+        - asset: assets/fonts/Abel-Regular.ttf
+
+l10n:
+  path: l10n   please update all of them to the latest versions
