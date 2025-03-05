@@ -65,9 +65,9 @@ class _StudentNameListState extends State<StudentNameList> {
     var classDoc = schoolDoc.collection('Classes').doc(teacherClass);
 
     // Create the student data in the Students collection
-    var studentsCollection = classDoc.collection('Students');
+    var studentsCollection = classDoc.collection('Student_Details');
     await studentsCollection.doc(studentName).set({
-      'name': studentName,
+      'firstName': studentName,
       'gender': 'N/A', // You can update this based on actual student info
     });
   }
@@ -138,10 +138,10 @@ class _StudentNameListState extends State<StudentNameList> {
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('Schools')
-                  .doc(teacherSchool) // Get the teacher's assigned school
+                  .doc(teacherSchool)
                   .collection('Classes')
-                  .doc(teacherClass) // Get the teacher's assigned class
-                  .collection('Students')
+                  .doc(teacherClass)
+                  .collection('Student_Details') // Correct path for Students collection
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -150,7 +150,7 @@ class _StudentNameListState extends State<StudentNameList> {
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return Center(
                     child: Text(
-                      'No Student found.',
+                      'No Student Found.',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -160,7 +160,6 @@ class _StudentNameListState extends State<StudentNameList> {
                   );
                 }
 
-                // Get the list of students
                 var studentDocs = snapshot.data!.docs;
                 List<Map<String, dynamic>> students = [];
 
@@ -172,8 +171,7 @@ class _StudentNameListState extends State<StudentNameList> {
                   });
                 }
 
-                // Retrieve first and last names for each student
-                return FutureBuilder<List<Map<String, dynamic>>>( // FutureBuilder to fetch the names
+                return FutureBuilder<List<Map<String, dynamic>>>(
                   future: _getStudentNames(students),
                   builder: (context, namesSnapshot) {
                     if (namesSnapshot.connectionState == ConnectionState.waiting) {
@@ -192,13 +190,11 @@ class _StudentNameListState extends State<StudentNameList> {
                       );
                     }
 
-                    // Filtered documents based on search query
                     var filteredDocs = namesSnapshot.data!.where((student) {
                       var fullName = student['fullName'] ?? '';
                       return fullName.toLowerCase().contains(_searchQuery.toLowerCase());
                     }).toList();
 
-                    // Show "Student NOT found" if the filtered list is empty
                     if (filteredDocs.isEmpty) {
                       return Center(
                         child: Text(
@@ -286,6 +282,8 @@ class _StudentNameListState extends State<StudentNameList> {
             )
 
 
+
+
           ],
         )
             : Center(
@@ -302,13 +300,16 @@ class _StudentNameListState extends State<StudentNameList> {
     );
   }
 
-  // Fetch first and last names from Firestore
   Future<List<Map<String, dynamic>>> _getStudentNames(List<Map<String, dynamic>> students) async {
     List<Map<String, dynamic>> studentNames = [];
 
     for (var student in students) {
       var studentRef = student['reference'];
-      var personalInfoDoc = await studentRef.collection('Personal_Information').doc('Registered_Information').get();
+      var personalInfoDoc = await studentRef
+          .collection('Personal_Information')
+          .doc('Registered_Information')
+          .get();
+
       if (personalInfoDoc.exists) {
         var personalInfo = personalInfoDoc.data() as Map<String, dynamic>;
         var firstName = personalInfo['firstName'] ?? 'N/A';
@@ -362,6 +363,7 @@ class _StudentNameListState extends State<StudentNameList> {
                 });
               },
               child: Text(
+                
                 'Search',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,

@@ -18,8 +18,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: ThemeData(
+        //platform: TargetPlatform.android, // Forces Android behavior
+        fontFamily: 'Abel', // Sets the font family
+      ),
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(fontFamily: 'Abel'),
       initialRoute: LoginPage.id,
       routes: {
         RegisterPage.id: (context) => RegisterPage(),
