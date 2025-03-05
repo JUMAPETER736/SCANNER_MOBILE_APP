@@ -78,7 +78,11 @@ class _SchoolReportsState extends State<SchoolReports> {
         var subjectsSnapshot = await studentRef.collection('Student_Subjects').get();
 
         for (var subjectDoc in subjectsSnapshot.docs) {
+<<<<<<< HEAD
           var subjectData = subjectDoc.data();
+=======
+          var subjectData = subjectDoc.data() as Map<String, dynamic>;
+>>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
 
           if (subjectData.containsKey('Subject_Grade')) {
             var gradeString = subjectData['Subject_Grade'];

@@ -41,7 +41,11 @@ class _StudentSubjectsState extends State<StudentSubjects> {
       if (snapshot.docs.isNotEmpty) {
         setState(() {
           _subjects = snapshot.docs
+<<<<<<< HEAD
               .map((doc) => Subject.fromMap(doc.data()))
+=======
+              .map((doc) => Subject.fromMap(doc.data() as Map<String, dynamic>))
+>>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
               .where((subject) => subject.name != 'TOTAL_MARKS') // Exclude TOTAL_MARKS
               .toList();
           isLoading = false;

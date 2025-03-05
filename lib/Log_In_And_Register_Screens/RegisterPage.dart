@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
+<<<<<<< HEAD
+=======
+import 'package:validators/validators.dart' as validator;
+>>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
 import 'package:scanna/Home_Screens/Main_Home.dart';
 import 'package:scanna/Log_In_And_Register_Screens/LoginPage.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';

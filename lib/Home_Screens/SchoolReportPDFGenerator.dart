@@ -458,7 +458,11 @@ class SchoolReportPDFGenerator extends StatelessWidget {
 
     // Map the subjects data into a list of maps
     final List<Map<String, dynamic>> subjects = subjectSnapshot.docs.map((doc) {
+<<<<<<< HEAD
       final subjectData = doc.data();
+=======
+      final subjectData = doc.data() as Map<String, dynamic>;
+>>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
       final subjectName = subjectData['Subject_Name'] ?? 'Unknown';
       final subjectGrade = (subjectData['Subject_Grade'] is int)
           ? subjectData['Subject_Grade']
