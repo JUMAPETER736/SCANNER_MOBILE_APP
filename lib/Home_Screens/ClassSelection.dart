@@ -12,20 +12,14 @@ class _ClassSelectionState extends State<ClassSelection> {
 
   List<String> selectedClasses = [];
   List<String> selectedSubjects = [];
-<<<<<<< HEAD
   String? selectedSchool;
-=======
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
   bool isSaved = false;
 
   List<String> unavailableClasses = [];
   List<String> unavailableSubjects = [];
 
   // Define the classSubjects in Firestore
-<<<<<<< HEAD
   final List<String> schools = ['School A', 'School B', 'School C', 'School D'];
-=======
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
   final List<String> classes = ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'];
 
   final Map<String, List<String>> classSubjects = {
@@ -35,7 +29,6 @@ class _ClassSelectionState extends State<ClassSelection> {
     'FORM 3':  ['AGRICULTURE', 'BIOLOGY', 'BIBLE KNOWLEDGE', 'COMPUTER SCIENCE', 'CHEMISTRY', 'CHICHEWA', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
     'FORM 4':  ['AGRICULTURE', 'BIOLOGY', 'BIBLE KNOWLEDGE', 'COMPUTER SCIENCE', 'CHEMISTRY', 'CHICHEWA', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES']
 
-<<<<<<< HEAD
   };
 
   List<String> _getAvailableSubjects() {
@@ -45,10 +38,6 @@ class _ClassSelectionState extends State<ClassSelection> {
       return classSubjects[selectedClasses[0]] ?? [];
     }
   }
-=======
-
-  };
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
 
   @override
   void initState() {
@@ -61,10 +50,6 @@ class _ClassSelectionState extends State<ClassSelection> {
 
   void _initializeFirestoreData() async {
     try {
-<<<<<<< HEAD
-=======
-      // Fetch data for all teachers
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('Teachers_Details').get();
       List<DocumentSnapshot> documents = querySnapshot.docs;
 
@@ -86,10 +71,7 @@ class _ClassSelectionState extends State<ClassSelection> {
           }
         }
       }
-<<<<<<< HEAD
 
-=======
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
     } catch (e) {
       print('Error initializing Firestore data: $e');
     }
@@ -206,12 +188,9 @@ class _ClassSelectionState extends State<ClassSelection> {
 
       if (doc.exists && doc.data() != null) {
         var data = doc.data() as Map<String, dynamic>;
-<<<<<<< HEAD
 
         selectedSchool = data['school'] ?? null;
 
-=======
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
         if (data.containsKey('classes')) {
           setState(() {
             selectedClasses = List<String>.from(data['classes']);
@@ -224,24 +203,18 @@ class _ClassSelectionState extends State<ClassSelection> {
           });
         }
       }
-<<<<<<< HEAD
 
-=======
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
     }
   }
 
 
   Future<void> _saveSelection() async {
     User? user = FirebaseAuth.instance.currentUser;
-<<<<<<< HEAD
     if (user == null || selectedSchool == null) {
       _showToast("Please select a school first.");
       return;
     }
 
-=======
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
     if (user == null) {
       print('User is not authenticated.');
       return; // Exit if user is not authenticated.
@@ -250,10 +223,7 @@ class _ClassSelectionState extends State<ClassSelection> {
     String userEmail = user.email!; // Use the user's email as the document ID
     try {
       await FirebaseFirestore.instance.collection('Teachers_Details').doc(userEmail).set({
-<<<<<<< HEAD
         'school': selectedSchool,
-=======
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
         'classes': selectedClasses,
         'subjects': selectedSubjects,
       }, SetOptions(merge: true));
@@ -289,7 +259,6 @@ class _ClassSelectionState extends State<ClassSelection> {
 
 
   @override
-<<<<<<< HEAD
   Widget _buildSchoolSelection() {
     return Container(
       width: double.infinity,
@@ -359,24 +328,14 @@ class _ClassSelectionState extends State<ClassSelection> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true, // Extend body behind AppBar
-=======
-  Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,  // This will extend the body behind the AppBar
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
       appBar: AppBar(
         title: Text(
           'Selected Class and Subject',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-<<<<<<< HEAD
         backgroundColor: Colors.blueAccent.withOpacity(0.8), // Transparent AppBar
         elevation: 0, // No shadow
-=======
-        backgroundColor: Colors.blueAccent.withOpacity(0.8),  // Make the AppBar slightly transparent
-        elevation: 0,  // Remove AppBar shadow
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -386,23 +345,16 @@ class _ClassSelectionState extends State<ClassSelection> {
             end: Alignment.bottomRight,
           ),
         ),
-<<<<<<< HEAD
         child: SafeArea( // Ensures content is placed below AppBar
-=======
-        child: SafeArea(  // Ensures content is placed correctly below the AppBar
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-<<<<<<< HEAD
                   // School Selection
                   _buildSchoolSelection(),
 
-=======
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
                   // Class Selection
                   Container(
                     width: double.infinity,
@@ -449,12 +401,8 @@ class _ClassSelectionState extends State<ClassSelection> {
                                   style: TextStyle(color: Colors.black, fontSize: 18),
                                 ),
                                 value: selectedClasses.contains(className),
-<<<<<<< HEAD
                                 onChanged: isSaved
                                     ? null // Disable if already saved
-=======
-                                onChanged: isSaved ? null // Disable if already saved
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
                                     : (bool? value) {
                                   setState(() {
                                     if (value == true) {
@@ -570,20 +518,7 @@ class _ClassSelectionState extends State<ClassSelection> {
       ),
     );
   }
-<<<<<<< HEAD
 }
-=======
-
-
-
-  List<String> _getAvailableSubjects() {
-    if (selectedClasses.isEmpty) {
-      return [];
-    } else {
-      return classSubjects[selectedClasses[0]] ?? [];
-    }
-  }
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
 
 
   // Show a toast message
@@ -598,8 +533,4 @@ class _ClassSelectionState extends State<ClassSelection> {
       fontSize: 16.0,
     );
   }
-<<<<<<< HEAD
 
-=======
-}
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a

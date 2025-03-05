@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-import 'dart:convert';
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -61,10 +57,7 @@ class _StudentDetailsState extends State<StudentDetails> {
       studentFullName = '${_lastNameController.text.trim().toUpperCase()} ${_firstNameController.text.trim().toUpperCase()}';
       studentID = generateRandomStudentID();  // Generate a new student ID
 
-<<<<<<< HEAD
       // Store student details in a Map
-=======
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
       Map<String, String> studentDetails = {
         'firstName': _firstNameController.text.trim().toUpperCase(),
         'lastName': _lastNameController.text.trim().toUpperCase(),
@@ -84,7 +77,6 @@ class _StudentDetailsState extends State<StudentDetails> {
       };
 
       try {
-<<<<<<< HEAD
         // Assuming the school name is stored in the teacher's details
         final teacherEmail = loggedInUser?.email;
         final teacherDetails = await _firestore.collection('Teachers_Details').doc(teacherEmail).get();
@@ -95,11 +87,6 @@ class _StudentDetailsState extends State<StudentDetails> {
             .collection('Schools')
             .doc(schoolName)
             .collection('Classes')
-=======
-        // Save the student details in Firestore
-        await _firestore
-            .collection('Students_Details')
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
             .doc(studentClass)
             .collection('Student_Details')
             .doc(studentFullName)
@@ -109,13 +96,9 @@ class _StudentDetailsState extends State<StudentDetails> {
 
         // Create the Student_Biography document containing student details
         await _firestore
-<<<<<<< HEAD
             .collection('Schools')
             .doc(schoolName)
             .collection('Classes')
-=======
-            .collection('Students_Details')
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
             .doc(studentClass)
             .collection('Student_Details')
             .doc(studentFullName)
@@ -135,13 +118,9 @@ class _StudentDetailsState extends State<StudentDetails> {
         // Create the Student_Subjects documents with default grades
         for (String subject in defaultSubjects[studentClass]!) {
           await _firestore
-<<<<<<< HEAD
               .collection('Schools')
               .doc(schoolName)
               .collection('Classes')
-=======
-              .collection('Students_Details')
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
               .doc(studentClass)
               .collection('Student_Details')
               .doc(studentFullName)
@@ -155,13 +134,9 @@ class _StudentDetailsState extends State<StudentDetails> {
 
         // Add TOTAL_MARKS document
         await _firestore
-<<<<<<< HEAD
             .collection('Schools')
             .doc(schoolName)
             .collection('Classes')
-=======
-            .collection('Students_Details')
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
             .doc(studentClass)
             .collection('Student_Details')
             .doc(studentFullName)
@@ -196,10 +171,7 @@ class _StudentDetailsState extends State<StudentDetails> {
 
 
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 4ef2bc86fe37fd22bcf55155557159ec4d7cb64a
 // Generate a random number to append to the ID for uniqueness
   String generateRandomNumber() {
     Random random = Random();

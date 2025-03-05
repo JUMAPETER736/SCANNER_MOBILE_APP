@@ -90,7 +90,7 @@ class _DoneState extends State<Done> {
                     },
                     child: _buildSquareCard(
                       icon: Icons.class_,
-                      text: 'Select Class',
+                      text: 'Select School & Class',
                       color: Colors.blueAccent,
                     ),
                   ),
