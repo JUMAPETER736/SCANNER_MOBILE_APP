@@ -283,7 +283,7 @@ class _ClassSelectionState extends State<ClassSelection> {
   Future<void> _saveSelection() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null || selectedSchool == null) {
-      _showToast("Please select a school first.");
+      _showToast("Please select a School first.");
       return;
     }
 

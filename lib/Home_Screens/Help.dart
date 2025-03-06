@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:scanna/Home_Screens/Main_Home.dart';
 
 class Help extends StatelessWidget {
   @override
@@ -9,10 +10,18 @@ class Help extends StatelessWidget {
           'Help & Support',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: false, // Set this to false to avoid automatic back button
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back), // Back arrow icon
+          onPressed: () {
+            Navigator.pushNamedAndRemoveUntil(context, Main.id, (route) => false);
+
+          },
+        ),
       ),
+
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

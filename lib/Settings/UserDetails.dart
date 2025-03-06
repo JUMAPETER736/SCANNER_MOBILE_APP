@@ -13,6 +13,7 @@ class UserDetails extends StatefulWidget {
 
 class _UserDetailsState extends State<UserDetails> {
   String _username = '';
+  List<String> _selectedSchool = [];
   List<String> _selectedClasses = [];
   List<String> _selectedSubjects = [];
 
@@ -44,12 +45,21 @@ class _UserDetailsState extends State<UserDetails> {
           _username = (data != null && data.containsKey('name')) ? data['name'] : 'N/A';
           _selectedClasses = (data != null && data.containsKey('classes')) ? List<String>.from(data['classes']) : ['N/A'];
           _selectedSubjects = (data != null && data.containsKey('subjects')) ? List<String>.from(data['subjects']) : ['N/A'];
+
+          _selectedSchool = (data != null && data.containsKey('school'))
+              ? (data['school'] is String
+              ? [data['school']] // If it's a string, make it a list
+              : List<String>.from(data['school'])) // If it's already a list, use it
+              : ['N/A'];
+
+
         });
       } else {
         print('User details not found for: ${widget.user!.email}');
         // Assign default values if document does not exist
         setState(() {
           _username = 'N/A';
+          _selectedSchool = ['N/A'];
           _selectedClasses = ['N/A'];
           _selectedSubjects = ['N/A'];
         });
@@ -59,6 +69,7 @@ class _UserDetailsState extends State<UserDetails> {
       // Assign default values in case of error
       setState(() {
         _username = 'N/A';
+        _selectedSchool = ['N/A'];
         _selectedClasses = ['N/A'];
         _selectedSubjects = ['N/A'];
       });
@@ -96,6 +107,7 @@ class _UserDetailsState extends State<UserDetails> {
       children: [
         _buildSettingsItem(Icons.person, 'Username', _username.isNotEmpty ? _username : 'N/A'),
         _buildSettingsItem(Icons.email, 'Email', widget.user?.email ?? 'N/A'),
+        _buildSettingsItem(Icons.school_outlined, 'Selected School', _selectedSchool.isNotEmpty ? _selectedSchool.join(', ') : 'N/A'),
         _buildSettingsItem(Icons.class_, 'Selected Classes', _selectedClasses.isNotEmpty ? _selectedClasses.join(', ') : 'N/A'),
         _buildSettingsItem(Icons.subject, 'Selected Subjects', _selectedSubjects.isNotEmpty ? _selectedSubjects.join(', ') : 'N/A'),
         SizedBox(height: 20),

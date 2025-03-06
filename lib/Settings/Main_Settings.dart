@@ -8,7 +8,7 @@ import 'package:scanna/Settings/GradeSettings.dart';
 import 'package:scanna/Settings/NotificationSettings.dart';
 import 'package:scanna/Settings/QRCodeSettings.dart';
 import 'package:scanna/Settings/SecuritySettings.dart';
-
+import 'package:scanna/Home_Screens/Main_Home.dart';
 class Main_Settings extends StatefulWidget {
   final User? user;
 
@@ -37,6 +37,14 @@ class _Main_SettingsState extends State<Main_Settings> {
         title: Text('Settings', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
+
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back), // Back arrow icon
+          onPressed: () {
+            Navigator.pushNamedAndRemoveUntil(context, Main.id, (route) => false);
+
+          },
+        ),
       ),
       body: Container(
         decoration: BoxDecoration(
