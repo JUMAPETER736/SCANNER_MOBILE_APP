@@ -145,7 +145,6 @@ class _StudentNameListState extends State<StudentNameList> {
                   var studentLastName = 'N/A'; // Default value if not found
                   var studentGender = 'N/A'; // Default value if not found
 
-                  // Fetch the Registered_Information document
                   var personalInfoDoc = studentDoc.reference
                       .collection('Personal_Information')
                       .doc('Registered_Information');
@@ -153,9 +152,9 @@ class _StudentNameListState extends State<StudentNameList> {
                   var docSnapshot = await personalInfoDoc.get();
                   if (docSnapshot.exists) {
                     var data = docSnapshot.data();
-                    studentFirstName = data?['firstName'] ?? 'N/A'; // Fetch first name
-                    studentLastName = data?['lastName'] ?? 'N/A'; // Fetch last name
-                    studentGender = data?['studentGender'] ?? 'N/A'; // Fetch gender
+                    studentFirstName = data?['firstName'] ?? 'N/A';
+                    studentLastName = data?['lastName'] ?? 'N/A';
+                    studentGender = data?['studentGender'] ?? 'N/A';
                   }
 
                   students.add({
@@ -165,9 +164,12 @@ class _StudentNameListState extends State<StudentNameList> {
                     'reference': studentDoc.reference,
                   });
                 })).then((_) {
-                  // Once all data is fetched, trigger UI update
-                  setState(() {});
+                  // Check if the widget is still mounted before calling setState
+                  if (mounted) {
+                    setState(() {});
+                  }
                 });
+
 
                 // Filter students by search query
                 var filteredDocs = students.where((student) {
@@ -286,10 +288,14 @@ class _StudentNameListState extends State<StudentNameList> {
               hintText: 'Enter first or last name',
             ),
             onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
+              // Only call setState if the widget is still mounted
+              if (mounted) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              }
             },
+
           ),
           actions: [
             TextButton(

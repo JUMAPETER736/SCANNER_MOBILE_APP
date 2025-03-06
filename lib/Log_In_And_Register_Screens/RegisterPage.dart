@@ -198,7 +198,7 @@ class _RegisterPageState extends State<RegisterPage> {
           );
 
           final UserCredential userCredential = await _auth.signInWithCredential(credential);
-          Navigator.pushNamed(context, Main.id);
+          Navigator.pushNamed(context, Home.id);
         }
       } else if (provider == 'facebook') {
         // Facebook sign-in
@@ -207,7 +207,7 @@ class _RegisterPageState extends State<RegisterPage> {
         if (loginResult.status == LoginStatus.success) {
           final AuthCredential credential = FacebookAuthProvider.credential(loginResult.accessToken!.tokenString);
           final UserCredential userCredential = await _auth.signInWithCredential(credential);
-          Navigator.pushNamed(context, Main.id);
+          Navigator.pushNamed(context, Home.id);
         }
       }
     } catch (e) {

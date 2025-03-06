@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
         RegisterPage.id: (context) => RegisterPage(),
         LoginPage.id: (context) => LoginPage(),
         ForgotPassword.id: (context) => ForgotPassword(),
-        Main.id: (context) => Main(),
+        Home.id: (context) => Home(),
       },
       onUnknownRoute: (settings) {
         return MaterialPageRoute(builder: (context) => NotFoundPage());

@@ -76,7 +76,7 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => Main(), // Navigate to your desired screen
+          builder: (context) => Home(), // Navigate to your desired screen
         ),
       );
     } else {
@@ -277,7 +277,7 @@ class _LoginPageState extends State<LoginPage> {
 
                               // Check if the user credential is valid
                               if (userCredential.user != null) {
-                                Navigator.pushNamed(context, Main.id); // Navigate on success
+                                Navigator.pushNamed(context, Home.id); // Navigate on success
                               }
                             } on FirebaseAuthException catch (e) {
                               // Handle different error cases

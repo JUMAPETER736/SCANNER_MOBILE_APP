@@ -41,7 +41,7 @@ class _Main_SettingsState extends State<Main_Settings> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back), // Back arrow icon
           onPressed: () {
-            Navigator.pushNamedAndRemoveUntil(context, Main.id, (route) => false);
+            Navigator.pushNamedAndRemoveUntil(context, Home.id, (route) => false);
 
           },
         ),

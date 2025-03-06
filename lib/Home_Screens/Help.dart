@@ -16,7 +16,7 @@ class Help extends StatelessWidget {
         leading: IconButton(
           icon: Icon(Icons.arrow_back), // Back arrow icon
           onPressed: () {
-            Navigator.pushNamedAndRemoveUntil(context, Main.id, (route) => false);
+            Navigator.pushNamedAndRemoveUntil(context, Home.id, (route) => false);
 
           },
         ),

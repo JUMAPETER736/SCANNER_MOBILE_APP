@@ -12,14 +12,14 @@ import 'package:scanna/Log_In_And_Register_Screens/LoginPage.dart';
 
 User? loggedInUser;
 
-class Main extends StatefulWidget {
+class Home extends StatefulWidget {
   static String id = '/Main';
 
   @override
-  _MainState createState() => _MainState();
+  _HomeState createState() => _HomeState();
 }
 
-class _MainState extends State<Main> {
+class _HomeState extends State<Home> {
   final _auth = FirebaseAuth.instance;
   int _selectedIndex = 1;
 
