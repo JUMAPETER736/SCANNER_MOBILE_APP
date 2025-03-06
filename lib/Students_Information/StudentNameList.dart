@@ -49,29 +49,6 @@ class _StudentNameListState extends State<StudentNameList> {
     }
   }
 
-  // Method to create collections if they do not exist
-  Future<void> _createCollectionsIfNotExist(String school, String teacherClass, String studentName) async {
-    // Check if the teacher's data exists and create the collection if needed
-    var teacherDoc = FirebaseFirestore.instance.collection('Teachers_Details').doc(widget.loggedInUser!.email);
-    if (!(await teacherDoc.get()).exists) {
-      await teacherDoc.set({
-        'school': school,
-        'classes': [teacherClass], // Add initial class
-      });
-    }
-
-    // Create the school and class if they do not exist
-    var schoolDoc = FirebaseFirestore.instance.collection('Schools').doc(school);
-    var classDoc = schoolDoc.collection('Classes').doc(teacherClass);
-
-    // Create the student data in the Students collection
-    var studentsCollection = classDoc.collection('Student_Details');
-    await studentsCollection.doc(studentName).set({
-      'firstName': studentName,
-      'gender': 'N/A', // You can update this based on actual student info
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     if (widget.loggedInUser == null) {
@@ -134,14 +111,13 @@ class _StudentNameListState extends State<StudentNameList> {
               ),
             ),
             SizedBox(height: 16),
-
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('Schools')
                   .doc(teacherSchool)
                   .collection('Classes')
                   .doc(teacherClass)
-                  .collection('Student_Details') // Correct path for Students collection
+                  .collection('Student_Details')
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -163,127 +139,125 @@ class _StudentNameListState extends State<StudentNameList> {
                 var studentDocs = snapshot.data!.docs;
                 List<Map<String, dynamic>> students = [];
 
-                for (var studentDoc in studentDocs) {
-                  var studentName = studentDoc.id; // Student full name
+                // Fetch all student information asynchronously and add to students list
+                Future.wait(studentDocs.map((studentDoc) async {
+                  var studentFirstName = 'N/A'; // Default value if not found
+                  var studentLastName = 'N/A'; // Default value if not found
+                  var studentGender = 'N/A'; // Default value if not found
+
+                  // Fetch the Registered_Information document
+                  var personalInfoDoc = studentDoc.reference
+                      .collection('Personal_Information')
+                      .doc('Registered_Information');
+
+                  var docSnapshot = await personalInfoDoc.get();
+                  if (docSnapshot.exists) {
+                    var data = docSnapshot.data();
+                    studentFirstName = data?['firstName'] ?? 'N/A'; // Fetch first name
+                    studentLastName = data?['lastName'] ?? 'N/A'; // Fetch last name
+                    studentGender = data?['studentGender'] ?? 'N/A'; // Fetch gender
+                  }
+
                   students.add({
-                    'name': studentName,
+                    'firstName': studentFirstName,
+                    'lastName': studentLastName,
+                    'studentGender': studentGender,
                     'reference': studentDoc.reference,
                   });
+                })).then((_) {
+                  // Once all data is fetched, trigger UI update
+                  setState(() {});
+                });
+
+                // Filter students by search query
+                var filteredDocs = students.where((student) {
+                  var fullName = '${student['firstName']} ${student['lastName']}';
+                  return fullName.toLowerCase().contains(_searchQuery.toLowerCase());
+                }).toList();
+
+                if (filteredDocs.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'Student NOT found',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
+                    ),
+                  );
                 }
 
-                return FutureBuilder<List<Map<String, dynamic>>>(
-                  future: _getStudentNames(students),
-                  builder: (context, namesSnapshot) {
-                    if (namesSnapshot.connectionState == ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
-                    }
-                    if (!namesSnapshot.hasData || namesSnapshot.data!.isEmpty) {
-                      return Center(
-                        child: Text(
-                          'No Student found.',
+                return ListView.separated(
+                  itemCount: filteredDocs.length,
+                  separatorBuilder: (context, index) => SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    var student = filteredDocs[index];
+                    var fullName = '${student['firstName']} ${student['lastName']}';
+                    var studentGender = student['studentGender'] ?? 'N/A';
+
+                    return Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 4,
+                            offset: Offset(2, 2),
+                          ),
+                        ],
+                      ),
+                      margin: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: ListTile(
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: Text(
+                          '${index + 1}.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent,
+                          ),
+                        ),
+                        title: Text(
+                          fullName.toUpperCase(),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.red,
+                            color: Colors.blueAccent,
                           ),
                         ),
-                      );
-                    }
-
-                    var filteredDocs = namesSnapshot.data!.where((student) {
-                      var fullName = student['fullName'] ?? '';
-                      return fullName.toLowerCase().contains(_searchQuery.toLowerCase());
-                    }).toList();
-
-                    if (filteredDocs.isEmpty) {
-                      return Center(
-                        child: Text(
-                          'Student NOT found',
+                        subtitle: Text(
+                          'Gender: $studentGender',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: Colors.red,
+                            color: Colors.black54,
                           ),
                         ),
-                      );
-                    }
-
-                    return ListView.separated(
-                      itemCount: filteredDocs.length,
-                      separatorBuilder: (context, index) => SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        var student = filteredDocs[index];
-                        var fullName = student['fullName'] ?? 'N/A';
-                        var studentGender = student['gender'] ?? 'N/A';
-
-                        return Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 4,
-                                offset: Offset(2, 2),
-                              ),
-                            ],
-                          ),
-                          margin: const EdgeInsets.symmetric(vertical: 4.0),
-                          child: ListTile(
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            leading: Text(
-                              '${index + 1}.',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blueAccent,
+                        trailing: Icon(
+                          Icons.arrow_forward,
+                          color: Colors.blueAccent,
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => StudentSubjects(
+                                studentName: fullName,
+                                studentClass: teacherClass!,
+                                studentGender: studentGender,
                               ),
                             ),
-                            title: Text(
-                              fullName.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blueAccent,
-                              ),
-                            ),
-                            subtitle: Text(
-                              'Gender: $studentGender',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black54,
-                              ),
-                            ),
-                            trailing: Icon(
-                              Icons.arrow_forward,
-                              color: Colors.blueAccent,
-                            ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => StudentSubjects(
-                                    studentName: fullName,
-                                    studentClass: teacherClass!,
-                                    studentGender: studentGender,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     );
                   },
                 );
               },
-            )
-
-
-
-
+            ),
           ],
         )
             : Center(
@@ -298,31 +272,6 @@ class _StudentNameListState extends State<StudentNameList> {
         ),
       ),
     );
-  }
-
-  Future<List<Map<String, dynamic>>> _getStudentNames(List<Map<String, dynamic>> students) async {
-    List<Map<String, dynamic>> studentNames = [];
-
-    for (var student in students) {
-      var studentRef = student['reference'];
-      var personalInfoDoc = await studentRef
-          .collection('Personal_Information')
-          .doc('Registered_Information')
-          .get();
-
-      if (personalInfoDoc.exists) {
-        var personalInfo = personalInfoDoc.data() as Map<String, dynamic>;
-        var firstName = personalInfo['firstName'] ?? 'N/A';
-        var lastName = personalInfo['lastName'] ?? 'N/A';
-        var gender = personalInfo['studentGender'] ?? 'N/A';
-
-        studentNames.add({
-          'fullName': '$lastName $firstName',
-          'gender': gender,
-        });
-      }
-    }
-    return studentNames;
   }
 
   void showSearchDialog(BuildContext context) {
@@ -363,7 +312,6 @@ class _StudentNameListState extends State<StudentNameList> {
                 });
               },
               child: Text(
-                
                 'Search',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
