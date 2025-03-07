@@ -20,7 +20,7 @@ class _ClassSelectionState extends State<ClassSelection> {
 
   // Define the classSubjects in Firestore
   final List<String> schools = [
-
+    'School A',
     'Balaka Secondary School',
     'Bandawe Boys Secondary School',
     'Blantyre Secondary School',
@@ -148,6 +148,7 @@ class _ClassSelectionState extends State<ClassSelection> {
       print('Error initializing Firestore data: $e');
     }
   }
+
 
 
 
@@ -315,6 +316,7 @@ class _ClassSelectionState extends State<ClassSelection> {
   }
 
 
+
   Widget _buildSchoolSelection() {
     return Container(
       width: double.infinity,
@@ -390,7 +392,7 @@ class _ClassSelectionState extends State<ClassSelection> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent.withOpacity(0.8), // Transparent AppBar
+        backgroundColor: Colors.blueAccent.shade100, // Transparent AppBar
         elevation: 0, // No shadow
       ),
       body: Container(

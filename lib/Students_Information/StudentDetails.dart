@@ -58,6 +58,7 @@ class _StudentDetailsState extends State<StudentDetails> {
       studentID = generateRandomStudentID();  // Generate a new student ID
 
 
+
       // Define default subjects for each form
       final defaultSubjects = {
         'FORM 1': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
