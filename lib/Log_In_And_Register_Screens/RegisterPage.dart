@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:scanna/Home_Screens/Main_Home.dart';
 import 'package:scanna/Log_In_And_Register_Screens/LoginPage.dart';
@@ -143,20 +142,6 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
 
-
-// match /{document=**} {
-//allow read, write: if request.auth != null;
-//}
-
-  void _showSuccessToast([String message = "Registered Successfully"]) {
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_SHORT,
-      textColor: Colors.blue,
-      fontSize: 16.0,
-    );
-  }
-
   Widget _buildStyledTextField({
     required String label,
     required IconData icon,
@@ -186,27 +171,15 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> _signInWithSocialMedia(String provider) async {
     try {
       if (provider == 'google') {
-        // Google sign-in
-        final GoogleSignIn googleSignIn = GoogleSignIn();
-        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
-        if (googleUser != null) {
-          final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-          final AuthCredential credential = GoogleAuthProvider.credential(
-            accessToken: googleAuth.accessToken,
-            idToken: googleAuth.idToken,
-          );
 
-          final UserCredential userCredential = await _auth.signInWithCredential(credential);
-          Navigator.pushNamed(context, Home.id);
-        }
+
       } else if (provider == 'facebook') {
         // Facebook sign-in
         final LoginResult loginResult = await FacebookAuth.instance.login();
 
         if (loginResult.status == LoginStatus.success) {
-          final AuthCredential credential = FacebookAuthProvider.credential(loginResult.accessToken!.tokenString);
-          final UserCredential userCredential = await _auth.signInWithCredential(credential);
+
           Navigator.pushNamed(context, Home.id);
         }
       }

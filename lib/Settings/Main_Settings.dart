@@ -22,13 +22,8 @@ class _Main_SettingsState extends State<Main_Settings> {
   final List<String> languages = ['English', 'Spanish', 'French', 'German', 'Chinese', 'Chichewa'];
   String defaultLanguage = 'English';
 
-  void _onLanguageChanged(String? newLanguage) {
-    setState(() {
-      defaultLanguage = newLanguage ?? defaultLanguage;
-    });
-  }
 
-  void _onRegionChanged(String? newRegion) {}
+
 
   @override
   Widget build(BuildContext context) {

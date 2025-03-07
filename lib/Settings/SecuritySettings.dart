@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:scanna/Settings/SecurityQuestions.dart';
 import 'package:scanna/Settings/TwoFactorAuthentication.dart';
@@ -11,8 +9,7 @@ class SecuritySettings extends StatefulWidget {
 }
 
 class _SecuritySettingsState extends State<SecuritySettings> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   final LocalAuthentication _localAuth = LocalAuthentication();
   bool _isBiometricEnabled = false;
 

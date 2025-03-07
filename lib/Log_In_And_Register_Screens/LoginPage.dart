@@ -36,7 +36,7 @@ class _LoginPageState extends State<LoginPage> {
 
   String email = '';
   String password = '';
-  User? _user;
+
 
   Future<void> onGoogleSignIn(BuildContext context) async {
     setState(() {

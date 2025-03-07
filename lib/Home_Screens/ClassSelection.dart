@@ -20,7 +20,7 @@ class _ClassSelectionState extends State<ClassSelection> {
 
   // Define the classSubjects in Firestore
   final List<String> schools = [
-    'School A',
+
     'Balaka Secondary School',
     'Bandawe Boys Secondary School',
     'Blantyre Secondary School',
@@ -149,19 +149,6 @@ class _ClassSelectionState extends State<ClassSelection> {
     }
   }
 
-// Method to save or update selected classes and subjects
-  Future<void> _saveSelectedClassesAndSubjects(String userEmail, List<String> selectedClasses, List<String> selectedSubjects) async {
-    try {
-      await FirebaseFirestore.instance.collection('Teachers_Details').doc(userEmail).set({
-        'classes': FieldValue.arrayUnion(selectedClasses), // Add selected classes
-        'subjects': FieldValue.arrayUnion(selectedSubjects), // Add selected subjects
-      }, SetOptions(merge: true)); // Merge to update without overwriting
-
-      print('Selected classes and subjects saved successfully.');
-    } catch (e) {
-      print('Error saving selected classes and subjects: $e');
-    }
-  }
 
 
   Widget _buildClassSelection() {
@@ -287,7 +274,7 @@ class _ClassSelectionState extends State<ClassSelection> {
       return;
     }
 
-    if (user == null) {
+    if (user == false) {
       print('User is not authenticated.');
       return; // Exit if user is not authenticated.
     }
@@ -328,9 +315,6 @@ class _ClassSelectionState extends State<ClassSelection> {
   }
 
 
-
-
-  @override
   Widget _buildSchoolSelection() {
     return Container(
       width: double.infinity,

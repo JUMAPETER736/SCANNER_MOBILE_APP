@@ -57,16 +57,6 @@ class _StudentDetailsState extends State<StudentDetails> {
       studentFullName = '${_lastNameController.text.trim().toUpperCase()} ${_firstNameController.text.trim().toUpperCase()}';
       studentID = generateRandomStudentID();  // Generate a new student ID
 
-      // Store student details in a Map
-      Map<String, String> studentDetails = {
-        'firstName': _firstNameController.text.trim().toUpperCase(),
-        'lastName': _lastNameController.text.trim().toUpperCase(),
-        'studentClass': studentClass!,
-        'studentAge': _ageController.text.trim(),
-        'studentGender': studentGender!,
-        'studentID': studentID!,
-        'createdBy': loggedInUser?.email ?? '',
-      };
 
       // Define default subjects for each form
       final defaultSubjects = {
