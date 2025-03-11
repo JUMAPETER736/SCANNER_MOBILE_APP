@@ -12,9 +12,9 @@ pluginManagement {
 }
 
 plugins {
-    id 'com.android.application' version '7.0.1'
-    id 'com.android.library' version '7.0.1'
-    id 'org.jetbrains.kotlin.android' version '1.5.31'
+    id 'com.android.application' version '8.3.0' // Updated AGP version
+    id 'com.android.library' version '8.3.0' // Updated AGP version
+    id 'org.jetbrains.kotlin.android' version '1.9.22' // Updated Kotlin version
 }
 
 include ':app'
@@ -28,5 +28,6 @@ if (localPropertiesFile.exists()) {
 }
 
 def flutterSdkPath = properties.getProperty("flutter.sdk")
-assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
+assert flutterSdkPath != null : "flutter.sdk not set in local.properties"
+
 apply from: "$flutterSdkPath/packages/flutter_tools/gradle/app_plugin_loader.gradle"

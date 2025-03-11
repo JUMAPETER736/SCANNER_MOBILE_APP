@@ -600,7 +600,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                   pw.Text('TOTAL MARKS: $studentTotalMarks/$teachersTotalMarks', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
                   pw.Text('ENROLLMENT: $totalStudents', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
                   pw.Text('POSITION: $position', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                  pw.Text("TEACHER'S COMMENT:________________", style: pw.TextStyle(fontSize: 14)),
+                  //pw.Text("TEACHER'S COMMENT:________________", style: pw.TextStyle(fontSize: 14)),
                   pw.Text('CONDUCT', style: pw.TextStyle(fontSize: 14)),
                   pw.Text('SIGNATURE: ___________________ DATE: ____________', style: pw.TextStyle(fontSize: 14)),
                   pw.SizedBox(height: 16),

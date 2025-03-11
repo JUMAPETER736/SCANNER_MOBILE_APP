@@ -5,8 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 
 
-
-
 class StudentDetails extends StatefulWidget {
   @override
   _StudentDetailsState createState() => _StudentDetailsState();
