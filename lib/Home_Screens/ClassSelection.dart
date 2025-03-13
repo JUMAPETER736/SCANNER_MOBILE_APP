@@ -20,7 +20,7 @@ class _ClassSelectionState extends State<ClassSelection> {
 
   // Define the classSubjects in Firestore
   final List<String> schools = [
-    'School A',
+
     'Balaka Secondary School',
     'Bandawe Boys Secondary School',
     'Blantyre Secondary School',

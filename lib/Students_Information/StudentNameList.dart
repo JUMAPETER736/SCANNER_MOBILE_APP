@@ -100,120 +100,87 @@ class _StudentNameListState extends State<StudentNameList> {
         ),
         padding: const EdgeInsets.all(16.0),
         child: _hasSelectedCriteria
-            ? Column(
-          children: [
-            Text(
-              'Class: $teacherClass',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.blueAccent,
-              ),
-            ),
-            SizedBox(height: 16),
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('Schools')
-                  .doc(teacherSchool)
-                  .collection('Classes')
-                  .doc(teacherClass)
-                  .collection('Student_Details')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No Student Found.',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
-                    ),
-                  );
-                }
+            ? StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('Schools')
+              .doc(teacherSchool) // Use the logged-in teacher's school
+              .collection('Classes')
+              .doc(teacherClass) // Use the logged-in teacher's class
+              .collection('Student_Details')
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator()); // Show one indicator while data is loading
+            }
 
-                var studentDocs = snapshot.data!.docs;
-                List<Map<String, dynamic>> students = [];
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Center(
+                child: Text(
+                  'No Student Found.',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+              );
+            }
 
-                // Fetch all student information asynchronously and add to students list
-                Future.wait(studentDocs.map((studentDoc) async {
-                  var studentFirstName = 'N/A'; // Default value if not found
-                  var studentLastName = 'N/A'; // Default value if not found
-                  var studentGender = 'N/A'; // Default value if not found
+            var studentDocs = snapshot.data!.docs;
 
-                  var personalInfoDoc = studentDoc.reference
-                      .collection('Personal_Information')
-                      .doc('Registered_Information');
+            return ListView.separated(
+              shrinkWrap: true,
+              itemCount: studentDocs.length,
+              separatorBuilder: (context, index) => SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                var studentDoc = studentDocs[index];
+                var studentName = studentDoc.id;
 
-                  var docSnapshot = await personalInfoDoc.get();
-                  if (docSnapshot.exists) {
-                    var data = docSnapshot.data();
-                    studentFirstName = data?['firstName'] ?? 'N/A';
-                    studentLastName = data?['lastName'] ?? 'N/A';
-                    studentGender = data?['studentGender'] ?? 'N/A';
-                  }
+                var registeredInformationDocRef = studentDoc.reference
+                    .collection('Personal_Information')
+                    .doc('Registered_Information');
 
-                  students.add({
-                    'firstName': studentFirstName,
-                    'lastName': studentLastName,
-                    'studentGender': studentGender,
-                    'reference': studentDoc.reference,
-                  });
-                })).then((_) {
-                  // Check if the widget is still mounted before calling setState
-                  if (mounted) {
-                    setState(() {});
-                  }
-                });
-
-
-                // Filter students by search query
-                var filteredDocs = students.where((student) {
-                  var fullName = '${student['firstName']} ${student['lastName']}';
-                  return fullName.toLowerCase().contains(_searchQuery.toLowerCase());
-                }).toList();
-
-                if (filteredDocs.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'Student NOT found',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
-                    ),
-                  );
-                }
-
-                return ListView.separated(
-                  itemCount: filteredDocs.length,
-                  separatorBuilder: (context, index) => SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    var student = filteredDocs[index];
-                    var fullName = '${student['firstName']} ${student['lastName']}';
-                    var studentGender = student['studentGender'] ?? 'N/A';
-
-                    return Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 4,
-                            offset: Offset(2, 2),
+                return FutureBuilder<DocumentSnapshot>(
+                  future: registeredInformationDocRef.get(),
+                  builder: (context, futureSnapshot) {
+                    if (!futureSnapshot.hasData || !futureSnapshot.data!.exists) {
+                      return Card(
+                        elevation: 6,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        child: ListTile(
+                          contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                          leading: Text(
+                            '${index + 1}.',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blueAccent,
+                            ),
                           ),
-                        ],
+
+                          subtitle: Text('Gender: N/A'),
+                          trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.blueAccent),
+                          onTap: () {
+                            // Handle tap
+                          },
+                        ),
+                      );
+                    }
+
+                    var data = futureSnapshot.data!.data() as Map<String, dynamic>;
+                    var firstName = data['firstName'] ?? 'N/A';
+                    var lastName = data['lastName'] ?? 'N/A';
+                    var studentGender = data['studentGender'] ?? 'N/A';
+
+                    return Card(
+                      elevation: 6,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15.0),
                       ),
-                      margin: const EdgeInsets.symmetric(vertical: 4.0),
                       child: ListTile(
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                         leading: Text(
                           '${index + 1}.',
                           style: TextStyle(
@@ -223,7 +190,7 @@ class _StudentNameListState extends State<StudentNameList> {
                           ),
                         ),
                         title: Text(
-                          fullName.toUpperCase(),
+                          '$firstName $lastName'.toUpperCase(),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -238,18 +205,15 @@ class _StudentNameListState extends State<StudentNameList> {
                             color: Colors.black54,
                           ),
                         ),
-                        trailing: Icon(
-                          Icons.arrow_forward,
-                          color: Colors.blueAccent,
-                        ),
+                        trailing: Icon(Icons.arrow_forward, color: Colors.blueAccent),
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => StudentSubjects(
-                                studentName: fullName,
+                                studentName: '$firstName $lastName',
                                 studentClass: teacherClass!,
-                                studentGender: studentGender,
+
                               ),
                             ),
                           );
@@ -259,8 +223,8 @@ class _StudentNameListState extends State<StudentNameList> {
                   },
                 );
               },
-            ),
-          ],
+            );
+          },
         )
             : Center(
           child: Text(
@@ -275,6 +239,8 @@ class _StudentNameListState extends State<StudentNameList> {
       ),
     );
   }
+
+
 
   void showSearchDialog(BuildContext context) {
     showDialog(

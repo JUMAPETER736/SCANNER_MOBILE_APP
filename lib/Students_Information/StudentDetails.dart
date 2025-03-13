@@ -263,7 +263,7 @@ class _StudentDetailsState extends State<StudentDetails> {
                     _buildStyledDropdownField(
                       value: studentGender,
                       labelText: 'Gender',
-                      items: ['Male', 'Female', 'Other'],
+                      items: ['Male', 'Female'],
                       onChanged: (newValue) {
                         setState(() {
                           studentGender = newValue;
