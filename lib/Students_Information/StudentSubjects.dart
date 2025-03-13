@@ -129,28 +129,33 @@ class _StudentSubjectsState extends State<StudentSubjects> {
         return AlertDialog(
           title: Text('Edit Grade for $subject'),
           content: StatefulBuilder(
-            builder: (context, setState) => Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                TextField(
-                  decoration: InputDecoration(hintText: "Enter new grade"),
-                  onChanged: (value) {
-                    newGrade = value.trim(); // Remove extra spaces
-                  },
-                ),
-                if (errorMessage.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      errorMessage,
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold,
+            builder: (context, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  TextField(
+                    decoration: InputDecoration(hintText: "Enter new grade"),
+                    onChanged: (value) {
+                      setState(() {
+                        newGrade = value.trim(); // Remove extra spaces
+                        errorMessage = ''; // Clear error message when input changes
+                      });
+                    },
+                  ),
+                  if (errorMessage.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        errorMessage,
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
+                ],
+              );
+            },
           ),
           actions: <Widget>[
             TextButton(
@@ -165,7 +170,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
                 // Validation for grade input
                 if (newGrade.isEmpty || int.tryParse(newGrade) == null) {
                   setState(() {
-                    errorMessage = 'Please enter a valid grade';
+                    errorMessage = 'Please enter a valid grade (numeric value)';
                   });
                 } else if (int.parse(newGrade) < 0) {
                   setState(() {
@@ -245,6 +250,8 @@ class _StudentSubjectsState extends State<StudentSubjects> {
         );
       },
     );
+
+
   }
 
 

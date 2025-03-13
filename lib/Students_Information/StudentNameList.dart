@@ -134,8 +134,6 @@ class _StudentNameListState extends State<StudentNameList> {
               separatorBuilder: (context, index) => SizedBox(height: 10),
               itemBuilder: (context, index) {
                 var studentDoc = studentDocs[index];
-                var studentName = studentDoc.id;
-
                 var registeredInformationDocRef = studentDoc.reference
                     .collection('Personal_Information')
                     .doc('Registered_Information');
@@ -144,35 +142,20 @@ class _StudentNameListState extends State<StudentNameList> {
                   future: registeredInformationDocRef.get(),
                   builder: (context, futureSnapshot) {
                     if (!futureSnapshot.hasData || !futureSnapshot.data!.exists) {
-                      return Card(
-                        elevation: 6,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15.0),
-                        ),
-                        child: ListTile(
-                          contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                          leading: Text(
-                            '${index + 1}.',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blueAccent,
-                            ),
-                          ),
-
-                          subtitle: Text('Gender: N/A'),
-                          trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.blueAccent),
-                          onTap: () {
-                            // Handle tap
-                          },
-                        ),
-                      );
+                      return Container(); // Skip if no data
                     }
 
                     var data = futureSnapshot.data!.data() as Map<String, dynamic>;
                     var firstName = data['firstName'] ?? 'N/A';
                     var lastName = data['lastName'] ?? 'N/A';
                     var studentGender = data['studentGender'] ?? 'N/A';
+                    var fullName = '$lastName $firstName'; // Change order to lastName firstName
+
+
+                    if (_searchQuery.isNotEmpty &&
+                        !fullName.toLowerCase().contains(_searchQuery.toLowerCase())) {
+                      return Container(); // Skip if search query doesn't match
+                    }
 
                     return Card(
                       elevation: 6,
@@ -190,7 +173,7 @@ class _StudentNameListState extends State<StudentNameList> {
                           ),
                         ),
                         title: Text(
-                          '$firstName $lastName'.toUpperCase(),
+                          fullName.toUpperCase(),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -211,9 +194,8 @@ class _StudentNameListState extends State<StudentNameList> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => StudentSubjects(
-                                studentName: '$firstName $lastName',
+                                studentName: fullName,
                                 studentClass: teacherClass!,
-
                               ),
                             ),
                           );
@@ -224,6 +206,7 @@ class _StudentNameListState extends State<StudentNameList> {
                 );
               },
             );
+
           },
         )
             : Center(
