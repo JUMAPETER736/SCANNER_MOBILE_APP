@@ -69,8 +69,8 @@ class _StudentNameListState extends State<StudentNameList> {
     return Scaffold(
       appBar: AppBar(
         title: _hasSelectedCriteria
-            ? Text(
-          '$teacherSchool',
+            ?  Text(
+          '$teacherSchool - $teacherClass',
           style: TextStyle(fontWeight: FontWeight.bold),
         )
             : Text(
