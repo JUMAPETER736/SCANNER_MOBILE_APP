@@ -4,16 +4,17 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+
 class SchoolReportPDFGenerator extends StatelessWidget {
-  final String studentName;
+
+  final String studentID;
   final String studentClass;
   final int studentTotalMarks;
   final int teachersTotalMarks;
-
   // Constructor
   const SchoolReportPDFGenerator({
     Key? key,
-    required this.studentName,
+    required this.studentID,
     required this.studentClass,
     required this.studentTotalMarks,
     required this.teachersTotalMarks,
@@ -215,7 +216,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
             .collection('Students_Details')
             .doc(studentClass)
             .collection('Student_Details')
-            .doc(studentName)
+            .doc(studentID)
             .collection('Student_Subjects')
             .get(),
         builder: (context, snapshot) {
@@ -289,8 +290,6 @@ class SchoolReportPDFGenerator extends StatelessWidget {
             print("EXAM REWARD (FORM 3 or 4): $aggregateGradeSenior");
           }
 
-
-
           return FutureBuilder<QuerySnapshot>(
             future: FirebaseFirestore.instance
                 .collection('Students_Details')
@@ -304,7 +303,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
               }
 
               int position = studentSnapshot.data!.docs
-                  .indexWhere((doc) => doc.id == studentName) +
+                  .indexWhere((doc) => doc.id == studentID) +
                   1;
               int totalStudents = studentSnapshot.data!.docs.length;
 
@@ -329,7 +328,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'STUDENT NAME: $studentName',
+                          'STUDENT NAME: $studentID',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
 
@@ -435,7 +434,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
         .collection('Students_Details')
         .doc(studentClass)
         .collection('Student_Details')
-        .doc(studentName)
+        .doc(studentID)
         .collection('Student_Subjects')
         .get();
 
@@ -454,7 +453,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
 
     int totalStudents = studentsSnapshot.docs.length;
     int position = studentsSnapshot.docs
-        .indexWhere((doc) => doc.id == studentName) + 1;
+        .indexWhere((doc) => doc.id == studentID) + 1;
 
     // Map the subjects data into a list of maps
     final List<Map<String, dynamic>> subjects = subjectSnapshot.docs.map((doc) {
@@ -588,7 +587,7 @@ class SchoolReportPDFGenerator extends StatelessWidget {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('STUDENT NAME: $studentName', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('STUDENT NAME: $studentID', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
                   pw.Text('CLASS: $studentClass', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
                 ],
               ),

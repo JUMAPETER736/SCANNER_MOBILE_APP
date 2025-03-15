@@ -3,180 +3,176 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/Home_Screens/SchoolReportPDFGenerator.dart';
 
-
 class SchoolReports extends StatefulWidget {
-  final User? loggedInUser;
-
-  const SchoolReports({Key? key, this.loggedInUser}) : super(key: key);
-
   @override
   _SchoolReportsState createState() => _SchoolReportsState();
 }
 
 class _SchoolReportsState extends State<SchoolReports> {
-  String _searchQuery = '';
-  TextEditingController _searchController = TextEditingController();
-  String? teacherClass;
-  bool _hasSelectedClass = false;
-  User? currentUser;
-  //String formNumber = 'FORM 2'; // Example form number, modify based on your logic
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  late String userEmail;
+  bool isLoading = true;
+  bool hasError = false;
+  String errorMessage = '';
+  List<Map<String, dynamic>> studentDetails = []; // List to store student details
 
   @override
   void initState() {
     super.initState();
-    currentUser = widget.loggedInUser;
-
-    FirebaseAuth.instance.authStateChanges().listen((User? user) {
-      setState(() {
-        currentUser = user;
-        if (currentUser != null) {
-          _checkTeacherSelection();
-        }
-      });
-    });
-
-    if (currentUser != null) {
-      _checkTeacherSelection();
-    }
+    _simulateLoading();
   }
 
-  void _checkTeacherSelection() async {
-    if (currentUser != null) {
-      var teacherSnapshot = await FirebaseFirestore.instance
-          .collection('Teachers_Details')
-          .doc(currentUser!.email)
-          .get();
+  // Simulate loading for 1 second
+  Future<void> _simulateLoading() async {
+    await Future.delayed(Duration(seconds: 1)); // Delay for 1 second
+    _fetchUserDetails(); // After delay, fetch user details
+  }
 
-      if (teacherSnapshot.exists) {
-        var teacherData = teacherSnapshot.data() as Map<String, dynamic>;
-        var classes = teacherData['classes'] as List<dynamic>? ?? [];
+  // Fetch user details from Firestore based on logged-in user's email
+  Future<void> _fetchUserDetails() async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      userEmail = user.email!;
 
-        if (classes.isNotEmpty) {
+      try {
+        // Fetch user details from Firestore (Teachers_Details)
+        DocumentSnapshot userDoc = await _firestore.collection('Teachers_Details').doc(userEmail).get();
+
+        if (userDoc.exists) {
+          // Check if the user has selected a school and classes
+          if (userDoc['school'] == null || userDoc['classes'] == null || userDoc['classes'].isEmpty) {
+            setState(() {
+              hasError = true;
+              errorMessage = 'Please select a School and Classes before accessing reports.';
+              isLoading = false;
+            });
+          } else {
+            setState(() {
+              isLoading = true; // Keep loading until student data is fetched
+            });
+
+            // Fetch student details for the teacher's assigned classes
+            await _fetchStudentDetails(userDoc);
+          }
+        } else {
           setState(() {
-            teacherClass = classes[0];
-            _hasSelectedClass = true;
+            isLoading = false;
+            hasError = true;
+            errorMessage = 'User details not found.';
           });
         }
-      }
-    }
-  }
-
-  Future<void> _calculateAndUpdateMarks(String studentDocId) async {
-    try {
-      DocumentReference studentRef = FirebaseFirestore.instance
-          .collection('Students_Details')
-          .doc(teacherClass!)
-          .collection('Student_Details')
-          .doc(studentDocId);
-
-      DocumentSnapshot studentDoc = await studentRef.get();
-
-      if (studentDoc.exists) {
-        int totalMarks = 0;
-        int totalTeacherMarks = 0;
-
-        var subjectsSnapshot = await studentRef.collection('Student_Subjects').get();
-
-        for (var subjectDoc in subjectsSnapshot.docs) {
-          var subjectData = subjectDoc.data();
-
-          if (subjectData.containsKey('Subject_Grade')) {
-            var gradeString = subjectData['Subject_Grade'];
-            int grade = int.tryParse(gradeString.toString()) ?? 0;
-
-            totalMarks += grade;
-            totalTeacherMarks += 100; // Adjust this according to your grading scale
-          }
-        }
-
-        await studentRef.set({
-          'Student_Total_Marks': totalMarks,
-          'Teachers_Total_Marks': totalTeacherMarks,
-        }, SetOptions(merge: true));
-
-        print('Updated Marks for Student: $studentDocId');
-      } else {
-        print('Student document does NOT Exist: $studentDocId');
-      }
-    } catch (e) {
-      print('Error updating Marks: $e');
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> _getStudentNames() async {
-    List<Map<String, dynamic>> studentNames = [];
-    QuerySnapshot studentsSnapshot = await FirebaseFirestore.instance
-        .collection('Students_Details')
-        .doc(teacherClass!)
-        .collection('Student_Details')
-        .get();
-
-    for (var studentDoc in studentsSnapshot.docs) {
-      var personalInfoDoc = await studentDoc.reference.collection('Personal_Information')
-          .doc('Registered_Information').get();
-
-      if (personalInfoDoc.exists) {
-        var personalInfo = personalInfoDoc.data() as Map<String, dynamic>;
-        var firstName = personalInfo['firstName'] ?? 'N/A';
-        var lastName = personalInfo['lastName'] ?? 'N/A';
-        var gender = personalInfo['studentGender'] ?? 'N/A';
-
-        // Fetch total marks
-        var totalMarksData = studentDoc.data() as Map<String, dynamic>;
-        var studentTotalMarks = totalMarksData['Student_Total_Marks'] ?? 0;
-        var teachersTotalMarks = totalMarksData['Teachers_Total_Marks'] ?? 0;
-
-        studentNames.add({
-          'fullName': '$lastName $firstName',
-          'gender': gender,
-          'id': studentDoc.id,
-          'studentTotalMarks': studentTotalMarks,
-          'teachersTotalMarks': teachersTotalMarks,
+      } catch (e) {
+        print("Error fetching user details: $e");
+        setState(() {
+          isLoading = false;
+          hasError = true;
+          errorMessage = 'An error occurred while fetching user details.';
         });
       }
+    } else {
+      setState(() {
+        isLoading = false;
+        hasError = true;
+        errorMessage = 'No user is currently logged in.';
+      });
     }
-
-    // Sort students by total marks in descending order
-    studentNames.sort((a, b) => b['studentTotalMarks'].compareTo(a['studentTotalMarks']));
-
-    return studentNames;
   }
+
+  Future<void> _fetchStudentDetails(DocumentSnapshot userDoc) async {
+    try {
+      List<Map<String, dynamic>> tempStudentDetails = []; // Temp list to collect all student details
+
+      // Loop through the classes the teacher is assigned to
+      for (var classId in userDoc['classes']) {
+        // Fetch students for each class from the 'Student_Details' collection
+        QuerySnapshot studentsSnapshot = await _firestore
+            .collection('Schools')
+            .doc(userDoc['school']) // Use the teacher's school
+            .collection('Classes')
+            .doc(classId) // Use each class the teacher is assigned to
+            .collection('Student_Details')
+            .get();
+
+        for (var studentDoc in studentsSnapshot.docs) {
+          // Fetch the 'Personal_Information/Registered_Information' document for each student
+          DocumentSnapshot registeredInformationDoc = await studentDoc.reference
+              .collection('Personal_Information')
+              .doc('Registered_Information')
+              .get();
+
+          // Fetch the 'TOTAL_MARKS/Marks' document for the student
+          DocumentSnapshot totalMarksDoc = await studentDoc.reference
+              .collection('TOTAL_MARKS')
+              .doc('Marks')
+              .get();
+
+          // Check if both documents exist
+          if (registeredInformationDoc.exists && totalMarksDoc.exists) {
+            var registeredData = registeredInformationDoc.data() as Map<String, dynamic>;
+            var totalMarksData = totalMarksDoc.data() as Map<String, dynamic>;
+
+            // Retrieve student personal details
+            var firstName = registeredData['firstName'] ?? 'N/A';
+            var lastName = registeredData['lastName'] ?? 'N/A';
+            var gender = registeredData['studentGender'] ?? 'N/A';
+
+            // Retrieve the total marks as strings and convert to integers
+            var studentTotalMarks = int.tryParse(totalMarksData['Student_Total_Marks'] ?? '0') ?? 0;
+            var teacherTotalMarks = int.tryParse(totalMarksData['Teacher_Total_Marks'] ?? '0') ?? 0;
+
+            var fullName = '$lastName $firstName'; // Combine last and first names
+
+            // Add the student details to the temp list
+            tempStudentDetails.add({
+              'fullName': fullName,
+              'studentGender': gender,
+              'Student_Total_Marks': studentTotalMarks,
+              'Teacher_Total_Marks': teacherTotalMarks,
+            });
+          }
+        }
+      }
+
+      // Sort the list of students by their total marks in descending order
+      tempStudentDetails.sort((a, b) => b['Student_Total_Marks'].compareTo(a['Student_Total_Marks']));
+
+      // Update the state after all data is fetched and sorted
+      setState(() {
+        studentDetails = tempStudentDetails; // Store the fetched and sorted student details
+        isLoading = false; // Set loading to false after data is fetched
+      });
+    } catch (e) {
+      print("Error fetching student details: $e");
+      setState(() {
+        isLoading = false;
+        hasError = true;
+        errorMessage = 'An error occurred while fetching student details.';
+      });
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
-    if (currentUser == null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(
-            'School Reports',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          backgroundColor: Colors.blueAccent,
-        ),
-        body: Center(
-          child: Text('No user is logged in.'),
-        ),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _hasSelectedClass ? '$teacherClass STUDENTS' : 'School Reports',
+          'School Reports',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        centerTitle: true,
         backgroundColor: Colors.blueAccent,
-        actions: _hasSelectedClass
-            ? [
-          IconButton(
-            icon: Icon(Icons.search),
-            onPressed: () {
-              showSearchDialog(context);
-            },
-          ),
-        ]
-            : [],
+        actions: [
+          // Add a search icon only if data is loaded and no errors
+          if (!isLoading && !hasError)
+            IconButton(
+              icon: Icon(Icons.search),
+              onPressed: () {
+                showSearchDialog(context);
+              },
+            ),
+        ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -187,126 +183,93 @@ class _SchoolReportsState extends State<SchoolReports> {
           ),
         ),
         padding: const EdgeInsets.all(16.0),
-        child: _hasSelectedClass
-            ? FutureBuilder<List<Map<String, dynamic>>>(  // FutureBuilder to fetch student names
-          future: _getStudentNames(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator());
-            }
+        child: isLoading
+            ? Center(child: CircularProgressIndicator()) // Show loading indicator
+            : hasError
+            ? Center(
+          child: Text(
+            errorMessage,
+            style: TextStyle(color: Colors.red, fontSize: 18),
+          ),
+        )
+            : studentDetails.isEmpty
+            ? Center(child: Text('No students found.')) // This message shows after loading
+            : ListView.separated(
+          shrinkWrap: true,
+          itemCount: studentDetails.length,
+          separatorBuilder: (context, index) => SizedBox(height: 10),
+          itemBuilder: (context, index) {
+            var student = studentDetails[index];
 
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Center(
-                child: Text(
-                  'No Student found.',
+            return Card(
+              elevation: 6,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15.0),
+              ),
+              child: ListTile(
+                contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                leading: Text(
+                  '${index + 1}.',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.red,
+                    color: Colors.blueAccent,
                   ),
                 ),
-              );
-            }
-
-            var filteredStudents = snapshot.data!.where((student) {
-              return student['fullName'].toLowerCase().contains(_searchQuery.toLowerCase());
-            }).toList();
-
-            if (filteredStudents.isEmpty) {
-              return Center(
-                child: Text(
-                  'Student NOT found',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                  ),
-                ),
-              );
-            }
-
-            // Update marks for each student
-            for (var student in filteredStudents) {
-              _calculateAndUpdateMarks(student['id']);
-            }
-
-            return ListView.separated(
-              itemCount: filteredStudents.length,
-              separatorBuilder: (context, index) => SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                var student = filteredStudents[index];
-                var fullName = student['fullName'];
-                var studentGender = student['gender'] ?? 'N/A';
-                var studentTotalMarks = student['studentTotalMarks'] ?? 0; // Use default value if null
-                var teachersTotalMarks = student['teachersTotalMarks'] ?? 0; // Use default value if null
-
-                return Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 4,
-                        offset: Offset(2, 2),
-                      ),
-                    ],
-                  ),
-                  margin: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: ListTile(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: Text(
-                      '${index + 1}.',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
-                      ),
-                    ),
-                    title: Text(
-                      fullName.toUpperCase(),
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      student['fullName'].toUpperCase(),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.blueAccent,
                       ),
                     ),
-                    subtitle: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween, // Aligns content to the ends
-                      children: [
-                        Text(
-                          'Gender: $studentGender',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'Total Marks: $studentTotalMarks/$teachersTotalMarks', // Format for total marks
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                        ),
-                      ],
+                    Text(
+                      'Gender: ${student['studentGender']}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.normal,
+                        color: Colors.black,
+                      ),
                     ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SchoolReportPDFGenerator(
-                            studentName: student['id'],
-                            studentClass: teacherClass!,
+                  ],
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min, // To prevent stretching
+                  children: [
+                    // Displaying marks in the "studentMarks/teacherMarks" format in black color
+                    Text(
+                      '${student['Student_Total_Marks']} / ${student['Teacher_Total_Marks']}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black, // Black color for the marks
+                      ),
+                    ),
+                    SizedBox(width: 10), // Add space between marks and forward icon
+                    Icon(
+                      Icons.arrow_forward,
+                      color: Colors.blueAccent,
+                      size: 20,
+                    ),
+                  ],
+                ),
+                onTap: () {
+                  // Navigate to the School Report page for the selected student
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SchoolReportPDFGenerator(student: student), // Pass the student data to the next page
+                    ),
+                  );
+                },
 
-                            studentTotalMarks: studentTotalMarks,  // Pass studentTotalMarks
-                            teachersTotalMarks: teachersTotalMarks, // Pass teachersTotalMarks if needed
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
+              ),
             );
           },
-        )
-            : Center(
-          child: CircularProgressIndicator(),
         ),
       ),
     );
@@ -315,33 +278,49 @@ class _SchoolReportsState extends State<SchoolReports> {
   void showSearchDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Search Student'),
           content: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(hintText: 'Enter Student Name'),
+            decoration: InputDecoration(
+              hintText: 'Enter first or last name',
+            ),
             onChanged: (value) {
               setState(() {
-                _searchQuery = value; // Update search query
+                // Filter the student list based on the search query
+                studentDetails = studentDetails
+                    .where((student) =>
+                    student['fullName']
+                        .toLowerCase()
+                        .contains(value.toLowerCase()))
+                    .toList();
               });
             },
           ),
           actions: [
             TextButton(
-              child: Text('Cancel'),
               onPressed: () {
                 Navigator.of(context).pop();
               },
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
             ),
             TextButton(
-              child: Text('Search'),
               onPressed: () {
-                setState(() {
-                  _searchQuery = _searchController.text; // Update search query
-                });
                 Navigator.of(context).pop();
               },
+              child: Text(
+                'Search',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blueAccent,
+                ),
+              ),
             ),
           ],
         );
@@ -349,6 +328,3 @@ class _SchoolReportsState extends State<SchoolReports> {
     );
   }
 }
-
-
-

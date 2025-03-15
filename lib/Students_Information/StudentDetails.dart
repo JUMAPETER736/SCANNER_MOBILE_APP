@@ -159,15 +159,11 @@ class _StudentDetailsState extends State<StudentDetails> {
   }
 
 
-
-
 // Generate a random number to append to the ID for uniqueness
   String generateRandomNumber() {
     Random random = Random();
     return random.nextInt(1000).toString(); // Generate a random number between 0-999
   }
-
-
 
 
   @override

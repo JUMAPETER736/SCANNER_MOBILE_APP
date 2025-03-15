@@ -63,10 +63,10 @@ class _StudentSubjectsState extends State<StudentSubjects> {
         });
 
         print("All subjects: $_subjects");
-        print("User's assigned subjects: $_userSubjects");
+        print("User's assigned Subjects: $_userSubjects");
       }
     } catch (e) {
-      print('Error fetching subjects: $e');
+      print('Error fetching Subjects: $e');
       setState(() {
         isLoading = false;
       });
@@ -100,7 +100,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
         if (gradeSnapshot.exists) {
           final grade = gradeSnapshot['Subject_Grade'];
           if (grade != null && grade.isNotEmpty) {
-            print("Fetched grade for $subject: $grade");  // Debugging statement
+            print("Fetched Grade for $subject: $grade");  // Debugging statement
             return grade; // Return the grade if it's not null or empty
           } else {
             print("Subject_Grade is null or empty for $subject");  // Debugging statement
@@ -112,7 +112,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
         print("User document does not exist.");  // Debugging statement
       }
     } catch (e) {
-      print('Error fetching grade for subject: $e');
+      print('Error fetching Grade for Subject: $e');
     }
     return ''; // Return empty string if no grade is found
   }
@@ -134,7 +134,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   TextField(
-                    decoration: InputDecoration(hintText: "Enter new grade"),
+                    decoration: InputDecoration(hintText: "Enter new Grade"),
                     onChanged: (value) {
                       setState(() {
                         newGrade = value.trim(); // Remove extra spaces
@@ -241,7 +241,7 @@ class _StudentSubjectsState extends State<StudentSubjects> {
                       Navigator.of(context).pop();
                     }
                   } catch (e) {
-                    print('Error updating grade: $e');
+                    print('Error updating Grade: $e');
                   }
                 }
               },
@@ -253,10 +253,6 @@ class _StudentSubjectsState extends State<StudentSubjects> {
 
 
   }
-
-
-
-
 
 
   @override

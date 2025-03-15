@@ -69,7 +69,7 @@ class _StudentNameListState extends State<StudentNameList> {
     return Scaffold(
       appBar: AppBar(
         title: _hasSelectedCriteria
-            ?  Text(
+            ? Text(
           '$teacherSchool - $teacherClass',
           style: TextStyle(fontWeight: FontWeight.bold),
         )
@@ -110,7 +110,7 @@ class _StudentNameListState extends State<StudentNameList> {
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator()); // Show one indicator while data is loading
+              return Center(child: CircularProgressIndicator());
             }
 
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -151,7 +151,6 @@ class _StudentNameListState extends State<StudentNameList> {
                     var studentGender = data['studentGender'] ?? 'N/A';
                     var fullName = '$lastName $firstName'; // Change order to lastName firstName
 
-
                     if (_searchQuery.isNotEmpty &&
                         !fullName.toLowerCase().contains(_searchQuery.toLowerCase())) {
                       return Container(); // Skip if search query doesn't match
@@ -189,7 +188,50 @@ class _StudentNameListState extends State<StudentNameList> {
                           ),
                         ),
                         trailing: Icon(Icons.arrow_forward, color: Colors.blueAccent),
-                        onTap: () {
+
+// Update the onTap method inside ListTile to include Teacher_Total_Marks calculation
+                        onTap: () async {
+                          // Fetch the student's subject grades and calculate total marks
+                          var studentSubjectsSnapshot = await FirebaseFirestore.instance
+                              .collection('Schools')
+                              .doc(teacherSchool)
+                              .collection('Classes')
+                              .doc(teacherClass)
+                              .collection('Student_Details')
+                              .doc(studentDoc.id)
+                              .collection('Student_Subjects')
+                              .get();
+
+                          int totalMarks = 0;
+                          int totalMaxMarks = 0; // This will store the teacher's total possible marks (maximum marks)
+
+                          for (var subjectDoc in studentSubjectsSnapshot.docs) {
+                            var subjectData = subjectDoc.data() as Map<String, dynamic>;
+                            var subjectGrade = subjectData['Subject_Grade'] ?? 'N/A';
+
+                            // Only add the valid subject grades that are not "N/A"
+                            if (subjectGrade != 'N/A') {
+                              totalMarks += int.tryParse(subjectGrade) ?? 0; // Add the grade to total marks
+                              totalMaxMarks += 100; // For each valid grade, add 100 to the teacher's max possible marks
+                            }
+                          }
+
+                          // Update the TOTAL_MARKS subcollection with the calculated total marks
+                          await FirebaseFirestore.instance
+                              .collection('Schools')
+                              .doc(teacherSchool)
+                              .collection('Classes')
+                              .doc(teacherClass)
+                              .collection('Student_Details')
+                              .doc(studentDoc.id)
+                              .collection('TOTAL_MARKS')
+                              .doc('Marks')
+                              .set({
+                            'Student_Total_Marks': totalMarks.toString(),
+                            'Teacher_Total_Marks': totalMaxMarks.toString(), // Store the teacher's total max marks
+                          });
+
+                          // Navigate to StudentSubjects page
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -200,13 +242,13 @@ class _StudentNameListState extends State<StudentNameList> {
                             ),
                           );
                         },
+
                       ),
                     );
                   },
                 );
               },
             );
-
           },
         )
             : Center(
@@ -223,8 +265,6 @@ class _StudentNameListState extends State<StudentNameList> {
     );
   }
 
-
-
   void showSearchDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -237,14 +277,12 @@ class _StudentNameListState extends State<StudentNameList> {
               hintText: 'Enter first or last name',
             ),
             onChanged: (value) {
-              // Only call setState if the widget is still mounted
               if (mounted) {
                 setState(() {
                   _searchQuery = value;
                 });
               }
             },
-
           ),
           actions: [
             TextButton(
