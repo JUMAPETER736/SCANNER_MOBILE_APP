@@ -25,6 +25,8 @@ class _SchoolReportViewState extends State<SchoolReportView> {
   bool isAuthorized = false;
   bool isLoading = true; // To track loading state
 
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   @override
   void initState() {
     super.initState();
@@ -32,18 +34,32 @@ class _SchoolReportViewState extends State<SchoolReportView> {
   }
 
   Future<void> fetchTeacherData() async {
-    // Fetch teacher details from Teachers_Details collection
-    DocumentSnapshot teacherSnapshot = await FirebaseFirestore.instance
-        .doc('/Teachers_Details/${widget.teacherEmail}')
-        .get();
+    try {
+      // Fetch teacher details from Teachers_Details collection
+      DocumentSnapshot teacherSnapshot = await _firestore
+          .doc('/Teachers_Details/${widget.teacherEmail}')
+          .get();
 
-    if (teacherSnapshot.exists) {
-      Map<String, dynamic> teacherData = teacherSnapshot.data() as Map<String, dynamic>;
-      teacherSchool = teacherData['school'] as String?;
-      teacherClass = teacherData['class'] as String?;
+      if (teacherSnapshot.exists) {
+        Map<String, dynamic> teacherData = teacherSnapshot.data() as Map<String, dynamic>;
+        teacherSchool = teacherData['school'] as String?;
+        teacherClass = teacherData['class'] as String?;
 
-      // Fetch student data if teacher details are found
-      fetchStudentData();
+        // Fetch student data if teacher details are found
+        fetchStudentData();
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      // Optionally, show an error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching teacher data: $e')),
+      );
     }
   }
 
@@ -51,28 +67,69 @@ class _SchoolReportViewState extends State<SchoolReportView> {
     if (teacherSchool != null && teacherClass != null) {
       String basePath = '/Schools/$teacherSchool/Classes/$teacherClass/Student_Details/${widget.studentName}';
 
-      // Fetch Personal Information of the student
-      DocumentSnapshot personalInfoSnapshot = await FirebaseFirestore.instance
-          .doc('$basePath/Personal_Information/Registered_Information')
-          .get();
+      try {
+        // Fetch Personal Information of the student
+        DocumentSnapshot personalInfoSnapshot = await _firestore
+            .doc('$basePath/Personal_Information/Registered_Information')
+            .get();
 
-      if (personalInfoSnapshot.exists) {
+        if (personalInfoSnapshot.exists) {
+          setState(() {
+            studentInfo = personalInfoSnapshot.data() as Map<String, dynamic>?;
+            isAuthorized = true; // Only set authorized if data exists
+          });
+        }
+
+        // Fetch Student Subjects
+        QuerySnapshot subjectsSnapshot = await _firestore
+            .collection('$basePath/Student_Subjects')
+            .get();
+
         setState(() {
-          studentInfo = personalInfoSnapshot.data() as Map<String, dynamic>?; // Fetch student details
-          isAuthorized = true; // Only set authorized if data exists
+          subjects = subjectsSnapshot.docs.map((doc) => doc.id).toList(); // Fetch subjects
+          isLoading = false; // Set loading to false once data is fetched
         });
+      } catch (e) {
+        setState(() {
+          isLoading = false;
+        });
+        // Optionally, show an error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error fetching student data: $e')),
+        );
       }
-
-      // Fetch Student Subjects
-      QuerySnapshot subjectsSnapshot = await FirebaseFirestore.instance
-          .collection('$basePath/Student_Subjects')
-          .get();
-
-      setState(() {
-        subjects = subjectsSnapshot.docs.map((doc) => doc.id).toList(); // Fetch subjects
-        isLoading = false; // Set loading to false once data is fetched
-      });
     }
+  }
+
+  Future<String> fetchGradeForSubject(String subject) async {
+    try {
+      final gradeRef = _firestore
+          .collection('Schools')
+          .doc(teacherSchool)
+          .collection('Classes')
+          .doc(teacherClass)
+          .collection('Student_Details')
+          .doc(widget.studentName)
+          .collection('Student_Subjects')
+          .doc(subject);
+
+      final gradeSnapshot = await gradeRef.get();
+
+      if (gradeSnapshot.exists) {
+        final grade = gradeSnapshot['Subject_Grade'];
+        if (grade != null && grade.isNotEmpty) {
+          print("Fetched Grade for $subject: $grade");
+          return grade; // Return the grade if it's not null or empty
+        } else {
+          print("Subject_Grade is null or empty for $subject");
+        }
+      } else {
+        print("No document found for $subject");
+      }
+    } catch (e) {
+      print('Error fetching Grade for Subject: $e');
+    }
+    return ''; // Return empty string if no grade is found
   }
 
   @override
@@ -87,7 +144,7 @@ class _SchoolReportViewState extends State<SchoolReportView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              teacherSchool ?? 'No School Available', // Display fetched school name or fallback text
+              teacherSchool ?? 'No School Available',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -97,15 +154,15 @@ class _SchoolReportViewState extends State<SchoolReportView> {
             ),
             if (studentInfo != null) ...[
               Text(
-                'Age: ${studentInfo!['studentAge'] ?? 'N/A'}', // Display age if available
+                'Age: ${studentInfo!['studentAge'] ?? 'N/A'}',
                 style: TextStyle(fontSize: 16),
               ),
               Text(
-                'Class: ${studentInfo!['studentClass'] ?? 'N/A'}', // Display class if available
+                'Class: ${studentInfo!['studentClass'] ?? 'N/A'}',
                 style: TextStyle(fontSize: 16),
               ),
               Text(
-                'Gender: ${studentInfo!['studentGender'] ?? 'N/A'}', // Display gender if available
+                'Gender: ${studentInfo!['studentGender'] ?? 'N/A'}',
                 style: TextStyle(fontSize: 16),
               ),
             ],
@@ -115,9 +172,28 @@ class _SchoolReportViewState extends State<SchoolReportView> {
                 child: ListView.builder(
                   itemCount: subjects.length,
                   itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(subjects[index], style: TextStyle(fontSize: 16)),
-                      subtitle: Text('Grade: F (Placeholder)'), // Replace with actual grade if needed
+                    return FutureBuilder<String>(
+                      future: fetchGradeForSubject(subjects[index]),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return ListTile(
+                            title: Text(subjects[index], style: TextStyle(fontSize: 16)),
+                            subtitle: Text('Fetching grade...', style: TextStyle(fontSize: 14)),
+                          );
+                        }
+
+                        if (snapshot.hasError) {
+                          return ListTile(
+                            title: Text(subjects[index], style: TextStyle(fontSize: 16)),
+                            subtitle: Text('Error fetching grade', style: TextStyle(fontSize: 14)),
+                          );
+                        }
+
+                        return ListTile(
+                          title: Text(subjects[index], style: TextStyle(fontSize: 16)),
+                          subtitle: Text('Grade: ${snapshot.data ?? 'N/A'}', style: TextStyle(fontSize: 14)),
+                        );
+                      },
                     );
                   },
                 ),

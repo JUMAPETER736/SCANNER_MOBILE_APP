@@ -278,6 +278,8 @@ class _SchoolReportsState extends State<SchoolReports> {
     );
   }
 
+  //final Map<String, dynamic> student;
+
   void showSearchDialog(BuildContext context) {
     showDialog(
       context: context,
