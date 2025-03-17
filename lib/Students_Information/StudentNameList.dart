@@ -189,7 +189,7 @@ class _StudentNameListState extends State<StudentNameList> {
                         ),
                         trailing: Icon(Icons.arrow_forward, color: Colors.blueAccent),
 
-// Update the onTap method inside ListTile to include Teacher_Total_Marks calculation
+
                         onTap: () async {
                           // Fetch the student's subject grades and calculate total marks
                           var studentSubjectsSnapshot = await FirebaseFirestore.instance

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:scanna/Home_Screens/SchoolReportPDFGenerator.dart';
+import 'package:scanna/Home_Screens/SchoolReportView.dart';
 
 class SchoolReports extends StatefulWidget {
   @override
@@ -258,11 +258,14 @@ class _SchoolReportsState extends State<SchoolReports> {
                   ],
                 ),
                 onTap: () {
-                  // Navigate to the School Report page for the selected student
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => SchoolReportPDFGenerator(student: student), // Pass the student data to the next page
+                      builder: (context) => SchoolReportView(
+                        student: student,
+                        studentName: "${student['firstName'] ?? 'N/A'} ${student['lastName'] ?? 'N/A'}",
+                        teacherEmail: student['createdBy'] ?? 'No email provided', // Assuming createdBy is the teacher's email
+                      ),
                     ),
                   );
                 },
