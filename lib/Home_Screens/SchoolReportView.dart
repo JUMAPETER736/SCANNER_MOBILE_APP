@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SchoolReportView extends StatefulWidget {
-  final Map<String, dynamic> student;
+  final String schoolName;
+  final String studentClass;
   final String studentName;
-  final String teacherEmail;
 
   const SchoolReportView({
-    required this.student,
+    required this.schoolName,
+    required this.studentClass,
     required this.studentName,
-    required this.teacherEmail,
     Key? key,
   }) : super(key: key);
 
@@ -18,118 +18,53 @@ class SchoolReportView extends StatefulWidget {
 }
 
 class _SchoolReportViewState extends State<SchoolReportView> {
-  Map<String, dynamic>? studentInfo;
-  List<String> subjects = [];
-  String? teacherSchool;
-  String? teacherClass;
-  bool isAuthorized = false;
-  bool isLoading = true; // To track loading state
-
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  Map<String, dynamic>? studentInfo;
+  List<Map<String, dynamic>> subjectsWithGrades = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    fetchTeacherData();
+    fetchStudentData();
   }
 
-  Future<void> fetchTeacherData() async {
+  /// Fetch student details and subjects with grades
+  Future<void> fetchStudentData() async {
+    String studentPath = 'Schools/${widget.schoolName}/Classes/${widget.studentClass}/Student_Details/${widget.studentName}';
+
     try {
-      // Fetch teacher details from Teachers_Details collection
-      DocumentSnapshot teacherSnapshot = await _firestore
-          .doc('/Teachers_Details/${widget.teacherEmail}')
+      // Fetch personal details
+      DocumentSnapshot personalInfoSnapshot = await _firestore
+          .doc('$studentPath/Personal_Information/Registered_Information')
           .get();
 
-      if (teacherSnapshot.exists) {
-        Map<String, dynamic> teacherData = teacherSnapshot.data() as Map<String, dynamic>;
-        teacherSchool = teacherData['school'] as String?;
-        teacherClass = teacherData['class'] as String?;
+      // Fetch subjects and grades
+      QuerySnapshot subjectsSnapshot = await _firestore
+          .collection('$studentPath/Student_Subjects')
+          .get();
 
-        // Fetch student data if teacher details are found
-        fetchStudentData();
-      } else {
-        setState(() {
-          isLoading = false;
-        });
-      }
-    } catch (e) {
       setState(() {
+        if (personalInfoSnapshot.exists) {
+          studentInfo = personalInfoSnapshot.data() as Map<String, dynamic>?;
+        }
+
+        subjectsWithGrades = subjectsSnapshot.docs.map((doc) {
+          return {
+            'subject': doc['Subject_Name'] ?? 'Unknown',
+            'grade': doc['Subject_Grade'] ?? 'N/A',
+          };
+        }).toList();
+
         isLoading = false;
       });
-      // Optionally, show an error message
+    } catch (e) {
+      setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching teacher data: $e')),
+        SnackBar(content: Text('Error fetching student data: $e')),
       );
     }
-  }
-
-  Future<void> fetchStudentData() async {
-    if (teacherSchool != null && teacherClass != null) {
-      String basePath = '/Schools/$teacherSchool/Classes/$teacherClass/Student_Details/${widget.studentName}';
-
-      try {
-        // Fetch Personal Information of the student
-        DocumentSnapshot personalInfoSnapshot = await _firestore
-            .doc('$basePath/Personal_Information/Registered_Information')
-            .get();
-
-        if (personalInfoSnapshot.exists) {
-          setState(() {
-            studentInfo = personalInfoSnapshot.data() as Map<String, dynamic>?;
-            isAuthorized = true; // Only set authorized if data exists
-          });
-        }
-
-        // Fetch Student Subjects
-        QuerySnapshot subjectsSnapshot = await _firestore
-            .collection('$basePath/Student_Subjects')
-            .get();
-
-        setState(() {
-          subjects = subjectsSnapshot.docs.map((doc) => doc.id).toList(); // Fetch subjects
-          isLoading = false; // Set loading to false once data is fetched
-        });
-      } catch (e) {
-        setState(() {
-          isLoading = false;
-        });
-        // Optionally, show an error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error fetching student data: $e')),
-        );
-      }
-    }
-  }
-
-  Future<String> fetchGradeForSubject(String subject) async {
-    try {
-      final gradeRef = _firestore
-          .collection('Schools')
-          .doc(teacherSchool)
-          .collection('Classes')
-          .doc(teacherClass)
-          .collection('Student_Details')
-          .doc(widget.studentName)
-          .collection('Student_Subjects')
-          .doc(subject);
-
-      final gradeSnapshot = await gradeRef.get();
-
-      if (gradeSnapshot.exists) {
-        final grade = gradeSnapshot['Subject_Grade'];
-        if (grade != null && grade.isNotEmpty) {
-          print("Fetched Grade for $subject: $grade");
-          return grade; // Return the grade if it's not null or empty
-        } else {
-          print("Subject_Grade is null or empty for $subject");
-        }
-      } else {
-        print("No document found for $subject");
-      }
-    } catch (e) {
-      print('Error fetching Grade for Subject: $e');
-    }
-    return ''; // Return empty string if no grade is found
   }
 
   @override
@@ -144,62 +79,33 @@ class _SchoolReportViewState extends State<SchoolReportView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              teacherSchool ?? 'No School Available',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              widget.schoolName,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Student Name: ${widget.studentName}',
-              style: TextStyle(fontSize: 18),
-            ),
+            Text('Student Name: ${widget.studentName}', style: const TextStyle(fontSize: 18)),
             if (studentInfo != null) ...[
-              Text(
-                'Age: ${studentInfo!['studentAge'] ?? 'N/A'}',
-                style: TextStyle(fontSize: 16),
-              ),
-              Text(
-                'Class: ${studentInfo!['studentClass'] ?? 'N/A'}',
-                style: TextStyle(fontSize: 16),
-              ),
-              Text(
-                'Gender: ${studentInfo!['studentGender'] ?? 'N/A'}',
-                style: TextStyle(fontSize: 16),
-              ),
+              Text('Age: ${studentInfo!['studentAge'] ?? 'N/A'}', style: const TextStyle(fontSize: 16)),
+              Text('Class: ${studentInfo!['studentClass'] ?? 'N/A'}', style: const TextStyle(fontSize: 16)),
+              Text('Gender: ${studentInfo!['studentGender'] ?? 'N/A'}', style: const TextStyle(fontSize: 16)),
             ],
             const Divider(),
-            if (subjects.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            if (subjectsWithGrades.isNotEmpty) ...[
+              const Text('Subjects & Grades:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               Expanded(
                 child: ListView.builder(
-                  itemCount: subjects.length,
+                  itemCount: subjectsWithGrades.length,
                   itemBuilder: (context, index) {
-                    return FutureBuilder<String>(
-                      future: fetchGradeForSubject(subjects[index]),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return ListTile(
-                            title: Text(subjects[index], style: TextStyle(fontSize: 16)),
-                            subtitle: Text('Fetching grade...', style: TextStyle(fontSize: 14)),
-                          );
-                        }
-
-                        if (snapshot.hasError) {
-                          return ListTile(
-                            title: Text(subjects[index], style: TextStyle(fontSize: 16)),
-                            subtitle: Text('Error fetching grade', style: TextStyle(fontSize: 14)),
-                          );
-                        }
-
-                        return ListTile(
-                          title: Text(subjects[index], style: TextStyle(fontSize: 16)),
-                          subtitle: Text('Grade: ${snapshot.data ?? 'N/A'}', style: TextStyle(fontSize: 14)),
-                        );
-                      },
+                    return ListTile(
+                      title: Text(subjectsWithGrades[index]['subject'], style: const TextStyle(fontSize: 16)),
+                      subtitle: Text('Grade: ${subjectsWithGrades[index]['grade']}', style: const TextStyle(fontSize: 14)),
                     );
                   },
                 ),
               ),
             ] else ...[
-              Text('No subjects available', style: TextStyle(fontSize: 16)),
+              const Text('No subjects available', style: TextStyle(fontSize: 16)),
             ],
           ],
         ),

@@ -80,6 +80,7 @@ class _SchoolReportsState extends State<SchoolReports> {
     }
   }
 
+
   Future<void> _fetchStudentDetails(DocumentSnapshot userDoc) async {
     try {
       List<Map<String, dynamic>> tempStudentDetails = []; // Temp list to collect all student details
@@ -102,56 +103,105 @@ class _SchoolReportsState extends State<SchoolReports> {
               .doc('Registered_Information')
               .get();
 
-          // Fetch the 'TOTAL_MARKS/Marks' document for the student
-          DocumentSnapshot totalMarksDoc = await studentDoc.reference
-              .collection('TOTAL_MARKS')
-              .doc('Marks')
-              .get();
+          // Retrieve the student's class
+          String studentClass = registeredInformationDoc['studentClass'] ?? 'N/A';
 
-          // Check if both documents exist
-          if (registeredInformationDoc.exists && totalMarksDoc.exists) {
-            var registeredData = registeredInformationDoc.data() as Map<String, dynamic>;
-            var totalMarksData = totalMarksDoc.data() as Map<String, dynamic>;
+          if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
+            // For FORM 1 and FORM 2 students, use Student_Total_Marks and Teacher_Total_Marks
+            DocumentSnapshot totalMarksDoc = await studentDoc.reference
+                .collection('TOTAL_MARKS')
+                .doc('Marks')
+                .get();
 
-            // Retrieve student personal details
-            var firstName = registeredData['firstName'] ?? 'N/A';
-            var lastName = registeredData['lastName'] ?? 'N/A';
-            var gender = registeredData['studentGender'] ?? 'N/A';
+            if (totalMarksDoc.exists) {
+              var totalMarksData = totalMarksDoc.data() as Map<String, dynamic>;
 
-            // Retrieve the total marks as strings and convert to integers
-            var studentTotalMarks = int.tryParse(totalMarksData['Student_Total_Marks'] ?? '0') ?? 0;
-            var teacherTotalMarks = int.tryParse(totalMarksData['Teacher_Total_Marks'] ?? '0') ?? 0;
+              var studentTotalMarks = int.tryParse(totalMarksData['Student_Total_Marks'] ?? '0') ?? 0;
+              var teacherTotalMarks = int.tryParse(totalMarksData['Teacher_Total_Marks'] ?? '0') ?? 0;
 
-            var fullName = '$lastName $firstName'; // Combine last and first names
+              // Retrieve student personal details
+              var firstName = registeredInformationDoc['firstName'] ?? 'N/A';
+              var lastName = registeredInformationDoc['lastName'] ?? 'N/A';
+              var gender = registeredInformationDoc['studentGender'] ?? 'N/A';
 
-            // Add the student details to the temp list
-            tempStudentDetails.add({
-              'fullName': fullName,
-              'studentGender': gender,
-              'Student_Total_Marks': studentTotalMarks,
-              'Teacher_Total_Marks': teacherTotalMarks,
-            });
+              var fullName = '$lastName $firstName'; // Combine last and first names
+
+              // Add the student details to the temp list
+              tempStudentDetails.add({
+                'fullName': fullName,
+                'studentGender': gender,
+                'Student_Total_Marks': studentTotalMarks,
+                'Teacher_Total_Marks': teacherTotalMarks,
+              });
+            }
+          } else if (studentClass == 'FORM 3' || studentClass == 'FORM 4') {
+            // For FORM 3 and FORM 4 students, use Grade_Point and Subject_Grade
+            QuerySnapshot subjectSnapshot = await studentDoc.reference
+                .collection('Student_Subjects')
+                .get();
+
+            for (var subjectDoc in subjectSnapshot.docs) {
+              var subjectData = subjectDoc.data() as Map<String, dynamic>;
+              var subjectGrade = int.tryParse(subjectData['Subject_Grade'] ?? '0') ?? 0;
+              var subjectName = subjectData['Subject_Name'] ?? 'N/A';
+
+              // Calculate Grade_Point based on Subject_Grade
+
+              int gradePoint = 0;
+
+              if (subjectGrade >= 85) {
+                gradePoint = 1;
+              } else if (subjectGrade >= 80) {
+                gradePoint = 2;
+              } else if (subjectGrade >= 75) {
+                gradePoint = 3;
+              } else if (subjectGrade >= 70) {
+                gradePoint = 4;
+              } else if (subjectGrade >= 65) {
+                gradePoint = 5;
+              } else if (subjectGrade >= 60) {
+                gradePoint = 6;
+              } else if (subjectGrade >= 55) {
+                gradePoint = 7;
+              } else if (subjectGrade >= 50) {
+                gradePoint = 8;
+              } else if (subjectGrade <= 49) {
+                gradePoint = 9;
+              }
+
+
+              // If Grade_Point is not set in Firestore, create it
+              if (subjectData['Grade_Point'] == null) {
+                // Set the Grade_Point in the correct path for FORM 3 and FORM 4 students
+                await subjectDoc.reference.update({
+                  'Grade_Point': gradePoint.toString(),
+                });
+              }
+
+              // Retrieve student personal details
+              var firstName = registeredInformationDoc['firstName'] ?? 'N/A';
+              var lastName = registeredInformationDoc['lastName'] ?? 'N/A';
+              var gender = registeredInformationDoc['studentGender'] ?? 'N/A';
+
+              var fullName = '$lastName $firstName'; // Combine last and first names
+
+              // Add the student details to the temp list
+              tempStudentDetails.add({
+                'fullName': fullName,
+                'studentGender': gender,
+                'Subject_Name': subjectName,
+                'Subject_Grade': subjectGrade,
+                'Grade_Point': gradePoint,
+              });
+            }
           }
         }
       }
-
-      // Sort the list of students by their total marks in descending order
-      tempStudentDetails.sort((a, b) => b['Student_Total_Marks'].compareTo(a['Student_Total_Marks']));
-
-      // Update the state after all data is fetched and sorted
-      setState(() {
-        studentDetails = tempStudentDetails; // Store the fetched and sorted student details
-        isLoading = false; // Set loading to false after data is fetched
-      });
     } catch (e) {
-      print("Error fetching student details: $e");
-      setState(() {
-        isLoading = false;
-        hasError = true;
-        errorMessage = 'An error occurred while fetching student details.';
-      });
+      print('Error fetching student details: $e');
     }
   }
+
 
 
   @override
@@ -262,12 +312,13 @@ class _SchoolReportsState extends State<SchoolReports> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => SchoolReportView(
-                        student: student,
-                        studentName: "${student['firstName'] ?? 'N/A'} ${student['lastName'] ?? 'N/A'}",
-                        teacherEmail: student['createdBy'] ?? 'No email provided', // Assuming createdBy is the teacher's email
+                        schoolName: "Your School Name",  // Replace with the actual school name from your data
+                        studentClass: student['studentClass'] ?? 'N/A',  // Use the student class from your data
+                        studentName: "${student['firstName'] ?? 'N/A'} ${student['lastName'] ?? 'N/A'}",  // Format the student name
                       ),
                     ),
                   );
+
                 },
 
               ),
