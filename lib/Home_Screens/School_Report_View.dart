@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class SchoolReportView extends StatefulWidget {
+class School_Report_View extends StatefulWidget {
   final String schoolName;
   final String studentClass;
   final String studentName;
 
-  const SchoolReportView({
+  const School_Report_View({
     required this.schoolName,
     required this.studentClass,
     required this.studentName,
@@ -14,10 +14,10 @@ class SchoolReportView extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _SchoolReportViewState createState() => _SchoolReportViewState();
+  _School_Report_ViewState createState() => _School_Report_ViewState();
 }
 
-class _SchoolReportViewState extends State<SchoolReportView> {
+class _School_Report_ViewState extends State<School_Report_View> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Map<String, dynamic>? studentInfo;

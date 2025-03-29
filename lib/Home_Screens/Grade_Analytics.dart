@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class GradeAnalytics extends StatelessWidget {
+class Grade_Analytics extends StatelessWidget {
 
       final List<Map<String, String>> juniorGradeRanges = [
 

@@ -3,14 +3,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 
-class ForgotPassword extends StatefulWidget {
+class Forgot_Password extends StatefulWidget {
   static String id = '/ForgotPassword';
 
   @override
-  _ForgotPasswordState createState() => _ForgotPasswordState();
+  _Forgot_PasswordState createState() => _Forgot_PasswordState();
 }
 
-class _ForgotPasswordState extends State<ForgotPassword> {
+class _Forgot_PasswordState extends State<Forgot_Password> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _emailController = TextEditingController();

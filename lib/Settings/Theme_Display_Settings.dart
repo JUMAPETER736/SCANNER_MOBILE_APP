@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Ensure this is included
 
 
-class ThemeDisplaySettings extends StatefulWidget {
+class Theme_Display_Settings extends StatefulWidget {
   @override
-  _ThemeDisplaySettingsState createState() => _ThemeDisplaySettingsState();
+  _Theme_Display_SettingsState createState() => _Theme_Display_SettingsState();
 }
 
-class _ThemeDisplaySettingsState extends State<ThemeDisplaySettings> {
+class _Theme_Display_SettingsState extends State<Theme_Display_Settings> {
   bool _isDarkMode = false;
   String _selectedDateFormat = 'MM/DD/YYYY';
   final List<String> _dateFormats = ['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'];

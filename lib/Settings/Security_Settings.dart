@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:scanna/Settings/SecurityQuestions.dart';
-import 'package:scanna/Settings/TwoFactorAuthentication.dart';
+import 'package:scanna/Settings/Security_Questions.dart';
+import 'package:scanna/Settings/Two_Factor_Authentication.dart';
 
-class SecuritySettings extends StatefulWidget {
+class Security_Settings extends StatefulWidget {
   @override
-  _SecuritySettingsState createState() => _SecuritySettingsState();
+  _Security_SettingsState createState() => _Security_SettingsState();
 }
 
-class _SecuritySettingsState extends State<SecuritySettings> {
+class _Security_SettingsState extends State<Security_Settings> {
 
   final LocalAuthentication _localAuth = LocalAuthentication();
   bool _isBiometricEnabled = false;
@@ -65,7 +65,7 @@ class _SecuritySettingsState extends State<SecuritySettings> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => TwoFactorAuthentication()),
+                    MaterialPageRoute(builder: (context) => Two_Factor_Authentication()),
                   );
                 },
               ),
@@ -84,7 +84,7 @@ class _SecuritySettingsState extends State<SecuritySettings> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => SecurityQuestions()),
+                    MaterialPageRoute(builder: (context) => Security_Questions()),
                   );
                 },
               ),

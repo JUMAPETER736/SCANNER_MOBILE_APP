@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class AppInfo extends StatelessWidget {
+class AppI_nfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(

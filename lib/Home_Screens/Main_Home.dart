@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:scanna/Settings/Main_Settings.dart';
-import 'package:scanna/Home_Screens/GradeAnalytics.dart';
-import 'package:scanna/Home_Screens/ClassSelection.dart';
-import 'package:scanna/Students_Information/StudentDetails.dart';
+import 'package:scanna/Home_Screens/Grade_Analytics.dart';
+import 'package:scanna/Home_Screens/Class_Selection.dart';
+import 'package:scanna/Students_Information/Student_Details.dart';
 import 'package:scanna/Home_Screens/Help.dart';
-import 'package:scanna/Students_Information/StudentNameList.dart';
-import 'package:scanna/Home_Screens/QRCodeScan.dart';
-import 'package:scanna/Home_Screens/SchoolReports.dart';
-import 'package:scanna/Log_In_And_Register_Screens/LoginPage.dart';
+import 'package:scanna/Students_Information/Student_Name_List.dart';
+import 'package:scanna/Home_Screens/QR_Code_Scan.dart';
+import 'package:scanna/Home_Screens/School_Reports.dart';
+import 'package:scanna/Log_In_And_Register_Screens/Login_Page.dart';
 
 User? loggedInUser;
 
-class Home extends StatefulWidget {
+class Main_Home extends StatefulWidget {
   static String id = '/Main';
 
   @override
-  _HomeState createState() => _HomeState();
+  _Main_HomeState createState() => _Main_HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _Main_HomeState extends State<Main_Home> {
   final _auth = FirebaseAuth.instance;
   int _selectedIndex = 1;
 
@@ -51,7 +51,7 @@ class _HomeState extends State<Home> {
   void _logout() async {
     try {
       await _auth.signOut();
-      Navigator.pushNamedAndRemoveUntil(context, LoginPage.id, (route) => false);
+      Navigator.pushNamedAndRemoveUntil(context, Login_Page.id, (route) => false);
     } catch (e) {
       print(e);
     }
@@ -85,7 +85,7 @@ class _HomeState extends State<Home> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => ClassSelection()),
+                            builder: (context) => Class_Selection()),
                       );
                     },
                     child: _buildSquareCard(
@@ -100,7 +100,7 @@ class _HomeState extends State<Home> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => GradeAnalytics()),
+                            builder: (context) => Grade_Analytics()),
                       );
                     },
                     child: _buildSquareCard(
@@ -115,7 +115,7 @@ class _HomeState extends State<Home> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => StudentDetails()),
+                            builder: (context) => Student_Details()),
                       );
                     },
                     child: _buildSquareCard(
@@ -130,7 +130,7 @@ class _HomeState extends State<Home> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => QRCodeScan()),
+                            builder: (context) => QR_Code_Scan()),
                       );
                     },
                     child: _buildSquareCard(
@@ -145,7 +145,7 @@ class _HomeState extends State<Home> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => SchoolReports()),
+                            builder: (context) => School_Reports()),
                       );
                     },
                     child: _buildSquareCard(
@@ -161,7 +161,7 @@ class _HomeState extends State<Home> {
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              StudentNameList(loggedInUser: loggedInUser),
+                              Student_Name_List(loggedInUser: loggedInUser),
                         ),
                       );
                     },

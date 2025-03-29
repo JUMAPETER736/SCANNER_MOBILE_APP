@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:scanna/Students_Information/StudentSubjects.dart';
+import 'package:scanna/Students_Information/Student_Subjects.dart';
 
-class StudentNameList extends StatefulWidget {
+class Student_Name_List extends StatefulWidget {
   final User? loggedInUser;
 
-  const StudentNameList({Key? key, this.loggedInUser}) : super(key: key);
+  const Student_Name_List({Key? key, this.loggedInUser}) : super(key: key);
 
   @override
-  _StudentNameListState createState() => _StudentNameListState();
+  _Student_Name_ListState createState() => _Student_Name_ListState();
 }
 
-class _StudentNameListState extends State<StudentNameList> {
+class _Student_Name_ListState extends State<Student_Name_List> {
   String _searchQuery = '';
   TextEditingController _searchController = TextEditingController();
   String? teacherSchool;
@@ -235,7 +235,7 @@ class _StudentNameListState extends State<StudentNameList> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => StudentSubjects(
+                              builder: (context) => Student_Subjects(
                                 studentName: fullName,
                                 studentClass: teacherClass!,
                               ),

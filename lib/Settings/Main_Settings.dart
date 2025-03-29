@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:scanna/Settings/UserDetails.dart';
-import 'package:scanna/Settings/ThemeDisplaySettings.dart';
-import 'package:scanna/Settings/BackupSync.dart';
-import 'package:scanna/Settings/AppInfo.dart';
-import 'package:scanna/Settings/GradeSettings.dart';
-import 'package:scanna/Settings/NotificationSettings.dart';
-import 'package:scanna/Settings/QRCodeSettings.dart';
-import 'package:scanna/Settings/SecuritySettings.dart';
+import 'package:scanna/Settings/User_Details.dart';
+import 'package:scanna/Settings/Theme_Display_Settings.dart';
+import 'package:scanna/Settings/Backup_Sync.dart';
+import 'package:scanna/Settings/App_Info.dart';
+import 'package:scanna/Settings/Grade_Settings.dart';
+import 'package:scanna/Settings/Notification_Settings.dart';
+import 'package:scanna/Settings/QR_Code_Settings.dart';
+import 'package:scanna/Settings/Security_Settings.dart';
 import 'package:scanna/Home_Screens/Main_Home.dart';
+
 class Main_Settings extends StatefulWidget {
   final User? user;
 
@@ -35,7 +36,7 @@ class _Main_SettingsState extends State<Main_Settings> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back), // Back arrow icon
           onPressed: () {
-            Navigator.pushNamedAndRemoveUntil(context, Home.id, (route) => false);
+            Navigator.pushNamedAndRemoveUntil(context, Main_Home.id, (route) => false);
 
           },
         ),
@@ -58,7 +59,7 @@ class _Main_SettingsState extends State<Main_Settings> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => UserDetails(user: widget.user),
+                    builder: (context) => User_Details(user: widget.user),
                   ),
                 );
               },
@@ -70,7 +71,7 @@ class _Main_SettingsState extends State<Main_Settings> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => QRCodeSettings(),
+                    builder: (context) => QR_Code_Settings(),
                   ),
                 );
               },
@@ -82,7 +83,7 @@ class _Main_SettingsState extends State<Main_Settings> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => GradeSettings(),
+                    builder: (context) => Grade_Settings(),
                   ),
                 );
               },
@@ -95,7 +96,7 @@ class _Main_SettingsState extends State<Main_Settings> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => BackupSync(),
+                    builder: (context) => Backup_Sync(),
                   ),
                 );
               },
@@ -107,7 +108,7 @@ class _Main_SettingsState extends State<Main_Settings> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => ThemeDisplaySettings(),
+                    builder: (context) => Theme_Display_Settings(),
                   ),
                 );
               },
@@ -119,7 +120,7 @@ class _Main_SettingsState extends State<Main_Settings> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => NotificationSettings(),
+                    builder: (context) => Notification_Settings(),
                   ),
                 );
               },
@@ -131,7 +132,7 @@ class _Main_SettingsState extends State<Main_Settings> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => SecuritySettings(),
+                    builder: (context) => Security_Settings(),
                   ),
                 );
               },
@@ -143,7 +144,7 @@ class _Main_SettingsState extends State<Main_Settings> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => AppInfo(),
+                    builder: (context) => AppI_nfo(),
                   ),
                 );
               },

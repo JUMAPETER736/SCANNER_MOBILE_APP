@@ -3,20 +3,20 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:scanna/Home_Screens/Main_Home.dart';
-import 'package:scanna/Log_In_And_Register_Screens/LoginPage.dart';
+import 'package:scanna/Log_In_And_Register_Screens/Login_Page.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 
-class RegisterPage extends StatefulWidget {
+class Register_Page extends StatefulWidget {
   static String id = '/RegisterPage';
 
   @override
-  _RegisterPageState createState() => _RegisterPageState();
+  _Register_PageState createState() => _Register_PageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _Register_PageState extends State<Register_Page> {
   String? name;
   String? email;
   String? password;
@@ -178,7 +178,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
         if (googleUser != null) {
 
-          Navigator.pushNamed(context, Home.id);
+          Navigator.pushNamed(context, Main_Home.id);
         }
       } else if (provider == 'facebook') {
         // Facebook sign-in
@@ -186,7 +186,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
         if (loginResult.status == LoginStatus.success) {
 
-          Navigator.pushNamed(context, Home.id);
+          Navigator.pushNamed(context, Main_Home.id);
         }
       }
     } catch (e) {
@@ -373,7 +373,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     Text('Already have an Account?'),
                     TextButton(
                       onPressed: () {
-                        Navigator.pushNamed(context, LoginPage.id);
+                        Navigator.pushNamed(context, Login_Page.id);
                       },
                       child: Text('Log In', style:
                       TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 15.0,),

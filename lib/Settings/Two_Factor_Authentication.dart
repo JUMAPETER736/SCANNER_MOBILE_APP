@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class TwoFactorAuthentication extends StatelessWidget {
+class Two_Factor_Authentication extends StatelessWidget {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Future<void> _setup2FA(BuildContext context) async {

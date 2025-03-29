@@ -2,21 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-import 'package:scanna/Log_In_And_Register_Screens/GoogleDone.dart';
-import 'package:scanna/Log_In_And_Register_Screens/ForgotPassword.dart';
+import 'package:scanna/Log_In_And_Register_Screens/Google_Done.dart';
+import 'package:scanna/Log_In_And_Register_Screens/Forgot_Password.dart';
 import 'package:scanna/Home_Screens/Main_Home.dart';
-import 'package:scanna/Log_In_And_Register_Screens/RegisterPage.dart';
+import 'package:scanna/Log_In_And_Register_Screens/Register_Page.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
-class LoginPage extends StatefulWidget {
+class Login_Page extends StatefulWidget {
   static String id = '/LoginPage';
 
   @override
-  _LoginPageState createState() => _LoginPageState();
+  _Login_PageState createState() => _Login_PageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _Login_PageState extends State<Login_Page> {
   bool _showSpinner = false;
   bool _wrongEmail = false;
   bool _wrongPassword = false;
@@ -53,7 +53,7 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => GoogleDone(user, _googleSignIn),
+          builder: (context) => Google_Done(user, _googleSignIn),
         ),
       );
     } else {
@@ -76,7 +76,7 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => Home(), // Navigate to your desired screen
+          builder: (context) => Main_Home(), // Navigate to your desired screen
         ),
       );
     } else {
@@ -234,7 +234,7 @@ class _LoginPageState extends State<LoginPage> {
                     alignment: Alignment.topRight,
                     child: GestureDetector(
                       onTap: () {
-                        Navigator.pushNamed(context, ForgotPassword.id);
+                        Navigator.pushNamed(context, Forgot_Password.id);
                       },
                       child: Text(
                         'Forgot Password?',
@@ -277,7 +277,7 @@ class _LoginPageState extends State<LoginPage> {
 
                               // Check if the user credential is valid
                               if (userCredential.user != null) {
-                                Navigator.pushNamed(context, Home.id); // Navigate on success
+                                Navigator.pushNamed(context, Main_Home.id); // Navigate on success
                               }
                             } on FirebaseAuthException catch (e) {
                               // Handle different error cases
@@ -386,7 +386,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         GestureDetector(
                           onTap: () {
-                            Navigator.pushNamed(context, RegisterPage.id);
+                            Navigator.pushNamed(context, Register_Page.id);
                           },
                           child: Text(
                             'Sign Up',

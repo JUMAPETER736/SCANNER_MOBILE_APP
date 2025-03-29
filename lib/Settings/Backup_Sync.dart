@@ -14,17 +14,17 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: BackupSync(),
+      home: Backup_Sync(),
     );
   }
 }
 
-class BackupSync extends StatefulWidget {
+class Backup_Sync extends StatefulWidget {
   @override
-  _BackupSyncState createState() => _BackupSyncState();
+  _Backup_SyncState createState() => _Backup_SyncState();
 }
 
-class _BackupSyncState extends State<BackupSync> {
+class _Backup_SyncState extends State<Backup_Sync> {
   bool _autoBackupEnabled = false;
   bool _syncWithCloudEnabled = false;
   String _backupStatus = '';

@@ -2,21 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class StudentSubjects extends StatefulWidget {
+class Student_Subjects extends StatefulWidget {
   final String studentName;
   final String studentClass;
 
-  const StudentSubjects({
+  const Student_Subjects({
     Key? key,
     required this.studentName,
     required this.studentClass,
   }) : super(key: key);
 
   @override
-  _StudentSubjectsState createState() => _StudentSubjectsState();
+  _Student_SubjectsState createState() => _Student_SubjectsState();
 }
 
-class _StudentSubjectsState extends State<StudentSubjects> {
+class _Student_SubjectsState extends State<Student_Subjects> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<String> _subjects = [];
   List<String> _userSubjects = [];

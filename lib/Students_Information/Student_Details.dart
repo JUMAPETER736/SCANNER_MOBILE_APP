@@ -5,12 +5,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 
 
-class StudentDetails extends StatefulWidget {
+class Student_Details extends StatefulWidget {
   @override
-  _StudentDetailsState createState() => _StudentDetailsState();
+  _Student_DetailsState createState() => _Student_DetailsState();
 }
 
-class _StudentDetailsState extends State<StudentDetails> {
+class _Student_DetailsState extends State<Student_Details> {
   final _formKey = GlobalKey<FormState>();
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;

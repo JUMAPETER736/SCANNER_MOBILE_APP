@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-class GoogleDone extends StatelessWidget {
+class Google_Done extends StatelessWidget {
   final User? _user;
   final GoogleSignIn _googleSignIn;
 
-  GoogleDone(this._user, this._googleSignIn);
+  Google_Done(this._user, this._googleSignIn);
 
   @override
   Widget build(BuildContext context) {

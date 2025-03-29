@@ -3,12 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
-class ClassSelection extends StatefulWidget {
+class Class_Selection extends StatefulWidget {
   @override
-  _ClassSelectionState createState() => _ClassSelectionState();
+  _Class_SelectionState createState() => _Class_SelectionState();
 }
 
-class _ClassSelectionState extends State<ClassSelection> {
+class _Class_SelectionState extends State<Class_Selection> {
 
   List<String> selectedClasses = [];
   List<String> selectedSubjects = [];

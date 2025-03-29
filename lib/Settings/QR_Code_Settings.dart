@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-class QRCodeSettings extends StatefulWidget {
+class QR_Code_Settings extends StatefulWidget {
   @override
-  _QRCodeSettingsState createState() => _QRCodeSettingsState();
+  _QR_Code_SettingsState createState() => _QR_Code_SettingsState();
 }
 
-class _QRCodeSettingsState extends State<QRCodeSettings> {
+class _QR_Code_SettingsState extends State<QR_Code_Settings> {
   bool isScanningEnabled = true; // State for the toggle switch
 
   @override

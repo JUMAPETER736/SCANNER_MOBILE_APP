@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Import Shared Preferences
 
-class GradeSettings extends StatelessWidget {
+class Grade_Settings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
