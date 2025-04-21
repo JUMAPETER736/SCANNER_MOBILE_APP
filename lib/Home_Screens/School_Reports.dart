@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/Home_Screens/School_Report_View.dart';
-
 class School_Reports extends StatefulWidget {
   @override
   _School_ReportsState createState() => _School_ReportsState();
