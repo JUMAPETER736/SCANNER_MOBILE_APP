@@ -151,19 +151,51 @@ class _School_ReportsState extends State<School_Reports> {
                 'fullName': fullName,
                 'studentGender': gender,
                 'studentClass': studentClass,
-                'Student_Total_Marks': studentTotalMarks,
-                'Teacher_Total_Marks': teacherTotalMarks,
                 'Best_Six_Total_Points': bestSixPoints,
               });
             }
+
+            // Handle FORM 1 / 2
+            else if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
+              var studentTotalMarks = totalMarksData['Student_Total_Marks'] ?? '0';
+              var teacherTotalMarks = totalMarksData['Teacher_Total_Marks'] ?? '0';
+
+              tempStudentDetails.add({
+                'fullName': fullName,
+                'studentGender': gender,
+                'studentClass': studentClass,
+                'Student_Total_Marks': studentTotalMarks,
+                'Teacher_Total_Marks': teacherTotalMarks,
+              });
+            }
+
           }
         }
       }
 
-      // Sort students by Best_Six_Total_Points descending
+
+      // Sort students for FORM 1 or 2 by Student_Total_Marks descending
       tempStudentDetails.sort((a, b) {
-        return (a['Best_Six_Total_Points'] ?? 0).compareTo(b['Best_Six_Total_Points'] ?? 0);
+        if (a['studentClass'] == 'FORM 1' || a['studentClass'] == 'FORM 2') {
+          return (b['Student_Total_Marks'] ?? 0).compareTo(a['Student_Total_Marks'] ?? 0);
+        } else {
+          return 0; // Skip sorting for FORM 3/4 students here
+        }
       });
+
+
+      // Sort students for FORM 3 or 4 by Best_Six_Total_Points ascending (less points on top)
+      tempStudentDetails.sort((a, b) {
+        if (a['studentClass'] == 'FORM 3' || a['studentClass'] == 'FORM 4') {
+          return (a['Best_Six_Total_Points'] ?? 0).compareTo(b['Best_Six_Total_Points'] ?? 0);  // Ascending order
+        } else {
+          return 0; // Skip sorting for FORM 1/2 students here
+        }
+      });
+
+
+
+
 
 
       setState(() {
