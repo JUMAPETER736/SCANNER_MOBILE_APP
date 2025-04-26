@@ -88,9 +88,9 @@ class _School_ReportsState extends State<School_Reports> {
       for (var classId in userDoc['classes']) {
         QuerySnapshot studentsSnapshot = await _firestore
             .collection('Schools')
-            .doc(userDoc['school']) // dynamic school
+            .doc(userDoc['school'])
             .collection('Classes')
-            .doc(classId) // dynamic class
+            .doc(classId)
             .collection('Student_Details')
             .get();
 
@@ -113,10 +113,6 @@ class _School_ReportsState extends State<School_Reports> {
             var firstName = registeredData['firstName'] ?? 'N/A';
             var lastName = registeredData['lastName'] ?? 'N/A';
             var gender = registeredData['studentGender'] ?? 'N/A';
-            var studentTotalMarks = totalMarksData['Student_Total_Marks'] ?? '0';
-            var teacherTotalMarks = totalMarksData['Teacher_Total_Marks'] ?? '0';
-            var bestSixTotalPoints = totalMarksData['Best_Six_Total_Points'] ?? 0;
-
             var studentClass = registeredData['studentClass'] ?? 'N/A';
             var fullName = '$lastName $firstName';
 
@@ -124,7 +120,6 @@ class _School_ReportsState extends State<School_Reports> {
               List<int> subjectPoints = [];
 
               var subjectsSnapshot = await studentDoc.reference.collection('Student_Subjects').get();
-
               for (var subjectDoc in subjectsSnapshot.docs) {
                 if (subjectDoc.exists && subjectDoc.data().containsKey('Grade_Point')) {
                   int gradePoint = subjectDoc['Grade_Point'] ?? 0;
@@ -138,27 +133,31 @@ class _School_ReportsState extends State<School_Reports> {
                 bestSixPoints = subjectPoints.take(6).reduce((a, b) => a + b);
               }
 
-              // 🔥 Now create or update Best_Six_Total_Points properly
               int? existingBestSixPoints = totalMarksData['Best_Six_Total_Points'];
 
-              if (existingBestSixPoints == null || existingBestSixPoints != bestSixPoints) {
+              if (existingBestSixPoints == null) {
+                // Create Best_Six_Total_Points if it does not exist
                 await marksRef.set({
                   'Best_Six_Total_Points': bestSixPoints,
                 }, SetOptions(merge: true));
+              } else if (existingBestSixPoints != bestSixPoints) {
+                // Update Best_Six_Total_Points if it already exists but changed
+                await marksRef.update({
+                  'Best_Six_Total_Points': bestSixPoints,
+                });
               }
 
               tempStudentDetails.add({
                 'fullName': fullName,
                 'studentGender': gender,
                 'studentClass': studentClass,
-                'Best_Six_Total_Points': bestSixPoints,
+                'Best_Six_Total_Points': existingBestSixPoints ?? bestSixPoints,
               });
             }
 
-            // Handle FORM 1 / 2
             else if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
-              var studentTotalMarks = totalMarksData['Student_Total_Marks'] ?? '0';
-              var teacherTotalMarks = totalMarksData['Teacher_Total_Marks'] ?? '0';
+              var studentTotalMarks = totalMarksData['Student_Total_Marks'] ?? 0;
+              var teacherTotalMarks = totalMarksData['Teacher_Total_Marks'] ?? 0;
 
               tempStudentDetails.add({
                 'fullName': fullName,
@@ -168,35 +167,27 @@ class _School_ReportsState extends State<School_Reports> {
                 'Teacher_Total_Marks': teacherTotalMarks,
               });
             }
-
           }
         }
       }
 
-
-      // Sort students for FORM 1 or 2 by Student_Total_Marks descending
+      // 🔹 Sort FORM 1/2 students by Student_Total_Marks descending
       tempStudentDetails.sort((a, b) {
-        if (a['studentClass'] == 'FORM 1' || a['studentClass'] == 'FORM 2') {
+        if ((a['studentClass'] == 'FORM 1' || a['studentClass'] == 'FORM 2') &&
+            (b['studentClass'] == 'FORM 1' || b['studentClass'] == 'FORM 2')) {
           return (b['Student_Total_Marks'] ?? 0).compareTo(a['Student_Total_Marks'] ?? 0);
-        } else {
-          return 0; // Skip sorting for FORM 3/4 students here
         }
+        return 0;
       });
 
-
-      // Sort students for FORM 3 or 4 by Best_Six_Total_Points ascending (less points on top)
+      // 🔹 Sort FORM 3/4 students by Best_Six_Total_Points ascending
       tempStudentDetails.sort((a, b) {
-        if (a['studentClass'] == 'FORM 3' || a['studentClass'] == 'FORM 4') {
-          return (a['Best_Six_Total_Points'] ?? 0).compareTo(b['Best_Six_Total_Points'] ?? 0);  // Ascending order
-        } else {
-          return 0; // Skip sorting for FORM 1/2 students here
+        if ((a['studentClass'] == 'FORM 3' || a['studentClass'] == 'FORM 4') &&
+            (b['studentClass'] == 'FORM 3' || b['studentClass'] == 'FORM 4')) {
+          return (a['Best_Six_Total_Points'] ?? 0).compareTo(b['Best_Six_Total_Points'] ?? 0);
         }
+        return 0;
       });
-
-
-
-
-
 
       setState(() {
         studentDetails = tempStudentDetails;
@@ -211,6 +202,7 @@ class _School_ReportsState extends State<School_Reports> {
       });
     }
   }
+
 
 
 
