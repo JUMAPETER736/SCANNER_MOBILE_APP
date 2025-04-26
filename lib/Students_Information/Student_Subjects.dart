@@ -180,7 +180,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                   setState(() {
                     errorMessage = 'Grade cannot be greater than 100';
                   });
-                } else {
+                }
+
+                else {
                   try {
                     final currentUser = FirebaseAuth.instance.currentUser;
                     if (currentUser == null) return;
@@ -193,13 +195,11 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                       String className = widget.studentClass.trim();
                       String studentName = widget.studentName.trim();
 
-                      // Generate both name variations
                       List<String> nameParts = studentName.split(" ");
                       String reversedName = nameParts.length == 2
-                          ? "${nameParts[1]} ${nameParts[0]}"  // Swap first and last names
-                          : studentName;  // Keep as is if it doesn't have two parts
+                          ? "${nameParts[1]} ${nameParts[0]}"
+                          : studentName;
 
-                      // Try searching with both name formats
                       final studentRefNormal = _firestore
                           .collection('Schools')
                           .doc(schoolName)
@@ -219,31 +219,74 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                       final studentSnapshotNormal = await studentRefNormal.get();
                       final studentSnapshotReversed = await studentRefReversed.get();
 
-                      // Use the document that exists
                       DocumentReference studentRef;
                       if (studentSnapshotNormal.exists) {
                         studentRef = studentRefNormal;
                       } else if (studentSnapshotReversed.exists) {
                         studentRef = studentRefReversed;
                       } else {
-                        return; // If neither document exists, exit
+                        return; // Student not found
                       }
 
-                      // Update grade
                       final subjectRef = studentRef.collection('Student_Subjects').doc(subject);
-                      await subjectRef.set({'Subject_Grade': newGrade}, SetOptions(merge: true));
 
-                      // Update UI immediately
+                      // 🔥 Check if it's FORM 3 or FORM 4
+                      if (className.toUpperCase() == 'FORM 3' || className.toUpperCase() == 'FORM 4') {
+                        // FORM 3 and FORM 4 → Add Grade_Point too
+                        int gradeInt = int.parse(newGrade);
+                        int gradePoint;
+
+                        if (gradeInt >= 85) {
+                          gradePoint = 1;
+                        }
+                        else if (gradeInt >= 80) {
+                          gradePoint = 2;
+                        }
+                        else if (gradeInt >= 75) {
+                          gradePoint = 3;
+                        }
+                        else if (gradeInt >= 70) {
+                          gradePoint = 4;
+                        }
+                        else if (gradeInt >= 65) {
+                          gradePoint = 5;
+                        }
+                        else if (gradeInt >= 60) {
+                          gradePoint = 6;
+                        }
+                        else if (gradeInt >= 55) {
+                          gradePoint = 7;
+                        }
+                        else if (gradeInt >= 50) {
+                          gradePoint = 8;
+                        }
+                        else {
+                          gradePoint = 9;
+                        }
+
+                        await subjectRef.set({
+                          'Subject_Grade': newGrade,
+                          'Grade_Point': gradePoint,
+                        }, SetOptions(merge: true));
+                      } else {
+                        // FORM 1 and FORM 2 → Only save Subject_Grade
+                        await subjectRef.set({
+                          'Subject_Grade': newGrade,
+                        }, SetOptions(merge: true));
+                      }
+
                       setState(() {
-                        _fetchSubjects(); // Refresh subjects list with updated grade
+                        _fetchSubjects();
                       });
 
                       Navigator.of(context).pop();
                     }
                   } catch (e) {
-                    print('Error updating Grade: $e');
+                    print('Error updating Subject Grade and Grade Point: $e');
                   }
                 }
+
+
               },
             ),
           ],
@@ -360,3 +403,4 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     );
   }
 }
+
