@@ -87,9 +87,9 @@ class _School_ReportsState extends State<School_Reports> {
       for (var classId in userDoc['classes']) {
         QuerySnapshot studentsSnapshot = await _firestore
             .collection('Schools')
-            .doc(userDoc['school'])
+            .doc(userDoc['school']) // dynamic school
             .collection('Classes')
-            .doc(classId)
+            .doc(classId) // dynamic class
             .collection('Student_Details')
             .get();
 
@@ -99,10 +99,11 @@ class _School_ReportsState extends State<School_Reports> {
               .doc('Registered_Information')
               .get();
 
-          DocumentSnapshot totalMarksDoc = await studentDoc.reference
+          DocumentReference marksRef = studentDoc.reference
               .collection('TOTAL_MARKS')
-              .doc('Marks')
-              .get();
+              .doc('Marks');
+
+          DocumentSnapshot totalMarksDoc = await marksRef.get();
 
           if (registeredInformationDoc.exists && totalMarksDoc.exists) {
             var registeredData = registeredInformationDoc.data() as Map<String, dynamic>;
@@ -114,51 +115,47 @@ class _School_ReportsState extends State<School_Reports> {
             var studentClass = registeredData['studentClass'] ?? 'N/A';
             var fullName = '$lastName $firstName';
 
-            if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
-              var studentTotalMarks = int.tryParse(totalMarksData['Student_Total_Marks'] ?? '0') ?? 0;
-              var teacherTotalMarks = int.tryParse(totalMarksData['Teacher_Total_Marks'] ?? '0') ?? 0;
-
-              tempStudentDetails.add({
-                'fullName': fullName,
-                'studentGender': gender,
-                'Student_Total_Marks': studentTotalMarks,
-                'Teacher_Total_Marks': teacherTotalMarks,
-              });
-            } else if (studentClass == 'FORM 3' || studentClass == 'FORM 4') {
+            if (studentClass == 'FORM 3' || studentClass == 'FORM 4') {
               List<int> subjectPoints = [];
-              if (totalMarksData.containsKey('Subjects')) {
-                totalMarksData['Subjects'].forEach((subject, marks) {
-                  int studentMarks = int.tryParse(marks.toString()) ?? 0;
-                  int teacherMarks = int.tryParse(totalMarksData['Teacher_Marks'][subject]?.toString() ?? '0') ?? 1;
-                  int percentage = (studentMarks / teacherMarks * 100).round();
 
-                  int points = 0;
-                  if (percentage >= 90) {
-                    points = 1;
-                  } else if (percentage >= 80) {
-                    points = 2;
-                  } else if (percentage >= 70) {
-                    points = 3;
-                  }
-                  subjectPoints.add(points);
-                });
+              var subjectsSnapshot = await studentDoc.reference.collection('Student_Subjects').get();
+
+              for (var subjectDoc in subjectsSnapshot.docs) {
+                if (subjectDoc.exists && subjectDoc.data().containsKey('Grade_Point')) {
+                  int gradePoint = subjectDoc['Grade_Point'] ?? 0;
+                  subjectPoints.add(gradePoint);
+                }
               }
 
-              subjectPoints.sort(); // Sort in ascending order (lower points are better)
-              int bestSixPoints = subjectPoints.take(6).reduce((a, b) => a + b);
+              int bestSixPoints = 0;
+              if (subjectPoints.isNotEmpty) {
+                subjectPoints.sort((a, b) => b.compareTo(a)); // Sort descending
+                bestSixPoints = subjectPoints.take(6).reduce((a, b) => a + b);
+              }
+
+              // 🔥 Now create or update Best_Six_Total_Points properly
+              int? existingBestSixPoints = totalMarksData['Best_Six_Total_Points'];
+
+              if (existingBestSixPoints == null || existingBestSixPoints != bestSixPoints) {
+                await marksRef.set({
+                  'Best_Six_Total_Points': bestSixPoints,
+                }, SetOptions(merge: true));
+              }
 
               tempStudentDetails.add({
                 'fullName': fullName,
                 'studentGender': gender,
-                'Best_Six_Points': bestSixPoints,
+                'Best_Six_Total_Points': bestSixPoints,
               });
             }
           }
         }
       }
 
-      tempStudentDetails.sort((a, b) => (b['Student_Total_Marks'] ?? b['Best_Six_Points'])
-          .compareTo(a['Student_Total_Marks'] ?? a['Best_Six_Points']));
+      // Sort students by Best_Six_Total_Points descending
+      tempStudentDetails.sort((a, b) {
+        return (b['Best_Six_Total_Points'] ?? 0).compareTo(a['Best_Six_Total_Points'] ?? 0);
+      });
 
       setState(() {
         studentDetails = tempStudentDetails;
@@ -173,6 +170,8 @@ class _School_ReportsState extends State<School_Reports> {
       });
     }
   }
+
+
 
 
   @override
