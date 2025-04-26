@@ -1,5 +1,10 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+
 
 class School_Report_View extends StatefulWidget {
   final String schoolName;
@@ -19,7 +24,7 @@ class School_Report_View extends StatefulWidget {
 
 class _School_Report_ViewState extends State<School_Report_View> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
+  String? teacherSchoolName; // <-- Added this
   Map<String, dynamic>? studentInfo;
   List<Map<String, dynamic>> subjectsWithGrades = [];
   bool isLoading = true;
@@ -30,25 +35,44 @@ class _School_Report_ViewState extends State<School_Report_View> {
     fetchStudentData();
   }
 
-  /// Fetch student details and subjects with grades
   Future<void> fetchStudentData() async {
-    String studentPath = 'Schools/${widget.schoolName}/Classes/${widget.studentClass}/Student_Details/${widget.studentName}';
-
     try {
-      // Fetch personal details
+      // Fetch teacher's details
+      DocumentSnapshot teacherSnapshot = await _firestore
+          .doc('Teachers_Details/${FirebaseAuth.instance.currentUser?.email}')
+          .get();
+
+      if (!teacherSnapshot.exists) {
+        throw 'Teacher details not found!';
+      }
+
+      Map<String, dynamic> teacherData = teacherSnapshot.data() as Map<String, dynamic>;
+
+      // Get teacher's school and classes
+      teacherSchoolName = teacherData['school'] ?? 'Unknown School';
+      List<dynamic> teacherClasses = teacherData['classes'] ?? [];
+
+      // Check if the teacher teaches this class
+      if (!teacherClasses.contains(widget.studentClass)) {
+        throw 'You do not have permission to view this student data';
+      }
+
+      String studentPath = 'Schools/$teacherSchoolName/Classes/${widget.studentClass}/Student_Details/${widget.studentName}';
+
+      // Fetch student's personal info
       DocumentSnapshot personalInfoSnapshot = await _firestore
           .doc('$studentPath/Personal_Information/Registered_Information')
           .get();
 
-      // Fetch subjects and grades
+      // Fetch student's subjects and grades
       QuerySnapshot subjectsSnapshot = await _firestore
           .collection('$studentPath/Student_Subjects')
           .get();
 
       setState(() {
-        if (personalInfoSnapshot.exists) {
-          studentInfo = personalInfoSnapshot.data() as Map<String, dynamic>?;
-        }
+        studentInfo = personalInfoSnapshot.exists
+            ? personalInfoSnapshot.data() as Map<String, dynamic>?
+            : {};
 
         subjectsWithGrades = subjectsSnapshot.docs.map((doc) {
           return {
@@ -60,7 +84,9 @@ class _School_Report_ViewState extends State<School_Report_View> {
         isLoading = false;
       });
     } catch (e) {
-      setState(() => isLoading = false);
+      setState(() {
+        isLoading = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error fetching student data: $e')),
       );
@@ -79,7 +105,7 @@ class _School_Report_ViewState extends State<School_Report_View> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.schoolName,
+              teacherSchoolName ?? 'Loading school...',
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
