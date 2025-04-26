@@ -15,7 +15,8 @@ class _School_ReportsState extends State<School_Reports> {
   bool isLoading = true;
   bool hasError = false;
   String errorMessage = '';
-  List<Map<String, dynamic>> studentDetails = []; // List to store student details
+  List<Map<String, dynamic>> studentDetails = [];
+
 
   @override
   void initState() {
@@ -112,6 +113,10 @@ class _School_ReportsState extends State<School_Reports> {
             var firstName = registeredData['firstName'] ?? 'N/A';
             var lastName = registeredData['lastName'] ?? 'N/A';
             var gender = registeredData['studentGender'] ?? 'N/A';
+            var studentTotalMarks = totalMarksData['Student_Total_Marks'] ?? '0';
+            var teacherTotalMarks = totalMarksData['Teacher_Total_Marks'] ?? '0';
+            var bestSixTotalPoints = totalMarksData['Best_Six_Total_Points'] ?? 0;
+
             var studentClass = registeredData['studentClass'] ?? 'N/A';
             var fullName = '$lastName $firstName';
 
@@ -145,6 +150,9 @@ class _School_ReportsState extends State<School_Reports> {
               tempStudentDetails.add({
                 'fullName': fullName,
                 'studentGender': gender,
+                'studentClass': studentClass,
+                'Student_Total_Marks': studentTotalMarks,
+                'Teacher_Total_Marks': teacherTotalMarks,
                 'Best_Six_Total_Points': bestSixPoints,
               });
             }
@@ -154,8 +162,9 @@ class _School_ReportsState extends State<School_Reports> {
 
       // Sort students by Best_Six_Total_Points descending
       tempStudentDetails.sort((a, b) {
-        return (b['Best_Six_Total_Points'] ?? 0).compareTo(a['Best_Six_Total_Points'] ?? 0);
+        return (a['Best_Six_Total_Points'] ?? 0).compareTo(b['Best_Six_Total_Points'] ?? 0);
       });
+
 
       setState(() {
         studentDetails = tempStudentDetails;
@@ -257,19 +266,31 @@ class _School_ReportsState extends State<School_Reports> {
                     ),
                   ],
                 ),
+
                 trailing: Row(
-                  mainAxisSize: MainAxisSize.min, // To prevent stretching
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Displaying marks in the "studentMarks/teacherMarks" format in black color
-                    Text(
-                      '${student['Student_Total_Marks']} / ${student['Teacher_Total_Marks']}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black, // Black color for the marks
+                    if (student['studentClass'] == 'FORM 1' || student['studentClass'] == 'FORM 2')
+                      Text(
+                        '${student['Student_Total_Marks']} / ${student['Teacher_Total_Marks']}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      )
+                    else if (student['studentClass'] == 'FORM 3' || student['studentClass'] == 'FORM 4')
+                      Text(
+                        '${student['Best_Six_Total_Points'] ?? 0} Points',
+
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 10), // Add space between marks and forward icon
+
+                    SizedBox(width: 10),
                     Icon(
                       Icons.arrow_forward,
                       color: Colors.blueAccent,
@@ -277,6 +298,9 @@ class _School_ReportsState extends State<School_Reports> {
                     ),
                   ],
                 ),
+
+
+
                 onTap: () {
                   Navigator.push(
                     context,
