@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/Home_Screens/Juniors_School_Report_View.dart';
 import 'package:scanna/Home_Screens/Seniors_School_Report_View.dart';
 
-import 'Seniors_School_Report_VIew.dart';
 
 class School_Reports extends StatefulWidget {
   @override

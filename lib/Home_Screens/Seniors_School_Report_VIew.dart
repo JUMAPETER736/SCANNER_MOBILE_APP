@@ -7,7 +7,7 @@ class Seniors_School_Report_View extends StatefulWidget {
   final String studentClass;
   final String studentName;
 
-  const Seniors_School_Report_View({
+  const  Seniors_School_Report_View({
     required this.schoolName,
     required this.studentClass,
     required this.studentName,
@@ -15,72 +15,98 @@ class Seniors_School_Report_View extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _Seniors_School_Report_ViewState createState() => _Seniors_School_Report_ViewState();
+  _Seniors_School_Report_ViewState createState() =>
+      _Seniors_School_Report_ViewState();
 }
 
-class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View> {
+class _Seniors_School_Report_ViewState
+    extends State<Seniors_School_Report_View> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   String? teacherSchoolName;
   Map<String, dynamic>? studentInfo;
   List<Map<String, dynamic>> subjectsWithGrades = [];
-  int? totalPoints;
+  String? studentTotalMarks;
+  String? teacherTotalMarks;
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    fetchStudentData();
+    fetchStudentDataAndSubjects();
   }
 
-  Future<void> fetchStudentData() async {
+  Future<void> fetchStudentDataAndSubjects() async {
     try {
-      final user = _auth.currentUser;
-      if (user == null) throw 'User not logged in';
+      final teacherEmail = FirebaseAuth.instance.currentUser?.email;
+      if (teacherEmail == null) throw 'User not authenticated.';
 
-      final teacherDoc = await _firestore.doc('Teachers_Details/${user.email}').get();
+      // Fetch teacher's school and classes
+      final teacherSnapshot =
+      await _firestore.doc('Teachers_Details/$teacherEmail').get();
+      if (!teacherSnapshot.exists) throw 'Teacher details not found.';
 
-      if (!teacherDoc.exists) throw 'Teacher details not found!';
-
-      final teacherData = teacherDoc.data() as Map<String, dynamic>;
+      final teacherData = teacherSnapshot.data() as Map<String, dynamic>;
       teacherSchoolName = teacherData['school'];
-      List<dynamic> teacherClasses = teacherData['classes'] ?? [];
+      final teacherClasses = List<String>.from(teacherData['classes'] ?? []);
 
       if (!teacherClasses.contains(widget.studentClass)) {
-        throw 'Access denied to class: ${widget.studentClass}';
+        throw 'You do not have permission to view this student\'s data.';
       }
 
-      final studentPath = 'Schools/$teacherSchoolName/Classes/${widget.studentClass}/Student_Details/${widget.studentName}';
+      final studentRef = _firestore
+          .collection('Schools')
+          .doc(widget.schoolName)
+          .collection('Classes')
+          .doc(widget.studentClass)
+          .collection('Student_Details')
+          .doc(widget.studentName);
 
-      // Get student info
-      final personalInfoSnapshot = await _firestore
-          .doc('$studentPath/Personal_Information/Registered_Information')
+      // 1. Fetch Registered Information
+      final personalInfoDoc = await studentRef
+          .collection('Personal_Information')
+          .doc('Registered_Information')
           .get();
 
-      studentInfo = personalInfoSnapshot.exists
-          ? personalInfoSnapshot.data() as Map<String, dynamic>
-          : {};
+      studentInfo =
+      personalInfoDoc.exists ? personalInfoDoc.data() ?? {} : {};
 
-      // Get subjects and grades
-      final subjectsSnapshot = await _firestore.collection('$studentPath/Student_Subjects').get();
+      // 2. Fetch All Student Subjects and Grades
+      final subjectsRef = FirebaseFirestore.instance
+          .collection('Student_Subjects')
+          .doc(widget.studentName)
+          .collection('Subjects'); // Assuming the student's subjects are stored here
+
+      final subjectsSnapshot = await subjectsRef.get();
+      if (subjectsSnapshot.docs.isEmpty) {
+        print("No subjects found for student: ${widget.studentName}");
+        return;
+      }
+
       subjectsWithGrades = subjectsSnapshot.docs.map((doc) {
-        final data = doc.data();
         return {
-          'subject': data['Subject_Name'] ?? 'Unknown',
-          'grade': data['Subject_Grade'] ?? 'N/A',
+          'subject': doc.id,
+          'grade': doc['Subject_Grade'] ?? 'N/A',
+          'gradePoint': doc['Grade_Point'] ?? 'N/A',
         };
       }).toList();
 
-      // Get total marks (best six points)
-      final totalMarksDoc = await _firestore.doc('$studentPath/TOTAL_MARKS/Marks').get();
+      // 3. Fetch Total Marks
+      final totalMarksDoc = await studentRef.collection('TOTAL_MARKS').doc('Marks').get();
       if (totalMarksDoc.exists) {
-        totalPoints = totalMarksDoc.data()?['Best_Six_Total_Points'];
+       // bestSixTotalPoints = totalMarksDoc.data()?['b']?.toString();
+        studentTotalMarks = totalMarksDoc.data()?['studentTotal']?.toString();
+        teacherTotalMarks = totalMarksDoc.data()?['teacherTotal']?.toString();
       }
 
-      setState(() => isLoading = false);
+      setState(() {
+        isLoading = false;
+      });
     } catch (e) {
-      setState(() => isLoading = false);
+      print('Error fetching student data: $e');
+      setState(() {
+        isLoading = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
@@ -90,51 +116,63 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Senior Student Report')),
+      appBar: AppBar(title: const Text('Student Report Card')),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'School: ${teacherSchoolName ?? "Unknown"}',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              teacherSchoolName ?? 'School: N/A',
+              style: const TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             if (studentInfo != null) ...[
-              Text('Name: ${studentInfo!['firstName'] ?? ''} ${studentInfo!['lastName'] ?? ''}',
+              Text('First Name: ${studentInfo!['firstName'] ?? 'N/A'}',
+                  style: const TextStyle(fontSize: 16)),
+              Text('Last Name: ${studentInfo!['lastName'] ?? 'N/A'}',
                   style: const TextStyle(fontSize: 16)),
               Text('Class: ${studentInfo!['studentClass'] ?? 'N/A'}',
                   style: const TextStyle(fontSize: 16)),
               Text('Gender: ${studentInfo!['studentGender'] ?? 'N/A'}',
                   style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 8),
-            ],
-            if (totalPoints != null) ...[
-              Text('Best Six Total Points: $totalPoints',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
-              const SizedBox(height: 8),
             ],
             const Divider(),
-            const Text('Subjects & Grades:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Expanded(
-              child: subjectsWithGrades.isNotEmpty
-                  ? ListView.builder(
-                itemCount: subjectsWithGrades.length,
-                itemBuilder: (context, index) {
-                  final subject = subjectsWithGrades[index];
-                  return ListTile(
-                    leading: const Icon(Icons.book, color: Colors.green),
-                    title: Text(subject['subject'], style: const TextStyle(fontSize: 16)),
-                    subtitle: Text('Grade: ${subject['grade']}', style: const TextStyle(fontSize: 14)),
-                  );
-                },
-              )
-                  : const Text('No subject grades found'),
-            ),
+            if (subjectsWithGrades.isNotEmpty) ...[
+              const Text('Subjects & Grades:',
+                  style: TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: subjectsWithGrades.length,
+                  itemBuilder: (context, index) {
+                    final subject = subjectsWithGrades[index];
+                    return ListTile(
+                      title: Text(subject['subject'],
+                          style: const TextStyle(fontSize: 16)),
+                      subtitle: Text('Grade: ${subject['grade']}',
+                          style: const TextStyle(fontSize: 14)),
+                    );
+                  },
+                ),
+              ),
+            ] else ...[
+              const Text('No subjects available',
+                  style: TextStyle(fontSize: 16)),
+            ],
+            const SizedBox(height: 8),
+            if (studentTotalMarks != null &&
+                teacherTotalMarks != null) ...[
+              const Divider(),
+              Text('Student Total Marks: $studentTotalMarks',
+                  style: const TextStyle(fontSize: 16)),
+              Text('Teacher Total Marks: $teacherTotalMarks',
+                  style: const TextStyle(fontSize: 16)),
+            ],
           ],
         ),
       ),
