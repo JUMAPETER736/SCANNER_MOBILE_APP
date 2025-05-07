@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:scanna/Home_Screens/School_Report_View.dart';
+import 'package:scanna/Home_Screens/Juniors_School_Report_View.dart';
+import 'package:scanna/Home_Screens/Seniors_School_Report_View.dart';
+
+import 'Seniors_School_Report_VIew.dart';
+
 class School_Reports extends StatefulWidget {
   @override
   _School_ReportsState createState() => _School_ReportsState();
@@ -323,22 +327,41 @@ class _School_ReportsState extends State<School_Reports> {
                   ],
                 ),
 
-
-
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => School_Report_View(
-                        schoolName: student['schoolName'] ?? 'Unknown School', // Assuming school name is in student data
-                        studentClass: student['studentClass'] ?? 'N/A', // Assuming class information is in student data
-                        studentName: "${student['firstName'] ?? 'N/A'} ${student['lastName'] ?? 'N/A'}" // Full name of student
-                         // Assuming createdBy is the teacher's email
-                      ),
-                    ),
-                  );
+                  String studentClass = student['studentClass']?.toUpperCase() ?? '';
 
+                  if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
+                    // Junior school report
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Juniors_School_Report_View(
+                          schoolName: student['schoolName'] ?? 'Unknown School',
+                          studentClass: student['studentClass'] ?? 'N/A',
+                          studentName: "${student['firstName'] ?? 'N/A'} ${student['lastName'] ?? 'N/A'}",
+                        ),
+                      ),
+                    );
+                  } else if (studentClass == 'FORM 3' || studentClass == 'FORM 4') {
+                    // Senior school report
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Seniors_School_Report_View(
+                          schoolName: student['schoolName'] ?? 'Unknown School',
+                          studentClass: student['studentClass'] ?? 'N/A',
+                          studentName: "${student['firstName'] ?? 'N/A'} ${student['lastName'] ?? 'N/A'}",
+                        ),
+                      ),
+                    );
+                  } else {
+                    // Unknown or unsupported class
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Unknown student class: $studentClass')),
+                    );
+                  }
                 },
+
 
               ),
             );
