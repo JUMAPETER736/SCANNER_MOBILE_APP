@@ -351,10 +351,11 @@ class _School_ReportsState extends State<School_Reports> {
                         builder: (context) => Seniors_School_Report_View(
                           schoolName: student['schoolName'] ?? 'Unknown School',
                           studentClass: student['studentClass'] ?? 'N/A',
-                          studentName: "${student['firstName'] ?? 'N/A'} ${student['lastName'] ?? 'N/A'}",
+                          studentName: "${student['lastName'] ?? 'N/A'} ${student['firstName'] ?? 'N/A'}",
                         ),
                       ),
                     );
+
                   } else {
                     // Unknown or unsupported class
                     ScaffoldMessenger.of(context).showSnackBar(
