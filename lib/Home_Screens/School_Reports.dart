@@ -349,7 +349,8 @@ class _School_ReportsState extends State<School_Reports> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => Seniors_School_Report_View(
-                          schoolName: student['schoolName'] ?? 'Unknown School',
+
+                          schoolName: student['schoolName'] ?? 'Sorry, Unknown School',
                           studentClass: student['studentClass'] ?? 'N/A',
                           studentName: "${student['lastName'] ?? 'N/A'} ${student['firstName'] ?? 'N/A'}",
                         ),
