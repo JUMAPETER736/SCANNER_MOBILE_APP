@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -103,7 +105,7 @@ class _Juniors_School_Report_ViewState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Student Report Card')),
+      appBar: AppBar(title: const Text('Junior Report Card')),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(

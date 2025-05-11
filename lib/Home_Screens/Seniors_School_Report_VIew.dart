@@ -7,7 +7,7 @@ class Seniors_School_Report_View extends StatefulWidget {
   final String studentClass;
   final String studentName;
 
-  const  Seniors_School_Report_View({
+  const Seniors_School_Report_View({
     required this.schoolName,
     required this.studentClass,
     required this.studentName,
@@ -54,49 +54,53 @@ class _Seniors_School_Report_ViewState
         throw 'You do not have permission to view this student\'s data.';
       }
 
-      final studentRef = _firestore
+      // Fetch Student Data from Firestore
+      final studentSnapshot = await _firestore
           .collection('Schools')
           .doc(widget.schoolName)
           .collection('Classes')
           .doc(widget.studentClass)
           .collection('Student_Details')
-          .doc(widget.studentName);
-
-      // 1. Fetch Registered Information
-      final personalInfoDoc = await studentRef
-          .collection('Personal_Information')
-          .doc('Registered_Information')
+          .doc(widget.studentName) // This should be studentFullName
           .get();
 
-      studentInfo =
-      personalInfoDoc.exists ? personalInfoDoc.data() ?? {} : {};
+      if (!studentSnapshot.exists) throw 'Student data not found.';
+      studentInfo = studentSnapshot.data() as Map<String, dynamic>;
 
-      // 2. Fetch All Student Subjects and Grades
-      final subjectsRef = FirebaseFirestore.instance
-          .collection('Student_Subjects')
+      // Fetch Subjects & Grades
+      final subjectsSnapshot = await _firestore
+          .collection('Schools')
+          .doc(widget.schoolName)
+          .collection('Classes')
+          .doc(widget.studentClass)
+          .collection('Student_Details')
           .doc(widget.studentName)
-          .collection('Subjects'); // Assuming the student's subjects are stored here
+          .collection('Student_Subjects')
+          .get();
 
-      final subjectsSnapshot = await subjectsRef.get();
-      if (subjectsSnapshot.docs.isEmpty) {
-        print("No subjects found for student: ${widget.studentName}");
-        return;
+      for (var subjectDoc in subjectsSnapshot.docs) {
+        subjectsWithGrades.add({
+          'subject': subjectDoc.id,
+          'grade': subjectDoc.data()['Subject_Grade'] ?? 'N/A',
+        });
       }
 
-      subjectsWithGrades = subjectsSnapshot.docs.map((doc) {
-        return {
-          'subject': doc.id,
-          'grade': doc['Subject_Grade'] ?? 'N/A',
-          'gradePoint': doc['Grade_Point'] ?? 'N/A',
-        };
-      }).toList();
+      // Fetch Total Marks
+      final totalMarksSnapshot = await _firestore
+          .collection('Schools')
+          .doc(widget.schoolName)
+          .collection('Classes')
+          .doc(widget.studentClass)
+          .collection('Student_Details')
+          .doc(widget.studentName)
+          .collection('TOTAL_MARKS')
+          .doc('Marks')
+          .get();
 
-      // 3. Fetch Total Marks
-      final totalMarksDoc = await studentRef.collection('TOTAL_MARKS').doc('Marks').get();
-      if (totalMarksDoc.exists) {
-       // bestSixTotalPoints = totalMarksDoc.data()?['b']?.toString();
-        studentTotalMarks = totalMarksDoc.data()?['studentTotal']?.toString();
-        teacherTotalMarks = totalMarksDoc.data()?['teacherTotal']?.toString();
+      if (totalMarksSnapshot.exists) {
+        final totalMarksData = totalMarksSnapshot.data()!;
+        studentTotalMarks = totalMarksData['Student_Total_Marks'] ?? '0';
+        teacherTotalMarks = totalMarksData['Teacher_Total_Marks'] ?? '0';
       }
 
       setState(() {
@@ -116,7 +120,7 @@ class _Seniors_School_Report_ViewState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Student Report Card')),
+      appBar: AppBar(title: const Text('Senior Report Card')),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
@@ -131,14 +135,22 @@ class _Seniors_School_Report_ViewState
             ),
             const SizedBox(height: 8),
             if (studentInfo != null) ...[
-              Text('First Name: ${studentInfo!['firstName'] ?? 'N/A'}',
-                  style: const TextStyle(fontSize: 16)),
-              Text('Last Name: ${studentInfo!['lastName'] ?? 'N/A'}',
-                  style: const TextStyle(fontSize: 16)),
-              Text('Class: ${studentInfo!['studentClass'] ?? 'N/A'}',
-                  style: const TextStyle(fontSize: 16)),
-              Text('Gender: ${studentInfo!['studentGender'] ?? 'N/A'}',
-                  style: const TextStyle(fontSize: 16)),
+              Text(
+                'First Name: ${studentInfo!['firstName'] ?? 'N/A'}',
+                style: const TextStyle(fontSize: 16),
+              ),
+              Text(
+                'Last Name: ${studentInfo!['lastName'] ?? 'N/A'}',
+                style: const TextStyle(fontSize: 16),
+              ),
+              Text(
+                'Class: ${studentInfo!['studentClass'] ?? 'N/A'}',
+                style: const TextStyle(fontSize: 16),
+              ),
+              Text(
+                'Gender: ${studentInfo!['studentGender'] ?? 'N/A'}',
+                style: const TextStyle(fontSize: 16),
+              ),
             ],
             const Divider(),
             const SizedBox(height: 8),
