@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -356,7 +358,7 @@ class _School_ReportsState extends State<School_Reports> {
                   } else {
                     // Unknown or unsupported class
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Unknown student class: $studentClass')),
+                      SnackBar(content: Text('Unknown Student Class: $studentClass')),
                     );
                   }
                 },
