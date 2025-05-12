@@ -194,7 +194,7 @@ class _Register_PageState extends State<Register_Page> {
         msg: "Sign-in failed",
         toastLength: Toast.LENGTH_SHORT,
         textColor: Colors.red,
-        fontSize: 16.0,
+        fontSize: 18.0,
       );
     }
   }
@@ -216,7 +216,7 @@ class _Register_PageState extends State<Register_Page> {
               children: [
                 Text(
                   'Register',
-                  style: TextStyle(fontSize: 40.0, color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 44.0, color: Colors.blueAccent, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 20.0),
@@ -310,7 +310,7 @@ class _Register_PageState extends State<Register_Page> {
                     ),
                     child: Text(
                       'Register',
-                      style: TextStyle(fontSize: 20.0, color: Colors.white),
+                      style: TextStyle(fontSize: 22.0, color: Colors.white),
                     ),
                   ),
                 ),
@@ -322,7 +322,7 @@ class _Register_PageState extends State<Register_Page> {
                       child: Divider(color: Colors.blueAccent),
                     ),
                     SizedBox(width: 10.0),
-                    Text('Or', style: TextStyle(fontSize: 20.0, color: Colors.blueAccent)),
+                    Text('Or', style: TextStyle(fontSize: 22.0, color: Colors.blueAccent)),
                     SizedBox(width: 10.0),
                     Expanded(
                       child: Divider(color: Colors.blueAccent),
@@ -340,7 +340,7 @@ class _Register_PageState extends State<Register_Page> {
                         icon: Image.asset(
                             'assets/images/google.png', width: 24),
                         label: Text('Google', style: TextStyle(
-                            fontSize: 18.0)),
+                            fontSize: 20.0)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: Colors.blueAccent,
@@ -356,7 +356,7 @@ class _Register_PageState extends State<Register_Page> {
                         icon: Image.asset(
                             'assets/images/facebook.png', width: 24),
                         label: Text('Facebook', style: TextStyle(
-                            fontSize: 18.0)),
+                            fontSize: 20.0)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: Colors.blueAccent,
@@ -376,7 +376,7 @@ class _Register_PageState extends State<Register_Page> {
                         Navigator.pushNamed(context, Login_Page.id);
                       },
                       child: Text('Log In', style:
-                      TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 15.0,),
+                      TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 18.0,),
                       ),
                     ),
                   ],

@@ -57,146 +57,117 @@ class _Main_HomeState extends State<Main_Home> {
     }
   }
 
+
   Widget _buildHome(BuildContext context, User? loggedInUser) {
-    return Container(
-      color: Color.fromARGB(255, 198, 205, 218),
-      padding: EdgeInsets.all(16.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Welcome, ${loggedInUser?.displayName ?? 'User'}!',
-            style: TextStyle(
-                fontSize: 24.0, fontWeight: FontWeight.bold, color: Colors.teal),
-          ),
-          SizedBox(height: 30.0),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15.0),
+    return SizedBox.expand(
+      child: Container(
+        color: const Color.fromARGB(255, 198, 205, 218),
+        padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0),
+        child: Column(
+          children: [
+            Text(
+              'Welcome, ${loggedInUser?.displayName ?? 'User'}!',
+              style: const TextStyle(
+                fontSize: 24.0,
+                fontWeight: FontWeight.bold,
+                color: Colors.teal,
+              ),
+            ),
+            const SizedBox(height: 16.0),
+            Expanded(
               child: GridView.count(
                 crossAxisCount: 2,
                 crossAxisSpacing: 14,
                 mainAxisSpacing: 16,
-                childAspectRatio: 5.3 / 3,
+                padding: EdgeInsets.zero, // remove inner padding
+                childAspectRatio: 4 / 3.5, // taller cards (was 5.3 / 3)
                 children: [
-                  // Select Class
-                  GestureDetector(
+                  _buildHomeCard(
+                    icon: Icons.class_,
+                    text: 'Select School & Class',
+                    color: Colors.blueAccent,
+                    iconSize:100.0, // Enlarged icon size
+                    textSize: 22.0, // Enlarged text size
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (context) => Class_Selection()),
+                        MaterialPageRoute(builder: (context) => Class_Selection()),
                       );
                     },
-                    child: _buildSquareCard(
-                      icon: Icons.class_,
-                      text: 'Select School & Class',
-                      color: Colors.blueAccent,
-                    ),
                   ),
-                  // View Grade Analytics
-                  GestureDetector(
+                  _buildHomeCard(
+                    icon: Icons.analytics,
+                    text: 'Grade Analytics',
+                    color: Colors.greenAccent,
+
+                    iconSize:100.0, // Enlarged icon size
+                    textSize: 22.0, // Enlarged text size
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (context) => Grade_Analytics()),
+                        MaterialPageRoute(builder: (context) => Grade_Analytics()),
                       );
                     },
-                    child: _buildSquareCard(
-                      icon: Icons.analytics,
-                      text: 'Grade Analytics',
-                      color: Colors.greenAccent,
-                    ),
                   ),
-                  // Enter Student Details
-                  GestureDetector(
+                  _buildHomeCard(
+                    icon: Icons.person_add,
+                    text: 'Add Student',
+                    color: Colors.orangeAccent,
+
+                    iconSize:100.0, // Enlarged icon size
+                    textSize: 22.0, // Enlarged text size
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (context) => Student_Details()),
+                        MaterialPageRoute(builder: (context) => Student_Details()),
                       );
                     },
-                    child: _buildSquareCard(
-                      icon: Icons.person_add,
-                      text: 'Add Student',
-                      color: Colors.orangeAccent,
-                    ),
                   ),
-                  // QR Code Scan
-                  GestureDetector(
+                  _buildHomeCard(
+                    icon: Icons.qr_code_scanner,
+                    text: 'QR Scan',
+                    color: const Color.fromARGB(255, 59, 61, 60),
+
+                    iconSize:100.0, // Enlarged icon size
+                    textSize: 22.0, // Enlarged text size
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (context) => QR_Code_Scan()),
+                        MaterialPageRoute(builder: (context) => QR_Code_Scan()),
                       );
                     },
-                    child: _buildSquareCard(
-                      icon: Icons.qr_code_scanner,
-                      text: 'QR Scan',
-                      color: Color.fromARGB(255, 59, 61, 60),
-                    ),
                   ),
-                  // School Reports
-                  GestureDetector(
+                  _buildHomeCard(
+                    icon: Icons.school,
+                    text: 'School Reports',
+                    color: Colors.redAccent,
+
+                    iconSize:100.0, // Enlarged icon size
+                    textSize: 22.0,  // Enlarged text size
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (context) => School_Reports()),
+                        MaterialPageRoute(builder: (context) => School_Reports()),
                       );
                     },
-                    child: _buildSquareCard(
-                      icon: Icons.school,
-                      text: 'School Reports',
-                      color: Colors.redAccent,
-                    ),
                   ),
-                  // List Students
-                  GestureDetector(
+                  _buildHomeCard(
+                    icon: Icons.list,
+                    text: 'Students Names',
+                    color: Colors.purpleAccent,
+                    iconSize: 100.0, // Enlarged icon size
+                    textSize: 22.0, // Enlarged text size
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              Student_Name_List(loggedInUser: loggedInUser),
+                          builder: (context) => Student_Name_List(loggedInUser: loggedInUser),
                         ),
                       );
                     },
-                    child: _buildSquareCard(
-                      icon: Icons.list,
-                      text: 'Students Names',
-                      color: Colors.purpleAccent,
-                    ),
                   ),
                 ],
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSquareCard(
-      {required IconData icon, required String text, required Color color}) {
-    return Card(
-      elevation: 5,
-      color: color,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Container(
-        padding: const EdgeInsets.all(6.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 50, color: Colors.white),
-            SizedBox(height: 10),
-            Text(
-              text,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16.0, color: Colors.white),
             ),
           ],
         ),
@@ -204,36 +175,75 @@ class _Main_HomeState extends State<Main_Home> {
     );
   }
 
-  Widget _buildHelp() {
-    return Help();
+  Widget _buildHomeCard({
+    required IconData icon,
+    required String text,
+    required Color color,
+    required double iconSize, // Icon size parameter
+    required double textSize, // Text size parameter
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        color: color,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        elevation: 4.0,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: iconSize, // Set the icon size here
+              color: Colors.white,
+            ),
+            const SizedBox(height: 8.0),
+            Text(
+              text,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: textSize, // Set the text size here
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  Widget _buildSettings() {
-    return Main_Settings(user: loggedInUser!);
-  }
+
+  Widget _buildHelp() => Help();
+
+  Widget _buildSettings() => Main_Settings(user: loggedInUser!);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Scanna',
-          style: TextStyle(fontWeight: FontWeight.bold), // Text in bold
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.teal,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: Icon(Icons.logout, color: Colors.white),
+            icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: _logout,
           ),
         ],
       ),
-      body: _selectedIndex == 0
-          ? _buildHelp()
-          : _selectedIndex == 1
-          ? _buildHome(context, loggedInUser)
-          : _buildSettings(),
+      body: SizedBox.expand(
+        child: _selectedIndex == 0
+            ? _buildHelp()
+            : _selectedIndex == 1
+            ? _buildHome(context, loggedInUser)
+            : _buildSettings(),
+      ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
