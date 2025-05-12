@@ -126,7 +126,7 @@ class _Login_PageState extends State<Login_Page> {
       timeInSecForIosWeb: 1,
       backgroundColor: Colors.black,
       textColor: Colors.white,
-      fontSize: 16.0,
+      fontSize: 18.0,
     );
   }
 
@@ -165,7 +165,7 @@ class _Login_PageState extends State<Login_Page> {
                   SizedBox(height: 15.0),
                   Text(
                     'Welcome back, please login to your Account',
-                    style: TextStyle(fontSize: 24.0, color: Colors.blueAccent),
+                    style: TextStyle(fontSize: 26.0, color: Colors.blueAccent),
                   ),
                   SizedBox(height: 20.0),
                   TextField(
@@ -239,7 +239,7 @@ class _Login_PageState extends State<Login_Page> {
                       child: Text(
                         'Forgot Password?',
                         style: TextStyle(
-                            fontSize: 16.0, color: Colors.blueAccent),
+                            fontSize: 18.0, color: Colors.blueAccent),
                       ),
                     ),
                   ),
@@ -382,7 +382,7 @@ class _Login_PageState extends State<Login_Page> {
                       children: [
                         Text(
                           'Already have an Account? ',
-                          style: TextStyle(fontSize: 15.0),
+                          style: TextStyle(fontSize: 18.0),
                         ),
                         GestureDetector(
                           onTap: () {
@@ -390,7 +390,7 @@ class _Login_PageState extends State<Login_Page> {
                           },
                           child: Text(
                             'Sign Up',
-                            style: TextStyle(fontSize: 15.0,
+                            style: TextStyle(fontSize: 18.0,
                                 color: Colors.blue,
                                 fontWeight: FontWeight.bold),
                           ),
