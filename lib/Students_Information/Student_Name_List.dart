@@ -73,7 +73,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
       appBar: AppBar(
         title: _hasSelectedCriteria
             ? Text(
-          '$teacherSchool - $selectedClass',
+          '$teacherSchool',
           style: TextStyle(fontWeight: FontWeight.bold),
         )
             : Text(
