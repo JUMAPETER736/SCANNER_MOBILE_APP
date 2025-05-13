@@ -411,7 +411,7 @@ class _Class_SelectionState extends State<Class_Selection> {
                       : (bool? value) {
                     setState(() {
                       if (value == true) {
-                        if (selectedClasses.length < 1) {
+                        if (selectedClasses.length < 2) {
                           selectedClasses.add(className);
                           // Clear selected subjects when class changes
                           selectedSubjects.clear();

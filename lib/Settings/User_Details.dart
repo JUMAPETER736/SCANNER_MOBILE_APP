@@ -17,6 +17,9 @@ class _User_DetailsState extends State<User_Details> {
   List<String> _selectedClasses = [];
   List<String> _selectedSubjects = [];
 
+
+
+
   @override
   void initState() {
     super.initState();
@@ -187,12 +190,15 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   final TextEditingController _reEnterNewPasswordController = TextEditingController();
   String errorMessage = '';
 
+  bool _obscureOldPassword = true;
+  bool _obscureNewPassword = true;
+  bool _obscureReEnterPassword = true;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-            'Change Password', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('Change Password', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
       ),
@@ -212,16 +218,34 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               _buildStyledTextField(
                 controller: _oldPasswordController,
                 labelText: 'Old Password',
+                obscureText: _obscureOldPassword,
+                toggleVisibility: () {
+                  setState(() {
+                    _obscureOldPassword = !_obscureOldPassword;
+                  });
+                },
               ),
               SizedBox(height: 16),
               _buildStyledTextField(
                 controller: _newPasswordController,
                 labelText: 'New Password',
+                obscureText: _obscureNewPassword,
+                toggleVisibility: () {
+                  setState(() {
+                    _obscureNewPassword = !_obscureNewPassword;
+                  });
+                },
               ),
               SizedBox(height: 16),
               _buildStyledTextField(
                 controller: _reEnterNewPasswordController,
                 labelText: 'Re-Enter New Password',
+                obscureText: _obscureReEnterPassword,
+                toggleVisibility: () {
+                  setState(() {
+                    _obscureReEnterPassword = !_obscureReEnterPassword;
+                  });
+                },
               ),
               if (errorMessage.isNotEmpty)
                 Padding(
@@ -239,7 +263,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.redAccent,
-                        // Cancel button color
                         padding: EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -248,8 +271,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                       onPressed: () {
                         Navigator.of(context).pop();
                       },
-                      child: Text('Cancel', style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: Text('Cancel', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   SizedBox(width: 20),
@@ -257,15 +279,13 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.greenAccent,
-                        // Change Password button color
                         padding: EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                       onPressed: _handleChangePassword,
-                      child: Text('Change Password', style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: Text('Change Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -280,6 +300,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   Widget _buildStyledTextField({
     required TextEditingController controller,
     required String labelText,
+    required bool obscureText,
+    required VoidCallback toggleVisibility,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -295,9 +317,13 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       ),
       child: TextField(
         controller: controller,
-        obscureText: true,
+        obscureText: obscureText,
         decoration: InputDecoration(
           labelText: labelText,
+          suffixIcon: IconButton(
+            icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility),
+            onPressed: toggleVisibility,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide.none,
@@ -339,16 +365,13 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
   Future<void> changePassword(String oldPassword, String newPassword) async {
     try {
-      // Re-authenticate the user
       UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: widget.user!.email!,
         password: oldPassword,
       );
 
-      // Change the password
       await userCredential.user!.updatePassword(newPassword);
 
-      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Password changed successfully!'),
@@ -357,8 +380,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       );
       Navigator.of(context).pop();
     } on FirebaseAuthException catch (e) {
-      print('Error code: ${e.code}');
-      print('Error message: ${e.message}');
       if (e.code == 'wrong-password') {
         setState(() {
           errorMessage = 'Old Password is Incorrect';
