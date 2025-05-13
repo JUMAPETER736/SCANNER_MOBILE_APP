@@ -16,7 +16,8 @@ class _Student_Name_ListState extends State<Student_Name_List> {
   String _searchQuery = '';
   TextEditingController _searchController = TextEditingController();
   String? teacherSchool;
-  String? teacherClass;
+  List<String>? teacherClasses;
+  String? selectedClass;
   bool _hasSelectedCriteria = false;
 
   @override
@@ -41,7 +42,8 @@ class _Student_Name_ListState extends State<Student_Name_List> {
         if (school != null && classes.isNotEmpty) {
           setState(() {
             teacherSchool = school;
-            teacherClass = classes[0]; // Set the first selected class
+            teacherClasses = List<String>.from(classes);
+            selectedClass = classes[0]; // Set the first class as default
             _hasSelectedCriteria = true;
           });
         }
@@ -67,10 +69,11 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     }
 
     return Scaffold(
+
       appBar: AppBar(
         title: _hasSelectedCriteria
             ? Text(
-          '$teacherSchool - $teacherClass',
+          '$teacherSchool - $selectedClass',
           style: TextStyle(fontWeight: FontWeight.bold),
         )
             : Text(
@@ -100,156 +103,155 @@ class _Student_Name_ListState extends State<Student_Name_List> {
         ),
         padding: const EdgeInsets.all(16.0),
         child: _hasSelectedCriteria
-            ? StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('Schools')
-              .doc(teacherSchool) // Use the logged-in teacher's school
-              .collection('Classes')
-              .doc(teacherClass) // Use the logged-in teacher's class
-              .collection('Student_Details')
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator());
-            }
+            ? Column(
 
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return Center(
-                child: Text(
-                  'No Student Found.',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                  ),
-                ),
-              );
-            }
+          children: [
 
-            var studentDocs = snapshot.data!.docs;
 
-            return ListView.separated(
-              shrinkWrap: true,
-              itemCount: studentDocs.length,
-              separatorBuilder: (context, index) => SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                var studentDoc = studentDocs[index];
-                var registeredInformationDocRef = studentDoc.reference
-                    .collection('Personal_Information')
-                    .doc('Registered_Information');
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.all(10),
+              child: Row(
+                children: (teacherClasses ?? []).map((classItem) {
+                  final isSelected = classItem == selectedClass;
 
-                return FutureBuilder<DocumentSnapshot>(
-                  future: registeredInformationDocRef.get(),
-                  builder: (context, futureSnapshot) {
-                    if (!futureSnapshot.hasData || !futureSnapshot.data!.exists) {
-                      return Container(); // Skip if no data
-                    }
-
-                    var data = futureSnapshot.data!.data() as Map<String, dynamic>;
-                    var firstName = data['firstName'] ?? 'N/A';
-                    var lastName = data['lastName'] ?? 'N/A';
-                    var studentGender = data['studentGender'] ?? 'N/A';
-                    var fullName = '$lastName $firstName'; // Change order to lastName firstName
-
-                    if (_searchQuery.isNotEmpty &&
-                        !fullName.toLowerCase().contains(_searchQuery.toLowerCase())) {
-                      return Container(); // Skip if search query doesn't match
-                    }
-
-                    return Card(
-                      elevation: 6,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15.0),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          selectedClass = classItem; // Update selected class
+                          _searchQuery = ''; // Reset search if needed
+                          _searchController.clear(); // Clear search box
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isSelected ? Colors.blue : Colors.grey[300],
+                        foregroundColor: isSelected ? Colors.white : Colors.black,
                       ),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                        leading: Text(
-                          '${index + 1}.',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blueAccent,
-                          ),
+                      child: Text(
+                        classItem,
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+
+
+            SizedBox(height: 16),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('Schools')
+                    .doc(teacherSchool) // Use the logged-in teacher's school
+                    .collection('Classes')
+                    .doc(selectedClass) // Use the selected class
+                    .collection('Student_Details')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No Student Found.',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
                         ),
-                        title: Text(
-                          fullName.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blueAccent,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'Gender: $studentGender',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black54,
-                          ),
-                        ),
-                        trailing: Icon(Icons.arrow_forward, color: Colors.blueAccent),
+                      ),
+                    );
+                  }
 
+                  var studentDocs = snapshot.data!.docs;
 
-                        onTap: () async {
-                          // Fetch the student's subject grades and calculate total marks
-                          var studentSubjectsSnapshot = await FirebaseFirestore.instance
-                              .collection('Schools')
-                              .doc(teacherSchool)
-                              .collection('Classes')
-                              .doc(teacherClass)
-                              .collection('Student_Details')
-                              .doc(studentDoc.id)
-                              .collection('Student_Subjects')
-                              .get();
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: studentDocs.length,
+                    separatorBuilder: (context, index) => SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      var studentDoc = studentDocs[index];
+                      var registeredInformationDocRef = studentDoc.reference
+                          .collection('Personal_Information')
+                          .doc('Registered_Information');
 
-                          int totalMarks = 0;
-                          int totalMaxMarks = 0; // This will store the teacher's total possible marks (maximum marks)
-
-                          for (var subjectDoc in studentSubjectsSnapshot.docs) {
-                            var subjectData = subjectDoc.data() as Map<String, dynamic>;
-                            var subjectGrade = subjectData['Subject_Grade'] ?? 'N/A';
-
-                            // Only add the valid subject grades that are not "N/A"
-                            if (subjectGrade != 'N/A') {
-                              totalMarks += int.tryParse(subjectGrade) ?? 0; // Add the grade to total marks
-                              totalMaxMarks += 100; // For each valid grade, add 100 to the teacher's max possible marks
-                            }
+                      return FutureBuilder<DocumentSnapshot>(
+                        future: registeredInformationDocRef.get(),
+                        builder: (context, futureSnapshot) {
+                          if (!futureSnapshot.hasData || !futureSnapshot.data!.exists) {
+                            return Container(); // Skip if no data
                           }
 
-                          // Update the TOTAL_MARKS subcollection with the calculated total marks
-                          await FirebaseFirestore.instance
-                              .collection('Schools')
-                              .doc(teacherSchool)
-                              .collection('Classes')
-                              .doc(teacherClass)
-                              .collection('Student_Details')
-                              .doc(studentDoc.id)
-                              .collection('TOTAL_MARKS')
-                              .doc('Marks')
-                              .set({
-                            'Student_Total_Marks': totalMarks.toString(),
-                            'Teacher_Total_Marks': totalMaxMarks.toString(), // Store the teacher's total max marks
-                          });
+                          var data = futureSnapshot.data!.data() as Map<String, dynamic>;
+                          var firstName = data['firstName'] ?? 'N/A';
+                          var lastName = data['lastName'] ?? 'N/A';
+                          var studentGender = data['studentGender'] ?? 'N/A';
+                          var fullName = '$lastName $firstName'; // Change order to lastName firstName
 
-                          // Navigate to StudentSubjects page
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => Student_Subjects(
-                                studentName: fullName,
-                                studentClass: teacherClass!,
+                          if (_searchQuery.isNotEmpty &&
+                              !fullName.toLowerCase().contains(_searchQuery.toLowerCase())) {
+                            return Container(); // Skip if search query doesn't match
+                          }
+
+                          return Card(
+                            elevation: 6,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15.0),
+                            ),
+                            child: ListTile(
+                              contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                              leading: Text(
+                                '${index + 1}.',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blueAccent,
+                                ),
                               ),
+                              title: Text(
+                                fullName.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blueAccent,
+                                ),
+                              ),
+                              subtitle: Text(
+                                'Gender: $studentGender',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              trailing: Icon(Icons.arrow_forward, color: Colors.blueAccent),
+                              onTap: () async {
+                                // Navigate to StudentSubjects page
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => Student_Subjects(
+                                      studentName: fullName,
+                                      studentClass: selectedClass!,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           );
                         },
-
-                      ),
-                    );
-                  },
-                );
-              },
-            );
-          },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         )
             : Center(
           child: Text(

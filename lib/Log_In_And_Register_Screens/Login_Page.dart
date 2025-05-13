@@ -239,7 +239,7 @@ class _Login_PageState extends State<Login_Page> {
                       child: Text(
                         'Forgot Password?',
                         style: TextStyle(
-                            fontSize: 18.0, color: Colors.blueAccent),
+                            fontSize: 22.0, color: Colors.blueAccent),
                       ),
                     ),
                   ),
@@ -330,7 +330,7 @@ class _Login_PageState extends State<Login_Page> {
                       ),
                       SizedBox(width: 10.0),
                       Text('Or', style: TextStyle(
-                          fontSize: 20.0, color: Colors.blueAccent)),
+                          fontSize: 22.0, color: Colors.blueAccent)),
                       SizedBox(width: 10.0),
                       Expanded(
                         child: Divider(color: Colors.blueAccent),
@@ -348,7 +348,7 @@ class _Login_PageState extends State<Login_Page> {
                           icon: Image.asset(
                               'assets/images/google.png', width: 24),
                           label: Text('Google', style: TextStyle(
-                              fontSize: 18.0)),
+                              fontSize: 20.0)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: Colors.blueAccent,
@@ -364,7 +364,7 @@ class _Login_PageState extends State<Login_Page> {
                           icon: Image.asset(
                               'assets/images/facebook.png', width: 24),
                           label: Text('Facebook', style: TextStyle(
-                              fontSize: 18.0)),
+                              fontSize: 20.0)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: Colors.blueAccent,
@@ -382,7 +382,7 @@ class _Login_PageState extends State<Login_Page> {
                       children: [
                         Text(
                           'Already have an Account? ',
-                          style: TextStyle(fontSize: 18.0),
+                          style: TextStyle(fontSize: 22.0),
                         ),
                         GestureDetector(
                           onTap: () {
@@ -390,7 +390,7 @@ class _Login_PageState extends State<Login_Page> {
                           },
                           child: Text(
                             'Sign Up',
-                            style: TextStyle(fontSize: 18.0,
+                            style: TextStyle(fontSize: 22.0,
                                 color: Colors.blue,
                                 fontWeight: FontWeight.bold),
                           ),

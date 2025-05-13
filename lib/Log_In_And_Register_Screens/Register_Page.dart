@@ -370,13 +370,13 @@ class _Register_PageState extends State<Register_Page> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Already have an Account?'),
+                    Text('Already have an Account?', style: TextStyle(fontSize: 22.0,),),
                     TextButton(
                       onPressed: () {
                         Navigator.pushNamed(context, Login_Page.id);
                       },
                       child: Text('Log In', style:
-                      TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 18.0,),
+                      TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 22.0,),
                       ),
                     ),
                   ],

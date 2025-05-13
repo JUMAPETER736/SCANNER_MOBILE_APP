@@ -65,28 +65,20 @@ class _Main_HomeState extends State<Main_Home> {
         padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0),
         child: Column(
           children: [
-            Text(
-              'Welcome, ${loggedInUser?.displayName ?? 'User'}!',
-              style: const TextStyle(
-                fontSize: 24.0,
-                fontWeight: FontWeight.bold,
-                color: Colors.teal,
-              ),
-            ),
-            const SizedBox(height: 16.0),
+
             Expanded(
               child: GridView.count(
                 crossAxisCount: 2,
                 crossAxisSpacing: 14,
                 mainAxisSpacing: 16,
                 padding: EdgeInsets.zero, // remove inner padding
-                childAspectRatio: 4 / 3.5, // taller cards (was 5.3 / 3)
+                childAspectRatio: 4 / 3, // taller cards (was 5.3 / 3)
                 children: [
                   _buildHomeCard(
                     icon: Icons.class_,
                     text: 'Select School & Class',
                     color: Colors.blueAccent,
-                    iconSize:100.0, // Enlarged icon size
+                    iconSize:95.0, // Enlarged icon size
                     textSize: 22.0, // Enlarged text size
                     onTap: () {
                       Navigator.push(
@@ -100,7 +92,7 @@ class _Main_HomeState extends State<Main_Home> {
                     text: 'Grade Analytics',
                     color: Colors.greenAccent,
 
-                    iconSize:100.0, // Enlarged icon size
+                    iconSize:95.0, // Enlarged icon size
                     textSize: 22.0, // Enlarged text size
                     onTap: () {
                       Navigator.push(
@@ -114,7 +106,7 @@ class _Main_HomeState extends State<Main_Home> {
                     text: 'Add Student',
                     color: Colors.orangeAccent,
 
-                    iconSize:100.0, // Enlarged icon size
+                    iconSize:95.0, // Enlarged icon size
                     textSize: 22.0, // Enlarged text size
                     onTap: () {
                       Navigator.push(
@@ -128,7 +120,7 @@ class _Main_HomeState extends State<Main_Home> {
                     text: 'QR Scan',
                     color: const Color.fromARGB(255, 59, 61, 60),
 
-                    iconSize:100.0, // Enlarged icon size
+                    iconSize:95.0, // Enlarged icon size
                     textSize: 22.0, // Enlarged text size
                     onTap: () {
                       Navigator.push(
@@ -142,7 +134,7 @@ class _Main_HomeState extends State<Main_Home> {
                     text: 'School Reports',
                     color: Colors.redAccent,
 
-                    iconSize:100.0, // Enlarged icon size
+                    iconSize:95.0, // Enlarged icon size
                     textSize: 22.0,  // Enlarged text size
                     onTap: () {
                       Navigator.push(
@@ -155,7 +147,7 @@ class _Main_HomeState extends State<Main_Home> {
                     icon: Icons.list,
                     text: 'Students Names',
                     color: Colors.purpleAccent,
-                    iconSize: 100.0, // Enlarged icon size
+                    iconSize: 95.0, // Enlarged icon size
                     textSize: 22.0, // Enlarged text size
                     onTap: () {
                       Navigator.push(
@@ -245,19 +237,24 @@ class _Main_HomeState extends State<Main_Home> {
             : _buildSettings(),
       ),
       bottomNavigationBar: BottomNavigationBar(
+
         items: const <BottomNavigationBarItem>[
+
           BottomNavigationBarItem(
             icon: Icon(Icons.help),
             label: 'Help',
           ),
+
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
+
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: 'Settings',
           ),
+
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
