@@ -22,11 +22,6 @@ class _School_ReportsState extends State<School_Reports> {
   String errorMessage = '';
   List<Map<String, dynamic>> studentDetails = [];
 
-  List<String>? teacherClasses;
-  String? selectedClass;
-  bool _hasSelectedCriteria = false;
-  String _searchQuery = '';
-  TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -39,8 +34,6 @@ class _School_ReportsState extends State<School_Reports> {
     await Future.delayed(Duration(seconds: 1)); // Delay for 1 second
     _fetchUserDetails(); // After delay, fetch user details
   }
-
-
 
   // Fetch user details from Firestore based on logged-in user's email
   Future<void> _fetchUserDetails() async {
@@ -248,171 +241,138 @@ class _School_ReportsState extends State<School_Reports> {
           ),
         ),
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Display the selected class buttons at the top
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.all(10),
-              child: Row(
-                children: (teacherClasses ?? []).map((classItem) {
-                  final isSelected = classItem == selectedClass;
+        child: isLoading
+            ? Center(child: CircularProgressIndicator()) // Show loading indicator
+            : hasError
+            ? Center(
+          child: Text(
+            errorMessage,
+            style: TextStyle(color: Colors.red, fontSize: 18),
+          ),
+        )
+            : studentDetails.isEmpty
+            ? Center(child: Text('No students found.')) // This message shows after loading
+            : ListView.separated(
+          shrinkWrap: true,
+          itemCount: studentDetails.length,
+          separatorBuilder: (context, index) => SizedBox(height: 10),
+          itemBuilder: (context, index) {
+            var student = studentDetails[index];
 
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 5),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          selectedClass = classItem; // Update selected class
-                          _searchQuery = ''; // Reset search if needed
-                          _searchController.clear(); // Clear search box
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isSelected ? Colors.blue : Colors.grey[300],
-                        foregroundColor: isSelected ? Colors.white : Colors.black,
-                      ),
-                      child: Text(
-                        classItem,
-                        style: TextStyle(fontWeight: FontWeight.bold),
+            return Card(
+              elevation: 6,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15.0),
+              ),
+              child: ListTile(
+                contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                leading: Text(
+                  '${index + 1}.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueAccent,
+                  ),
+                ),
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      student['fullName'].toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blueAccent,
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
-
-            // Display loading, error, or student list
-            isLoading
-                ? Center(child: CircularProgressIndicator()) // Show loading indicator
-                : hasError
-                ? Center(
-              child: Text(
-                errorMessage,
-                style: TextStyle(color: Colors.red, fontSize: 18),
-              ),
-            )
-                : studentDetails.isEmpty
-                ? Center(child: Text('No students found.')) // This message shows after loading
-                : Expanded(
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: studentDetails.length,
-                separatorBuilder: (context, index) => SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  var student = studentDetails[index];
-
-                  return Card(
-                    elevation: 6,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15.0),
+                    Text(
+                      'Gender: ${student['studentGender']}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.normal,
+                        color: Colors.black,
+                      ),
                     ),
-                    child: ListTile(
-                      contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                      leading: Text(
-                        '${index + 1}.',
+                  ],
+                ),
+
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (student['studentClass'] == 'FORM 1' || student['studentClass'] == 'FORM 2')
+                      Text(
+                        '${student['Student_Total_Marks']} / ${student['Teacher_Total_Marks']}',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Colors.blueAccent,
+                          color: Colors.black,
+                        ),
+                      )
+                    else if (student['studentClass'] == 'FORM 3' || student['studentClass'] == 'FORM 4')
+                      Text(
+                        '${student['Best_Six_Total_Points'] ?? 0} Points',
+
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
                         ),
                       ),
-                      title: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            student['fullName'].toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blueAccent,
-                            ),
-                          ),
-                          Text(
-                            'Gender: ${student['studentGender']}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.normal,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (student['studentClass'] == 'FORM 1' || student['studentClass'] == 'FORM 2')
-                            Text(
-                              '${student['Student_Total_Marks']} / ${student['Teacher_Total_Marks']}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                            )
-                          else if (student['studentClass'] == 'FORM 3' || student['studentClass'] == 'FORM 4')
-                            Text(
-                              '${student['Best_Six_Total_Points'] ?? 0} Points',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                            ),
-                          SizedBox(width: 10),
-                          Icon(
-                            Icons.arrow_forward,
-                            color: Colors.blueAccent,
-                            size: 20,
-                          ),
-                        ],
-                      ),
-                      onTap: () {
-                        String studentClass = student['studentClass']?.toUpperCase() ?? '';
 
-                        if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
-                          // Junior school report
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => Juniors_School_Report_View(
-                                schoolName: student['schoolName'] ?? 'Unknown School',
-                                studentClass: student['studentClass'] ?? 'N/A',
-                                studentName: "${student['firstName'] ?? 'N/A'} ${student['lastName'] ?? 'N/A'}",
-                              ),
-                            ),
-                          );
-                        } else if (studentClass == 'FORM 3' || studentClass == 'FORM 4') {
-                          // Senior school report
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => Seniors_School_Report_View(
-                                schoolName: student['schoolName'] ?? 'Sorry, Unknown School',
-                                studentClass: student['studentClass'] ?? 'N/A',
-                                studentName: "${student['lastName'] ?? 'N/A'} ${student['firstName'] ?? 'N/A'}",
-                              ),
-                            ),
-                          );
-                        } else {
-                          // Unknown or unsupported class
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Unknown Student Class: $studentClass')),
-                          );
-                        }
-                      },
+                    SizedBox(width: 10),
+                    Icon(
+                      Icons.arrow_forward,
+                      color: Colors.blueAccent,
+                      size: 20,
                     ),
-                  );
+                  ],
+                ),
+
+                onTap: () {
+                  String studentClass = student['studentClass']?.toUpperCase() ?? '';
+
+                  if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
+                    // Junior school report
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Juniors_School_Report_View(
+                          schoolName: student['schoolName'] ?? 'Unknown School',
+                          studentClass: student['studentClass'] ?? 'N/A',
+                          studentName: "${student['firstName'] ?? 'N/A'} ${student['lastName'] ?? 'N/A'}",
+                        ),
+                      ),
+                    );
+                  } else if (studentClass == 'FORM 3' || studentClass == 'FORM 4') {
+                    // Senior school report
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Seniors_School_Report_View(
+
+                          schoolName: student['schoolName'] ?? 'Sorry, Unknown School',
+                          studentClass: student['studentClass'] ?? 'N/A',
+                          studentName: "${student['lastName'] ?? 'N/A'} ${student['firstName'] ?? 'N/A'}",
+                        ),
+                      ),
+                    );
+
+                  } else {
+                    // Unknown or unsupported class
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Unknown Student Class: $studentClass')),
+                    );
+                  }
                 },
+
+
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
   }
-
 
   //final Map<String, dynamic> student;
 
