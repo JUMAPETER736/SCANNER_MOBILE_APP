@@ -27,106 +27,109 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   Map<String, dynamic>? subjectsWithGrades = {};
   String? studentTotalMarks;
   String? teacherTotalMarks;
-  String? bestSixTotalPoints;
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    fetchStudentDataAndSubjects();
+    // Use the student name passed through the widget
+    findStudentDocIDAndFetch(widget.studentName);
   }
 
-  Future<void> fetchStudentDataAndSubjects() async {
-    setState(() {
-      isLoading = true;
-    });
 
-    try {
-      final teacherEmail = FirebaseAuth.instance.currentUser?.email;
-      if (teacherEmail == null) throw 'User not authenticated.';
 
-      final teacherSnapshot =
-      await _firestore.doc('Teachers_Details/$teacherEmail').get();
-      if (!teacherSnapshot.exists) throw 'Teacher details not found.';
+  Future<void> findStudentDocIDAndFetch(String studentName) async {
+    final studentRef = FirebaseFirestore.instance.collection('Schools')
+        .doc(widget.schoolName) // Use the dynamic school name
+        .collection('Classes')
+        .doc(widget.studentClass) // Use the dynamic student class
+        .collection('Student_Details');
 
-      final teacherData = teacherSnapshot.data()!;
-      teacherSchoolName = teacherData['school'];
-      final teacherClasses = List<String>.from(teacherData['classes'] ?? []);
+    // Fetch personal information from the correct path
+    final studentDoc = await studentRef
+        .where('fullName', isEqualTo: studentName) // Use a dynamic query if student name is part of the document
+        .get();
 
-      if (!teacherClasses.contains(widget.studentClass.trim())) {
-        throw 'You do not have permission to view this student\'s data.';
-      }
+    if (studentDoc.docs.isNotEmpty) {
+      final studentData = studentDoc.docs.first.data();
+      final firstName = studentData['firstName'] ?? 'N/A';
+      final lastName = studentData['lastName'] ?? 'N/A';
+      final age = studentData['studentAge']?.toString() ?? 'N/A';
+      final gender = studentData['studentGender'] ?? 'N/A';
+      final studentID = studentData['studentID']?.toString() ?? 'N/A';
+      final studentClass = studentData['studentClass'] ?? 'N/A';
 
-      final trimmedSchool = teacherSchoolName?.trim();
-      final trimmedClass = widget.studentClass.trim();
+      print('📋 Student Information for $studentName:');
+      print('First Name: $firstName');
+      print('Last Name: $lastName');
+      print('Age: $age');
+      print('Gender: $gender');
+      print('Student ID: $studentID');
+      print('Class: $studentClass');
 
-      final fallbackDoc = await FirebaseFirestore.instance
-          .collection('Schools')
-          .doc(trimmedSchool)
-          .collection('Classes')
-          .doc(trimmedClass)
-          .collection('Student_Details')
-          .doc('N/A N/A')
-          .collection('Personal_Information')
-          .doc('Registered_Information')
-          .get();
-
-      if (!fallbackDoc.exists) throw 'Fallback student not found.';
-
-      final fallbackData = fallbackDoc.data()!;
-      final firstName = (fallbackData['firstName'] ?? '').toString().trim().toUpperCase();
-      final lastName = (fallbackData['lastName'] ?? '').toString().trim().toUpperCase();
-
-      final studentFullName = '$lastName $firstName'; // 🧠 Last name first
-      print('📁 Student Document ID: $studentFullName');
-
-      final studentRef = FirebaseFirestore.instance
-          .collection('Schools')
-          .doc(trimmedSchool)
-          .collection('Classes')
-          .doc(trimmedClass)
-          .collection('Student_Details')
-          .doc(studentFullName);
-
-      final personalInfo = await studentRef
-          .collection('Personal_Information')
-          .doc('Registered_Information')
-          .get();
-
-      if (personalInfo.exists) {
-        final info = personalInfo.data()!;
-        print('\n📋 Student Information:');
-        print('First Name: ${info['firstName']}');
-        print('Last Name: ${info['lastName']}');
-        print('Age: ${info['studentAge']}');
-        print('Gender: ${info['studentGender']}');
-        print('Class: ${info['studentClass']}');
-        print('Student ID: ${info['studentID']}');
-      }
-
-      final subjects = await studentRef.collection('Subjects').get();
-      print('\n📚 Subjects:');
-      for (var doc in subjects.docs) {
-        final data = doc.data();
-        print('Subject: ${data['Subject_Name']}, Grade: ${data['Subject_Grade']}');
-      }
-
-      final marksDoc = await studentRef.collection('TOTAL_MARKS').doc('Marks').get();
-      if (marksDoc.exists) {
-        final marks = marksDoc.data()!;
-        print('\n📊 Total Marks:');
-        print('Teacher Total: ${marks['Teacher_Total_Marks']}');
-        print('Student Points: ${marks['Total_Student_Points']}');
-      }
-
-    } catch (e) {
-      print('❌ Error: $e');
-    } finally {
       setState(() {
-        isLoading = false;
+        studentInfo = {
+          'firstName': firstName,
+          'lastName': lastName,
+          'studentAge': age,
+          'studentGender': gender,
+          'studentID': studentID,
+          'studentClass': studentClass,
+        };
       });
+    } else {
+      print('❌ Error: Student $studentName not found.');
+    }
+
+    // Fetch subjects and grades
+    final subjectsRef = studentRef.doc(studentDoc.docs.first.id).collection('Student_Subjects');
+    final subjectsSnapshot = await subjectsRef.get();
+
+    if (subjectsSnapshot.docs.isNotEmpty) {
+      print('\n📚 Subjects for $studentName:');
+      for (var subjectDoc in subjectsSnapshot.docs) {
+        final subjectName = subjectDoc.id; // Subject Name (e.g., CHEMISTRY)
+        final subjectGrade = subjectDoc.data()['Subject_Grade'] ?? 'N/A'; // Grade for the subject
+        print('Subject: $subjectName');
+        print('Grade: $subjectGrade');
+
+        setState(() {
+          subjectsWithGrades![subjectName] = {
+            'subject': subjectName,
+            'grade': subjectGrade,
+          };
+        });
+      }
+    } else {
+      print('⚠️ No subjects found for student $studentName');
+    }
+
+    // Fetch total marks (from TOTAL_MARKS/Marks)
+    final marksDoc = await studentRef
+        .doc(studentDoc.docs.first.id)
+        .collection('TOTAL_MARKS')
+        .doc('Marks')
+        .get();
+
+    if (marksDoc.exists) {
+      final marks = marksDoc.data()!;
+      final studentTotalMarks = marks['Student_Total_Marks']?.toString() ?? 'N/A';
+      final teacherTotalMarks = marks['Teacher_Total_Marks']?.toString() ?? 'N/A';
+
+      print('\n📊 Total Marks for $studentName:');
+      print('Student Total: $studentTotalMarks');
+      print('Teacher Total: $teacherTotalMarks');
+
+      setState(() {
+        this.studentTotalMarks = studentTotalMarks;
+        this.teacherTotalMarks = teacherTotalMarks;
+      });
+    } else {
+      print('⚠️ TOTAL_MARKS/Marks not found for $studentName');
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +142,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // School and Student Header
+            // Header
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -150,7 +153,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'School: ${teacherSchoolName ?? 'N/A'}',
+                    'School: ${widget.schoolName ?? 'N/A'}',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -159,7 +162,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Student: ${widget.studentName}',
+                    'Student: ${studentInfo?['firstName'] ?? 'N/A'} ${studentInfo?['lastName'] ?? ''}',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -177,111 +180,73 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
 
-            // Student Information Section
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Personal Information:',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueAccent,
-                    ),
-                  ),
-                  const Divider(),
-                  Text('First Name: ${studentInfo?['firstName'] ?? 'N/A'}'),
-                  Text('Last Name: ${studentInfo?['lastName'] ?? 'N/A'}'),
-                  Text('Age: ${studentInfo?['studentAge'] ?? 'N/A'}'),
-                  Text('Gender: ${studentInfo?['studentGender'] ?? 'N/A'}'),
-                  Text('Student ID: ${studentInfo?['studentID'] ?? 'N/A'}'),
-                ],
-              ),
+            // Personal Info
+            buildCardSection(
+              title: 'Personal Information:',
+              children: [
+                Text('First Name: ${studentInfo?['firstName'] ?? 'N/A'}'),
+                Text('Last Name: ${studentInfo?['lastName'] ?? 'N/A'}'),
+                Text('Age: ${studentInfo?['studentAge'] ?? 'N/A'}'),
+                Text('Gender: ${studentInfo?['studentGender'] ?? 'N/A'}'),
+                Text('Student ID: ${studentInfo?['studentID'] ?? 'N/A'}'),
+              ],
             ),
 
             const SizedBox(height: 20),
 
-            // Subjects and Grades Section
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Subjects & Grades:',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueAccent,
-                    ),
-                  ),
-                  const Divider(),
-                  if (subjectsWithGrades != null && subjectsWithGrades!.isNotEmpty)
-                    ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: subjectsWithGrades!.length,
-                      itemBuilder: (context, index) {
-                        final subject = subjectsWithGrades!.values.toList()[index];
-                        return ListTile(
-                          title: Text(subject['subject'] ?? 'N/A'),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Grade: ${subject['grade'] ?? 'N/A'}'),
-                              Text('Grade Points: ${subject['points'] ?? 'N/A'}'),
-                            ],
-                          ),
-                        );
-                      },
-                    )
-                  else
-                    const Text('No subjects available'),
-                ],
-              ),
+            // Subjects
+            buildCardSection(
+              title: 'Subjects & Grades:',
+              children: subjectsWithGrades != null &&
+                  subjectsWithGrades!.isNotEmpty
+                  ? subjectsWithGrades!.values.map((subject) {
+                return ListTile(
+                  title: Text(subject['subject'] ?? 'N/A'),
+                  subtitle: Text('Grade: ${subject['grade'] ?? 'N/A'}'),
+                );
+              }).toList()
+                  : [const Text('No subjects available')],
             ),
 
             const SizedBox(height: 20),
 
-            // Total Marks Section
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Total Marks:',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueAccent,
-                    ),
-                  ),
-                  const Divider(),
-
-                  Text('Teacher Total Marks: $teacherTotalMarks'),
-                  Text('Student Total Marks: $bestSixTotalPoints'),
-                ],
-              ),
+            // Total Marks
+            buildCardSection(
+              title: 'Total Marks:',
+              children: [
+                Text('Student Total Marks: $studentTotalMarks'),
+                Text('Teacher Total Marks: $teacherTotalMarks'),
+              ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget buildCardSection({required String title, required List<Widget> children}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.blueAccent,
+            ),
+          ),
+          const Divider(),
+          ...children,
+        ],
       ),
     );
   }
