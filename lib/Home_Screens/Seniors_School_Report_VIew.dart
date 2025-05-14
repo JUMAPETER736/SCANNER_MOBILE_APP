@@ -5,12 +5,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 class Seniors_School_Report_View extends StatefulWidget {
   final String schoolName;
   final String studentClass;
-  final String studentName;
+  final String studentFullName;
 
   const Seniors_School_Report_View({
     required this.schoolName,
     required this.studentClass,
-    required this.studentName,
+    required this.studentFullName,
     Key? key,
   }) : super(key: key);
 
