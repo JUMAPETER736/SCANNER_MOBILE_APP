@@ -119,7 +119,7 @@ class _School_ReportsState extends State<School_Reports> {
             var lastName = registeredData['lastName'] ?? 'N/A';
             var gender = registeredData['studentGender'] ?? 'N/A';
             var studentClass = registeredData['studentClass'] ?? 'N/A';
-            var fullName = '$lastName $firstName';
+            var studentFullName = '$lastName $firstName';
 
             if (studentClass == 'FORM 3' || studentClass == 'FORM 4') {
               List<int> subjectPoints = [];
@@ -153,7 +153,7 @@ class _School_ReportsState extends State<School_Reports> {
               }
 
               tempStudentDetails.add({
-                'fullName': fullName,
+                'fullName': studentFullName,
                 'studentGender': gender,
                 'studentClass': studentClass,
                 'Best_Six_Total_Points': existingBestSixPoints ?? bestSixPoints,
@@ -165,7 +165,7 @@ class _School_ReportsState extends State<School_Reports> {
               var teacherTotalMarks = totalMarksData['Teacher_Total_Marks'] ?? 0;
 
               tempStudentDetails.add({
-                'fullName': fullName,
+                'fullName': studentFullName,
                 'studentGender': gender,
                 'studentClass': studentClass,
                 'Student_Total_Marks': studentTotalMarks,
@@ -339,7 +339,7 @@ class _School_ReportsState extends State<School_Reports> {
                         builder: (context) => Juniors_School_Report_View(
                           schoolName: student['schoolName'] ?? 'Unknown School',
                           studentClass: student['studentClass'] ?? 'N/A',
-                          studentName: "${student['firstName'] ?? 'N/A'} ${student['lastName'] ?? 'N/A'}",
+                          studentFullName: "${student['firstName'] ?? 'N/A'} ${student['lastName'] ?? 'N/A'}",
                         ),
                       ),
                     );
@@ -347,14 +347,17 @@ class _School_ReportsState extends State<School_Reports> {
                     // Senior school report
                     Navigator.push(
                       context,
+
                       MaterialPageRoute(
+
                         builder: (context) => Seniors_School_Report_View(
 
                           schoolName: student['schoolName'] ?? 'Sorry, Unknown School',
                           studentClass: student['studentClass'] ?? 'N/A',
-                          studentName: "${student['lastName'] ?? 'N/A'} ${student['firstName'] ?? 'N/A'}",
+                          studentFullName: "${student['lastName']?.toUpperCase() ?? 'N/A'} ${student['firstName']?.toUpperCase() ?? 'N/A'}",
                         ),
                       ),
+
                     );
 
                   } else {

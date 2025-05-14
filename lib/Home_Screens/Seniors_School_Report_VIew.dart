@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class Seniors_School_Report_View extends StatefulWidget {
   final String schoolName;
   final String studentClass;
-  final String studentName;
+  final String studentFullName; // Matches the saved document ID
 
   const Seniors_School_Report_View({
+    Key? key,
     required this.schoolName,
     required this.studentClass,
-    required this.studentName,
-    Key? key,
+    required this.studentFullName,
   }) : super(key: key);
 
   @override
@@ -19,111 +18,94 @@ class Seniors_School_Report_View extends StatefulWidget {
       _Seniors_School_Report_ViewState();
 }
 
-class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  String? teacherSchoolName;
-  Map<String, dynamic>? studentInfo;
-  Map<String, dynamic>? subjectsWithGrades = {};
-  String? studentTotalMarks;
-  String? teacherTotalMarks;
-  String? bestSixTotalPoints;
+class _Seniors_School_Report_ViewState
+    extends State<Seniors_School_Report_View> {
   bool isLoading = true;
+  bool hasError = false;
+  String errorMessage = '';
+  Map<String, dynamic>? studentDetails;
+  List<Map<String, dynamic>> studentSubjects = [];
+  Map<String, dynamic>? totalMarks;
 
   @override
   void initState() {
     super.initState();
-    fetchStudentDataAndSubjects();
+    _fetchStudentDetails();
   }
 
-  Future<void> fetchStudentDataAndSubjects() async {
-    setState(() {
-      isLoading = true;
-    });
-
+  Future<void> _fetchStudentDetails() async {
     try {
-      final teacherEmail = FirebaseAuth.instance.currentUser?.email;
-      if (teacherEmail == null) throw 'User not authenticated.';
-
-      final teacherSnapshot =
-      await _firestore.doc('Teachers_Details/$teacherEmail').get();
-      if (!teacherSnapshot.exists) throw 'Teacher details not found.';
-
-      final teacherData = teacherSnapshot.data()!;
-      teacherSchoolName = teacherData['school'];
-      final teacherClasses = List<String>.from(teacherData['classes'] ?? []);
-
-      if (!teacherClasses.contains(widget.studentClass.trim())) {
-        throw 'You do not have permission to view this student\'s data.';
-      }
-
-      final trimmedSchool = teacherSchoolName?.trim();
-      final trimmedClass = widget.studentClass.trim();
-
-      final fallbackDoc = await FirebaseFirestore.instance
+      print("DEBUG: Starting to fetch student details...");
+      final studentDocRef = FirebaseFirestore.instance
           .collection('Schools')
-          .doc(trimmedSchool)
+          .doc(widget.schoolName)
           .collection('Classes')
-          .doc(trimmedClass)
+          .doc(widget.studentClass)
           .collection('Student_Details')
-          .doc('N/A N/A')
+          .doc(widget.studentFullName);
+
+      // Fetch 'Registered_Information'
+      print("DEBUG: Fetching Registered Information...");
+      DocumentSnapshot registeredInformationDoc = await studentDocRef
           .collection('Personal_Information')
           .doc('Registered_Information')
           .get();
 
-      if (!fallbackDoc.exists) throw 'Fallback student not found.';
+      if (!registeredInformationDoc.exists) {
+        throw Exception('Registered Information not found.');
+      }
 
-      final fallbackData = fallbackDoc.data()!;
-      final firstName = (fallbackData['firstName'] ?? '').toString().trim().toUpperCase();
-      final lastName = (fallbackData['lastName'] ?? '').toString().trim().toUpperCase();
-
-      final studentFullName = '$lastName $firstName'; // 🧠 Last name first
-      print('📁 Student Document ID: $studentFullName');
-
-      final studentRef = FirebaseFirestore.instance
-          .collection('Schools')
-          .doc(trimmedSchool)
-          .collection('Classes')
-          .doc(trimmedClass)
-          .collection('Student_Details')
-          .doc(studentFullName);
-
-      final personalInfo = await studentRef
-          .collection('Personal_Information')
-          .doc('Registered_Information')
+      // Fetch 'Student_Subjects'
+      print("DEBUG: Fetching Student Subjects...");
+      QuerySnapshot subjectsSnapshot = await studentDocRef
+          .collection('Student_Subjects')
           .get();
 
-      if (personalInfo.exists) {
-        final info = personalInfo.data()!;
-        print('\n📋 Student Information:');
-        print('First Name: ${info['firstName']}');
-        print('Last Name: ${info['lastName']}');
-        print('Age: ${info['studentAge']}');
-        print('Gender: ${info['studentGender']}');
-        print('Class: ${info['studentClass']}');
-        print('Student ID: ${info['studentID']}');
+      // Fetch 'TOTAL_MARKS'
+      print("DEBUG: Fetching Total Marks...");
+      DocumentSnapshot totalMarksDoc = await studentDocRef
+          .collection('TOTAL_MARKS')
+          .doc('Marks')
+          .get();
+
+      // Process data
+      final registeredData = registeredInformationDoc.data() as Map<String, dynamic>;
+      final List<Map<String, dynamic>> subjectDetails = [];
+      final Map<String, dynamic>? totalMarksData =
+      totalMarksDoc.data() as Map<String, dynamic>?;
+
+      for (var subjectDoc in subjectsSnapshot.docs) {
+        var subjectData = subjectDoc.data() as Map<String, dynamic>;
+        subjectDetails.add({
+          'Subject_Name': subjectData['Subject_Name'] ?? 'Unknown Subject',
+          'Subject_Grade': subjectData['Subject_Grade'] ?? 'N/A',
+        });
       }
 
-      final subjects = await studentRef.collection('Subjects').get();
-      print('\n📚 Subjects:');
-      for (var doc in subjects.docs) {
-        final data = doc.data();
-        print('Subject: ${data['Subject_Name']}, Grade: ${data['Subject_Grade']}');
-      }
+      setState(() {
+        studentDetails = {
+          'fullName': '${registeredData['lastName']} ${registeredData['firstName']}',
+          'studentGender': registeredData['studentGender'] ?? 'N/A',
+          'studentClass': registeredData['studentClass'] ?? 'N/A',
+          'studentAge': registeredData['studentAge'] ?? 'N/A',
+          'studentID': registeredData['studentID'] ?? 'N/A',
+        };
+        studentSubjects = subjectDetails;
+        totalMarks = {
+          'Best_Six_Total_Points': totalMarksData?['Best_Six_Total_Points'] ?? 0,
+          'Student_Total_Marks': totalMarksData?['Student_Total_Marks']?.toString() ?? '0',
+          'Teacher_Total_Marks': totalMarksData?['Teacher_Total_Marks']?.toString() ?? '0',
+        };
+        isLoading = false;
+      });
 
-      final marksDoc = await studentRef.collection('TOTAL_MARKS').doc('Marks').get();
-      if (marksDoc.exists) {
-        final marks = marksDoc.data()!;
-        print('\n📊 Total Marks:');
-        print('Teacher Total: ${marks['Teacher_Total_Marks']}');
-        print('Student Points: ${marks['Total_Student_Points']}');
-      }
-
+      print("DEBUG: Student details successfully processed and state updated.");
     } catch (e) {
-      print('❌ Error: $e');
-    } finally {
+      print("DEBUG: Error occurred while fetching student details: $e");
       setState(() {
         isLoading = false;
+        hasError = true;
+        errorMessage = 'An error occurred while fetching student details: $e';
       });
     }
   }
@@ -131,157 +113,149 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Senior Student Report')),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // School and Student Header
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.blueAccent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'School: ${teacherSchoolName ?? 'N/A'}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Student: ${widget.studentName}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Class: ${widget.studentClass}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Student Information Section
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Personal Information:',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueAccent,
-                    ),
-                  ),
-                  const Divider(),
-                  Text('First Name: ${studentInfo?['firstName'] ?? 'N/A'}'),
-                  Text('Last Name: ${studentInfo?['lastName'] ?? 'N/A'}'),
-                  Text('Age: ${studentInfo?['studentAge'] ?? 'N/A'}'),
-                  Text('Gender: ${studentInfo?['studentGender'] ?? 'N/A'}'),
-                  Text('Student ID: ${studentInfo?['studentID'] ?? 'N/A'}'),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Subjects and Grades Section
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Subjects & Grades:',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueAccent,
-                    ),
-                  ),
-                  const Divider(),
-                  if (subjectsWithGrades != null && subjectsWithGrades!.isNotEmpty)
-                    ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: subjectsWithGrades!.length,
-                      itemBuilder: (context, index) {
-                        final subject = subjectsWithGrades!.values.toList()[index];
-                        return ListTile(
-                          title: Text(subject['subject'] ?? 'N/A'),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Grade: ${subject['grade'] ?? 'N/A'}'),
-                              Text('Grade Points: ${subject['points'] ?? 'N/A'}'),
-                            ],
-                          ),
-                        );
-                      },
-                    )
-                  else
-                    const Text('No subjects available'),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Total Marks Section
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Total Marks:',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueAccent,
-                    ),
-                  ),
-                  const Divider(),
-                  Text('Student Total Marks: $studentTotalMarks'),
-                  Text('Teacher Total Marks: $teacherTotalMarks'),
-                  Text('Best Six Total Points: $bestSixTotalPoints'),
-                ],
-              ),
-            ),
-          ],
+      appBar: AppBar(
+        title: Text(
+          'Senior School Report',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
+        backgroundColor: Colors.blueAccent,
+        centerTitle: true,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blueAccent, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        padding: const EdgeInsets.all(16.0),
+        child: isLoading
+            ? Center(child: CircularProgressIndicator())
+            : hasError
+            ? Center(
+          child: Text(
+            errorMessage,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+            ),
+          ),
+        )
+            : SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Student Information
+              Text(
+                'Student Details',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blueAccent,
+                ),
+              ),
+              SizedBox(height: 10),
+              _buildInfoRow('Full Name', studentDetails!['fullName']),
+              _buildInfoRow(
+                  'Class', studentDetails!['studentClass']),
+              _buildInfoRow(
+                  'Gender', studentDetails!['studentGender']),
+              _buildInfoRow('Age', studentDetails!['studentAge']),
+              _buildInfoRow('ID', studentDetails!['studentID']),
+              SizedBox(height: 20),
+
+              // Subjects and Grades
+              Text(
+                'Subjects and Grades',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blueAccent,
+                ),
+              ),
+              SizedBox(height: 10),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemCount: studentSubjects.length,
+                separatorBuilder: (context, index) => Divider(),
+                itemBuilder: (context, index) {
+                  var subject = studentSubjects[index];
+                  return ListTile(
+                    title: Text(
+                      subject['Subject_Name'],
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    trailing: Text(
+                      subject['Subject_Grade'],
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              SizedBox(height: 20),
+
+              // Total Marks
+              Text(
+                'Total Marks',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blueAccent,
+                ),
+              ),
+              SizedBox(height: 10),
+              _buildInfoRow(
+                'Best Six Total Points',
+                totalMarks!['Best_Six_Total_Points'].toString(),
+              ),
+              _buildInfoRow(
+                'Student Total Marks',
+                totalMarks!['Student_Total_Marks'].toString(),
+              ),
+              _buildInfoRow(
+                'Teacher Total Marks',
+                totalMarks!['Teacher_Total_Marks'].toString(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '$label:',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black54,
+            ),
+          ),
+        ],
       ),
     );
   }
