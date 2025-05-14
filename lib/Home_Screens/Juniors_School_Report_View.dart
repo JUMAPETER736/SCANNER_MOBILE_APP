@@ -131,7 +131,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Senior Student Report')),
+      appBar: AppBar(title: const Text('Junior Student Report')),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -276,7 +276,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                   const Divider(),
 
                   Text('Teacher Total Marks: $teacherTotalMarks'),
-                  Text('Best Six Total Points: $bestSixTotalPoints'),
+                  Text('Student Total Marks: $bestSixTotalPoints'),
                 ],
               ),
             ),
