@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class Juniors_School_Report_View extends StatefulWidget {
   final String schoolName;
   final String studentClass;
-  final String studentName;
+  final String studentFullName;
 
   const Juniors_School_Report_View({
     required this.schoolName,
     required this.studentClass,
-    required this.studentName,
+    required this.studentFullName,
     Key? key,
   }) : super(key: key);
 
@@ -22,7 +21,6 @@ class Juniors_School_Report_View extends StatefulWidget {
 class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  String? teacherSchoolName;
   Map<String, dynamic>? studentInfo;
   Map<String, dynamic>? subjectsWithGrades = {};
   String? studentTotalMarks;
@@ -32,100 +30,139 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   @override
   void initState() {
     super.initState();
-    // Use the student name passed through the widget
-    findStudentDocIDAndFetch(widget.studentName);
+    // Use the studentFullName passed through the widget
+    fetchStudentData();
   }
 
 
 
-  Future<void> findStudentDocIDAndFetch(String studentName) async {
-    final studentRef = FirebaseFirestore.instance.collection('Schools')
-        .doc(widget.schoolName) // Use the dynamic school name
-        .collection('Classes')
-        .doc(widget.studentClass) // Use the dynamic student class
-        .collection('Student_Details');
+  Future<void> fetchStudentData() async {
 
-    // Fetch personal information from the correct path
-    final studentDoc = await studentRef
-        .where('fullName', isEqualTo: studentName) // Use a dynamic query if student name is part of the document
-        .get();
 
-    if (studentDoc.docs.isNotEmpty) {
-      final studentData = studentDoc.docs.first.data();
-      final firstName = studentData['firstName'] ?? 'N/A';
-      final lastName = studentData['lastName'] ?? 'N/A';
-      final age = studentData['studentAge']?.toString() ?? 'N/A';
-      final gender = studentData['studentGender'] ?? 'N/A';
-      final studentID = studentData['studentID']?.toString() ?? 'N/A';
-      final studentClass = studentData['studentClass'] ?? 'N/A';
+    try {
+      // Reference to Student_Details collection
+      final studentDetailsRef = _firestore
+          .collection('Schools')
+          .doc(widget.schoolName)
+          .collection('Classes')
+          .doc(widget.studentClass)
+          .collection('Student_Details');
 
-      print('📋 Student Information for $studentName:');
-      print('First Name: $firstName');
-      print('Last Name: $lastName');
-      print('Age: $age');
-      print('Gender: $gender');
-      print('Student ID: $studentID');
-      print('Class: $studentClass');
+      // Step 0: Log all document IDs in Student_Details
+      final allStudentsSnapshot = await studentDetailsRef.get();
+      if (allStudentsSnapshot.docs.isNotEmpty) {
+        print('📂 Listing all students in Student_Details collection:');
+        for (var doc in allStudentsSnapshot.docs) {
+          print('📝 Student Document ID: ${doc.id}');
+        }
+      } else {
+        print('⚠️ No students found in the Student_Details collection for class ${widget.studentClass}');
+      }
+
+      // Reference to the specific student document
+      final studentRef = studentDetailsRef.doc(widget.studentFullName);
+
+      // Step 1: Fetch student personal info
+      final studentDoc = await studentRef
+          .collection('Personal_Information')
+          .doc('Registered_Information')
+          .get();
+
+      if (!studentDoc.exists) {
+        print('❌ Error: Personal information for ${widget.studentFullName} not found.');
+        setState(() {
+          studentInfo = {}; // Clear previous data if needed
+          subjectsWithGrades = {};
+          studentTotalMarks = 'N/A';
+          teacherTotalMarks = 'N/A';
+          isLoading = false; // Important: Update loading state
+        });
+        return;
+      }
+
+      final studentData = studentDoc.data()!;
+      print('📋 Student Information for ${widget.studentFullName}: $studentData');
 
       setState(() {
         studentInfo = {
-          'firstName': firstName,
-          'lastName': lastName,
-          'studentAge': age,
-          'studentGender': gender,
-          'studentID': studentID,
-          'studentClass': studentClass,
+          'firstName': studentData['firstName'] ?? 'N/A',
+          'lastName': studentData['lastName'] ?? 'N/A',
+          'studentAge': studentData['studentAge']?.toString() ?? 'N/A',
+          'studentGender': studentData['studentGender'] ?? 'N/A',
+          'studentID': studentData['studentID']?.toString() ?? 'N/A',
+          'studentClass': studentData['studentClass'] ?? 'N/A',
         };
       });
-    } else {
-      print('❌ Error: Student $studentName not found.');
-    }
 
-    // Fetch subjects and grades
-    final subjectsRef = studentRef.doc(studentDoc.docs.first.id).collection('Student_Subjects');
-    final subjectsSnapshot = await subjectsRef.get();
+      // Step 2: Fetch subjects and grades
+      final subjectsRef = studentRef.collection('Student_Subjects');
+      final subjectsSnapshot = await subjectsRef.get();
 
-    if (subjectsSnapshot.docs.isNotEmpty) {
-      print('\n📚 Subjects for $studentName:');
-      for (var subjectDoc in subjectsSnapshot.docs) {
-        final subjectName = subjectDoc.id; // Subject Name (e.g., CHEMISTRY)
-        final subjectGrade = subjectDoc.data()['Subject_Grade'] ?? 'N/A'; // Grade for the subject
-        print('Subject: $subjectName');
-        print('Grade: $subjectGrade');
+      if (subjectsSnapshot.docs.isNotEmpty) {
+        print('\n📚 Subjects for ${widget.studentFullName}:');
+        final Map<String, Map<String, String>> updatedSubjects = {};
+        for (var subjectDoc in subjectsSnapshot.docs) {
+          final subjectName = subjectDoc.id;
+          final subjectGrade = subjectDoc.data()['Subject_Grade'] ?? 'N/A';
 
-        setState(() {
-          subjectsWithGrades![subjectName] = {
+          print('Subject: $subjectName');
+          print('Grade: $subjectGrade');
+
+          updatedSubjects[subjectName] = {
             'subject': subjectName,
             'grade': subjectGrade,
           };
+        }
+
+        setState(() {
+          subjectsWithGrades = updatedSubjects;
+        });
+      } else {
+        print('⚠️ No subjects found for student ${widget.studentFullName}');
+        setState(() {
+          subjectsWithGrades = {};
         });
       }
-    } else {
-      print('⚠️ No subjects found for student $studentName');
-    }
 
-    // Fetch total marks (from TOTAL_MARKS/Marks)
-    final marksDoc = await studentRef
-        .doc(studentDoc.docs.first.id)
-        .collection('TOTAL_MARKS')
-        .doc('Marks')
-        .get();
+      // Step 3: Fetch total marks
+      final marksDoc = await studentRef
+          .collection('TOTAL_MARKS')
+          .doc('Marks')
+          .get();
 
-    if (marksDoc.exists) {
-      final marks = marksDoc.data()!;
-      final studentTotalMarks = marks['Student_Total_Marks']?.toString() ?? 'N/A';
-      final teacherTotalMarks = marks['Teacher_Total_Marks']?.toString() ?? 'N/A';
+      if (marksDoc.exists) {
+        final marks = marksDoc.data()!;
+        final studentTotal = marks['Student_Total_Marks']?.toString() ?? 'N/A';
+        final teacherTotal = marks['Teacher_Total_Marks']?.toString() ?? 'N/A';
 
-      print('\n📊 Total Marks for $studentName:');
-      print('Student Total: $studentTotalMarks');
-      print('Teacher Total: $teacherTotalMarks');
+        print('\n📊 Total Marks for ${widget.studentFullName}:');
+        print('Student Total: $studentTotal');
+        print('Teacher Total: $teacherTotal');
 
+        setState(() {
+          studentTotalMarks = studentTotal;
+          teacherTotalMarks = teacherTotal;
+          isLoading = false; // Set loading to false once all data is fetched
+        });
+      } else {
+        print('⚠️ TOTAL_MARKS/Marks not found for ${widget.studentFullName}');
+        setState(() {
+          studentTotalMarks = 'N/A';
+          teacherTotalMarks = 'N/A';
+          isLoading = false; // Set loading to false even if marks not found
+        });
+      }
+
+    } catch (e, stacktrace) {
+      print('❗ Exception while fetching student data: $e');
+      print(stacktrace);
       setState(() {
-        this.studentTotalMarks = studentTotalMarks;
-        this.teacherTotalMarks = teacherTotalMarks;
+        isLoading = false; // Set loading to false on error
       });
-    } else {
-      print('⚠️ TOTAL_MARKS/Marks not found for $studentName');
+      // Show an error message to the user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
     }
   }
 
@@ -153,7 +190,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'School: ${widget.schoolName ?? 'N/A'}',
+                    'School: ${widget.schoolName}',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -201,7 +238,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
               title: 'Subjects & Grades:',
               children: subjectsWithGrades != null &&
                   subjectsWithGrades!.isNotEmpty
-                  ? subjectsWithGrades!.values.map((subject) {
+                  ? subjectsWithGrades!.values.map<Widget>((subject) {
                 return ListTile(
                   title: Text(subject['subject'] ?? 'N/A'),
                   subtitle: Text('Grade: ${subject['grade'] ?? 'N/A'}'),

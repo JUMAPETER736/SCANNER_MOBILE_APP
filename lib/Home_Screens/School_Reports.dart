@@ -337,12 +337,10 @@ class _School_ReportsState extends State<School_Reports> {
                       context,
 
                       MaterialPageRoute(
-
                         builder: (context) => Juniors_School_Report_View(
-
                           schoolName: student['schoolName'] ?? 'Unknown School',
-                          studentClass: student['studentClass'] ?? 'N/A',
-                          studentName: "${student['lastName'] ?? 'N/A'} ${student['firstName'] ?? 'N/A'}",
+                          studentClass: studentClass,
+                          studentFullName: student['fullName'],
                         ),
                       ),
 
@@ -354,9 +352,10 @@ class _School_ReportsState extends State<School_Reports> {
                       MaterialPageRoute(
                         builder: (context) => Seniors_School_Report_View(
 
-                          schoolName: student['schoolName'] ?? 'Sorry, Unknown School',
-                          studentClass: student['studentClass'] ?? 'N/A',
-                          studentName: "${student['lastName'] ?? 'N/A'} ${student['firstName'] ?? 'N/A'}",
+                          schoolName: student['schoolName'] ?? 'Unknown School',
+                          studentClass: studentClass,
+                          studentFullName: student['fullName'],
+
                         ),
                       ),
                     );
