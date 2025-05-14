@@ -27,7 +27,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   Map<String, dynamic>? subjectsWithGrades = {};
   String? studentTotalMarks;
   String? teacherTotalMarks;
-  String? bestSixTotalPoints;
   bool isLoading = true;
 
   @override
@@ -37,6 +36,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   }
 
   Future<void> fetchStudentDataAndSubjects() async {
+    print('🔄 Starting to fetch student data and subjects...');
     setState(() {
       isLoading = true;
     });
@@ -44,94 +44,93 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     try {
       final teacherEmail = FirebaseAuth.instance.currentUser?.email;
       if (teacherEmail == null) throw 'User not authenticated.';
+      print('👨‍🏫 Authenticated Teacher Email: $teacherEmail');
 
-      final teacherSnapshot =
-      await _firestore.doc('Teachers_Details/$teacherEmail').get();
+      final teacherSnapshot = await _firestore.doc('Teachers_Details/$teacherEmail').get();
       if (!teacherSnapshot.exists) throw 'Teacher details not found.';
+      print('✅ Fetched teacher details');
 
       final teacherData = teacherSnapshot.data()!;
       teacherSchoolName = teacherData['school'];
       final teacherClasses = List<String>.from(teacherData['classes'] ?? []);
+      print('🏫 Teacher School: $teacherSchoolName');
+      print('📚 Teacher Classes: $teacherClasses');
 
       if (!teacherClasses.contains(widget.studentClass.trim())) {
-        throw 'You do not have permission to view this student\'s data.';
+        throw '⛔ You do not have permission to view this student\'s data.';
       }
 
       final trimmedSchool = teacherSchoolName?.trim();
       final trimmedClass = widget.studentClass.trim();
 
-      final fallbackDoc = await FirebaseFirestore.instance
-          .collection('Schools')
-          .doc(trimmedSchool)
-          .collection('Classes')
-          .doc(trimmedClass)
-          .collection('Student_Details')
-          .doc('N/A N/A')
-          .collection('Personal_Information')
-          .doc('Registered_Information')
-          .get();
-
-      if (!fallbackDoc.exists) throw 'Fallback student not found.';
-
-      final fallbackData = fallbackDoc.data()!;
-      final firstName = (fallbackData['firstName'] ?? '').toString().trim().toUpperCase();
-      final lastName = (fallbackData['lastName'] ?? '').toString().trim().toUpperCase();
-
-      final studentFullName = '$lastName $firstName'; // 🧠 Last name first
-      print('📁 Student Document ID: $studentFullName');
-
-      final studentRef = FirebaseFirestore.instance
-          .collection('Schools')
-          .doc(trimmedSchool)
-          .collection('Classes')
-          .doc(trimmedClass)
-          .collection('Student_Details')
-          .doc(studentFullName);
+      // Correcting the reference to Firestore
+      final studentRef = _firestore
+          .collection('Schools') // Fetch the Schools collection
+          .doc(trimmedSchool) // Document for the specific school
+          .collection('Classes') // Fetch the Classes collection
+          .doc(trimmedClass) // Document for the specific class
+          .collection('Student_Details'); // Student details collection
 
       final personalInfo = await studentRef
-          .collection('Personal_Information')
-          .doc('Registered_Information')
+          .doc('Registered_Information') // Fetch a specific student's document
           .get();
 
       if (personalInfo.exists) {
-        final info = personalInfo.data()!;
+        studentInfo = personalInfo.data()!;
         print('\n📋 Student Information:');
-        print('First Name: ${info['firstName']}');
-        print('Last Name: ${info['lastName']}');
-        print('Age: ${info['studentAge']}');
-        print('Gender: ${info['studentGender']}');
-        print('Class: ${info['studentClass']}');
-        print('Student ID: ${info['studentID']}');
+        print('First Name: ${studentInfo?['firstName']}');
+        print('Last Name: ${studentInfo?['lastName']}');
+        print('Age: ${studentInfo?['studentAge']}');
+        print('Gender: ${studentInfo?['studentGender']}');
+        print('Student ID: ${studentInfo?['studentID']}');
+      } else {
+        // Handle the case where student info doesn't exist
+        print('⚠️ No student personal information found.');
       }
 
+      // Fetch subjects
       final subjects = await studentRef.collection('Subjects').get();
+      subjectsWithGrades = {};
       print('\n📚 Subjects:');
       for (var doc in subjects.docs) {
         final data = doc.data();
-        print('Subject: ${data['Subject_Name']}, Grade: ${data['Subject_Grade']}');
+        final subjectName = data['Subject_Name'] ?? 'Unknown';
+        final grade = data['Subject_Grade'] ?? 'N/A';
+
+        subjectsWithGrades![doc.id] = {
+          'subject': subjectName,
+          'grade': grade,
+        };
       }
 
+      // Fetch total marks
       final marksDoc = await studentRef.collection('TOTAL_MARKS').doc('Marks').get();
       if (marksDoc.exists) {
         final marks = marksDoc.data()!;
-        print('\n📊 Total Marks:');
-        print('Teacher Total: ${marks['Teacher_Total_Marks']}');
-        print('Student Points: ${marks['Total_Student_Points']}');
-      }
+        studentTotalMarks = marks['Total_Student_Points']?.toString();
+        teacherTotalMarks = marks['Teacher_Total_Marks']?.toString();
 
+        print('\n📊 Total Marks:');
+        print('Student Points: $studentTotalMarks');
+        print('Teacher Total: $teacherTotalMarks');
+      } else {
+        print('⚠️ TOTAL_MARKS/Marks not found');
+      }
     } catch (e) {
-      print('❌ Error: $e');
+      print('❌ Error while fetching student data: $e');
     } finally {
       setState(() {
         isLoading = false;
       });
+      print('✅ Finished fetching student data and subjects.');
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Senior Student Report')),
+      appBar: AppBar(title: const Text('Junior Student Report')),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -158,8 +157,9 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                     ),
                   ),
                   const SizedBox(height: 8),
+                  // Displaying Full Name dynamically
                   Text(
-                    'Student: ${widget.studentName}',
+                    'Student: ${studentInfo?['firstName'] ?? 'N/A'} ${studentInfo?['lastName'] ?? 'N/A'}',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -241,7 +241,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('Grade: ${subject['grade'] ?? 'N/A'}'),
-                              Text('Grade Points: ${subject['points'] ?? 'N/A'}'),
                             ],
                           ),
                         );
@@ -276,7 +275,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                   const Divider(),
                   Text('Student Total Marks: $studentTotalMarks'),
                   Text('Teacher Total Marks: $teacherTotalMarks'),
-                  Text('Best Six Total Points: $bestSixTotalPoints'),
                 ],
               ),
             ),
@@ -285,4 +283,8 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       ),
     );
   }
+}
+
+extension on CollectionReference<Map<String, dynamic>> {
+  collection(String s) {}
 }

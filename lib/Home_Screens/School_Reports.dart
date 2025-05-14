@@ -1,7 +1,11 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:scanna/Home_Screens/Juniors_School_Report_View.dart';
 import 'package:scanna/Home_Screens/Seniors_School_Report_View.dart';
+
 
 class School_Reports extends StatefulWidget {
   @override
@@ -69,7 +73,7 @@ class _School_ReportsState extends State<School_Reports> {
         setState(() {
           isLoading = false;
           hasError = true;
-          errorMessage = 'An error occurred while fetching user details.';
+          errorMessage = 'Please select a School and Classes before accessing School Reports.';
         });
       }
     } else {
@@ -155,25 +159,10 @@ class _School_ReportsState extends State<School_Reports> {
                 'Best_Six_Total_Points': existingBestSixPoints ?? bestSixPoints,
               });
             }
+
             else if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
-              int studentTotalMarks = 0;
-              int teacherTotalMarks = 0;
-
-              var subjectsSnapshot = await studentDoc.reference.collection('Student_Subjects').get();
-              for (var subjectDoc in subjectsSnapshot.docs) {
-                if (subjectDoc.exists) {
-                  var subjectData = subjectDoc.data() as Map<String, dynamic>;
-                  int subjectGrade = int.tryParse(subjectData['Subject_Grade'] ?? '0') ?? 0; // Convert string to integer
-                  studentTotalMarks += subjectGrade;
-                  teacherTotalMarks += 100; // Each subject contributes 100 to teacher total marks
-                }
-              }
-
-              // Update the TOTAL_MARKS document
-              await studentDoc.reference.collection('TOTAL_MARKS').doc('Marks').set({
-                'Student_Total_Marks': studentTotalMarks.toString(), // Save as string
-                'Teacher_Total_Marks': teacherTotalMarks.toString(), // Save as string
-              }, SetOptions(merge: true));
+              var studentTotalMarks = totalMarksData['Student_Total_Marks'] ?? 0;
+              var teacherTotalMarks = totalMarksData['Teacher_Total_Marks'] ?? 0;
 
               tempStudentDetails.add({
                 'fullName': fullName,
@@ -185,7 +174,6 @@ class _School_ReportsState extends State<School_Reports> {
             }
           }
         }
-
       }
 
       // 🔹 Sort FORM 1/2 students by Student_Total_Marks descending
@@ -311,7 +299,6 @@ class _School_ReportsState extends State<School_Reports> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-
                     if (student['studentClass'] == 'FORM 1' || student['studentClass'] == 'FORM 2')
                       Text(
                         '${student['Student_Total_Marks']} / ${student['Teacher_Total_Marks']}',
@@ -341,22 +328,47 @@ class _School_ReportsState extends State<School_Reports> {
                   ],
                 ),
 
-
-
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => Seniors_School_Report_View(
-                          schoolName: student['schoolName'] ?? 'Unknown School', // Assuming school name is in student data
-                          studentClass: student['studentClass'] ?? 'N/A', // Assuming class information is in student data
-                          studentName: "${student['firstName'] ?? 'N/A'} ${student['lastName'] ?? 'N/A'}" // Full name of student
-                        // Assuming createdBy is the teacher's email
-                      ),
-                    ),
-                  );
+                  String studentClass = student['studentClass']?.toUpperCase() ?? '';
 
+                  if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
+                    // Junior school report
+                    Navigator.push(
+                      context,
+
+                      MaterialPageRoute(
+
+                        builder: (context) => Juniors_School_Report_View(
+
+                          schoolName: student['schoolName'] ?? 'Unknown School',
+                          studentClass: student['studentClass'] ?? 'N/A',
+                          studentName: "${student['lastName'] ?? 'N/A'} ${student['firstName'] ?? 'N/A'}",
+                        ),
+                      ),
+
+                    );
+                  } else if (studentClass == 'FORM 3' || studentClass == 'FORM 4') {
+                    // Senior school report
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Seniors_School_Report_View(
+
+                          schoolName: student['schoolName'] ?? 'Sorry, Unknown School',
+                          studentClass: student['studentClass'] ?? 'N/A',
+                          studentName: "${student['lastName'] ?? 'N/A'} ${student['firstName'] ?? 'N/A'}",
+                        ),
+                      ),
+                    );
+
+                  } else {
+                    // Unknown or unsupported class
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Unknown Student Class: $studentClass')),
+                    );
+                  }
                 },
+
 
               ),
             );
