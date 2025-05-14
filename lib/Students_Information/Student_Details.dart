@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barcode_widget/barcode_widget.dart';
+import 'package:intl/intl.dart';
 
 
 class Student_Details extends StatefulWidget {
@@ -18,7 +19,20 @@ class _Student_DetailsState extends State<Student_Details> {
   // Controllers for text fields
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
-  final TextEditingController _ageController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
+
+// Function to calculate age based on DOB in DD-MM-YYYY format
+  int calculateAge(String dob) {
+    DateFormat dateFormat = DateFormat('dd-MM-yyyy'); // Use the correct date format
+    DateTime birthDate = dateFormat.parse(dob); // Parse DOB correctly
+    DateTime currentDate = DateTime.now();
+    int age = currentDate.year - birthDate.year;
+    if (currentDate.month < birthDate.month ||
+        (currentDate.month == birthDate.month && currentDate.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
 
   String? studentClass;
   String? studentGender;
@@ -59,10 +73,10 @@ class _Student_DetailsState extends State<Student_Details> {
 
       // Define default subjects for each form
       final defaultSubjects = {
-        'FORM 1': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
-        'FORM 2': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
-        'FORM 3': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
-        'FORM 4': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
+        'FORM 1': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
+        'FORM 2': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
+        'FORM 3': ['ADDITIONAL MATHEMATICS','AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
+        'FORM 4': ['ADDITIONAL MATHEMATICS','AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS', 'SOCIAL STUDIES'],
       };
 
       try {
@@ -97,7 +111,8 @@ class _Student_DetailsState extends State<Student_Details> {
           'firstName': _firstNameController.text.trim().toUpperCase(),
           'lastName': _lastNameController.text.trim().toUpperCase(),
           'studentClass': studentClass!,
-          'studentAge': _ageController.text.trim(),
+          'studentDOB': _dobController.text.trim(),
+          'studentAge': calculateAge(_dobController.text.trim()).toString(),
           'studentGender': studentGender!,
           'studentID': studentID!,
           'createdBy': loggedInUser?.email ?? '',
@@ -172,7 +187,7 @@ class _Student_DetailsState extends State<Student_Details> {
     // Dispose controllers when the widget is disposed
     _firstNameController.dispose();
     _lastNameController.dispose();
-    _ageController.dispose();
+    _dobController.dispose();
     super.dispose();
   }
 
@@ -242,20 +257,31 @@ class _Student_DetailsState extends State<Student_Details> {
                       },
                     ),
                     SizedBox(height: 16),
+
                     _buildStyledTextFormField(
-                      controller: _ageController,
-                      labelText: 'Age',
-                      keyboardType: TextInputType.number,
+                      controller: _dobController,
+                      labelText: 'Date of Birth (DD-MM-YYYY)',
+                      keyboardType: TextInputType.datetime,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter the student\'s Age';
+                          return 'Please enter the student\'s Date of Birth';
                         }
-                        if (int.tryParse(value) == null || int.parse(value) <= 0) {
-                          return 'Please enter a valid Age';
+                        try {
+                          // Use DateFormat to validate and parse the input
+                          DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+                          DateTime dob = dateFormat.parseStrict(value);
+
+                          // Ensure the date is not in the future
+                          if (dob.isAfter(DateTime.now())) {
+                            return 'Date of Birth cannot be in the future';
+                          }
+                        } catch (e) {
+                          return 'Please enter a valid Date of Birth (DD-MM-YYYY)';
                         }
                         return null;
                       },
                     ),
+
                     SizedBox(height: 16),
                     _buildStyledDropdownField(
                       value: studentGender,

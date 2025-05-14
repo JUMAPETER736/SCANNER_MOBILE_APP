@@ -78,8 +78,8 @@ class _Main_HomeState extends State<Main_Home> {
                     icon: Icons.class_,
                     text: 'Select School & Class',
                     color: Colors.blueAccent,
-                    iconSize:95.0, // Enlarged icon size
-                    textSize: 22.0, // Enlarged text size
+                    iconSize:65.0, // Enlarged icon size
+                    textSize: 19.0, // Enlarged text size
                     onTap: () {
                       Navigator.push(
                         context,
@@ -93,7 +93,7 @@ class _Main_HomeState extends State<Main_Home> {
                     color: Colors.greenAccent,
 
                     iconSize:95.0, // Enlarged icon size
-                    textSize: 22.0, // Enlarged text size
+                    textSize: 19.0, // Enlarged text size
                     onTap: () {
                       Navigator.push(
                         context,
@@ -107,7 +107,7 @@ class _Main_HomeState extends State<Main_Home> {
                     color: Colors.orangeAccent,
 
                     iconSize:95.0, // Enlarged icon size
-                    textSize: 22.0, // Enlarged text size
+                    textSize: 19.0, // Enlarged text size
                     onTap: () {
                       Navigator.push(
                         context,
@@ -121,7 +121,7 @@ class _Main_HomeState extends State<Main_Home> {
                     color: const Color.fromARGB(255, 59, 61, 60),
 
                     iconSize:95.0, // Enlarged icon size
-                    textSize: 22.0, // Enlarged text size
+                    textSize: 19.0, // Enlarged text size
                     onTap: () {
                       Navigator.push(
                         context,
@@ -135,7 +135,7 @@ class _Main_HomeState extends State<Main_Home> {
                     color: Colors.redAccent,
 
                     iconSize:95.0, // Enlarged icon size
-                    textSize: 22.0,  // Enlarged text size
+                    textSize: 19.0,  // Enlarged text size
                     onTap: () {
                       Navigator.push(
                         context,
@@ -148,7 +148,7 @@ class _Main_HomeState extends State<Main_Home> {
                     text: 'Students Names',
                     color: Colors.purpleAccent,
                     iconSize: 95.0, // Enlarged icon size
-                    textSize: 22.0, // Enlarged text size
+                    textSize: 19.0, // Enlarged text size
                     onTap: () {
                       Navigator.push(
                         context,
