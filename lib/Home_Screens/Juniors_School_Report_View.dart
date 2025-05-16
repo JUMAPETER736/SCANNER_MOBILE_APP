@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+// Add these for printing and PDF
+import 'package:printing/printing.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 class Juniors_School_Report_View extends StatefulWidget {
   final String schoolName;
@@ -105,9 +108,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
-  /// Compose the subject rows to match the FORM 2 list, filling in blanks for missing records
   List<Map<String, dynamic>> get subjectsForDisplay {
-    // Map the fetched subjects to a map for easier lookup
     final Map<String, Map<String, dynamic>> subjectMap = {
       for (final subj in subjects)
         (subj['Subject_Name'] ?? '').toString().toUpperCase(): subj
@@ -116,7 +117,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     if (widget.studentClass.trim().toUpperCase() == 'FORM 2') {
       return form2Subjects.map((subjectName) {
         final subj = subjectMap[subjectName] ?? {};
-        // Calculate the grade using JCE grading key logic
         final score = subj['Subject_Marks'];
         String gradeLetter = '';
         String gradeInterpretation = '';
@@ -150,7 +150,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         };
       }).toList();
     } else {
-      // fallback: just show whatever subjects are fetched
       return subjects.map((subj) {
         final score = subj['Subject_Marks'];
         String gradeLetter = '';
@@ -187,10 +186,118 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
+  // PDF generation logic
+  Future<void> _printReportAsPdf() async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.MultiPage(
+        build: (pw.Context context) => [
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(widget.schoolName.toUpperCase(), style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              pw.Text("P.O. BOX 43, ${widget.schoolName.split(" ").first.toUpperCase()}"),
+              pw.SizedBox(height: 8),
+              pw.Text("2024/25 END OF TERM ONE STUDENT'S PROGRESS REPORT", style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
+              pw.Divider(),
+              pw.Text("NAME OF STUDENT: ${(studentInfo?['firstName'] ?? '')} ${(studentInfo?['lastName'] ?? '')}".toUpperCase(), style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Text("CLASS: "),
+              pw.SizedBox(height: 10),
+              pw.Table.fromTextArray(
+                cellAlignment: pw.Alignment.centerLeft,
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                headers: ["SUBJECT", "SCORE", "GRADE", "INTERPRETATION", "CLASS AVG", "POSITION", "TEACHERS' COMMENTS"],
+                data: [
+                  for (final subject in subjectsForDisplay)
+                    [
+                      subject['Subject_Name'] ?? "-",
+                      subject['Subject_Score'] ?? "-",
+                      subject['Subject_Grade'] ?? "-",
+                      subject['Grade_Interpretation'] ?? "-",
+                      subject['Class_Average'] ?? "-",
+                      subject['Position'] ?? "-",
+                      subject['Teacher_Comment'] ?? "-",
+                    ]
+                ],
+              ),
+              pw.SizedBox(height: 10),
+              pw.Row(
+                children: [
+                  pw.Expanded(child: pw.Text("AGGREGATE POINTS: ${(totalMarks?['Aggregate_Grade'] ?? 'N/A').toString()}")),
+                  pw.Expanded(child: pw.Text("POSITION: ${(totalMarks?['Best_Six_Total_Points'] ?? 'N/A').toString()}")),
+                  pw.Expanded(child: pw.Text("OUT OF: ${(totalMarks?['Student_Total_Marks'] ?? 'N/A').toString()}")),
+                  pw.Expanded(child: pw.Text("END RESULT: ${(totalMarks?['End_Result'] ?? 'JCE')}")),
+                ],
+              ),
+              pw.SizedBox(height: 8),
+              pw.Text("JCE GRADING KEY", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Table.fromTextArray(
+                cellAlignment: pw.Alignment.centerLeft,
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                headers: ["Mark Range per 100", "Grade", "Interpretation"],
+                data: [
+                  ["85 - 100", "A", "EXCELLENT"],
+                  ["70 - 84", "B", "GOOD"],
+                  ["60 - 69", "C", "CREDIT"],
+                  ["50 - 59", "D", "PASS"],
+                  ["0 - 49", "F", "FAIL"],
+                ],
+              ),
+              pw.SizedBox(height: 8),
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text("Form Teacher's Remarks: ", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.Expanded(child: pw.Text(totalMarks?['Form_Teacher_Remarks'] ?? "N/A")),
+                ],
+              ),
+              pw.SizedBox(height: 5),
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text("Head Teacher's Remarks: ", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.Expanded(child: pw.Text(totalMarks?['Head_Teacher_Remarks'] ?? "N/A")),
+                ],
+              ),
+              pw.SizedBox(height: 8),
+              pw.Row(
+                children: [
+                  pw.Text("Fees for next term : ", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.Text(totalMarks?['Fees'] ?? 'MK ###,###.##'),
+                ],
+              ),
+              pw.Row(
+                children: [
+                  pw.Text("Next term begins on : ", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.Text(totalMarks?['Next_Term_Begins'] ?? 'N/A'),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        title: const Text(''),
+        actions: [
+          IconButton(
+            onPressed: isLoading ? null : _printReportAsPdf,
+            icon: const Icon(Icons.print, color: Colors.black),
+            tooltip: 'Print PDF',
+          ),
+        ],
+      ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
@@ -342,23 +449,37 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                     ],
                   ),
                 ),
-                // REMARKS
+                // REMARKS (left aligned in Row)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Form Teacher's Remarks:",
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Form Teacher's Remarks: ",
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                          ),
+                          Expanded(
+                            child: Text(totalMarks?['Form_Teacher_Remarks'] ?? "N/A"),
+                          ),
+                        ],
                       ),
-                      Text(totalMarks?['Form_Teacher_Remarks'] ?? "N/A"),
                       const SizedBox(height: 5),
-                      const Text(
-                        "Head Teacher's Remarks:",
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Head Teacher's Remarks: ",
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                          ),
+                          Expanded(
+                            child: Text(totalMarks?['Head_Teacher_Remarks'] ?? "N/A"),
+                          ),
+                        ],
                       ),
-                      Text(totalMarks?['Head_Teacher_Remarks'] ?? "N/A"),
                     ],
                   ),
                 ),
