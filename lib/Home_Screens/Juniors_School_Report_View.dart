@@ -408,7 +408,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                     children: [
                       Expanded(
                         child: Text(
-                          "AGGREGATE POINTS: ${(totalMarks?['Aggregate_Grade'] ?? 'N/A').toString()}",
+                          "GRADE: ${(totalMarks?['Aggregate_Grade'] ?? 'N/A').toString()}",
                           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                         ),
                       ),
