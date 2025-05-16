@@ -8,6 +8,9 @@ import 'package:scanna/Home_Screens/Seniors_School_Report_View.dart';
 
 
 class School_Reports extends StatefulWidget {
+
+
+
   @override
   _School_ReportsState createState() => _School_ReportsState();
 }
@@ -157,6 +160,7 @@ class _School_ReportsState extends State<School_Reports> {
                 'studentGender': gender,
                 'studentClass': studentClass,
                 'Best_Six_Total_Points': existingBestSixPoints ?? bestSixPoints,
+
               });
             }
 
@@ -329,17 +333,20 @@ class _School_ReportsState extends State<School_Reports> {
                 ),
 
                 onTap: () {
+
+
                   String studentClass = student['studentClass']?.toUpperCase() ?? '';
+                  String schoolName = student['schoolName'] ?? '';
 
                   if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
+
                     // Junior school report
                     Navigator.push(
                       context,
 
                       MaterialPageRoute(
                         builder: (context) => Juniors_School_Report_View(
-
-                          schoolName: student['schoolName'] ?? 'Unknown School',
+                          schoolName: schoolName,
                           studentClass: studentClass,
                           studentFullName: student['fullName'],
                         ),
@@ -353,7 +360,7 @@ class _School_ReportsState extends State<School_Reports> {
                       MaterialPageRoute(
                         builder: (context) => Seniors_School_Report_View(
 
-                          schoolName: student['schoolName'] ?? '',
+                          schoolName: schoolName,
                           studentClass: studentClass,
                           studentFullName: student['fullName'],
 
