@@ -147,6 +147,7 @@ class _Student_DetailsState extends State<Student_Details> {
             .collection('TOTAL_MARKS')
             .doc('Marks') // Single document for total marks
             .set({
+          'Aggregate_Grade' : 'N/A',
           'Best_Six_Total_Points': 0,
           'Student_Total_Marks': '0', // Default total marks
           'Teacher_Total_Marks': '0',

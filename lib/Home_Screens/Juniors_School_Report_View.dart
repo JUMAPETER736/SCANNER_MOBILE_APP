@@ -30,36 +30,97 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     fetchStudentData();
   }
 
+  // Future<void> fetchStudentData() async {
+  //   try {
+  //     // Reference to the specific student document
+  //     final studentDoc = await _firestore
+  //         .collection('Schools')
+  //         .doc(widget.schoolName)
+  //         .collection('Classes')
+  //         .doc(widget.studentClass)
+  //         .collection('Student_Details')
+  //         .doc(widget.studentFullName)
+  //         .collection('Personal_Information')
+  //         .doc('Registered_Information')
+  //         .get();
+  //
+  //     if (!studentDoc.exists) {
+  //       print('❌ Error: Personal information for ${widget.studentFullName} not found.');
+  //       setState(() {
+  //         studentInfo = {}; // Clear previous data if needed
+  //         isLoading = false;
+  //       });
+  //       return;
+  //     }
+  //
+  //     final studentData = studentDoc.data()!;
+  //     print('📋 Student Information for ${widget.studentFullName}: $studentData');
+  //     print('🏫 School Name: ${widget.schoolName}'); // Print the school name
+  //
+  //     setState(() {
+  //       studentInfo = {
+  //         'schoolName': widget.schoolName, // Include the school name
+  //         'createdBy': studentData['createdBy'] ?? 'N/A',
+  //         'firstName': studentData['firstName'] ?? 'N/A',
+  //         'lastName': studentData['lastName'] ?? 'N/A',
+  //         'studentAge': studentData['studentAge'] ?? 'N/A',
+  //         'studentClass': studentData['studentClass'] ?? 'N/A',
+  //         'studentGender': studentData['studentGender'] ?? 'N/A',
+  //         'studentID': studentData['studentID'] ?? 'N/A',
+  //         'timestamp': studentData['timestamp']?.toDate().toString() ?? 'N/A',
+  //       };
+  //       isLoading = false;
+  //     });
+  //   } catch (e, stacktrace) {
+  //     print('❗ Exception while fetching student data: $e');
+  //     print(stacktrace);
+  //     setState(() {
+  //       isLoading = false; // Set loading to false on error
+  //     });
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('Error: ${e.toString()}')),
+  //     );
+  //   }
+  // }
+
+
+
   Future<void> fetchStudentData() async {
     try {
-      // Reference to the specific student document
+
+      final schoolName = widget.schoolName.trim(); // Keep exact case/spaces as in Firestore
+      final studentClass = widget.studentClass.trim().toUpperCase(); // Usually uppercase like FORM 2
+      final studentFullName = widget.studentFullName.trim(); // Keep exact spacing and case
+
+      print('Fetching student info from path:');
+      print('Schools/$schoolName/Classes/$studentClass/Student_Details/$studentFullName/Personal_Information/Registered_Information');
+
       final studentDoc = await _firestore
           .collection('Schools')
-          .doc(widget.schoolName)
+          .doc(schoolName)
           .collection('Classes')
-          .doc(widget.studentClass)
+          .doc(studentClass)
           .collection('Student_Details')
-          .doc(widget.studentFullName)
+          .doc(studentFullName)
           .collection('Personal_Information')
           .doc('Registered_Information')
           .get();
 
       if (!studentDoc.exists) {
-        print('❌ Error: Personal information for ${widget.studentFullName} not found.');
+        print('❌ Error: Personal information for $studentFullName not found.');
         setState(() {
-          studentInfo = {}; // Clear previous data if needed
+          studentInfo = {};
           isLoading = false;
         });
         return;
       }
 
       final studentData = studentDoc.data()!;
-      print('📋 Student Information for ${widget.studentFullName}: $studentData');
-      print('🏫 School Name: ${widget.schoolName}'); // Print the school name
+      print('📋 Student Information for $studentFullName: $studentData');
 
       setState(() {
         studentInfo = {
-          'schoolName': widget.schoolName, // Include the school name
+          'schoolName': schoolName,
           'createdBy': studentData['createdBy'] ?? 'N/A',
           'firstName': studentData['firstName'] ?? 'N/A',
           'lastName': studentData['lastName'] ?? 'N/A',
@@ -75,13 +136,17 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       print('❗ Exception while fetching student data: $e');
       print(stacktrace);
       setState(() {
-        isLoading = false; // Set loading to false on error
+        isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
     }
   }
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
