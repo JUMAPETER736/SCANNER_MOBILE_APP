@@ -29,7 +29,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   bool isLoading = true;
 
   // List of FORM 2 Subjects
-  static const List<String> form2Subjects = [
+  static const List<String> JuniorsSubjects = [
     'AGRICULTURE',
     'BIBLE KNOWLEDGE',
     'BIOLOGY',
@@ -114,8 +114,10 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         (subj['Subject_Name'] ?? '').toString().toUpperCase(): subj
     };
 
-    if (widget.studentClass.trim().toUpperCase() == 'FORM 2') {
-      return form2Subjects.map((subjectName) {
+    if (widget.studentClass.trim().toUpperCase() == 'FORM 1' ||
+        widget.studentClass.trim().toUpperCase() == 'FORM 2') {
+      
+      return JuniorsSubjects.map((subjectName) {
         final subj = subjectMap[subjectName] ?? {};
         final score = subj['Subject_Marks'];
         String gradeLetter = '';
