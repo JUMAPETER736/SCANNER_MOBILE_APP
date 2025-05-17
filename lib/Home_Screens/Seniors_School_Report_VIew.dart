@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 // Add these for printing and PDF
 import 'package:printing/printing.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf/pdf.dart';
 
 class Seniors_School_Report_View extends StatefulWidget {
 
@@ -29,8 +30,9 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   Map<String, dynamic>? totalMarks;
   bool isLoading = true;
 
-  // List of FORM 2 Subjects
-  static const List<String> form2Subjects = [
+  // List of FORM 3 AND FORM 4 Subjects
+  static const List<String> SeniorsSubjects = [
+    'ADDITIONAL MATHEMATICS',
     'AGRICULTURE',
     'BIBLE KNOWLEDGE',
     'BIOLOGY',
@@ -158,8 +160,10 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       }
     }
 
-    if (widget.studentClass.trim().toUpperCase() == 'FORM 2') {
-      return form2Subjects.map((subjectName) {
+    if (widget.studentClass.trim().toUpperCase() == 'FORM 3' ||
+        widget.studentClass.trim().toUpperCase() == 'FORM 4') {
+
+      return SeniorsSubjects.map((subjectName) {
         final subj = subjectMap[subjectName] ?? {};
         final score = subj['Subject_Marks'];
         int? points;
@@ -202,28 +206,81 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
-  // PDF generation logic
+  // PDF generation logic - MODIFIED FOR SINGLE PAGE A4
   Future<void> _printReportAsPdf() async {
     final pdf = pw.Document();
 
     pdf.addPage(
-      pw.MultiPage(
-        build: (pw.Context context) => [
-          pw.Column(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(15),
+        build: (pw.Context context) {
+          return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text(widget.schoolName.toUpperCase(), style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-              pw.Text("P.O. BOX 43, ${widget.schoolName.split(" ").first.toUpperCase()}"),
-              pw.SizedBox(height: 8),
-              pw.Text("2024/25 END OF TERM ONE STUDENT'S PROGRESS REPORT", style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
-              pw.Divider(),
-              pw.Text("NAME OF STUDENT: ${(studentInfo?['firstName'] ?? '')} ${(studentInfo?['lastName'] ?? '')}".toUpperCase(), style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Text("CLASS: "),
-              pw.SizedBox(height: 10),
+              // Header Section - more compact
+              pw.Center(
+                child: pw.Column(
+                  children: [
+                    pw.Text(
+                        widget.schoolName.toUpperCase(),
+                        style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)
+                    ),
+                    pw.Text(
+                        "P.O. BOX 43, ${widget.schoolName.split(" ").first.toUpperCase()}",
+                        style: pw.TextStyle(fontSize: 10)
+                    ),
+                    pw.SizedBox(height: 2),
+                    pw.Text(
+                        "2024/25 END OF TERM ONE STUDENT'S PROGRESS REPORT",
+                        style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)
+                    ),
+                  ],
+                ),
+              ),
+
+              pw.Divider(thickness: 0.5),
+
+              // Student info - more compact
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Expanded(
+                    flex: 3,
+                    child: pw.Text(
+                        "NAME: ${(studentInfo?['firstName'] ?? '')} ${(studentInfo?['lastName'] ?? '')}".toUpperCase(),
+                        style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)
+                    ),
+                  ),
+                  pw.Expanded(
+                    flex: 1,
+                    child: pw.Text(
+                        "CLASS: ${widget.studentClass}",
+                        style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)
+                    ),
+                  ),
+                ],
+              ),
+
+              pw.SizedBox(height: 5),
+
+              // Main Subject Table - condensed
               pw.Table.fromTextArray(
                 cellAlignment: pw.Alignment.centerLeft,
-                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                headers: ["SUBJECT", "SCORE", "POINTS", "INTERPRETATION", "CLASS AVG", "POSITION", "TEACHERS' COMMENTS"],
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
+                cellStyle: pw.TextStyle(fontSize: 8),
+                cellHeight: 14,
+                headerHeight: 16,
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(2.5),   // SUBJECT
+                  1: const pw.FlexColumnWidth(1),     // SCORE
+                  2: const pw.FlexColumnWidth(1),     // POINTS
+                  3: const pw.FlexColumnWidth(1.5),   // INTERPRETATION
+                  4: const pw.FlexColumnWidth(1),     // CLASS AVG
+                  5: const pw.FlexColumnWidth(1),     // POSITION
+                  6: const pw.FlexColumnWidth(2),     // COMMENTS
+                },
+                headers: ["SUBJECT", "SCORE", "POINTS", "INTERPRETATION", "AVG", "POS", "COMMENTS"],
                 data: [
                   for (final subject in subjectsForDisplay)
                     [
@@ -237,65 +294,134 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                     ]
                 ],
               ),
-              pw.SizedBox(height: 10),
-              pw.Row(
-                children: [
-                  pw.Expanded(child: pw.Text("AGGREGATE POINTS: ${(totalMarks?['Aggregate_Grade'] ?? 'N/A').toString()}")),
-                  pw.Expanded(child: pw.Text("POSITION: ${(totalMarks?['Best_Six_Total_Points'] ?? 'N/A').toString()}")),
-                  pw.Expanded(child: pw.Text("OUT OF: ${(totalMarks?['Student_Total_Marks'] ?? 'N/A').toString()}")),
-                  pw.Expanded(child: pw.Text("END RESULT: ${(totalMarks?['End_Result'] ?? 'MSCE')}")),
-                ],
-              ),
-              pw.SizedBox(height: 8),
-              pw.Text("MSCE GRADING KEY", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Table.fromTextArray(
-                cellAlignment: pw.Alignment.centerLeft,
-                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                headers: ["Mark Range per 100", "Points", "Interpretation"],
-                data: [
-                  ["85 - 100", "1", "Distinction"],
-                  ["80 - 84", "2", "Distinction"],
-                  ["75 - 79", "3", "Strong Credit"],
-                  ["70 - 74", "4", "Strong Credit"],
-                  ["65 - 69", "5", "Credit"],
-                  ["60 - 64", "6", "Credit"],
-                  ["55 - 59", "7", "Weak Credit"],
-                  ["50 - 54", "8", "Pass"],
-                  ["0 - 49",  "9", "Weak Pass"],
-                ],
-              ),
-              pw.SizedBox(height: 8),
-              pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text("Form Teacher's Remarks: ", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Expanded(child: pw.Text(totalMarks?['Form_Teacher_Remarks'] ?? "N/A")),
-                ],
-              ),
+
               pw.SizedBox(height: 5),
+
+              // Summary row - more compact
+              pw.Row(
+                children: [
+                  pw.Expanded(
+                    child: pw.Text(
+                      "AGGREGATE: ${(totalMarks?['Aggregate_Grade'] ?? 'N/A')}",
+                      style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+                    ),
+                  ),
+                  pw.Expanded(
+                    child: pw.Text(
+                      "POSITION: ${(totalMarks?['Best_Six_Total_Points'] ?? 'N/A')}",
+                      style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+                    ),
+                  ),
+                  pw.Expanded(
+                    child: pw.Text(
+                      "OUT OF: ${(totalMarks?['Student_Total_Marks'] ?? 'N/A')}",
+                      style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+                    ),
+                  ),
+                  pw.Expanded(
+                    child: pw.Text(
+                      "RESULT: ${(totalMarks?['End_Result'] ?? 'MSCE')}",
+                      style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+
+              pw.SizedBox(height: 5),
+
+              // Bottom section with grading key and remarks - 2 columns to save space
               pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Text("Head Teacher's Remarks: ", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Expanded(child: pw.Text(totalMarks?['Head_Teacher_Remarks'] ?? "N/A")),
+                  // Left column - Grading key in linear format
+                  pw.Expanded(
+                    flex: 1,
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                            "MSCE GRADING KEY",
+                            style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text("85-100: 1 (Distinction)", style: pw.TextStyle(fontSize: 7)),
+                        pw.Text("80-84: 2 (Distinction)", style: pw.TextStyle(fontSize: 7)),
+                        pw.Text("75-79: 3 (Strong Credit)", style: pw.TextStyle(fontSize: 7)),
+                        pw.Text("70-74: 4 (Strong Credit)", style: pw.TextStyle(fontSize: 7)),
+                        pw.Text("65-69: 5 (Credit)", style: pw.TextStyle(fontSize: 7)),
+                        pw.Text("60-64: 6 (Credit)", style: pw.TextStyle(fontSize: 7)),
+                        pw.Text("55-59: 7 (Weak Credit)", style: pw.TextStyle(fontSize: 7)),
+                        pw.Text("50-54: 8 (Pass)", style: pw.TextStyle(fontSize: 7)),
+                        pw.Text("0-49: 9 (Weak Pass)", style: pw.TextStyle(fontSize: 7)),
+                      ],
+                    ),
+                  ),
+
+                  pw.SizedBox(width: 10),
+
+                  // Right column - Remarks
+                  pw.Expanded(
+                    flex: 1,
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          "Form Teacher's Remarks:",
+                          style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Container(
+                          decoration: pw.BoxDecoration(
+                              border: pw.Border(bottom: pw.BorderSide(width: 0.5))
+                          ),
+                          constraints: const pw.BoxConstraints(maxHeight: 35),
+                          child: pw.Text(
+                            totalMarks?['Form_Teacher_Remarks'] ?? "N/A",
+                            style: pw.TextStyle(fontSize: 8),
+                          ),
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Text(
+                          "Head Teacher's Remarks:",
+                          style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Container(
+                          decoration: pw.BoxDecoration(
+                              border: pw.Border(bottom: pw.BorderSide(width: 0.5))
+                          ),
+                          constraints: const pw.BoxConstraints(maxHeight: 35),
+                          child: pw.Text(
+                            totalMarks?['Head_Teacher_Remarks'] ?? "N/A",
+                            style: pw.TextStyle(fontSize: 8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-              pw.SizedBox(height: 8),
+
+              pw.SizedBox(height: 5),
+
+              // Footer information
+              pw.Divider(thickness: 0.5),
               pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text("Fees for next term : ", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Text(totalMarks?['Fees'] ?? 'MK ###,###.##'),
-                ],
-              ),
-              pw.Row(
-                children: [
-                  pw.Text("Next term begins on : ", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Text(totalMarks?['Next_Term_Begins'] ?? 'N/A'),
+                  pw.Text(
+                    "Fees for next term: ${totalMarks?['Fees'] ?? 'MK ###,###.##'}",
+                    style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                  ),
+                  pw.Text(
+                    "Next term begins: ${totalMarks?['Next_Term_Begins'] ?? 'N/A'}",
+                    style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                  ),
                 ],
               ),
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
 
@@ -548,50 +674,43 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   );
 
   Widget msceGradingKeyTable() {
-    // MSCE grading scale
-    return Table(
-      border: TableBorder.all(width: 0.8, color: Colors.black),
-      columnWidths: const {
-        0: FlexColumnWidth(3),
-        1: FlexColumnWidth(1.5),
-        2: FlexColumnWidth(3),
-      },
-      children: [
-        TableRow(
-          children: [
-            cell("Mark Range per 100", true),
-            cell("Points", true),
-            cell("Interpretation", true),
-          ],
-        ),
-        TableRow(
-          children: [cell("85 - 100"), cell("1"), cell("Distinction")],
-        ),
-        TableRow(
-          children: [cell("80 - 84"), cell("2"), cell("Distinction")],
-        ),
-        TableRow(
-          children: [cell("75 - 79"), cell("3"), cell("Strong Credit")],
-        ),
-        TableRow(
-          children: [cell("70 - 74"), cell("4"), cell("Strong Credit")],
-        ),
-        TableRow(
-          children: [cell("65 - 69"), cell("5"), cell("Credit")],
-        ),
-        TableRow(
-          children: [cell("60 - 64"), cell("6"), cell("Credit")],
-        ),
-        TableRow(
-          children: [cell("55 - 59"), cell("7"), cell("Weak Credit")],
-        ),
-        TableRow(
-          children: [cell("50 - 54"), cell("8"), cell("Pass")],
-        ),
-        TableRow(
-          children: [cell("0 - 49"),  cell("9"), cell("Weak Pass")],
-        ),
-      ],
+    // MSCE grading scale in horizontal format
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text("85-100: 1 (Distinction)", style: TextStyle(fontSize: 12)),
+              const SizedBox(width: 10),
+              const Text("80-84: 2 (Distinction)", style: TextStyle(fontSize: 12)),
+            ],
+          ),
+          Row(
+            children: [
+              const Text("75-79: 3 (Strong Credit)", style: TextStyle(fontSize: 12)),
+              const SizedBox(width: 10),
+              const Text("70-74: 4 (Strong Credit)", style: TextStyle(fontSize: 12)),
+            ],
+          ),
+          Row(
+            children: [
+              const Text("65-69: 5 (Credit)", style: TextStyle(fontSize: 12)),
+              const SizedBox(width: 10),
+              const Text("60-64: 6 (Credit)", style: TextStyle(fontSize: 12)),
+            ],
+          ),
+          Row(
+            children: [
+              const Text("55-59: 7 (Weak Credit)", style: TextStyle(fontSize: 12)),
+              const SizedBox(width: 10),
+              const Text("50-54: 8 (Pass)", style: TextStyle(fontSize: 12)),
+            ],
+          ),
+          const Text("0-49: 9 (Weak Pass)", style: TextStyle(fontSize: 12)),
+        ],
+      ),
     );
   }
 }
