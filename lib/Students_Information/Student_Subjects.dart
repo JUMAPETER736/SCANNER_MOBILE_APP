@@ -73,6 +73,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     }
   }
 
+
   Future<String> _fetchGradeForSubject(String subject) async {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
