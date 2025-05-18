@@ -9,8 +9,6 @@ import 'package:scanna/Home_Screens/Seniors_School_Report_View.dart';
 
 class School_Reports extends StatefulWidget {
 
-
-
   @override
   _School_ReportsState createState() => _School_ReportsState();
 }
@@ -345,6 +343,7 @@ class _School_ReportsState extends State<School_Reports> {
                       context,
 
                       MaterialPageRoute(
+
                         builder: (context) => Juniors_School_Report_View(
                           schoolName: schoolName,
                           studentClass: studentClass,
