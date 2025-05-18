@@ -1,8 +1,5 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-// Add these for printing and PDF
 import 'package:printing/printing.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -29,6 +26,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   List<Map<String, dynamic>> subjects = [];
   Map<String, dynamic>? totalMarks;
   bool isLoading = true;
+  String? _errorMessage;
 
   // List of FORM 2 Subjects
   static const List<String> JuniorsSubjects = [
@@ -53,20 +51,24 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_initialized) {
-
+      fetchStudentData();
       _initialized = true;
     }
   }
 
-
   Future<void> fetchStudentData() async {
     try {
+      setState(() {
+        isLoading = true;
+        _errorMessage = null;
+      });
+
       final String schoolName = widget.schoolName.trim();
       final String studentClass = widget.studentClass.trim().toUpperCase();
       final String studentFullName = widget.studentFullName.trim();
 
-      // Fetch personal info
-      final studentDoc = await _firestore
+      // 1. Fetch personal information
+      DocumentSnapshot personalInfoSnapshot = await _firestore
           .collection('Schools')
           .doc(schoolName)
           .collection('Classes')
@@ -77,8 +79,44 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           .doc('Registered_Information')
           .get();
 
-      // Fetch current student subjects
-      final subjectsSnap = await _firestore
+      Map<String, dynamic>? personalInfo = personalInfoSnapshot.exists
+          ? personalInfoSnapshot.data() as Map<String, dynamic>
+          : null;
+
+      // 2. Fetch total marks
+      DocumentSnapshot totalMarksSnapshot = await _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Classes')
+          .doc(studentClass)
+          .collection('Student_Details')
+          .doc(studentFullName)
+          .collection('TOTAL_MARKS')
+          .doc('Marks')
+          .get();
+
+      Map<String, dynamic>? studentTotalMarks = totalMarksSnapshot.exists
+          ? totalMarksSnapshot.data() as Map<String, dynamic>
+          : null;
+
+      // Make sure we have the expected fields in the total marks
+      if (studentTotalMarks != null) {
+        // Add computed fields if they don't exist
+        if (!studentTotalMarks.containsKey('Total_Score')) {
+          studentTotalMarks['Total_Score'] = studentTotalMarks['Student_Total_Marks'] ?? '0';
+        }
+
+        // Calculate average if needed
+        if (!studentTotalMarks.containsKey('Average_Score')) {
+          int studentTotal = int.tryParse(studentTotalMarks['Student_Total_Marks'] ?? '0') ?? 0;
+          int teacherTotal = int.tryParse(studentTotalMarks['Teacher_Total_Marks'] ?? '0') ?? 0;
+          double averagePercentage = teacherTotal > 0 ? (studentTotal / teacherTotal) * 100 : 0;
+          studentTotalMarks['Average_Score'] = averagePercentage.toStringAsFixed(1) + '%';
+        }
+      }
+
+      // 3. Fetch all subject documents
+      QuerySnapshot subjectsSnapshot = await _firestore
           .collection('Schools')
           .doc(schoolName)
           .collection('Classes')
@@ -88,17 +126,17 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           .collection('Student_Subjects')
           .get();
 
-      final currentStudentSubjects = subjectsSnap.docs.map((doc) => doc.data()).toList();
+      List<Map<String, dynamic>> subjectsData = [];
 
-      // Create enriched subjects
-      List<Map<String, dynamic>> enrichedSubjects = [];
+      // Process each subject
+      for (var subjectDoc in subjectsSnapshot.docs) {
+        Map<String, dynamic> subjectData = subjectDoc.data() as Map<String, dynamic>;
+        String subjectName = (subjectData['Subject_Name'] ?? '').toString();
+        String subjectMarkStr = (subjectData['Subject_Grade'] ?? '0').toString();
+        int subjectMark = int.tryParse(subjectMarkStr) ?? 0;
 
-      for (var subject in currentStudentSubjects) {
-        String subjectName = (subject['Subject_Name'] ?? '').toString();
-        int subjectMark = int.tryParse(subject['Subject_Grade']?.toString() ?? '') ?? 0;
-
-        // Fetch all students in class
-        final studentsSnap = await _firestore
+        // Fetch all students in class to calculate average and position
+        QuerySnapshot classStudentsSnapshot = await _firestore
             .collection('Schools')
             .doc(schoolName)
             .collection('Classes')
@@ -108,75 +146,69 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
         List<int> allMarks = [];
 
-        for (var student in studentsSnap.docs) {
-          final subjDoc = await _firestore
+        // Get marks for this subject from all students
+        for (var studentDoc in classStudentsSnapshot.docs) {
+          QuerySnapshot studentSubjectSnapshot = await _firestore
               .collection('Schools')
               .doc(schoolName)
               .collection('Classes')
               .doc(studentClass)
               .collection('Student_Details')
-              .doc(student.id)
+              .doc(studentDoc.id)
               .collection('Student_Subjects')
               .where('Subject_Name', isEqualTo: subjectName)
               .limit(1)
               .get();
 
-          if (subjDoc.docs.isNotEmpty) {
-            final markStr = subjDoc.docs.first.data()['Subject_Grade'];
-            final mark = int.tryParse(markStr?.toString() ?? '');
-            if (mark != null) {
-              allMarks.add(mark);
-            }
+          if (studentSubjectSnapshot.docs.isNotEmpty) {
+            String markStr = (studentSubjectSnapshot.docs.first.data() as Map<String, dynamic>)['Subject_Grade']?.toString() ?? '0';
+            int mark = int.tryParse(markStr) ?? 0;
+            allMarks.add(mark);
           }
         }
 
         // Calculate class average
-        double avg = allMarks.isNotEmpty
+        double classAverage = allMarks.isNotEmpty
             ? allMarks.reduce((a, b) => a + b) / allMarks.length
             : 0;
 
-        // Sort descending to get position
-        allMarks.sort((b, a) => a.compareTo(b)); // descending
+        // Sort marks to find position
+        allMarks.sort((b, a) => a.compareTo(b)); // descending order
         int position = allMarks.indexOf(subjectMark) + 1;
 
-        // Generate teacher comment
-        String comment = '';
-        if (subjectMark >= 85) {
-          comment = 'Excellent Work';
-        } else if (subjectMark >= 70) {
-          comment = 'Good Effort';
-        } else if (subjectMark >= 60) {
-          comment = 'Keep Improving';
-        } else if (subjectMark >= 50) {
-          comment = 'Needs Support';
-        } else {
-          comment = 'Work Harder';
-        }
-
-        enrichedSubjects.add({
+        // Add enriched subject data
+        subjectsData.add({
           'Subject_Name': subjectName,
           'Subject_Score': subjectMark.toString(),
           'Subject_Grade': _getGradeLetter(subjectMark),
           'Grade_Interpretation': _getGradeInterpretation(subjectMark),
-          'Class_Average': avg.toStringAsFixed(1),
+          'Class_Average': classAverage.toStringAsFixed(1),
           'Position': position.toString(),
-          'Teacher_Comment': comment,
+          'Teacher_Comment': _generateTeacherComment(subjectMark),
         });
       }
 
+      // Update state with fetched data
       setState(() {
-        studentInfo = studentDoc.data() ?? {};
-        subjects = enrichedSubjects;
+        studentInfo = personalInfo;
+        subjects = subjectsData;
+        totalMarks = studentTotalMarks;
         isLoading = false;
       });
     } catch (e) {
       setState(() {
         isLoading = false;
+        _errorMessage = 'Error fetching data: ${e.toString()}';
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
     }
+  }
+
+  String _generateTeacherComment(int score) {
+    if (score >= 85) return 'Excellent Work';
+    if (score >= 70) return 'Good Effort';
+    if (score >= 60) return 'Keep Improving';
+    if (score >= 50) return 'Needs Support';
+    return 'Work Harder';
   }
 
   String _getGradeLetter(int score) {
@@ -195,401 +227,178 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     return 'FAIL';
   }
 
-
-  Future<void> _printReportAsPdf() async {
-    final pdf = pw.Document();
-
-    pdf.addPage(
-      pw.MultiPage(
-        build: (pw.Context context) => [
-          pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(
-                widget.schoolName.toUpperCase(),
-                style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-              ),
-              pw.Text("P.O. BOX 43, ${widget.schoolName.split(" ").first.toUpperCase()}"),
-              pw.SizedBox(height: 8),
-              pw.Text(
-                "2024/25 END OF TERM ONE STUDENT'S PROGRESS REPORT",
-                style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
-              ),
-              pw.Divider(),
-              pw.Text(
-                "NAME OF STUDENT: ${(studentInfo?['firstName'] ?? '').toString().toUpperCase()} ${(studentInfo?['lastName'] ?? '').toString().toUpperCase()}",
-                style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-              ),
-              pw.Text("CLASS: ${studentInfo?['studentClass'] ?? 'N/A'}"),
-              pw.SizedBox(height: 10),
-              pw.Table.fromTextArray(
-                cellAlignment: pw.Alignment.centerLeft,
-                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                headers: [
-                  "SUBJECT",
-                  "SCORE",
-                  "GRADE",
-                  "INTERPRETATION",
-                  "CLASS AVG",
-                  "POSITION",
-                  "TEACHERS' COMMENTS"
-                ],
-                data: [
-                  for (final subject in subjects)
-                    [
-                      subject['Subject_Name'] ?? "-",
-                      subject['Subject_Score']?.toString() ?? "-",
-                      subject['Subject_Grade'] ?? "-",
-                      subject['Grade_Interpretation'] ?? "-",
-                      subject['Class_Average']?.toString() ?? "-",
-                      subject['Position']?.toString() ?? "-",
-                      subject['Teacher_Comment'] ?? "-",
-                    ]
-                ],
-              ),
-              pw.SizedBox(height: 10),
-              pw.Row(
-                children: [
-                  pw.Expanded(
-                      child: pw.Text("AGGREGATE POINTS: ${(totalMarks?['Aggregate_Grade'] ?? 'N/A').toString()}")),
-                  pw.Expanded(
-                      child: pw.Text("POSITION: ${(totalMarks?['Best_Six_Total_Points'] ?? 'N/A').toString()}")),
-                  pw.Expanded(
-                      child: pw.Text("OUT OF: ${(totalMarks?['Student_Total_Marks'] ?? 'N/A').toString()}")),
-                  pw.Expanded(child: pw.Text("END RESULT: ${(totalMarks?['End_Result'] ?? 'JCE').toString()}")),
-                ],
-              ),
-              pw.SizedBox(height: 8),
-              pw.Text("JCE GRADING KEY", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Table.fromTextArray(
-                cellAlignment: pw.Alignment.centerLeft,
-                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                headers: ["Mark Range per 100", "Grade", "Interpretation"],
-                data: [
-                  ["85 - 100", "A", "EXCELLENT"],
-                  ["70 - 84", "B", "GOOD"],
-                  ["60 - 69", "C", "CREDIT"],
-                  ["50 - 59", "D", "PASS"],
-                  ["0 - 49", "F", "FAIL"],
-                ],
-              ),
-              pw.SizedBox(height: 8),
-              pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text("Form Teacher's Remarks: ", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Expanded(child: pw.Text(totalMarks?['Form_Teacher_Remarks'] ?? "N/A")),
-                ],
-              ),
-              pw.SizedBox(height: 5),
-              pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text("Head Teacher's Remarks: ", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Expanded(child: pw.Text(totalMarks?['Head_Teacher_Remarks'] ?? "N/A")),
-                ],
-              ),
-              pw.SizedBox(height: 8),
-              pw.Row(
-                children: [
-                  pw.Text("Fees for next term : ", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Text(totalMarks?['Fees'] ?? 'MK ###,###.##'),
-                ],
-              ),
-              pw.Row(
-                children: [
-                  pw.Text("Next term begins on : ", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Text(totalMarks?['Next_Term_Begins'] ?? 'N/A'),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-
-    await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+  Future<void> _printDocument() async {
+    // TODO: Implement PDF generation and printing functionality
+    // You can use the printing package here
   }
-
 
   @override
   Widget build(BuildContext context) {
+    // Show error message if there is one
+    if (_errorMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_errorMessage!)),
+        );
+        setState(() {
+          _errorMessage = null; // Clear the error after showing
+        });
+      });
+    }
+
     return Scaffold(
-      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        title: const Text(''),
+        title: Text('Student Report: ${widget.studentFullName}'),
         actions: [
           IconButton(
-            onPressed: isLoading ? null : _printReportAsPdf,
-            icon: const Icon(Icons.print, color: Colors.black),
-            tooltip: 'Print PDF',
+            icon: Icon(Icons.print),
+            onPressed: _printDocument,
           ),
         ],
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(18.0),
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.black, width: 1.5),
-              borderRadius: BorderRadius.circular(4),
-              color: Colors.white,
-            ),
-            child: Column(
-              children: [
-                // Header Section: School Info
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Column(
-                    children: [
-                      Text(
-                        widget.schoolName.toUpperCase(),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                      Text(
-                        "P.O. BOX 43, ${widget.schoolName.split(" ").first.toUpperCase()}",
-                        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        "2024/25 END OF TERM ONE STUDENT'S PROGRESS REPORT",
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(thickness: 1.2),
-                // Name and Class Info Row
-                Padding(
-                  padding: const EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          "NAME OF STUDENT: ${studentInfo?['firstName'] ?? ''} ${studentInfo?['lastName'] ?? ''}".toUpperCase(),
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                        ),
-                      ),
-                      const Expanded(
-                        flex: 1,
-                        child: Text(
-                          "CLASS: ", // Leave class blank
-                          textAlign: TextAlign.end,
-                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-                // SUBJECTS TABLE
-                Table(
-                  border: TableBorder.all(width: 1.0, color: Colors.black),
-                  columnWidths: const {
-                    0: FlexColumnWidth(2),   // SUBJECT
-                    1: FlexColumnWidth(1),   // SCORE
-                    2: FlexColumnWidth(1),   // GRADE
-                    3: FlexColumnWidth(2),   // GRADE INTERPRETATION
-                    4: FlexColumnWidth(1),   // CLASS AVG
-                    5: FlexColumnWidth(1),   // POSITION
-                    6: FlexColumnWidth(2),   // TEACHERS' COMMENTS
-                  },
+          ? Center(child: CircularProgressIndicator())
+          : studentInfo == null
+          ? Center(child: Text('No student information found'))
+          : SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Student info header
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
                   children: [
-                    TableRow(
-                      decoration: const BoxDecoration(color: Color(0xFFE5E5E5)),
-                      children: [
-                        cell("SUBJECT", true),
-                        cell("SCORE", true),
-                        cell("GRADE", true),
-                        cell("INTERPRETATION", true),
-                        cell("CLASS AVG", true),
-                        cell("POSITION", true),
-                        cell("TEACHERS' COMMENTS", true),
-                      ],
+                    Text(
+                      widget.schoolName,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    ...subjects.map((subject) => TableRow(
-                      children: [
-                        cell(subject['Subject_Name'] ?? "-"),
-                        cell(subject['Subject_Score']?.toString() ?? "-"),
-                        cell(subject['Subject_Grade']?.toString() ?? "-"),
-                        cell(subject['Grade_Interpretation']?.toString() ?? "-"),
-                        cell(subject['Class_Average']?.toString() ?? "-"),
-                        cell(subject['Position']?.toString() ?? "-"),
-                        cell(subject['Teacher_Comment'] ?? "-"),
-                      ],
-                    )),
+                    SizedBox(height: 8),
+                    Text(
+                      'Student: ${widget.studentFullName}',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    Text(
+                      'Class: ${widget.studentClass}',
+                      style: TextStyle(fontSize: 18),
+                    ),
                   ],
                 ),
-                // AGGREGATE POINTS, POSITION, END RESULT
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          "GRADE: ${(totalMarks?['Aggregate_Grade'] ?? 'N/A').toString()}",
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          "POSITION: ${(totalMarks?['Best_Six_Total_Points'] ?? 'N/A').toString()}",
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          "OUT OF: ${(totalMarks?['Student_Total_Marks'] ?? 'N/A').toString()}",
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          "END RESULT: ${(totalMarks?['End_Result'] ?? 'JCE')}",
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // JCE GRADING KEY
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 6),
-                      const Text(
-                        "JCE GRADING KEY",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-                      const SizedBox(height: 4),
-                      jceGradingKeyTable(),
-                    ],
-                  ),
-                ),
-                // REMARKS (left aligned in Row)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Form Teacher's Remarks: ",
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                          ),
-                          Expanded(
-                            child: Text(totalMarks?['Form_Teacher_Remarks'] ?? "N/A"),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 5),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Head Teacher's Remarks: ",
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                          ),
-                          Expanded(
-                            child: Text(totalMarks?['Head_Teacher_Remarks'] ?? "N/A"),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                // FEES & NEXT TERM
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Text("Fees for next term :  ",
-                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                          Text(totalMarks?['Fees'] ?? 'MK ###,###.##'),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          const Text("Next term begins on :  ",
-                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                          Text(totalMarks?['Next_Term_Begins'] ?? 'N/A'),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
+              ),
             ),
-          ),
+            SizedBox(height: 16),
+
+            // Subjects Table
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ACADEMIC PERFORMANCE',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 12),
+
+                    // Table header
+                    Table(
+                      border: TableBorder.all(),
+                      columnWidths: {
+                        0: FlexColumnWidth(2),
+                        1: FlexColumnWidth(1),
+                        2: FlexColumnWidth(1),
+                        3: FlexColumnWidth(2),
+                        4: FlexColumnWidth(1),
+                        5: FlexColumnWidth(1),
+                        6: FlexColumnWidth(2),
+                      },
+                      children: [
+                        TableRow(
+                          decoration: BoxDecoration(color: Colors.grey[200]),
+                          children: [
+                            tableCellHeader('SUBJECT'),
+                            tableCellHeader('MARK'),
+                            tableCellHeader('GRADE'),
+                            tableCellHeader('INTERPRETATION'),
+                            tableCellHeader('AVG'),
+                            tableCellHeader('POS'),
+                            tableCellHeader('COMMENT'),
+                          ],
+                        ),
+                        ...subjects.map((subject) => TableRow(
+                          children: [
+                            tableCell(subject['Subject_Name']),
+                            tableCell(subject['Subject_Score']),
+                            tableCell(subject['Subject_Grade']),
+                            tableCell(subject['Grade_Interpretation']),
+                            tableCell(subject['Class_Average']),
+                            tableCell(subject['Position']),
+                            tableCell(subject['Teacher_Comment']),
+                          ],
+                        )).toList(),
+                      ],
+                    ),
+
+                    SizedBox(height: 20),
+
+                    // Total marks and position
+                    if (totalMarks != null)
+                      Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('TOTAL MARKS: ${totalMarks!['Student_Total_Marks'] ?? 'N/A'} / ${totalMarks!['Teacher_Total_Marks'] ?? 'N/A'}'),
+                              Text('AVERAGE: ${totalMarks!['Average_Score'] ?? 'N/A'}'),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('CLASS POSITION: ${totalMarks!['Position'] ?? 'N/A'}'),
+                              Text('OUT OF: ${totalMarks!['Total_Students'] ?? 'N/A'}'),
+                            ],
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget cell(String text, [bool header = false]) => Container(
-    padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
-    alignment: Alignment.centerLeft,
-    child: Text(
-      text,
-      style: TextStyle(
-        fontWeight: header ? FontWeight.bold : FontWeight.normal,
-        fontSize: 13,
+  Widget tableCellHeader(String text) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(fontWeight: FontWeight.bold),
       ),
-    ),
-  );
+    );
+  }
 
-  Widget jceGradingKeyTable() {
-    // JCE grading scale
-    return Table(
-      border: TableBorder.all(width: 0.8, color: Colors.black),
-      columnWidths: const {
-        0: FlexColumnWidth(3),
-        1: FlexColumnWidth(1.5),
-        2: FlexColumnWidth(3),
-      },
-      children: [
-        TableRow(
-          children: [
-            cell("Mark Range per 100", true),
-            cell("Grade", true),
-            cell("Interpretation", true),
-          ],
-        ),
-        TableRow(
-          children: [cell("85 - 100"), cell("A"), cell("EXCELLENT")],
-        ),
-        TableRow(
-          children: [cell("70 - 84"), cell("B"), cell("GOOD")],
-        ),
-        TableRow(
-          children: [cell("60 - 69"), cell("C"), cell("CREDIT")],
-        ),
-        TableRow(
-          children: [cell("50 - 59"), cell("D"), cell("PASS")],
-        ),
-        TableRow(
-          children: [cell("0 - 49"),  cell("F"), cell("FAIL")],
-        ),
-      ],
+  Widget tableCell(String text) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+      ),
     );
   }
 }
