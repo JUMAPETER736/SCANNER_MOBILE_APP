@@ -302,7 +302,6 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       },
     );
 
-
   }
 
 

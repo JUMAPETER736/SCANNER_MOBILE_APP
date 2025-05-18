@@ -9,6 +9,8 @@ import 'package:scanna/Students_Information/Student_Name_List.dart';
 import 'package:scanna/Home_Screens/QR_Code_Scan.dart';
 import 'package:scanna/Home_Screens/School_Reports.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Login_Page.dart';
+import 'package:scanna/Home_Screens/Statistics.dart';
+import 'package:scanna/Home_Screens/Results_PDF.dart';
 
 User? loggedInUser;
 
@@ -57,7 +59,6 @@ class _Main_HomeState extends State<Main_Home> {
     }
   }
 
-
   Widget _buildHome(BuildContext context, User? loggedInUser) {
     return SizedBox.expand(
       child: Container(
@@ -65,21 +66,20 @@ class _Main_HomeState extends State<Main_Home> {
         padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0),
         child: Column(
           children: [
-
             Expanded(
               child: GridView.count(
                 crossAxisCount: 2,
                 crossAxisSpacing: 14,
                 mainAxisSpacing: 16,
-                padding: EdgeInsets.zero, // remove inner padding
-                childAspectRatio: 4 / 3, // taller cards (was 5.3 / 3)
+                padding: EdgeInsets.zero,
+                childAspectRatio: 4 / 3,
                 children: [
                   _buildHomeCard(
                     icon: Icons.class_,
                     text: 'Select School & Class',
                     color: Colors.blueAccent,
-                    iconSize:65.0, // Enlarged icon size
-                    textSize: 19.0, // Enlarged text size
+                    iconSize: 65.0,
+                    textSize: 19.0,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -91,9 +91,8 @@ class _Main_HomeState extends State<Main_Home> {
                     icon: Icons.analytics,
                     text: 'Grade Analytics',
                     color: Colors.greenAccent,
-
-                    iconSize:95.0, // Enlarged icon size
-                    textSize: 19.0, // Enlarged text size
+                    iconSize: 95.0,
+                    textSize: 19.0,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -105,9 +104,8 @@ class _Main_HomeState extends State<Main_Home> {
                     icon: Icons.person_add,
                     text: 'Add Student',
                     color: Colors.orangeAccent,
-
-                    iconSize:95.0, // Enlarged icon size
-                    textSize: 19.0, // Enlarged text size
+                    iconSize: 95.0,
+                    textSize: 19.0,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -119,9 +117,8 @@ class _Main_HomeState extends State<Main_Home> {
                     icon: Icons.qr_code_scanner,
                     text: 'QR Scan',
                     color: const Color.fromARGB(255, 59, 61, 60),
-
-                    iconSize:95.0, // Enlarged icon size
-                    textSize: 19.0, // Enlarged text size
+                    iconSize: 95.0,
+                    textSize: 19.0,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -133,9 +130,8 @@ class _Main_HomeState extends State<Main_Home> {
                     icon: Icons.school,
                     text: 'School Reports',
                     color: Colors.redAccent,
-
-                    iconSize:95.0, // Enlarged icon size
-                    textSize: 19.0,  // Enlarged text size
+                    iconSize: 95.0,
+                    textSize: 19.0,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -147,14 +143,40 @@ class _Main_HomeState extends State<Main_Home> {
                     icon: Icons.list,
                     text: 'Students Names',
                     color: Colors.purpleAccent,
-                    iconSize: 95.0, // Enlarged icon size
-                    textSize: 19.0, // Enlarged text size
+                    iconSize: 95.0,
+                    textSize: 19.0,
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => Student_Name_List(loggedInUser: loggedInUser),
                         ),
+                      );
+                    },
+                  ),
+                  _buildHomeCard(
+                    icon: Icons.bar_chart,
+                    text: 'Statistics',
+                    color: Colors.tealAccent,
+                    iconSize: 95.0,
+                    textSize: 19.0,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => Statistics()), // Replace with your actual class
+                      );
+                    },
+                  ),
+                  _buildHomeCard(
+                    icon: Icons.picture_as_pdf,
+                    text: 'School Reports PDFs',
+                    color: Colors.deepOrangeAccent,
+                    iconSize: 95.0,
+                    textSize: 19.0,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) =>  Results_PDF()), // Replace with your actual class
                       );
                     },
                   ),
@@ -166,6 +188,8 @@ class _Main_HomeState extends State<Main_Home> {
       ),
     );
   }
+
+
 
   Widget _buildHomeCard({
     required IconData icon,
@@ -265,3 +289,5 @@ class _Main_HomeState extends State<Main_Home> {
     );
   }
 }
+
+
