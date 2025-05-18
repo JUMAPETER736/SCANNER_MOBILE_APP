@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -22,38 +23,23 @@ class Juniors_School_Report_View extends StatefulWidget {
 class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Map<String, dynamic>? studentInfo;
+  Map<String, dynamic> studentInfo = {};
   List<Map<String, dynamic>> subjects = [];
-  Map<String, dynamic>? totalMarks;
+  Map<String, dynamic> totalMarks = {};
   bool isLoading = true;
   String? _errorMessage;
 
-  // List of FORM 2 Subjects
   static const List<String> JuniorsSubjects = [
-    'AGRICULTURE',
-    'BIBLE KNOWLEDGE',
-    'BIOLOGY',
-    'CHEMISTRY',
-    'CHICHEWA',
-    'COMPUTER SCIENCE',
-    'ENGLISH',
-    'HISTORY',
-    'HOME ECONOMICS',
-    'LIFE SKILLS',
-    'MATHEMATICS',
-    'PHYSICS',
+    'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY',
+    'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY',
+    'HOME ECONOMICS', 'LIFE SKILLS', 'MATHEMATICS', 'PHYSICS',
     'SOCIAL STUDIES',
   ];
 
-  bool _initialized = false;
-
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_initialized) {
-      fetchStudentData();
-      _initialized = true;
-    }
+  void initState() {
+    super.initState();
+    fetchStudentData();
   }
 
   Future<void> fetchStudentData() async {
@@ -63,12 +49,12 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         _errorMessage = null;
       });
 
-      final String schoolName = widget.schoolName.trim();
-      final String studentClass = widget.studentClass.trim().toUpperCase();
-      final String studentFullName = widget.studentFullName.trim();
+      final schoolName = widget.schoolName.trim();
+      final studentClass = widget.studentClass.trim().toUpperCase();
+      final studentFullName = widget.studentFullName.trim();
 
-      // 1. Fetch personal information
-      DocumentSnapshot personalInfoSnapshot = await _firestore
+      // 1. Fetch or create personal information
+      final personalInfoRef = _firestore
           .collection('Schools')
           .doc(schoolName)
           .collection('Classes')
@@ -76,15 +62,21 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           .collection('Student_Details')
           .doc(studentFullName)
           .collection('Personal_Information')
-          .doc('Registered_Information')
-          .get();
+          .doc('Registered_Information');
 
-      Map<String, dynamic>? personalInfo = personalInfoSnapshot.exists
-          ? personalInfoSnapshot.data() as Map<String, dynamic>
-          : null;
+      DocumentSnapshot personalInfoSnapshot = await personalInfoRef.get();
 
-      // 2. Fetch total marks
-      DocumentSnapshot totalMarksSnapshot = await _firestore
+      if (!personalInfoSnapshot.exists) {
+        await personalInfoRef.set({
+          'firstName': studentFullName.split(' ').first,
+          'lastName': studentFullName.split(' ').last,
+          'class': studentClass,
+
+        });
+      }
+
+      // 2. Fetch or create total marks
+      final totalMarksRef = _firestore
           .collection('Schools')
           .doc(schoolName)
           .collection('Classes')
@@ -92,63 +84,63 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           .collection('Student_Details')
           .doc(studentFullName)
           .collection('TOTAL_MARKS')
-          .doc('Marks')
-          .get();
+          .doc('Marks');
 
-      Map<String, dynamic>? studentTotalMarks = totalMarksSnapshot.exists
-          ? totalMarksSnapshot.data() as Map<String, dynamic>
-          : null;
+      DocumentSnapshot totalMarksSnapshot = await totalMarksRef.get();
 
-      // Make sure we have the expected fields in the total marks
-      if (studentTotalMarks != null) {
-        // Add computed fields if they don't exist
-        if (!studentTotalMarks.containsKey('Total_Score')) {
-          studentTotalMarks['Total_Score'] = studentTotalMarks['Student_Total_Marks'] ?? '0';
-        }
+      if (!totalMarksSnapshot.exists) {
+        await totalMarksRef.set({
+          'Student_Total_Marks': '0',
+          'Teacher_Total_Marks': '0',
+          'Position': 'N/A',
+          'Total_Students': '0',
 
-        // Calculate average if needed
-        if (!studentTotalMarks.containsKey('Average_Score')) {
-          int studentTotal = int.tryParse(studentTotalMarks['Student_Total_Marks'] ?? '0') ?? 0;
-          int teacherTotal = int.tryParse(studentTotalMarks['Teacher_Total_Marks'] ?? '0') ?? 0;
-          double averagePercentage = teacherTotal > 0 ? (studentTotal / teacherTotal) * 100 : 0;
-          studentTotalMarks['Average_Score'] = averagePercentage.toStringAsFixed(1) + '%';
-        }
+        });
       }
 
-      // 3. Fetch all subject documents
-      QuerySnapshot subjectsSnapshot = await _firestore
+      // 3. Process subjects
+      final subjectsRef = _firestore
           .collection('Schools')
           .doc(schoolName)
           .collection('Classes')
           .doc(studentClass)
           .collection('Student_Details')
           .doc(studentFullName)
-          .collection('Student_Subjects')
-          .get();
+          .collection('Student_Subjects');
 
+      QuerySnapshot subjectsSnapshot = await subjectsRef.get();
       List<Map<String, dynamic>> subjectsData = [];
 
-      // Process each subject
-      for (var subjectDoc in subjectsSnapshot.docs) {
+      if (subjectsSnapshot.docs.isEmpty) {
+        // Create default subjects if none exist
+        for (String subject in JuniorsSubjects) {
+          await subjectsRef.add({
+            'Subject_Name': subject,
+            'Subject_Grade': '0',
+
+          });
+        }
+      }
+
+      // Get class students for position calculation
+      QuerySnapshot classStudentsSnapshot = await _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Classes')
+          .doc(studentClass)
+          .collection('Student_Details')
+          .get();
+
+      // Process all subjects
+      for (var subjectDoc in (await subjectsRef.get()).docs) {
         Map<String, dynamic> subjectData = subjectDoc.data() as Map<String, dynamic>;
-        String subjectName = (subjectData['Subject_Name'] ?? '').toString();
-        String subjectMarkStr = (subjectData['Subject_Grade'] ?? '0').toString();
-        int subjectMark = int.tryParse(subjectMarkStr) ?? 0;
+        String subjectName = subjectData['Subject_Name']?.toString() ?? 'Unknown';
+        int subjectMark = int.tryParse(subjectData['Subject_Grade']?.toString() ?? '0') ?? 0;
 
-        // Fetch all students in class to calculate average and position
-        QuerySnapshot classStudentsSnapshot = await _firestore
-            .collection('Schools')
-            .doc(schoolName)
-            .collection('Classes')
-            .doc(studentClass)
-            .collection('Student_Details')
-            .get();
-
+        // Calculate class average and position
         List<int> allMarks = [];
-
-        // Get marks for this subject from all students
         for (var studentDoc in classStudentsSnapshot.docs) {
-          QuerySnapshot studentSubjectSnapshot = await _firestore
+          QuerySnapshot studentSubjects = await _firestore
               .collection('Schools')
               .doc(schoolName)
               .collection('Classes')
@@ -157,26 +149,18 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
               .doc(studentDoc.id)
               .collection('Student_Subjects')
               .where('Subject_Name', isEqualTo: subjectName)
-              .limit(1)
               .get();
 
-          if (studentSubjectSnapshot.docs.isNotEmpty) {
-            String markStr = (studentSubjectSnapshot.docs.first.data() as Map<String, dynamic>)['Subject_Grade']?.toString() ?? '0';
-            int mark = int.tryParse(markStr) ?? 0;
+          if (studentSubjects.docs.isNotEmpty) {
+            int mark = int.tryParse(studentSubjects.docs.first['Subject_Grade']?.toString() ?? '0') ?? 0;
             allMarks.add(mark);
           }
         }
 
-        // Calculate class average
-        double classAverage = allMarks.isNotEmpty
-            ? allMarks.reduce((a, b) => a + b) / allMarks.length
-            : 0;
-
-        // Sort marks to find position
-        allMarks.sort((b, a) => a.compareTo(b)); // descending order
+        double classAverage = allMarks.isNotEmpty ? allMarks.reduce((a, b) => a + b) / allMarks.length : 0;
+        allMarks.sort((b, a) => a.compareTo(b));
         int position = allMarks.indexOf(subjectMark) + 1;
 
-        // Add enriched subject data
         subjectsData.add({
           'Subject_Name': subjectName,
           'Subject_Score': subjectMark.toString(),
@@ -188,61 +172,88 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         });
       }
 
-      // Update state with fetched data
+      // Update totals
+      int studentTotal = subjectsData.fold(0, (sum, subject) => sum + int.parse(subject['Subject_Score']));
+      int teacherTotal = subjectsData.length * 100; // Assuming max 100 per subject
+
+      await totalMarksRef.update({
+        'Student_Total_Marks': studentTotal.toString(),
+        'Teacher_Total_Marks': teacherTotal.toString(),
+        'Average_Score': '${(studentTotal / teacherTotal * 100).toStringAsFixed(1)}%',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Get updated totals
+      DocumentSnapshot updatedTotalMarks = await totalMarksRef.get();
+
       setState(() {
-        studentInfo = personalInfo;
+        studentInfo = personalInfoSnapshot.data() as Map<String, dynamic>? ?? {};
         subjects = subjectsData;
-        totalMarks = studentTotalMarks;
+        totalMarks = updatedTotalMarks.data() as Map<String, dynamic>? ?? {};
         isLoading = false;
       });
+
     } catch (e) {
       setState(() {
         isLoading = false;
-        _errorMessage = 'Error fetching data: ${e.toString()}';
+        _errorMessage = 'Error: ${e.toString()}';
       });
     }
   }
 
-  String _generateTeacherComment(int score) {
-    if (score >= 85) return 'Excellent Work';
-    if (score >= 70) return 'Good Effort';
-    if (score >= 60) return 'Keep Improving';
-    if (score >= 50) return 'Needs Support';
-    return 'Work Harder';
-  }
-
-  String _getGradeLetter(int score) {
-    if (score >= 85) return 'A';
-    if (score >= 70) return 'B';
-    if (score >= 60) return 'C';
-    if (score >= 50) return 'D';
-    return 'F';
-  }
-
-  String _getGradeInterpretation(int score) {
-    if (score >= 85) return 'EXCELLENT';
-    if (score >= 70) return 'GOOD';
-    if (score >= 60) return 'CREDIT';
-    if (score >= 50) return 'PASS';
-    return 'FAIL';
-  }
+  // ... (keep your existing grade calculation methods: _generateTeacherComment, _getGradeLetter, _getGradeInterpretation)
 
   Future<void> _printDocument() async {
-    // TODO: Implement PDF generation and printing functionality
-    // You can use the printing package here
+    final doc = pw.Document();
+
+    doc.addPage(
+      pw.Page(
+        build: (pw.Context context) {
+          return pw.Column(
+            children: [
+              pw.Text(widget.schoolName, style: pw.TextStyle(fontSize: 24)),
+              pw.SizedBox(height: 20),
+              pw.Text('Student: ${widget.studentFullName}'),
+              pw.Text('Class: ${widget.studentClass}'),
+              pw.SizedBox(height: 20),
+              pw.Table.fromTextArray(
+                context: context,
+                data: [
+                  ['SUBJECT', 'MARK', 'GRADE', 'INTERPRETATION', 'AVG', 'POS', 'COMMENT'],
+                  ...subjects.map((s) => [
+                    s['Subject_Name'],
+                    s['Subject_Score'],
+                    s['Subject_Grade'],
+                    s['Grade_Interpretation'],
+                    s['Class_Average'],
+                    s['Position'],
+                    s['Teacher_Comment'],
+                  ]),
+                ],
+              ),
+              pw.SizedBox(height: 20),
+              pw.Text('TOTAL MARKS: ${totalMarks['Student_Total_Marks']} / ${totalMarks['Teacher_Total_Marks']}'),
+              pw.Text('AVERAGE: ${totalMarks['Average_Score']}'),
+              pw.Text('CLASS POSITION: ${totalMarks['Position']} OUT OF: ${totalMarks['Total_Students']}'),
+            ],
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => doc.save(),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Show error message if there is one
     if (_errorMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(_errorMessage!)),
         );
-        setState(() {
-          _errorMessage = null; // Clear the error after showing
-        });
+        setState(() => _errorMessage = null);
       });
     }
 
@@ -258,147 +269,118 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
-          : studentInfo == null
-          ? Center(child: Text('No student information found'))
-          : SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Student info header
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    Text(
-                      widget.schoolName,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Student: ${widget.studentFullName}',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                    Text(
-                      'Class: ${widget.studentClass}',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ],
+          : RefreshIndicator(
+        onRefresh: fetchStudentData,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Text(widget.schoolName,
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 8),
+                      Text('Student: ${widget.studentFullName}'),
+                      Text('Class: ${widget.studentClass}'),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: 16),
-
-            // Subjects Table
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ACADEMIC PERFORMANCE',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+              SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('ACADEMIC PERFORMANCE',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 12),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columns: [
+                            DataColumn(label: Text('SUBJECT')),
+                            DataColumn(label: Text('MARK'), numeric: true),
+                            DataColumn(label: Text('GRADE')),
+                            DataColumn(label: Text('INTERPRETATION')),
+                            DataColumn(label: Text('AVG'), numeric: true),
+                            DataColumn(label: Text('POS'), numeric: true),
+                            DataColumn(label: Text('COMMENT')),
+                          ],
+                          rows: subjects.map((subject) => DataRow(
+                            cells: [
+                              DataCell(Text(subject['Subject_Name'])),
+                              DataCell(Text(subject['Subject_Score'])),
+                              DataCell(Text(subject['Subject_Grade'])),
+                              DataCell(Text(subject['Grade_Interpretation'])),
+                              DataCell(Text(subject['Class_Average'])),
+                              DataCell(Text(subject['Position'])),
+                              DataCell(Text(subject['Teacher_Comment'])),
+                            ],
+                          )).toList(),
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 12),
-
-                    // Table header
-                    Table(
-                      border: TableBorder.all(),
-                      columnWidths: {
-                        0: FlexColumnWidth(2),
-                        1: FlexColumnWidth(1),
-                        2: FlexColumnWidth(1),
-                        3: FlexColumnWidth(2),
-                        4: FlexColumnWidth(1),
-                        5: FlexColumnWidth(1),
-                        6: FlexColumnWidth(2),
-                      },
-                      children: [
-                        TableRow(
-                          decoration: BoxDecoration(color: Colors.grey[200]),
+                      SizedBox(height: 20),
+                      if (totalMarks.isNotEmpty) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            tableCellHeader('SUBJECT'),
-                            tableCellHeader('MARK'),
-                            tableCellHeader('GRADE'),
-                            tableCellHeader('INTERPRETATION'),
-                            tableCellHeader('AVG'),
-                            tableCellHeader('POS'),
-                            tableCellHeader('COMMENT'),
+                            Text('TOTAL MARKS: ${totalMarks['Student_Total_Marks']} / ${totalMarks['Teacher_Total_Marks']}'),
+                            Text('AVERAGE: ${totalMarks['Average_Score']}'),
                           ],
                         ),
-                        ...subjects.map((subject) => TableRow(
+                        SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            tableCell(subject['Subject_Name']),
-                            tableCell(subject['Subject_Score']),
-                            tableCell(subject['Subject_Grade']),
-                            tableCell(subject['Grade_Interpretation']),
-                            tableCell(subject['Class_Average']),
-                            tableCell(subject['Position']),
-                            tableCell(subject['Teacher_Comment']),
+                            Text('CLASS POSITION: ${totalMarks['Position']}'),
+                            Text('OUT OF: ${totalMarks['Total_Students']}'),
                           ],
-                        )).toList(),
+                        ),
                       ],
-                    ),
-
-                    SizedBox(height: 20),
-
-                    // Total marks and position
-                    if (totalMarks != null)
-                      Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('TOTAL MARKS: ${totalMarks!['Student_Total_Marks'] ?? 'N/A'} / ${totalMarks!['Teacher_Total_Marks'] ?? 'N/A'}'),
-                              Text('AVERAGE: ${totalMarks!['Average_Score'] ?? 'N/A'}'),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('CLASS POSITION: ${totalMarks!['Position'] ?? 'N/A'}'),
-                              Text('OUT OF: ${totalMarks!['Total_Students'] ?? 'N/A'}'),
-                            ],
-                          ),
-                        ],
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget tableCellHeader(String text) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: TextStyle(fontWeight: FontWeight.bold),
-      ),
-    );
-  }
 
-  Widget tableCell(String text) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
+String _getGradeLetter(int mark) {
+  if (mark >= 90) return 'A+';
+  if (mark >= 80) return 'A';
+  if (mark >= 70) return 'B';
+  if (mark >= 60) return 'C';
+  if (mark >= 50) return 'D';
+  if (mark >= 40) return 'E';
+  return 'F';
+}
+
+String _getGradeInterpretation(int mark) {
+  if (mark >= 90) return 'Excellent';
+  if (mark >= 80) return 'Very Good';
+  if (mark >= 70) return 'Good';
+  if (mark >= 60) return 'Average';
+  if (mark >= 50) return 'Fair';
+  if (mark >= 40) return 'Poor';
+  return 'Fail';
+}
+
+String _generateTeacherComment(int mark) {
+  if (mark >= 90) return 'Outstanding performance!';
+  if (mark >= 80) return 'Keep up the great work!';
+  if (mark >= 70) return 'Well done!';
+  if (mark >= 60) return 'Satisfactory effort.';
+  if (mark >= 50) return 'Needs improvement.';
+  if (mark >= 40) return 'Struggling; needs support.';
+  return 'Serious improvement needed.';
 }
