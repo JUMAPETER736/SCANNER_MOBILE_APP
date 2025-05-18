@@ -75,17 +75,18 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         return;
       }
 
-      final String studentClass = widget.studentClass;
+      final String studentClass = widget.studentClass.trim().toUpperCase();
       final String studentFullName = widget.studentFullName;
 
-      if (studentClass.isEmpty || studentFullName.isEmpty) {
+      if (studentClass != 'FORM 1' && studentClass != 'FORM 2') {
         setState(() {
           isLoading = false;
           hasError = true;
-          errorMessage = 'Student class or full name is missing.';
+          errorMessage = 'Only students in FORM 1 or FORM 2 can access this report.';
         });
         return;
       }
+
 
       // ✅ Use teacher's school from Firestore instead of widget.schoolName
       final String basePath = 'Schools/$teacherSchool/Classes/$studentClass/Student_Details/$studentFullName';
@@ -108,13 +109,28 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
+
+
   Future<void> fetchStudentSubjects(String basePath) async {
     try {
-      final snapshot = await _firestore.collection('$basePath/Subjects').get();
-      final data = snapshot.docs.map((doc) => doc.data()).toList();
+      final snapshot = await _firestore
+          .collection('$basePath/Student_Subjects')
+          .get();
+
+      List<Map<String, dynamic>> subjectList = [];
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+
+        subjectList.add({
+          'subject': data['Subject_Name'] ?? doc.id,
+          'grade': data['Subject_Grade'] ?? 'N/A',
+          'marks': data['Marks'] ?? 'N/A', // Add this if marks are stored
+        });
+      }
 
       setState(() {
-        subjects = data.cast<Map<String, dynamic>>();
+        subjects = subjectList;
         _statusMessage = 'Subjects fetched successfully.';
       });
     } catch (e) {
@@ -124,6 +140,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       });
     }
   }
+
+
+
 
   Future<void> fetchTotalMarks(String basePath) async {
     try {
@@ -145,6 +164,8 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       });
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -205,16 +226,18 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     return Card(
       child: Column(
         children: [
-          ListTile(title: Text('Subjects')),
+          ListTile(title: Text('Subjects, Marks & Grades')),
           Divider(),
           ...subjects.map((subj) => ListTile(
             title: Text(subj['subject'] ?? 'Unknown'),
-            trailing: Text('${subj['marks'] ?? '-'} Marks'),
+            subtitle: Text('Marks: ${subj['marks'] ?? '-'}'),
+            trailing: Text('Grade: ${subj['grade'] ?? '-'}'),
           )),
         ],
       ),
     );
   }
+
 
   Widget _buildSummaryCard() {
     return Card(
