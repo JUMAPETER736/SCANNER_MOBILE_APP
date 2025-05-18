@@ -29,6 +29,11 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   bool isLoading = true;
   String? _errorMessage;
 
+
+  String _statusMessage = '';
+  bool isSubjectsFetched = false;
+  bool isSummaryFetched = false;
+
   @override
   void initState() {
     super.initState();
@@ -40,70 +45,44 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     try {
       setState(() {
         isLoading = true;
+        _statusMessage = 'Fetching student data...';
         _errorMessage = null;
+        isSubjectsFetched = false;
+        isSummaryFetched = false;
       });
 
-      // Define the base path for student data
-      final String basePath = 'Schools/${widget.schoolName}/Classes/${widget.studentClass}/Student_Details/${widget.studentFullName}';
-
-      // Step 1: Fetch all subjects from Student_Subjects collection
-      final studentSubjectsRef = _firestore.doc(basePath).collection('Student_Subjects');
-
+      final String basePath =
+          'Schools/${widget.schoolName}/Classes/${widget.studentClass}/Student_Details/${widget.studentFullName}';
+      final studentSubjectsRef = _firestore.collection('$basePath/Student_Subjects');
       final subjectDocsSnapshot = await studentSubjectsRef.get();
-
-      // List of all possible subjects (to ensure we include subjects even if they don't have data)
-      List<String> subjectNames = [
-        'AGRICULTURE',
-        'BIBLE KNOWLEDGE',
-        'BIOLOGY',
-        'CHEMISTRY',
-        'CHICHEWA',
-        'COMPUTER SCIENCE',
-        'ENGLISH',
-        'LIFE SKILLS',
-        'MATHEMATICS',
-        'PHYSICS',
-        'SOCIAL STUDIES'
-      ];
 
       List<Map<String, dynamic>> subjectsData = [];
 
-      // First, add subjects that exist in Firestore
       for (var doc in subjectDocsSnapshot.docs) {
         final subjectData = doc.data();
         final subjectName = subjectData['Subject_Name'] ?? doc.id;
-        String grade = subjectData['Subject_Grade']?.toString() ?? '0';
-        int score = int.tryParse(grade) ?? 0;
+        final gradeStr = subjectData['Subject_Grade']?.toString() ?? '0';
+        final score = int.tryParse(gradeStr) ?? 0;
 
         subjectsData.add({
           'Subject_Name': subjectName,
-          'Subject_Score': grade,
+          'Subject_Score': gradeStr,
           'Subject_Grade': _getGradeLetter(score),
           'Grade_Interpretation': _getGradeInterpretation(score),
           'Teacher_Comment': _generateTeacherComment(score),
         });
-
-        // Remove from the list of subjects to check
-        subjectNames.remove(subjectName);
       }
 
-      // Then add placeholders for subjects that don't have data
-      for (var subjectName in subjectNames) {
-        subjectsData.add({
-          'Subject_Name': subjectName,
-          'Subject_Score': 'N/A',
-          'Subject_Grade': '-',
-          'Grade_Interpretation': 'No data',
-          'Teacher_Comment': '',
-        });
-      }
-
-      // Sort subjects alphabetically
       subjectsData.sort((a, b) => a['Subject_Name'].compareTo(b['Subject_Name']));
 
-      // Step 2: Fetch total marks
-      final totalMarksRef = _firestore.doc(basePath).collection('TOTAL_MARKS').doc('Marks');
+      setState(() {
+        subjects = subjectsData;
+        isSubjectsFetched = true;
+        _statusMessage = 'Subjects loaded.';
+      });
 
+      // Fetch TOTAL_MARKS
+      final totalMarksRef = _firestore.doc('$basePath/TOTAL_MARKS/Marks');
       final totalMarksDoc = await totalMarksRef.get();
 
       Map<String, dynamic> totalMarksData = {};
@@ -117,15 +96,16 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         int teacherTotal = int.tryParse(data['Teacher_Total_Marks']?.toString() ?? '0') ?? 0;
 
         if (teacherTotal > 0) {
-          average = '${(studentTotal / teacherTotal * 100).toStringAsFixed(1)}%';
+          average = (studentTotal / teacherTotal * 100).toStringAsFixed(2) + '%';
         }
 
         totalMarksData['Average_Score'] = average;
       }
 
       setState(() {
-        subjects = subjectsData;
         totalMarks = totalMarksData;
+        isSummaryFetched = true;
+        _statusMessage = 'All data loaded successfully.';
         isLoading = false;
       });
     } catch (e) {
@@ -137,13 +117,12 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     if (_errorMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_errorMessage!)),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errorMessage!)));
         setState(() => _errorMessage = null);
       });
     }
@@ -152,14 +131,8 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       appBar: AppBar(
         title: Text('Student Report: ${widget.studentFullName}'),
         actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: fetchStudentData,
-          ),
-          IconButton(
-            icon: Icon(Icons.print),
-            onPressed: _printDocument,
-          ),
+          IconButton(icon: Icon(Icons.refresh), onPressed: fetchStudentData),
+          IconButton(icon: Icon(Icons.print), onPressed: _printDocument),
         ],
       ),
       body: isLoading
@@ -169,7 +142,16 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         child: SingleChildScrollView(
           padding: EdgeInsets.all(16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_statusMessage.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    _statusMessage,
+                    style: TextStyle(color: Colors.blueGrey, fontStyle: FontStyle.italic),
+                  ),
+                ),
               _buildSchoolInfoCard(),
               SizedBox(height: 16),
               _buildSubjectsCard(),
@@ -181,6 +163,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       ),
     );
   }
+
+
+
 
   Widget _buildSchoolInfoCard() {
     return Card(
@@ -213,14 +198,27 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('SUBJECTS',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Text('Total Subjects: ${subjects.length}',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                Row(
+                  children: [
+                    Text('SUBJECTS', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    if (!isSubjectsFetched)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                  ],
+                ),
+
               ],
             ),
             Divider(thickness: 2),
             SizedBox(height: 10),
+            if (subjects.isEmpty)
+              Center(child: Text('No subjects found')),
             ...subjects.map((subject) => _buildSubjectTile(subject)),
           ],
         ),
