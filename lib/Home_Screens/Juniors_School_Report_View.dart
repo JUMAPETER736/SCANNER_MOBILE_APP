@@ -125,7 +125,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         subjectList.add({
           'subject': data['Subject_Name'] ?? doc.id,
           'grade': data['Subject_Grade'] ?? 'N/A',
-          'marks': data['Marks'] ?? 'N/A', // Add this if marks are stored
+
         });
       }
 
@@ -230,7 +230,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           Divider(),
           ...subjects.map((subj) => ListTile(
             title: Text(subj['subject'] ?? 'Unknown'),
-            subtitle: Text('Marks: ${subj['marks'] ?? '-'}'),
             trailing: Text('Grade: ${subj['grade'] ?? '-'}'),
           )),
         ],
@@ -254,7 +253,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     doc.addPage(
       pw.Page(
         build: (pw.Context context) => pw.Center(
-          child: pw.Text("Student Report - ${widget.studentFullName}"),
+          child: pw.Text("School Report for - ${widget.studentFullName}"),
         ),
       ),
     );

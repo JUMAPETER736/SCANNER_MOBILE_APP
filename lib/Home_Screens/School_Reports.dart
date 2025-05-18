@@ -345,7 +345,7 @@ class _School_ReportsState extends State<School_Reports> {
                       MaterialPageRoute(
 
                         builder: (context) => Juniors_School_Report_View(
-                        //  schoolName: schoolName,
+
                           studentClass: studentClass,
                           studentFullName: student['fullName'],
                         ),
@@ -359,7 +359,6 @@ class _School_ReportsState extends State<School_Reports> {
                       MaterialPageRoute(
                         builder: (context) => Seniors_School_Report_View(
 
-                          schoolName: schoolName,
                           studentClass: studentClass,
                           studentFullName: student['fullName'],
 
