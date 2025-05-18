@@ -290,7 +290,7 @@ class _StatisticsState extends State<Statistics> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Statistics for $className'),
+        title: Text('Statistics'),
         backgroundColor: Colors.blueAccent,
       ),
       body: isLoading

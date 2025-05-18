@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 // Add these for printing and PDF
@@ -45,11 +47,17 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     'SOCIAL STUDIES',
   ];
 
+  bool _initialized = false;
+
   @override
-  void initState() {
-    super.initState();
-    fetchStudentData();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+
+      _initialized = true;
+    }
   }
+
 
   Future<void> fetchStudentData() async {
     try {
@@ -69,7 +77,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           .doc('Registered_Information')
           .get();
 
-      // Fetch subjects
+      // Fetch current student subjects
       final subjectsSnap = await _firestore
           .collection('Schools')
           .doc(schoolName)
@@ -80,22 +88,85 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           .collection('Student_Subjects')
           .get();
 
-      // Fetch TOTAL_MARKS
-      final marksDoc = await _firestore
-          .collection('Schools')
-          .doc(schoolName)
-          .collection('Classes')
-          .doc(studentClass)
-          .collection('Student_Details')
-          .doc(studentFullName)
-          .collection('TOTAL_MARKS')
-          .doc('Marks')
-          .get();
+      final currentStudentSubjects = subjectsSnap.docs.map((doc) => doc.data()).toList();
+
+      // Create enriched subjects
+      List<Map<String, dynamic>> enrichedSubjects = [];
+
+      for (var subject in currentStudentSubjects) {
+        String subjectName = (subject['Subject_Name'] ?? '').toString();
+        int subjectMark = int.tryParse(subject['Subject_Grade']?.toString() ?? '') ?? 0;
+
+        // Fetch all students in class
+        final studentsSnap = await _firestore
+            .collection('Schools')
+            .doc(schoolName)
+            .collection('Classes')
+            .doc(studentClass)
+            .collection('Student_Details')
+            .get();
+
+        List<int> allMarks = [];
+
+        for (var student in studentsSnap.docs) {
+          final subjDoc = await _firestore
+              .collection('Schools')
+              .doc(schoolName)
+              .collection('Classes')
+              .doc(studentClass)
+              .collection('Student_Details')
+              .doc(student.id)
+              .collection('Student_Subjects')
+              .where('Subject_Name', isEqualTo: subjectName)
+              .limit(1)
+              .get();
+
+          if (subjDoc.docs.isNotEmpty) {
+            final markStr = subjDoc.docs.first.data()['Subject_Grade'];
+            final mark = int.tryParse(markStr?.toString() ?? '');
+            if (mark != null) {
+              allMarks.add(mark);
+            }
+          }
+        }
+
+        // Calculate class average
+        double avg = allMarks.isNotEmpty
+            ? allMarks.reduce((a, b) => a + b) / allMarks.length
+            : 0;
+
+        // Sort descending to get position
+        allMarks.sort((b, a) => a.compareTo(b)); // descending
+        int position = allMarks.indexOf(subjectMark) + 1;
+
+        // Generate teacher comment
+        String comment = '';
+        if (subjectMark >= 85) {
+          comment = 'Excellent Work';
+        } else if (subjectMark >= 70) {
+          comment = 'Good Effort';
+        } else if (subjectMark >= 60) {
+          comment = 'Keep Improving';
+        } else if (subjectMark >= 50) {
+          comment = 'Needs Support';
+        } else {
+          comment = 'Work Harder';
+        }
+
+        enrichedSubjects.add({
+          'Subject_Name': subjectName,
+          'Subject_Score': subjectMark.toString(),
+          'Subject_Grade': _getGradeLetter(subjectMark),
+          'Grade_Interpretation': _getGradeInterpretation(subjectMark),
+          'Class_Average': avg.toStringAsFixed(1),
+          'Position': position.toString(),
+          'Teacher_Comment': comment,
+        });
+      }
 
       setState(() {
         studentInfo = studentDoc.data() ?? {};
-        subjects = subjectsSnap.docs.map((doc) => doc.data()).toList();
-        totalMarks = marksDoc.data() ?? {};
+        subjects = enrichedSubjects;
         isLoading = false;
       });
     } catch (e) {
@@ -108,87 +179,23 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
-  List<Map<String, dynamic>> get subjectsForDisplay {
-    final Map<String, Map<String, dynamic>> subjectMap = {
-      for (final subj in subjects)
-        (subj['Subject_Name'] ?? '').toString().toUpperCase(): subj
-    };
-
-    if (widget.studentClass.trim().toUpperCase() == 'FORM 1' ||
-        widget.studentClass.trim().toUpperCase() == 'FORM 2') {
-      
-      return JuniorsSubjects.map((subjectName) {
-        final subj = subjectMap[subjectName] ?? {};
-        final score = subj['Subject_Marks'];
-        String gradeLetter = '';
-        String gradeInterpretation = '';
-        if (score != null && score.toString().isNotEmpty) {
-          final gradeInt = int.tryParse(score.toString()) ?? 0;
-          if (gradeInt >= 85 && gradeInt <= 100) {
-            gradeLetter = 'A';
-            gradeInterpretation = 'EXCELLENT';
-          } else if (gradeInt >= 70) {
-            gradeLetter = 'B';
-            gradeInterpretation = 'GOOD';
-          } else if (gradeInt >= 60) {
-            gradeLetter = 'C';
-            gradeInterpretation = 'CREDIT';
-          } else if (gradeInt >= 50) {
-            gradeLetter = 'D';
-            gradeInterpretation = 'PASS';
-          } else {
-            gradeLetter = 'F';
-            gradeInterpretation = 'FAIL';
-          }
-        }
-        return {
-          'Subject_Name': subjectName,
-          'Subject_Score': score?.toString() ?? '',
-          'Subject_Grade': gradeLetter,
-          'Grade_Interpretation': gradeInterpretation,
-          'Class_Average': subj['Class_Average'] ?? '',
-          'Position': subj['Position'] ?? '',
-          'Teacher_Comment': subj['Teacher_Comment'] ?? '',
-        };
-      }).toList();
-    } else {
-      return subjects.map((subj) {
-        final score = subj['Subject_Marks'];
-        String gradeLetter = '';
-        String gradeInterpretation = '';
-        if (score != null && score.toString().isNotEmpty) {
-          final gradeInt = int.tryParse(score.toString()) ?? 0;
-          if (gradeInt >= 85 && gradeInt <= 100) {
-            gradeLetter = 'A';
-            gradeInterpretation = 'EXCELLENT';
-          } else if (gradeInt >= 70) {
-            gradeLetter = 'B';
-            gradeInterpretation = 'GOOD';
-          } else if (gradeInt >= 60) {
-            gradeLetter = 'C';
-            gradeInterpretation = 'CREDIT';
-          } else if (gradeInt >= 50) {
-            gradeLetter = 'D';
-            gradeInterpretation = 'PASS';
-          } else {
-            gradeLetter = 'F';
-            gradeInterpretation = 'FAIL';
-          }
-        }
-        return {
-          'Subject_Name': subj['Subject_Name'] ?? '',
-          'Subject_Score': score?.toString() ?? '',
-          'Subject_Grade': gradeLetter,
-          'Grade_Interpretation': gradeInterpretation,
-          'Class_Average': subj['Class_Average'] ?? '',
-          'Position': subj['Position'] ?? '',
-          'Teacher_Comment': subj['Teacher_Comment'] ?? '',
-        };
-      }).toList();
-    }
+  String _getGradeLetter(int score) {
+    if (score >= 85) return 'A';
+    if (score >= 70) return 'B';
+    if (score >= 60) return 'C';
+    if (score >= 50) return 'D';
+    return 'F';
   }
 
-  // PDF generation logic
+  String _getGradeInterpretation(int score) {
+    if (score >= 85) return 'EXCELLENT';
+    if (score >= 70) return 'GOOD';
+    if (score >= 60) return 'CREDIT';
+    if (score >= 50) return 'PASS';
+    return 'FAIL';
+  }
+
+
   Future<void> _printReportAsPdf() async {
     final pdf = pw.Document();
 
@@ -198,27 +205,44 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text(widget.schoolName.toUpperCase(), style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                widget.schoolName.toUpperCase(),
+                style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+              ),
               pw.Text("P.O. BOX 43, ${widget.schoolName.split(" ").first.toUpperCase()}"),
               pw.SizedBox(height: 8),
-              pw.Text("2024/25 END OF TERM ONE STUDENT'S PROGRESS REPORT", style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                "2024/25 END OF TERM ONE STUDENT'S PROGRESS REPORT",
+                style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+              ),
               pw.Divider(),
-              pw.Text("NAME OF STUDENT: ${(studentInfo?['firstName'] ?? '')} ${(studentInfo?['lastName'] ?? '')}".toUpperCase(), style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Text("CLASS: "),
+              pw.Text(
+                "NAME OF STUDENT: ${(studentInfo?['firstName'] ?? '').toString().toUpperCase()} ${(studentInfo?['lastName'] ?? '').toString().toUpperCase()}",
+                style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              ),
+              pw.Text("CLASS: ${studentInfo?['studentClass'] ?? 'N/A'}"),
               pw.SizedBox(height: 10),
               pw.Table.fromTextArray(
                 cellAlignment: pw.Alignment.centerLeft,
                 headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                headers: ["SUBJECT", "SCORE", "GRADE", "INTERPRETATION", "CLASS AVG", "POSITION", "TEACHERS' COMMENTS"],
+                headers: [
+                  "SUBJECT",
+                  "SCORE",
+                  "GRADE",
+                  "INTERPRETATION",
+                  "CLASS AVG",
+                  "POSITION",
+                  "TEACHERS' COMMENTS"
+                ],
                 data: [
-                  for (final subject in subjectsForDisplay)
+                  for (final subject in subjects)
                     [
                       subject['Subject_Name'] ?? "-",
-                      subject['Subject_Score'] ?? "-",
+                      subject['Subject_Score']?.toString() ?? "-",
                       subject['Subject_Grade'] ?? "-",
                       subject['Grade_Interpretation'] ?? "-",
-                      subject['Class_Average'] ?? "-",
-                      subject['Position'] ?? "-",
+                      subject['Class_Average']?.toString() ?? "-",
+                      subject['Position']?.toString() ?? "-",
                       subject['Teacher_Comment'] ?? "-",
                     ]
                 ],
@@ -226,10 +250,13 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
               pw.SizedBox(height: 10),
               pw.Row(
                 children: [
-                  pw.Expanded(child: pw.Text("AGGREGATE POINTS: ${(totalMarks?['Aggregate_Grade'] ?? 'N/A').toString()}")),
-                  pw.Expanded(child: pw.Text("POSITION: ${(totalMarks?['Best_Six_Total_Points'] ?? 'N/A').toString()}")),
-                  pw.Expanded(child: pw.Text("OUT OF: ${(totalMarks?['Student_Total_Marks'] ?? 'N/A').toString()}")),
-                  pw.Expanded(child: pw.Text("END RESULT: ${(totalMarks?['End_Result'] ?? 'JCE')}")),
+                  pw.Expanded(
+                      child: pw.Text("AGGREGATE POINTS: ${(totalMarks?['Aggregate_Grade'] ?? 'N/A').toString()}")),
+                  pw.Expanded(
+                      child: pw.Text("POSITION: ${(totalMarks?['Best_Six_Total_Points'] ?? 'N/A').toString()}")),
+                  pw.Expanded(
+                      child: pw.Text("OUT OF: ${(totalMarks?['Student_Total_Marks'] ?? 'N/A').toString()}")),
+                  pw.Expanded(child: pw.Text("END RESULT: ${(totalMarks?['End_Result'] ?? 'JCE').toString()}")),
                 ],
               ),
               pw.SizedBox(height: 8),
@@ -283,6 +310,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
     await Printing.layoutPdf(onLayout: (format) async => pdf.save());
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -390,7 +418,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                         cell("TEACHERS' COMMENTS", true),
                       ],
                     ),
-                    ...subjectsForDisplay.map((subject) => TableRow(
+                    ...subjects.map((subject) => TableRow(
                       children: [
                         cell(subject['Subject_Name'] ?? "-"),
                         cell(subject['Subject_Score']?.toString() ?? "-"),
