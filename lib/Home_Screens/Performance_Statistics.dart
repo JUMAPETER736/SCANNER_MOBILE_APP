@@ -3,14 +3,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 
-class Statistics extends StatefulWidget {
-  const Statistics({Key? key}) : super(key: key);
+class Performance_Statistics extends StatefulWidget {
+  const Performance_Statistics({Key? key}) : super(key: key);
 
   @override
-  _StatisticsState createState() => _StatisticsState();
+  _Performance_StatisticsState createState() => _Performance_StatisticsState();
 }
 
-class _StatisticsState extends State<Statistics> {
+class _Performance_StatisticsState extends State<Performance_Statistics> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -290,7 +290,7 @@ class _StatisticsState extends State<Statistics> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Statistics'),
+        title: Text('Class Performance'),
         backgroundColor: Colors.blueAccent,
       ),
       body: isLoading

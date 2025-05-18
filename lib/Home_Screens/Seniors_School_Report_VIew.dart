@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 // Add these for printing and PDF
@@ -708,7 +710,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
               const Text("50-54: 8 (Pass)", style: TextStyle(fontSize: 12)),
             ],
           ),
-          const Text("0-49: 9 (Weak Pass)", style: TextStyle(fontSize: 12)),
+          const Text("0-49: 9 (Fail)", style: TextStyle(fontSize: 12)),
         ],
       ),
     );
