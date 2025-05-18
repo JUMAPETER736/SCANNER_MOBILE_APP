@@ -345,7 +345,7 @@ class _School_ReportsState extends State<School_Reports> {
                       MaterialPageRoute(
 
                         builder: (context) => Juniors_School_Report_View(
-                          schoolName: schoolName,
+                        //  schoolName: schoolName,
                           studentClass: studentClass,
                           studentFullName: student['fullName'],
                         ),
