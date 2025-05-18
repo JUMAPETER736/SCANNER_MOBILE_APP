@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:pdf/pdf.dart';
-import 'package:printing/printing.dart';
-import 'package:pdf/widgets.dart' as pw;
 
 class Juniors_School_Report_View extends StatefulWidget {
   final String studentClass;
@@ -25,6 +22,8 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
   List<Map<String, dynamic>> subjects = [];
   Map<String, dynamic> totalMarks = {};
+  Map<String, dynamic> subjectStats = {}; // For average and total per subject
+  int studentPosition = 0;
   bool isLoading = true;
   bool hasError = false;
   String? errorMessage;
@@ -87,14 +86,13 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         return;
       }
 
-
-      // ✅ Use teacher's school from Firestore instead of widget.schoolName
       final String basePath = 'Schools/$teacherSchool/Classes/$studentClass/Student_Details/$studentFullName';
 
       print('Base Path: $basePath');
 
       await fetchStudentSubjects(basePath);
       await fetchTotalMarks(basePath);
+      await calculateSubjectStatsAndPosition(teacherSchool, studentClass, studentFullName);
 
       setState(() {
         isLoading = false;
@@ -109,23 +107,23 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
-
-
   Future<void> fetchStudentSubjects(String basePath) async {
     try {
-      final snapshot = await _firestore
-          .collection('$basePath/Student_Subjects')
-          .get();
+      final snapshot = await _firestore.collection('$basePath/Student_Subjects').get();
 
       List<Map<String, dynamic>> subjectList = [];
 
       for (var doc in snapshot.docs) {
         final data = doc.data();
+        // We expect Subject_Grade as string (score)
+        double score = 0;
+        if (data['Subject_Grade'] != null) {
+          score = double.tryParse(data['Subject_Grade'].toString()) ?? 0;
+        }
 
         subjectList.add({
           'subject': data['Subject_Name'] ?? doc.id,
-          'grade': data['Subject_Grade'] ?? 'N/A',
-
+          'score': score,
         });
       }
 
@@ -140,9 +138,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       });
     }
   }
-
-
-
 
   Future<void> fetchTotalMarks(String basePath) async {
     try {
@@ -165,7 +160,100 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
+  /// Calculate average & total marks for each subject,
+  /// and calculate overall student position based on total marks
+  Future<void> calculateSubjectStatsAndPosition(String school, String studentClass, String studentFullName) async {
+    try {
+      // Fetch all students under this class
+      final studentsSnapshot = await _firestore
+          .collection('Schools/$school/Classes/$studentClass/Student_Details')
+          .get();
 
+      // Prepare data for average per subject & total marks ranking
+      Map<String, List<double>> marksPerSubject = {};
+      Map<String, double> totalMarksPerStudent = {};
+
+      for (var studentDoc in studentsSnapshot.docs) {
+        final studentName = studentDoc.id;
+
+        // Get total marks for this student
+        final totalMarksDoc = await _firestore.doc('Schools/$school/Classes/$studentClass/Student_Details/$studentName/TOTAL_MARKS/Marks').get();
+        double totalMarkValue = 0;
+        if (totalMarksDoc.exists) {
+          final data = totalMarksDoc.data();
+          if (data != null && data['Total_Marks'] != null) {
+            totalMarkValue = (data['Total_Marks'] as num).toDouble();
+          }
+        }
+        totalMarksPerStudent[studentName] = totalMarkValue;
+
+        // Fetch student subjects and marks for average calc
+        final subjectsSnapshot = await _firestore.collection('Schools/$school/Classes/$studentClass/Student_Details/$studentName/Student_Subjects').get();
+
+        for (var subjectDoc in subjectsSnapshot.docs) {
+          final data = subjectDoc.data();
+          final subjectName = data['Subject_Name'] ?? subjectDoc.id;
+          final gradeStr = data['Subject_Grade']?.toString() ?? '0';
+          double grade = double.tryParse(gradeStr) ?? 0;
+
+          if (!marksPerSubject.containsKey(subjectName)) {
+            marksPerSubject[subjectName] = [];
+          }
+          marksPerSubject[subjectName]!.add(grade);
+        }
+      }
+
+      // Calculate average and total for each subject
+      Map<String, Map<String, double>> stats = {};
+      marksPerSubject.forEach((subject, scores) {
+        double total = scores.fold(0, (prev, el) => prev + el);
+        double avg = scores.isNotEmpty ? total / scores.length : 0;
+        stats[subject] = {'total': total, 'average': avg};
+      });
+
+      // Calculate position of current student by sorting total marks descending
+      List<MapEntry<String, double>> sortedTotals = totalMarksPerStudent.entries.toList();
+      sortedTotals.sort((a, b) => b.value.compareTo(a.value)); // Descending
+
+      int pos = 1;
+      for (var entry in sortedTotals) {
+        if (entry.key == studentFullName) {
+          studentPosition = pos;
+          break;
+        }
+        pos++;
+      }
+
+      setState(() {
+        subjectStats = stats;
+      });
+    } catch (e) {
+      print("Error calculating stats & position: $e");
+    }
+  }
+
+  String getGrade(double score) {
+    if (score >= 85) return 'A';
+    if (score >= 75) return 'B';
+    if (score >= 65) return 'C';
+    if (score >= 50) return 'D';
+    return 'F';
+  }
+
+  String getRemark(String grade) {
+    switch (grade) {
+      case 'A':
+        return 'Excellent';
+      case 'B':
+        return 'Very Good';
+      case 'C':
+        return 'Good';
+      case 'D':
+        return 'Fair';
+      default:
+        return 'Poor';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -178,10 +266,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Student Report: ${widget.studentFullName}'),
+        title: Text('School Report: ${widget.studentFullName}'),
         actions: [
           IconButton(icon: Icon(Icons.refresh), onPressed: _fetchStudentData),
-          IconButton(icon: Icon(Icons.print), onPressed: _printDocument),
         ],
       ),
       body: isLoading
@@ -193,18 +280,10 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_statusMessage.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    _statusMessage,
-                    style: TextStyle(color: Colors.blueGrey, fontStyle: FontStyle.italic),
-                  ),
-                ),
               _buildSchoolInfoCard(),
               SizedBox(height: 16),
-              _buildSubjectsCard(),
-              SizedBox(height: 20),
+              _buildReportTable(),
+              SizedBox(height: 16),
               _buildSummaryCard(),
             ],
           ),
@@ -218,46 +297,101 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       child: ListTile(
         title: Text('Class: ${widget.studentClass}'),
         subtitle: Text('Student: ${widget.studentFullName}'),
+        trailing: Text('Position: $studentPosition'),
       ),
     );
   }
 
-  Widget _buildSubjectsCard() {
+  Widget _buildReportTable() {
     return Card(
-      child: Column(
-        children: [
-          ListTile(title: Text('Subjects, Marks & Grades')),
-          Divider(),
-          ...subjects.map((subj) => ListTile(
-            title: Text(subj['subject'] ?? 'Unknown'),
-            trailing: Text('Grade: ${subj['grade'] ?? '-'}'),
-          )),
-        ],
-      ),
-    );
-  }
+      child: Padding(
+        padding: EdgeInsets.all(12),
+        child: Table(
+          border: TableBorder.all(color: Colors.grey),
+          columnWidths: const {
+            0: FlexColumnWidth(3), // Subject
+            1: FlexColumnWidth(2), // Score
+            2: FlexColumnWidth(1), // Grade
+            3: FlexColumnWidth(3), // Remark
+            4: FlexColumnWidth(1), // Position (per subject - can be empty or future)
+            5: FlexColumnWidth(2), // Average
+            6: FlexColumnWidth(2), // Total
+          },
+          children: [
+            TableRow(
+              decoration: BoxDecoration(color: Colors.blueGrey.shade100),
+              children: [
+                _tableCell('SUBJECT', isHeader: true),
+                _tableCell('SCORE', isHeader: true),
+                _tableCell('GRADE', isHeader: true),
+                _tableCell('REMARK', isHeader: true),
+                _tableCell('POSITION', isHeader: true),
+                _tableCell('AVERAGE', isHeader: true),
+                _tableCell('TOTAL', isHeader: true),
+              ],
+            ),
+            ...subjects.map((subj) {
+              final subjectName = subj['subject'] ?? 'Unknown';
+              final score = subj['score'] ?? 0.0;
+              final grade = getGrade(score);
+              final remark = getRemark(grade);
 
+              // Get average and total for this subject if available
+              final subjectStat = subjectStats[subjectName];
+              final avg = subjectStat != null ? subjectStat['average'] as double : 0.0;
+              final total = subjectStat != null ? subjectStat['total'] as double : 0.0;
 
-  Widget _buildSummaryCard() {
-    return Card(
-      child: ListTile(
-        title: Text('Total Marks'),
-        subtitle: Text(totalMarks.toString()),
-      ),
-    );
-  }
+              // POSITION per subject is tricky: We can leave blank or implement later
+              final subjectPosition = '-';
 
-  void _printDocument() async {
-    final doc = pw.Document();
-
-    doc.addPage(
-      pw.Page(
-        build: (pw.Context context) => pw.Center(
-          child: pw.Text("School Report for - ${widget.studentFullName}"),
+              return TableRow(children: [
+                _tableCell(subjectName),
+                _tableCell(score.toStringAsFixed(1)),
+                _tableCell(grade),
+                _tableCell(remark),
+                _tableCell(subjectPosition),
+                _tableCell(avg.toStringAsFixed(1)),
+                _tableCell(total.toStringAsFixed(1)),
+              ]);
+            }).toList(),
+          ],
         ),
       ),
     );
+  }
 
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => doc.save());
+  Widget _tableCell(String text, {bool isHeader = false}) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
+          color: isHeader ? Colors.black87 : Colors.black54,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard() {
+    double totalMarkValue = 0;
+    if (totalMarks.containsKey('Total_Marks')) {
+      totalMarkValue = (totalMarks['Total_Marks'] as num).toDouble();
+    }
+
+    return Card(
+      color: Colors.blue.shade50,
+      child: Padding(
+        padding: EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('TOTAL MARKS: ${totalMarkValue.toStringAsFixed(1)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(height: 6),
+            Text('POSITION IN CLASS: $studentPosition', style: TextStyle(fontSize: 16)),
+          ],
+        ),
+      ),
+    );
   }
 }
