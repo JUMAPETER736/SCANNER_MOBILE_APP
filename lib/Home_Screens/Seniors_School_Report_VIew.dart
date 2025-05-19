@@ -128,7 +128,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
       setState(() {
         subjects = subjectList;
-        _statusMessage = 'Subjects fetched successfully.';
+        _statusMessage = 'Subjects fetched Successfully.';
       });
     } catch (e) {
       print("Error fetching subjects: $e");

@@ -9,7 +9,7 @@ import 'package:scanna/Students_Information/Student_Details.dart';
 import 'package:scanna/Home_Screens/Help.dart';
 import 'package:scanna/Students_Information/Student_Name_List.dart';
 import 'package:scanna/Home_Screens/QR_Code_Scan.dart';
-import 'package:scanna/Home_Screens/School_Reports.dart';
+import 'package:scanna/Home_Screens/Results_And_ School_Reports.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Login_Page.dart';
 import 'package:scanna/Home_Screens/Performance_Statistics.dart';
 import 'package:scanna/Home_Screens/School_Reports_PDF_List.dart';
@@ -130,14 +130,14 @@ class _Main_HomeState extends State<Main_Home> {
                   ),
                   _buildHomeCard(
                     icon: Icons.school,
-                    text: 'School Reports',
+                    text: 'Results',
                     color: Colors.redAccent,
                     iconSize: 60.0,
                     textSize: 15.0,
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => School_Reports()),
+                        MaterialPageRoute(builder: (context) => Results_And_School_Reports()),
                       );
                     },
                   ),
