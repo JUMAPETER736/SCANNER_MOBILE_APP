@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class Juniors_School_Report_View extends StatefulWidget {
   final String studentClass;
@@ -162,7 +165,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
   /// Calculate average & total marks for each subject,
   /// and calculate overall student position based on total marks
-  Future<void> calculateSubjectStatsAndPosition(String school, String studentClass, String studentFullName) async {
+  Future<void> calculateSubjectStatsAndPosition(
+      String school, String studentClass, String studentFullName) async {
+
     try {
       // Fetch all students under this class
       final studentsSnapshot = await _firestore
@@ -249,9 +254,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       case 'C':
         return 'Good';
       case 'D':
-        return 'Fair';
+        return 'Pass';
       default:
-        return 'Poor';
+        return 'Fail';
     }
   }
 
@@ -269,6 +274,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         title: Text('School Report: ${widget.studentFullName}'),
         actions: [
           IconButton(icon: Icon(Icons.refresh), onPressed: _fetchStudentData),
+          IconButton(icon: Icon(Icons.print), onPressed: _printDocument),
         ],
       ),
       body: isLoading
@@ -290,6 +296,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         ),
       ),
     );
+
   }
 
   Widget _buildSchoolInfoCard() {
@@ -394,4 +401,20 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       ),
     );
   }
+
+
+  void _printDocument() async {
+    final doc = pw.Document();
+
+    doc.addPage(
+      pw.Page(
+        build: (pw.Context context) => pw.Center(
+          child: pw.Text("School Report  for - ${widget.studentFullName}"),
+        ),
+      ),
+    );
+
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => doc.save());
+  }
+
 }

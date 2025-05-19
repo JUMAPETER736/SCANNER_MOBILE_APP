@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:scanna/Settings/Main_Settings.dart';
@@ -78,8 +80,8 @@ class _Main_HomeState extends State<Main_Home> {
                     icon: Icons.class_,
                     text: 'Select School & Class',
                     color: Colors.blueAccent,
-                    iconSize: 65.0,
-                    textSize: 16.0,
+                    iconSize: 60.0,
+                    textSize: 15.0,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -91,8 +93,8 @@ class _Main_HomeState extends State<Main_Home> {
                     icon: Icons.analytics,
                     text: 'Grade Analytics',
                     color: Colors.greenAccent,
-                    iconSize: 65.0,
-                    textSize: 16.0,
+                    iconSize: 60.0,
+                    textSize: 15.0,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -104,8 +106,8 @@ class _Main_HomeState extends State<Main_Home> {
                     icon: Icons.person_add,
                     text: 'Add Student',
                     color: Colors.orangeAccent,
-                    iconSize: 65.0,
-                    textSize: 16.0,
+                    iconSize: 60.0,
+                    textSize: 15.0,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -117,8 +119,8 @@ class _Main_HomeState extends State<Main_Home> {
                     icon: Icons.qr_code_scanner,
                     text: 'QR Scan',
                     color: const Color.fromARGB(255, 59, 61, 60),
-                    iconSize: 65.0,
-                    textSize: 16.0,
+                    iconSize: 60.0,
+                    textSize: 15.0,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -130,8 +132,8 @@ class _Main_HomeState extends State<Main_Home> {
                     icon: Icons.school,
                     text: 'School Reports',
                     color: Colors.redAccent,
-                    iconSize: 65.0,
-                    textSize: 16.0,
+                    iconSize: 60.0,
+                    textSize: 15.0,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -143,8 +145,8 @@ class _Main_HomeState extends State<Main_Home> {
                     icon: Icons.list,
                     text: 'Students Names',
                     color: Colors.purpleAccent,
-                    iconSize: 65.0,
-                    textSize: 16.0,
+                    iconSize: 60.0,
+                    textSize: 15.0,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -158,8 +160,8 @@ class _Main_HomeState extends State<Main_Home> {
                     icon: Icons.bar_chart,
                     text: 'Statistics',
                     color: Colors.tealAccent,
-                    iconSize: 65.0,
-                    textSize: 16.0,
+                    iconSize: 60.0,
+                    textSize: 15.0,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -171,8 +173,8 @@ class _Main_HomeState extends State<Main_Home> {
                     icon: Icons.picture_as_pdf,
                     text: 'School Reports PDFs',
                     color: Colors.deepOrangeAccent,
-                    iconSize: 65.0,
-                    textSize: 16.0,
+                    iconSize: 60.0,
+                    textSize: 15.0,
                     onTap: () {
                       Navigator.push(
                         context,
