@@ -7,13 +7,13 @@ import 'package:scanna/Home_Screens/Juniors_School_Report_View.dart';
 import 'package:scanna/Home_Screens/Seniors_School_Report_View.dart';
 
 
-class School_Reports extends StatefulWidget {
+class Results_And_School_Reports extends StatefulWidget {
 
   @override
-  _School_ReportsState createState() => _School_ReportsState();
+  _Results_And_School_ReportsState createState() => _Results_And_School_ReportsState();
 }
 
-class _School_ReportsState extends State<School_Reports> {
+class _Results_And_School_ReportsState extends State<Results_And_School_Reports> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -219,7 +219,7 @@ class _School_ReportsState extends State<School_Reports> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'School Reports',
+          'Results',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.blueAccent,

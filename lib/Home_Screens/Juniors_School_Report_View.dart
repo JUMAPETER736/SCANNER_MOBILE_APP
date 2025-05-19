@@ -34,7 +34,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   String? errorMessage;
   String? userEmail;
 
-  String _statusMessage = '';
 
   @override
   void initState() {
@@ -97,7 +96,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
       await fetchStudentSubjects(basePath);
       await fetchTotalMarks(basePath);
-      await calculateSubjectStatsAndPosition(teacherSchool, studentClass, studentFullName);
+      await calculate_Subject_Stats_And_Position(teacherSchool, studentClass, studentFullName);
 
       setState(() {
         isLoading = false;
@@ -134,12 +133,12 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
       setState(() {
         subjects = subjectList;
-        _statusMessage = 'Subjects fetched successfully.';
+
       });
     } catch (e) {
       print("Error fetching subjects: $e");
       setState(() {
-        _statusMessage = 'Failed to load subjects.';
+
       });
     }
   }
@@ -154,20 +153,19 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         });
       } else {
         setState(() {
-          _statusMessage = 'No total marks found.';
+
         });
       }
     } catch (e) {
       print("Error fetching total marks: $e");
       setState(() {
-        _statusMessage = 'Failed to load total marks.';
+
       });
     }
   }
 
-  /// Calculate average & total marks for each subject,
-  /// and calculate overall student position based on total marks
-  Future<void> calculateSubjectStatsAndPosition(
+
+  Future<void> calculate_Subject_Stats_And_Position(
       String school, String studentClass, String studentFullName) async {
 
     try {
@@ -239,12 +237,14 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
-  String getGrade(double score) {
+  String getGrade(int score) {
+
     if (score >= 85) return 'A';
     if (score >= 75) return 'B';
     if (score >= 65) return 'C';
     if (score >= 50) return 'D';
     return 'F';
+
   }
 
   String getRemark(String grade) {

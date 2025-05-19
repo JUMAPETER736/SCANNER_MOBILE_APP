@@ -16,7 +16,7 @@ class _Class_SelectionState extends State<Class_Selection> {
   bool isSaved = false;
 
   // Updated structure to track unavailable subjects by school and class
-  Map<String, Map<String, List<String>>> unavailableSubjectsBySchoolAndClass = {};
+  Map<String, Map<String, List<String>>> unavailable_Subjects_BySchool_And_Class = {};
   String? currentUserEmail;
 
   final List<String> schools = [
@@ -110,9 +110,9 @@ class _Class_SelectionState extends State<Class_Selection> {
 
       // Filter out unavailable subjects for this school and class
       List<String> unavailableSubjects = [];
-      if (unavailableSubjectsBySchoolAndClass.containsKey(selectedSchool)) {
-        if (unavailableSubjectsBySchoolAndClass[selectedSchool]!.containsKey(className)) {
-          unavailableSubjects = unavailableSubjectsBySchoolAndClass[selectedSchool]![className]!;
+      if (unavailable_Subjects_BySchool_And_Class.containsKey(selectedSchool)) {
+        if (unavailable_Subjects_BySchool_And_Class[selectedSchool]!.containsKey(className)) {
+          unavailableSubjects = unavailable_Subjects_BySchool_And_Class[selectedSchool]![className]!;
         }
       }
 
@@ -149,7 +149,7 @@ class _Class_SelectionState extends State<Class_Selection> {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('Teachers_Details').get();
 
       // Clear the existing map
-      unavailableSubjectsBySchoolAndClass = {};
+      unavailable_Subjects_BySchool_And_Class = {};
 
       for (var doc in querySnapshot.docs) {
         if (doc.data() != null) {
@@ -172,16 +172,16 @@ class _Class_SelectionState extends State<Class_Selection> {
             for (var className in classes) {
               for (var subject in subjects) {
                 // Initialize nested maps if they don't exist
-                if (!unavailableSubjectsBySchoolAndClass.containsKey(school)) {
-                  unavailableSubjectsBySchoolAndClass[school] = {};
+                if (!unavailable_Subjects_BySchool_And_Class.containsKey(school)) {
+                  unavailable_Subjects_BySchool_And_Class[school] = {};
                 }
-                if (!unavailableSubjectsBySchoolAndClass[school]!.containsKey(className)) {
-                  unavailableSubjectsBySchoolAndClass[school]![className] = [];
+                if (!unavailable_Subjects_BySchool_And_Class[school]!.containsKey(className)) {
+                  unavailable_Subjects_BySchool_And_Class[school]![className] = [];
                 }
 
                 // Add subject to unavailable list
-                if (!unavailableSubjectsBySchoolAndClass[school]![className]!.contains(subject)) {
-                  unavailableSubjectsBySchoolAndClass[school]![className]!.add(subject);
+                if (!unavailable_Subjects_BySchool_And_Class[school]![className]!.contains(subject)) {
+                  unavailable_Subjects_BySchool_And_Class[school]![className]!.add(subject);
                 }
               }
             }
@@ -259,7 +259,7 @@ class _Class_SelectionState extends State<Class_Selection> {
       // Show the success SnackBar
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Selections saved successfully!'),
+          content: Text('Selections saved Successfully!'),
           backgroundColor: Colors.green,
         ),
       );
@@ -285,9 +285,9 @@ class _Class_SelectionState extends State<Class_Selection> {
     String className = selectedClasses[0];
 
     // Check if the subject is unavailable for this school and class
-    if (unavailableSubjectsBySchoolAndClass.containsKey(selectedSchool)) {
-      if (unavailableSubjectsBySchoolAndClass[selectedSchool]!.containsKey(className)) {
-        return unavailableSubjectsBySchoolAndClass[selectedSchool]![className]!.contains(subject);
+    if (unavailable_Subjects_BySchool_And_Class.containsKey(selectedSchool)) {
+      if (unavailable_Subjects_BySchool_And_Class[selectedSchool]!.containsKey(className)) {
+        return unavailable_Subjects_BySchool_And_Class[selectedSchool]![className]!.contains(subject);
       }
     }
 
