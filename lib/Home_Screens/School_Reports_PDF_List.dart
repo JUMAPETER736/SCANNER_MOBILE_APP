@@ -3,12 +3,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class Results_PDF extends StatefulWidget {
+class School_Reports_PDF_List extends StatefulWidget {
+
   @override
-  _Results_PDFState createState() => _Results_PDFState();
+  _School_Reports_PDF_ListState createState() => _School_Reports_PDF_ListState();
+
 }
 
-class _Results_PDFState extends State<Results_PDF> {
+class _School_Reports_PDF_ListState extends State<School_Reports_PDF_List> {
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<List<Map<String, dynamic>>> _fetchStudents() async {
