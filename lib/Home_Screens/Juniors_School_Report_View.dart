@@ -34,6 +34,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   bool hasError = false;
   String? errorMessage;
   String? userEmail;
+  String? schoolName;
 
   @override
   void initState() {
@@ -78,6 +79,8 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         return;
       }
 
+      schoolName = teacherSchool;
+
       final String studentClass = widget.studentClass.trim().toUpperCase();
       final String studentFullName = widget.studentFullName;
 
@@ -98,6 +101,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       await fetchTotalMarks(basePath);
       await calculate_Subject_Stats_And_Position(teacherSchool, studentClass, studentFullName);
 
+      // Update total students count in Firestore
+      await _updateTotalStudentsCount(teacherSchool, studentClass);
+
       setState(() {
         isLoading = false;
       });
@@ -108,6 +114,19 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         hasError = true;
         errorMessage = 'An error occurred while fetching data.';
       });
+    }
+  }
+
+  Future<void> _updateTotalStudentsCount(String school, String studentClass) async {
+    try {
+      // Update the total students count in the class document
+      await _firestore.collection('Schools/$school/Classes').doc(studentClass).update({
+        'totalStudents': totalStudents,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+      print('Successfully updated total students count to $totalStudents');
+    } catch (e) {
+      print('Error updating total students count: $e');
     }
   }
 
@@ -324,15 +343,15 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   String Juniors_Remark(String Juniors_Grade) {
     switch (Juniors_Grade) {
       case 'A':
-        return 'Excellent';
+        return 'EXCELLENT';
       case 'B':
-        return 'Very Good';
+        return 'VERY GOOD';
       case 'C':
-        return 'Good';
+        return 'GOOD';
       case 'D':
-        return 'Pass';
+        return 'PASS';
       default:
-        return 'Fail';
+        return 'FAIL';
     }
   }
 
@@ -349,7 +368,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       appBar: AppBar(
         title: Text('School Report: ${widget.studentFullName}'),
         actions: [
-          IconButton(icon: Icon(Icons.refresh), onPressed: _fetchStudentData),
           IconButton(icon: Icon(Icons.print), onPressed: _printDocument),
         ],
       ),
@@ -385,6 +403,14 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   }
 
   Widget _buildReportTable() {
+    int totalMarkValue = 0;
+    if (totalMarks.containsKey('Total_Marks')) {
+      totalMarkValue = (totalMarks['Total_Marks'] as num).round();
+    }
+
+    // Calculate teacher's total marks (sum of all maximum marks which is 100 per subject)
+    int teacherTotalMarks = subjects.length * 100;
+
     return Card(
       child: Padding(
         padding: EdgeInsets.all(12),
@@ -393,11 +419,12 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           columnWidths: const {
             0: FlexColumnWidth(3), // Subject
             1: FlexColumnWidth(2), // Score
-            2: FlexColumnWidth(1), // Grade
-            3: FlexColumnWidth(3), // Remark
-            4: FlexColumnWidth(2), // Position
-            5: FlexColumnWidth(2), // Total Students
-            6: FlexColumnWidth(2), // Average
+            2: FlexColumnWidth(2), // Total (100%)
+            3: FlexColumnWidth(1), // Grade
+            4: FlexColumnWidth(3), // Remark
+            5: FlexColumnWidth(2), // Position
+            6: FlexColumnWidth(2), // Total Students
+            7: FlexColumnWidth(2), // Average
           },
           children: [
             TableRow(
@@ -405,6 +432,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
               children: [
                 _tableCell('SUBJECT', isHeader: true),
                 _tableCell('SCORE', isHeader: true),
+                _tableCell('TOTAL', isHeader: true),
                 _tableCell('GRADE', isHeader: true),
                 _tableCell('REMARK', isHeader: true),
                 _tableCell('POSITION', isHeader: true),
@@ -431,6 +459,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
               return TableRow(children: [
                 _tableCell(subjectName),
                 _tableCell(score.toString()),
+                _tableCell('100'), // Each subject has a maximum of 100 marks
                 _tableCell(grade),
                 _tableCell(remark),
                 _tableCell(subjectPosition.toString()),
@@ -438,6 +467,20 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 _tableCell(avg.toString()),
               ]);
             }).toList(),
+            // Add TOTAL MARKS row at the bottom
+            TableRow(
+              decoration: BoxDecoration(color: Colors.blueGrey.shade100),
+              children: [
+                _tableCell('TOTAL MARKS', isHeader: true),
+                _tableCell(totalMarkValue.toString(), isHeader: true),
+                _tableCell(teacherTotalMarks.toString(), isHeader: true),
+                _tableCell('', isHeader: true),
+                _tableCell('', isHeader: true),
+                _tableCell('', isHeader: true),
+                _tableCell('', isHeader: true),
+                _tableCell('', isHeader: true),
+              ],
+            ),
           ],
         ),
       ),
@@ -483,23 +526,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     // Create a PDF document with proper formatting
     final doc = pw.Document();
 
-    // Get school name from the path
-    String schoolName = "School Report";
-    try {
-      User? user = _auth.currentUser;
-      if (user != null && user.email != null) {
-        final userDoc = await _firestore.collection('Teachers_Details').doc(user.email).get();
-        if (userDoc.exists) {
-          final String? teacherSchool = userDoc['school'];
-          if (teacherSchool != null) {
-            schoolName = teacherSchool;
-          }
-        }
-      }
-    } catch (e) {
-      print("Error getting school name: $e");
-    }
-
     // Get current date for the report
     final now = DateTime.now();
     final dateStr = "${now.day}-${now.month}-${now.year}";
@@ -509,6 +535,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     if (totalMarks.containsKey('Total_Marks')) {
       totalMarkValue = (totalMarks['Total_Marks'] as num).round();
     }
+
+    // Calculate teacher's total marks (sum of all maximum marks which is 100 per subject)
+    int teacherTotalMarks = subjects.length * 100;
 
     doc.addPage(
       pw.Page(
@@ -522,7 +551,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 pw.Center(
                   child: pw.Column(
                     children: [
-                      pw.Text(schoolName, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                      pw.Text(schoolName ?? "School Report", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
                       pw.SizedBox(height: 5),
                       pw.Text("STUDENT REPORT CARD", style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
                       pw.SizedBox(height: 5),
@@ -567,12 +596,13 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                   border: pw.TableBorder.all(),
                   columnWidths: {
                     0: pw.FlexColumnWidth(3), // Subject
-                    1: pw.FlexColumnWidth(2), // Score
-                    2: pw.FlexColumnWidth(1), // Grade
-                    3: pw.FlexColumnWidth(3), // Remark
-                    4: pw.FlexColumnWidth(1.5), // Position
-                    5: pw.FlexColumnWidth(1.5), // Out of
-                    6: pw.FlexColumnWidth(2), // Average
+                    1: pw.FlexColumnWidth(1.5), // Score
+                    2: pw.FlexColumnWidth(1.5), // Total
+                    3: pw.FlexColumnWidth(1), // Grade
+                    4: pw.FlexColumnWidth(2), // Remark
+                    5: pw.FlexColumnWidth(1.5), // Position
+                    6: pw.FlexColumnWidth(1.5), // Out of
+                    7: pw.FlexColumnWidth(1.5), // Average
                   },
                   children: [
                     // Header row
@@ -581,6 +611,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                       children: [
                         _pdfTableCell('SUBJECT', isHeader: true),
                         _pdfTableCell('SCORE', isHeader: true),
+                        _pdfTableCell('TOTAL', isHeader: true),
                         _pdfTableCell('GRADE', isHeader: true),
                         _pdfTableCell('REMARK', isHeader: true),
                         _pdfTableCell('POS', isHeader: true),
@@ -603,6 +634,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                         children: [
                           _pdfTableCell(subjectName),
                           _pdfTableCell(score.toString()),
+                          _pdfTableCell('100'), // Each subject has a maximum of 100 marks
                           _pdfTableCell(grade),
                           _pdfTableCell(remark),
                           _pdfTableCell(subjectPosition.toString()),
@@ -611,6 +643,20 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                         ],
                       );
                     }).toList(),
+                    // TOTAL MARKS row
+                    pw.TableRow(
+                      decoration: pw.BoxDecoration(color: PdfColors.grey300),
+                      children: [
+                        _pdfTableCell('TOTAL MARKS', isHeader: true),
+                        _pdfTableCell(totalMarkValue.toString(), isHeader: true),
+                        _pdfTableCell(teacherTotalMarks.toString(), isHeader: true),
+                        _pdfTableCell('', isHeader: true),
+                        _pdfTableCell('', isHeader: true),
+                        _pdfTableCell('', isHeader: true),
+                        _pdfTableCell('', isHeader: true),
+                        _pdfTableCell('', isHeader: true),
+                      ],
+                    ),
                   ],
                 ),
 
