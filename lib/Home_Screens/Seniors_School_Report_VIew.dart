@@ -45,6 +45,8 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   String? headTeacherRemarks;
   int studentTotalMarks = 0;
   int teacherTotalMarks = 0;
+  int aggregatePoints = 0;
+  int aggregatePosition = 0;
 
   @override
   void initState() {
@@ -104,15 +106,11 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
       final String basePath = 'Schools/$teacherSchool/Classes/$studentClass/Student_Details/$studentFullName';
 
-      // Fetch school information
       await _fetchSchoolInfo(teacherSchool);
-
-      // Fetch student data
       await fetchStudentSubjects(basePath);
       await fetchTotalMarks(basePath);
       await calculate_Subject_Stats_And_Position(teacherSchool, studentClass, studentFullName);
-
-      // Update total students count in Firestore
+      await calculateAggregatePointsAndPosition(teacherSchool, studentClass, studentFullName);
       await _updateTotalStudentsCount(teacherSchool, studentClass);
 
       setState(() {
@@ -125,6 +123,63 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         hasError = true;
         errorMessage = 'An error occurred while fetching data.';
       });
+    }
+  }
+
+  Future<void> calculateAggregatePointsAndPosition(String school, String studentClass, String studentFullName) async {
+    try {
+      final studentsSnapshot = await _firestore
+          .collection('Schools/$school/Classes/$studentClass/Student_Details')
+          .get();
+
+      List<Map<String, dynamic>> studentAggregates = []; // Changed to dynamic to handle both String and int
+
+      for (var studentDoc in studentsSnapshot.docs) {
+        final studentName = studentDoc.id;
+        final subjectsSnapshot = await _firestore
+            .collection('Schools/$school/Classes/$studentClass/Student_Details/$studentName/Student_Subjects')
+            .get();
+
+        List<int> points = [];
+        for (var subjectDoc in subjectsSnapshot.docs) {
+          final data = subjectDoc.data();
+          final gradeStr = data['Subject_Grade']?.toString() ?? '0';
+          int grade = double.tryParse(gradeStr)?.round() ?? 0;
+          final pointsStr = getPoints(Seniors_Grade(grade));
+          points.add(int.tryParse(pointsStr) ?? 9);
+        }
+
+        points.sort();
+        int aggregate = points.take(6).reduce((a, b) => a + b);
+        studentAggregates.add({'name': studentName, 'aggregate': aggregate});
+      }
+
+      studentAggregates.sort((a, b) => (a['aggregate'] as int).compareTo(b['aggregate'] as int));
+
+      // Find current student's position
+      for (int i = 0; i < studentAggregates.length; i++) {
+        if (studentAggregates[i]['name'] == studentFullName) {
+          setState(() {
+            aggregatePosition = i + 1;
+          });
+          break; // This break is inside a loop, so it's valid
+        }
+      }
+
+      // Calculate current student's aggregate points
+      List<int> currentStudentPoints = subjects.map((subj) {
+        final score = subj['score'] as int? ?? 0;
+        final grade = Seniors_Grade(score);
+        return int.tryParse(getPoints(grade)) ?? 9;
+      }).toList();
+      currentStudentPoints.sort();
+      int currentAggregate = currentStudentPoints.take(6).reduce((a, b) => a + b);
+
+      setState(() {
+        aggregatePoints = currentAggregate;
+      });
+    } catch (e) {
+      print("Error calculating aggregate points and position: $e");
     }
   }
 
@@ -281,7 +336,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
           if (studentEntry.key == studentFullName) {
             positions[subject] = position;
-            break;
+            break; // This break is inside a loop, so it's valid
           }
         }
       });
@@ -307,7 +362,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
         if (totalMarkEntry.key == studentFullName) {
           studentPos = position;
-          break;
+          break; // This break is inside a loop, so it's valid
         }
       }
 
@@ -517,16 +572,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   }
 
   Widget _buildAggregateSection() {
-    // Calculate best 6 subjects points
-    List<int> points = subjects.map((subj) {
-      final score = subj['score'] as int? ?? 0;
-      final grade = Seniors_Grade(score);
-      return int.tryParse(getPoints(grade)) ?? 9;
-    }).toList();
-
-    points.sort();
-    int aggregatePoints = points.take(6).reduce((a, b) => a + b);
-
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -538,7 +583,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('AGGREGATE POINTS: $aggregatePoints'),
-              Text('POSITION: $studentPosition'),
+              Text('POSITION: $aggregatePosition'),
               Text('OUT OF: $totalStudents'),
             ],
           ),
@@ -666,15 +711,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   Future<void> _printDocument() async {
     final doc = pw.Document();
 
-    // Calculate best 6 subjects points
-    List<int> points = subjects.map((subj) {
-      final score = subj['score'] as int? ?? 0;
-      final grade = Seniors_Grade(score);
-      return int.tryParse(getPoints(grade)) ?? 9;
-    }).toList();
-    points.sort();
-    int aggregatePoints = points.take(6).reduce((a, b) => a + b);
-
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -766,7 +802,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text('AGGREGATE POINTS: $aggregatePoints'),
-                      pw.Text('POSITION: $studentPosition'),
+                      pw.Text('POSITION: $aggregatePosition'),
                       pw.Text('OUT OF: $totalStudents'),
                     ],
                   ),
