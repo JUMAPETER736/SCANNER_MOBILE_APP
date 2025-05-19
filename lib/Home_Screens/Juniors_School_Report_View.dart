@@ -27,7 +27,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   Map<String, dynamic> totalMarks = {};
   Map<String, dynamic> subjectStats = {}; // For average per subject
   Map<String, int> subjectPositions = {}; // For position per subject
+  Map<String, int> totalStudentsPerSubject = {}; // For total students per subject
   int studentPosition = 0;
+  int totalStudents = 0;
   bool isLoading = true;
   bool hasError = false;
   String? errorMessage;
@@ -170,6 +172,11 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           .collection('Schools/$school/Classes/$studentClass/Student_Details')
           .get();
 
+      // Store total number of students
+      setState(() {
+        totalStudents = studentsSnapshot.docs.length;
+      });
+
       // Prepare data for average per subject, total marks ranking, and subject positions
       Map<String, List<int>> marksPerSubject = {};
       Map<String, Map<String, int>> scoresPerStudentPerSubject = {};
@@ -220,34 +227,77 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         averages[subject] = avg;
       });
 
-      // Calculate position per subject
+      // Calculate position per subject and total students per subject
       Map<String, int> positions = {};
+      Map<String, int> totalsPerSubject = {};
+
       scoresPerStudentPerSubject.forEach((subject, studentScores) {
-        // Sort students by score for this subject (descending)
+        // Store total students for this subject
+        totalsPerSubject[subject] = studentScores.length;
+
+        // Create a list of score entries to sort by score (not by name)
         List<MapEntry<String, int>> sortedScores = studentScores.entries.toList();
+        // Sort by score in descending order
         sortedScores.sort((a, b) => b.value.compareTo(a.value));
 
-        // Find position of current student
-        int subjectPosition = 0;
+        // Find position of current student based on sorted scores
+        int position = 1;  // Start at position 1
+        int lastScore = -1;
+        int samePositionCount = 0;
+
         for (int i = 0; i < sortedScores.length; i++) {
-          if (sortedScores[i].key == studentFullName) {
-            // Position is 1-based
-            subjectPosition = i + 1;
+          final studentEntry = sortedScores[i];
+          final score = studentEntry.value;
+
+          // Handle ties (same score gets same position)
+          if (i > 0 && score == lastScore) {
+            // Don't increment position for ties
+            samePositionCount++;
+          } else {
+            // New score, so position is current index + 1 (accounting for ties)
+            position = i + 1;
+            samePositionCount = 0;
+          }
+
+          // Store the last score for tie detection
+          lastScore = score;
+
+          // If this is our target student, store their position
+          if (studentEntry.key == studentFullName) {
+            positions[subject] = position;
             break;
           }
         }
-
-        positions[subject] = subjectPosition;
       });
 
-      // Calculate overall position of current student by sorting total marks descending
-      List<MapEntry<String, int>> sortedTotals = totalMarksPerStudent.entries.toList();
-      sortedTotals.sort((a, b) => b.value.compareTo(a.value)); // Descending
+      // Calculate overall position
+      List<MapEntry<String, int>> sortedTotalMarks = totalMarksPerStudent.entries.toList();
+      // Sort by total marks in descending order
+      sortedTotalMarks.sort((a, b) => b.value.compareTo(a.value));
 
-      int pos = 0;
-      for (int i = 0; i < sortedTotals.length; i++) {
-        if (sortedTotals[i].key == studentFullName) {
-          pos = i + 1; // Position is 1-based
+      // Find position with tie handling
+      int position = 1;
+      int lastTotalMark = -1;
+      int studentPos = 0;
+
+      for (int i = 0; i < sortedTotalMarks.length; i++) {
+        final totalMarkEntry = sortedTotalMarks[i];
+        final totalMark = totalMarkEntry.value;
+
+        // Handle ties (same total mark gets same position)
+        if (i > 0 && totalMark == lastTotalMark) {
+          // Don't increment position for ties
+        } else {
+          // New total mark, so position is current index + 1
+          position = i + 1;
+        }
+
+        // Store the last total mark for tie detection
+        lastTotalMark = totalMark;
+
+        // If this is our target student, store their position
+        if (totalMarkEntry.key == studentFullName) {
+          studentPos = position;
           break;
         }
       }
@@ -255,7 +305,8 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       setState(() {
         subjectStats = averages.map((key, value) => MapEntry(key, {'average': value}));
         subjectPositions = positions;
-        studentPosition = pos;
+        totalStudentsPerSubject = totalsPerSubject;
+        studentPosition = studentPos;
       });
     } catch (e) {
       print("Error calculating stats & position: $e");
@@ -328,7 +379,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       child: ListTile(
         title: Text('Class: ${widget.studentClass}'),
         subtitle: Text('Student: ${widget.studentFullName}'),
-        trailing: Text('Position: $studentPosition'),
+        trailing: Text('Position: $studentPosition out of $totalStudents'),
       ),
     );
   }
@@ -344,8 +395,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
             1: FlexColumnWidth(2), // Score
             2: FlexColumnWidth(1), // Grade
             3: FlexColumnWidth(3), // Remark
-            4: FlexColumnWidth(2), // Position (per subject)
-            5: FlexColumnWidth(2), // Average
+            4: FlexColumnWidth(2), // Position
+            5: FlexColumnWidth(2), // Total Students
+            6: FlexColumnWidth(2), // Average
           },
           children: [
             TableRow(
@@ -356,6 +408,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 _tableCell('GRADE', isHeader: true),
                 _tableCell('REMARK', isHeader: true),
                 _tableCell('POSITION', isHeader: true),
+                _tableCell('OUT OF', isHeader: true),
                 _tableCell('AVERAGE', isHeader: true),
               ],
             ),
@@ -372,12 +425,16 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
               // Get position for this subject
               final subjectPosition = subjectPositions[subjectName] ?? 0;
 
+              // Get total students for this subject
+              final totalStudentsForSubject = totalStudentsPerSubject[subjectName] ?? 0;
+
               return TableRow(children: [
                 _tableCell(subjectName),
                 _tableCell(score.toString()),
                 _tableCell(grade),
                 _tableCell(remark),
                 _tableCell(subjectPosition.toString()),
+                _tableCell(totalStudentsForSubject.toString()),
                 _tableCell(avg.toString()),
               ]);
             }).toList(),
@@ -415,24 +472,213 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           children: [
             Text('TOTAL MARKS: $totalMarkValue', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 6),
-            Text('POSITION IN CLASS: $studentPosition', style: TextStyle(fontSize: 16)),
+            Text('POSITION IN CLASS: $studentPosition out of $totalStudents', style: TextStyle(fontSize: 16)),
           ],
         ),
       ),
     );
   }
 
-  void _printDocument() async {
+  Future<void> _printDocument() async {
+    // Create a PDF document with proper formatting
     final doc = pw.Document();
+
+    // Get school name from the path
+    String schoolName = "School Report";
+    try {
+      User? user = _auth.currentUser;
+      if (user != null && user.email != null) {
+        final userDoc = await _firestore.collection('Teachers_Details').doc(user.email).get();
+        if (userDoc.exists) {
+          final String? teacherSchool = userDoc['school'];
+          if (teacherSchool != null) {
+            schoolName = teacherSchool;
+          }
+        }
+      }
+    } catch (e) {
+      print("Error getting school name: $e");
+    }
+
+    // Get current date for the report
+    final now = DateTime.now();
+    final dateStr = "${now.day}-${now.month}-${now.year}";
+
+    // Get total mark value
+    int totalMarkValue = 0;
+    if (totalMarks.containsKey('Total_Marks')) {
+      totalMarkValue = (totalMarks['Total_Marks'] as num).round();
+    }
 
     doc.addPage(
       pw.Page(
-        build: (pw.Context context) => pw.Center(
-          child: pw.Text("School Report for - ${widget.studentFullName}"),
-        ),
+        build: (pw.Context context) {
+          return pw.Padding(
+            padding: pw.EdgeInsets.all(10),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                // Header
+                pw.Center(
+                  child: pw.Column(
+                    children: [
+                      pw.Text(schoolName, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                      pw.SizedBox(height: 5),
+                      pw.Text("STUDENT REPORT CARD", style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                      pw.SizedBox(height: 5),
+                      pw.Text("Date: $dateStr", style: pw.TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                ),
+
+                pw.SizedBox(height: 20),
+
+                // Student info
+                pw.Container(
+                  padding: pw.EdgeInsets.all(10),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(),
+                  ),
+                  child: pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text("Name: ${widget.studentFullName}", style: pw.TextStyle(fontSize: 12)),
+                          pw.Text("Class: ${widget.studentClass}", style: pw.TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                        children: [
+                          pw.Text("Position: $studentPosition out of $totalStudents", style: pw.TextStyle(fontSize: 12)),
+                          pw.Text("Total Marks: $totalMarkValue", style: pw.TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                pw.SizedBox(height: 20),
+
+                // Subject table
+                pw.Table(
+                  border: pw.TableBorder.all(),
+                  columnWidths: {
+                    0: pw.FlexColumnWidth(3), // Subject
+                    1: pw.FlexColumnWidth(2), // Score
+                    2: pw.FlexColumnWidth(1), // Grade
+                    3: pw.FlexColumnWidth(3), // Remark
+                    4: pw.FlexColumnWidth(1.5), // Position
+                    5: pw.FlexColumnWidth(1.5), // Out of
+                    6: pw.FlexColumnWidth(2), // Average
+                  },
+                  children: [
+                    // Header row
+                    pw.TableRow(
+                      decoration: pw.BoxDecoration(color: PdfColors.grey300),
+                      children: [
+                        _pdfTableCell('SUBJECT', isHeader: true),
+                        _pdfTableCell('SCORE', isHeader: true),
+                        _pdfTableCell('GRADE', isHeader: true),
+                        _pdfTableCell('REMARK', isHeader: true),
+                        _pdfTableCell('POS', isHeader: true),
+                        _pdfTableCell('OUT OF', isHeader: true),
+                        _pdfTableCell('AVG', isHeader: true),
+                      ],
+                    ),
+                    // Subject rows
+                    ...subjects.map((subj) {
+                      final subjectName = subj['subject'] ?? 'Unknown';
+                      final score = subj['score'] as int? ?? 0;
+                      final grade = Juniors_Grade(score);
+                      final remark = Juniors_Remark(grade);
+                      final subjectStat = subjectStats[subjectName];
+                      final avg = subjectStat != null ? subjectStat['average'] as int : 0;
+                      final subjectPosition = subjectPositions[subjectName] ?? 0;
+                      final totalStudentsForSubject = totalStudentsPerSubject[subjectName] ?? 0;
+
+                      return pw.TableRow(
+                        children: [
+                          _pdfTableCell(subjectName),
+                          _pdfTableCell(score.toString()),
+                          _pdfTableCell(grade),
+                          _pdfTableCell(remark),
+                          _pdfTableCell(subjectPosition.toString()),
+                          _pdfTableCell(totalStudentsForSubject.toString()),
+                          _pdfTableCell(avg.toString()),
+                        ],
+                      );
+                    }).toList(),
+                  ],
+                ),
+
+                pw.SizedBox(height: 20),
+
+                // Signature section
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Container(
+                          width: 150,
+                          height: 0.5,
+                          color: PdfColors.black,
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Text("Class Teacher's Signature", style: pw.TextStyle(fontSize: 10)),
+                      ],
+                    ),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Container(
+                          width: 150,
+                          height: 0.5,
+                          color: PdfColors.black,
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Text("Principal's Signature", style: pw.TextStyle(fontSize: 10)),
+                      ],
+                    ),
+                  ],
+                ),
+
+                pw.SizedBox(height: 20),
+
+                // Footer
+                pw.Center(
+                  child: pw.Text("This is an official student report generated on $dateStr",
+                      style: pw.TextStyle(
+                          fontSize: 8,
+                          fontStyle: pw.FontStyle.italic,
+                          color: PdfColors.grey700
+                      )
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
 
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => doc.save());
+  }
+
+  pw.Widget _pdfTableCell(String text, {bool isHeader = false}) {
+    return pw.Padding(
+      padding: pw.EdgeInsets.all(4),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(
+          fontSize: 10,
+          fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+        ),
+      ),
+    );
   }
 }
