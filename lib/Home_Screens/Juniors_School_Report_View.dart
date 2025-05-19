@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -27,13 +25,13 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
   List<Map<String, dynamic>> subjects = [];
   Map<String, dynamic> totalMarks = {};
-  Map<String, dynamic> subjectStats = {}; // For average and total per subject
+  Map<String, dynamic> subjectStats = {}; // For average per subject
+  Map<String, int> subjectPositions = {}; // For position per subject
   int studentPosition = 0;
   bool isLoading = true;
   bool hasError = false;
   String? errorMessage;
   String? userEmail;
-
 
   @override
   void initState() {
@@ -119,10 +117,11 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        // We expect Subject_Grade as string (score)
-        double score = 0;
+        // Convert Subject_Grade to int
+        int score = 0;
         if (data['Subject_Grade'] != null) {
-          score = double.tryParse(data['Subject_Grade'].toString()) ?? 0;
+          // First convert to double, then to int
+          score = double.tryParse(data['Subject_Grade'].toString())?.round() ?? 0;
         }
 
         subjectList.add({
@@ -133,12 +132,11 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
       setState(() {
         subjects = subjectList;
-
       });
     } catch (e) {
       print("Error fetching subjects: $e");
       setState(() {
-
+        // Error state handling
       });
     }
   }
@@ -153,102 +151,127 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         });
       } else {
         setState(() {
-
+          // Handle no total marks found
         });
       }
     } catch (e) {
       print("Error fetching total marks: $e");
       setState(() {
-
+        // Error state handling
       });
     }
   }
 
-
   Future<void> calculate_Subject_Stats_And_Position(
       String school, String studentClass, String studentFullName) async {
-
     try {
       // Fetch all students under this class
       final studentsSnapshot = await _firestore
           .collection('Schools/$school/Classes/$studentClass/Student_Details')
           .get();
 
-      // Prepare data for average per subject & total marks ranking
-      Map<String, List<double>> marksPerSubject = {};
-      Map<String, double> totalMarksPerStudent = {};
+      // Prepare data for average per subject, total marks ranking, and subject positions
+      Map<String, List<int>> marksPerSubject = {};
+      Map<String, Map<String, int>> scoresPerStudentPerSubject = {};
+      Map<String, int> totalMarksPerStudent = {};
 
       for (var studentDoc in studentsSnapshot.docs) {
         final studentName = studentDoc.id;
 
         // Get total marks for this student
         final totalMarksDoc = await _firestore.doc('Schools/$school/Classes/$studentClass/Student_Details/$studentName/TOTAL_MARKS/Marks').get();
-        double totalMarkValue = 0;
+        int totalMarkValue = 0;
         if (totalMarksDoc.exists) {
           final data = totalMarksDoc.data();
           if (data != null && data['Total_Marks'] != null) {
-            totalMarkValue = (data['Total_Marks'] as num).toDouble();
+            totalMarkValue = (data['Total_Marks'] as num).round();
           }
         }
         totalMarksPerStudent[studentName] = totalMarkValue;
 
-        // Fetch student subjects and marks for average calc
+        // Fetch student subjects and marks
         final subjectsSnapshot = await _firestore.collection('Schools/$school/Classes/$studentClass/Student_Details/$studentName/Student_Subjects').get();
 
         for (var subjectDoc in subjectsSnapshot.docs) {
           final data = subjectDoc.data();
           final subjectName = data['Subject_Name'] ?? subjectDoc.id;
           final gradeStr = data['Subject_Grade']?.toString() ?? '0';
-          double grade = double.tryParse(gradeStr) ?? 0;
+          int grade = double.tryParse(gradeStr)?.round() ?? 0;
 
+          // Store for average calculation
           if (!marksPerSubject.containsKey(subjectName)) {
             marksPerSubject[subjectName] = [];
           }
           marksPerSubject[subjectName]!.add(grade);
+
+          // Store for position calculation
+          if (!scoresPerStudentPerSubject.containsKey(subjectName)) {
+            scoresPerStudentPerSubject[subjectName] = {};
+          }
+          scoresPerStudentPerSubject[subjectName]![studentName] = grade;
         }
       }
 
-      // Calculate average and total for each subject
-      Map<String, Map<String, double>> stats = {};
+      // Calculate average for each subject
+      Map<String, int> averages = {};
       marksPerSubject.forEach((subject, scores) {
-        double total = scores.fold(0, (prev, el) => prev + el);
-        double avg = scores.isNotEmpty ? total / scores.length : 0;
-        stats[subject] = {'total': total, 'average': avg};
+        int total = scores.fold(0, (prev, el) => prev + el);
+        int avg = scores.isNotEmpty ? (total / scores.length).round() : 0;
+        averages[subject] = avg;
       });
 
-      // Calculate position of current student by sorting total marks descending
-      List<MapEntry<String, double>> sortedTotals = totalMarksPerStudent.entries.toList();
+      // Calculate position per subject
+      Map<String, int> positions = {};
+      scoresPerStudentPerSubject.forEach((subject, studentScores) {
+        // Sort students by score for this subject (descending)
+        List<MapEntry<String, int>> sortedScores = studentScores.entries.toList();
+        sortedScores.sort((a, b) => b.value.compareTo(a.value));
+
+        // Find position of current student
+        int subjectPosition = 0;
+        for (int i = 0; i < sortedScores.length; i++) {
+          if (sortedScores[i].key == studentFullName) {
+            // Position is 1-based
+            subjectPosition = i + 1;
+            break;
+          }
+        }
+
+        positions[subject] = subjectPosition;
+      });
+
+      // Calculate overall position of current student by sorting total marks descending
+      List<MapEntry<String, int>> sortedTotals = totalMarksPerStudent.entries.toList();
       sortedTotals.sort((a, b) => b.value.compareTo(a.value)); // Descending
 
-      int pos = 1;
-      for (var entry in sortedTotals) {
-        if (entry.key == studentFullName) {
-          studentPosition = pos;
+      int pos = 0;
+      for (int i = 0; i < sortedTotals.length; i++) {
+        if (sortedTotals[i].key == studentFullName) {
+          pos = i + 1; // Position is 1-based
           break;
         }
-        pos++;
       }
 
       setState(() {
-        subjectStats = stats;
+        subjectStats = averages.map((key, value) => MapEntry(key, {'average': value}));
+        subjectPositions = positions;
+        studentPosition = pos;
       });
     } catch (e) {
       print("Error calculating stats & position: $e");
     }
   }
 
-  String getGrade(int score) {
-
-    if (score >= 85) return 'A';
-    if (score >= 75) return 'B';
-    if (score >= 65) return 'C';
-    if (score >= 50) return 'D';
+  String Juniors_Grade(int Juniors_Score) {
+    if (Juniors_Score >= 85) return 'A';
+    if (Juniors_Score >= 75) return 'B';
+    if (Juniors_Score >= 65) return 'C';
+    if (Juniors_Score >= 50) return 'D';
     return 'F';
-
   }
 
-  String getRemark(String grade) {
-    switch (grade) {
+  String Juniors_Remark(String Juniors_Grade) {
+    switch (Juniors_Grade) {
       case 'A':
         return 'Excellent';
       case 'B':
@@ -298,7 +321,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         ),
       ),
     );
-
   }
 
   Widget _buildSchoolInfoCard() {
@@ -322,9 +344,8 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
             1: FlexColumnWidth(2), // Score
             2: FlexColumnWidth(1), // Grade
             3: FlexColumnWidth(3), // Remark
-            4: FlexColumnWidth(1), // Position (per subject - can be empty or future)
+            4: FlexColumnWidth(2), // Position (per subject)
             5: FlexColumnWidth(2), // Average
-            6: FlexColumnWidth(2), // Total
           },
           children: [
             TableRow(
@@ -336,31 +357,28 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 _tableCell('REMARK', isHeader: true),
                 _tableCell('POSITION', isHeader: true),
                 _tableCell('AVERAGE', isHeader: true),
-                _tableCell('TOTAL', isHeader: true),
               ],
             ),
             ...subjects.map((subj) {
               final subjectName = subj['subject'] ?? 'Unknown';
-              final score = subj['score'] ?? 0.0;
-              final grade = getGrade(score);
-              final remark = getRemark(grade);
+              final score = subj['score'] as int? ?? 0;
+              final grade = Juniors_Grade(score);
+              final remark = Juniors_Remark(grade);
 
-              // Get average and total for this subject if available
+              // Get average for this subject if available
               final subjectStat = subjectStats[subjectName];
-              final avg = subjectStat != null ? subjectStat['average'] as double : 0.0;
-              final total = subjectStat != null ? subjectStat['total'] as double : 0.0;
+              final avg = subjectStat != null ? subjectStat['average'] as int : 0;
 
-              // POSITION per subject is tricky: We can leave blank or implement later
-              final subjectPosition = '-';
+              // Get position for this subject
+              final subjectPosition = subjectPositions[subjectName] ?? 0;
 
               return TableRow(children: [
                 _tableCell(subjectName),
-                _tableCell(score.toStringAsFixed(1)),
+                _tableCell(score.toString()),
                 _tableCell(grade),
                 _tableCell(remark),
-                _tableCell(subjectPosition),
-                _tableCell(avg.toStringAsFixed(1)),
-                _tableCell(total.toStringAsFixed(1)),
+                _tableCell(subjectPosition.toString()),
+                _tableCell(avg.toString()),
               ]);
             }).toList(),
           ],
@@ -383,9 +401,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   }
 
   Widget _buildSummaryCard() {
-    double totalMarkValue = 0;
+    int totalMarkValue = 0;
     if (totalMarks.containsKey('Total_Marks')) {
-      totalMarkValue = (totalMarks['Total_Marks'] as num).toDouble();
+      totalMarkValue = (totalMarks['Total_Marks'] as num).round();
     }
 
     return Card(
@@ -395,7 +413,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('TOTAL MARKS: ${totalMarkValue.toStringAsFixed(1)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('TOTAL MARKS: $totalMarkValue', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 6),
             Text('POSITION IN CLASS: $studentPosition', style: TextStyle(fontSize: 16)),
           ],
@@ -404,19 +422,17 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     );
   }
 
-
   void _printDocument() async {
     final doc = pw.Document();
 
     doc.addPage(
       pw.Page(
         build: (pw.Context context) => pw.Center(
-          child: pw.Text("School Report  for - ${widget.studentFullName}"),
+          child: pw.Text("School Report for - ${widget.studentFullName}"),
         ),
       ),
     );
 
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => doc.save());
   }
-
 }

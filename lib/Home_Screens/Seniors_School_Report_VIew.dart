@@ -22,6 +22,7 @@ class Seniors_School_Report_View extends StatefulWidget {
 }
 
 class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View> {
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -136,6 +137,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         _statusMessage = 'Failed to load subjects.';
       });
     }
+
   }
 
   Future<void> fetchTotalMarks(String basePath) async {
@@ -255,4 +257,44 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => doc.save());
   }
 
+}
+
+
+String Seniors_Grade(int Seniors_Score) {
+
+  if (Seniors_Score >= 85) return '1';
+  if (Seniors_Score >= 80) return '2';
+  if (Seniors_Score >= 75) return '3';
+  if (Seniors_Score >= 70) return '4';
+  if (Seniors_Score >= 65) return '5';
+  if (Seniors_Score >= 60) return '6';
+  if (Seniors_Score >= 55) return '7';
+  if (Seniors_Score >= 50) return '8';
+  return '9';
+
+}
+
+String getRemark(String Seniors_Grade) {
+  switch (Seniors_Grade) {
+
+    case '1':
+      return 'Distinction';
+    case '2':
+      return 'Excellent';
+    case '3':
+      return 'Very Good';
+    case '4':
+      return 'Good';
+    case '5':
+      return 'Strong Credit';
+    case '6':
+      return 'Credit';
+    case '7':
+      return 'Satisfactory Pass';
+    case '8':
+      return 'Pass';
+
+    default:
+      return 'Fail';
+  }
 }
