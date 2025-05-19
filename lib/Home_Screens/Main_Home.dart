@@ -12,7 +12,7 @@ import 'package:scanna/Home_Screens/QR_Code_Scan.dart';
 import 'package:scanna/Home_Screens/School_Reports.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Login_Page.dart';
 import 'package:scanna/Home_Screens/Performance_Statistics.dart';
-import 'package:scanna/Home_Screens/Results_PDF.dart';
+import 'package:scanna/Home_Screens/School_Reports_PDF_List.dart';
 
 User? loggedInUser;
 
@@ -178,7 +178,7 @@ class _Main_HomeState extends State<Main_Home> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) =>  Results_PDF()), // Replace with your actual class
+                        MaterialPageRoute(builder: (context) =>  School_Reports_PDF_List()), // Replace with your actual class
                       );
                     },
                   ),
