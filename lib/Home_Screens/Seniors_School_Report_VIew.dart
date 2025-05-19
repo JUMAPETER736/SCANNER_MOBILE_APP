@@ -608,7 +608,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'MSCE GRADING KEY FOR ${schoolName?.toUpperCase() ?? 'LIKUNI GIRLS SECONDARY SCHOOL'}',
+            'MSCE GRADING KEY FOR ${schoolName?.toUpperCase() ?? 'UNKOWN SECONDARY SCHOOL'}',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8),
@@ -651,6 +651,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                   _tableCell('6', isHeader: true),
                   _tableCell('7', isHeader: true),
                   _tableCell('8', isHeader: true),
+                  _tableCell('9', isHeader: true),
                 ],
               ),
               TableRow(
@@ -664,6 +665,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                   _tableCell('Weak Credit', isHeader: true),
                   _tableCell('Pass', isHeader: true),
                   _tableCell('Weak Pass', isHeader: true),
+                  _tableCell('Fail', isHeader: true),
                 ],
               ),
             ],
@@ -731,11 +733,11 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                       style: pw.TextStyle(fontSize: 14),
                     ),
                     pw.Text(
-                      'Tel: ${schoolPhone ?? '(+265) 0 997 974 545 or (+265) 0 888 084 670'}',
+                      'Tel: ${schoolPhone ?? '(+265) 0 994 459 714 or (+265) 0 880 409 468'}',
                       style: pw.TextStyle(fontSize: 14),
                     ),
                     pw.Text(
-                      'Email: ${schoolEmail ?? 'info.likunigirls196@gmail.com/likunigirls196@gmail.com'}',
+                      'Email: ${schoolEmail ?? 'jumapeter736@gmail.com'}',
                       style: pw.TextStyle(fontSize: 14),
                     ),
                     pw.SizedBox(height: 16),
@@ -811,7 +813,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text('END RESULT: MSCE'),
-                      pw.Text('TOTAL MARKS: $studentTotalMarks/$teacherTotalMarks'),
+
                     ],
                   ),
                 ],
@@ -824,7 +826,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text(
-                    'MSCE GRADING KEY FOR ${schoolName?.toUpperCase() ?? 'LIKUNI GIRLS SECONDARY SCHOOL'}',
+                    'MSCE GRADING KEY FOR ${schoolName?.toUpperCase() ?? 'UNKNOWN SECONDARY SCHOOL'}',
                     style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                   ),
                   pw.SizedBox(height: 8),
@@ -832,10 +834,10 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                     border: pw.TableBorder.all(),
                     headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                     headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
-                    headers: ['Mark Range per 100', '100-90', '89-80', '79-75', '74-70', '69-65', '64-60', '59-55', '54-50'],
+                    headers: ['Mark Range per 100', '100-90', '89-80', '79-75', '74-70', '69-65', '64-60', '59-55', '54-50', '0-49'],
                     data: [
-                      ['Points', '1', '2', '3', '4', '5', '6', '7', '8'],
-                      ['Interpretation', 'Distinction', 'Distinction', 'Strong Credit', 'Strong Credit', 'Credit', 'Weak Credit', 'Pass', 'Weak Pass'],
+                      ['Points', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+                      ['Interpretation', 'Distinction', 'Distinction', 'Strong Credit', 'Strong Credit', 'Credit', 'Weak Credit', 'Pass', 'Weak Pass', 'Fail'],
                     ],
                   ),
                 ],
