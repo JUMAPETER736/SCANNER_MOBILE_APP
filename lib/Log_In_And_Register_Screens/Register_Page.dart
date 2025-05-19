@@ -136,7 +136,7 @@ class _Register_PageState extends State<Register_Page> {
 
     // Save only the name and email in Firestore
     await FirebaseFirestore.instance.collection('Teachers_Details').doc(userEmail).set({
-      'name': name ?? 'false', // Save the user's name
+      'name': name, // Save the user's name
       'email': userEmail, // Use email as the unique ID
       'createdAt': Timestamp.now(), // Optionally, save the creation timestamp
     });

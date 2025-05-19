@@ -334,7 +334,7 @@ class _School_ReportsState extends State<School_Reports> {
 
 
                   String studentClass = student['studentClass']?.toUpperCase() ?? '';
-                  String schoolName = student['schoolName'] ?? '';
+
 
                   if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
 
