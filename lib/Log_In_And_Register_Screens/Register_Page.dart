@@ -79,8 +79,7 @@ class _Register_PageState extends State<Register_Page> {
       });
     }
 
-    if (confirmPassword == null || confirmPassword!.isEmpty ||
-        password != confirmPassword) {
+    if (confirmPassword == null || confirmPassword!.isEmpty || password != confirmPassword) {
       setState(() {
         _passwordMismatch = true;
       });
@@ -93,7 +92,7 @@ class _Register_PageState extends State<Register_Page> {
     }
 
     if (_emptyNameField || _emptyEmailField || _emptyPasswordField ||
-        _passwordMismatch || _passwordTooShort) {
+        _passwordMismatch || _passwordTooShort || _wrongEmail) {
       return;
     }
 
@@ -103,12 +102,13 @@ class _Register_PageState extends State<Register_Page> {
 
     try {
       final newUser = await _auth.createUserWithEmailAndPassword(
-          email: email!, password: password!);
+        email: email!,
+        password: password!,
+      );
+
       if (newUser.user != null) {
         await _saveUserDetails(newUser.user!, name!);
 
-
-        // Show the success SnackBar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Registered Successfully!'),
@@ -119,9 +119,24 @@ class _Register_PageState extends State<Register_Page> {
     } on FirebaseAuthException catch (e) {
       setState(() {
         _showSpinner = false;
-        if (e.code == 'email already in use') {
+
+        if (e.code == 'email-already-in-use') {
           _wrongEmail = true;
-          _emptyEmailField = false;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Email is already in use. Try another one.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        } else {
+          // Handle other Firebase auth errors
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Registration failed: ${e.message}'),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       });
     } finally {
@@ -130,6 +145,7 @@ class _Register_PageState extends State<Register_Page> {
       });
     }
   }
+
 
 
   Future<void> _saveUserDetails(User user, String name) async {
