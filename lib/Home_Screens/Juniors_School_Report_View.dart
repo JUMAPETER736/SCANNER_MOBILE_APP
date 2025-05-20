@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -128,10 +130,10 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       DocumentSnapshot schoolDoc = await _firestore.collection('Schools').doc(school).get();
       if (schoolDoc.exists) {
         setState(() {
-          schoolAddress = schoolDoc['address'] ?? 'P.O. BOX 43, LIKUNI.';
-          schoolPhone = schoolDoc['phone'] ?? '(+265) 0 997 974 545 or (+265) 0 888 084 670';
-          schoolEmail = schoolDoc['email'] ?? 'info.likunigirls196@gmail.com/likunigirls196@gmail.com';
-          schoolAccount = schoolDoc['account'] ?? 'Centenary Bank of Malawi, Old Town Branch, Current Account, Likuni Girls Secondary School, Ace. No. 9043689270025';
+          schoolAddress = schoolDoc['address'] ?? 'P.O. BOX 47, LILONGWE.';
+          schoolPhone = schoolDoc['phone'] ?? '(+265) # ### ### ### or (+265) # ### ### ###';
+          schoolEmail = schoolDoc['email'] ?? 'secondaryschool@gmail.com';
+          schoolAccount = schoolDoc['account'] ?? 'National Bank of Malawi, Old Town Branch, Current Account, Secondary School, ##############';
           nextTermDate = schoolDoc['nextTermDate'] ?? 'Monday, 06th January, 2025';
           formTeacherRemarks = schoolDoc['formTeacherRemarks'] ?? 'She is disciplined and mature, encourage her to continue portraying good behaviour';
           headTeacherRemarks = schoolDoc['headTeacherRemarks'] ?? 'Continue working hard and encourage her to maintain scoring above pass mark in all the subjects';
@@ -346,7 +348,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.studentClass} Progress Report'),
+        title: Text('Progress Report'),
         actions: [
           IconButton(icon: Icon(Icons.print), onPressed: _printDocument),
         ],
@@ -376,22 +378,22 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     return Column(
       children: [
         Text(
-          schoolName ?? 'LIKUNI GIRLS\' SECONDARY SCHOOL',
+          schoolName ?? 'UNKOWN SECONDARY SCHOOL',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
         Text(
-          schoolAddress ?? 'P.O. BOX 43, LIKUNI.',
+          schoolAddress ?? 'P.O. BOX 47, LILONGWE',
           style: TextStyle(fontSize: 14),
           textAlign: TextAlign.center,
         ),
         Text(
-          'Tel: ${schoolPhone ?? '(+265) 0 997 974 545 or (+265) 0 888 084 670'}',
+          'Tel: ${schoolPhone ?? '(+265) # ### ### ### or (+265) # ### ### ###'}',
           style: TextStyle(fontSize: 14),
           textAlign: TextAlign.center,
         ),
         Text(
-          'Email: ${schoolEmail ?? 'info.likunigirls196@gmail.com/likunigirls196@gmail.com'}',
+          'Email: ${schoolEmail ?? 'secondaryschool@gmail.com'}',
           style: TextStyle(fontSize: 14),
           textAlign: TextAlign.center,
         ),
@@ -623,11 +625,11 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                       style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
                     ),
                     pw.Text(
-                      schoolAddress ?? 'P.O. BOX 43, LIKUNI.',
+                      schoolAddress ?? 'P.O. BOX 47, LILONGWE.',
                       style: pw.TextStyle(fontSize: 14),
                     ),
                     pw.Text(
-                      'Tel: ${schoolPhone ?? '(+265) 0 997 974 545 or (+265) 0 888 084 670'}',
+                      'Tel: ${schoolPhone ?? '(+265) # or (+265) 0 888 084 670'}',
                       style: pw.TextStyle(fontSize: 14),
                     ),
                     pw.Text(
@@ -748,7 +750,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text('Fees for next term', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Text('School account: ${schoolAccount ?? 'Centenary Bank of Malawi, Old Town Branch, Current Account, Likuni Girls Secondary School, Ace. No. 9043689270025'}'),
+                  pw.Text('School account: ${schoolAccount ?? 'National Bank of Malawi, Old Town Branch, Current Account,  Secondary School, #############'}'),
                   pw.SizedBox(height: 8),
                   pw.Text(
                     'Next term begins on ${nextTermDate ?? 'Monday, 06th January, 2025'}',

@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -110,7 +112,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       await fetchStudentSubjects(basePath);
       await fetchTotalMarks(basePath);
       await calculate_Subject_Stats_And_Position(teacherSchool, studentClass, studentFullName);
-      await calculateAggregatePointsAndPosition(teacherSchool, studentClass, studentFullName);
+      await calculate_Aggregate_Points_And_Position(teacherSchool, studentClass, studentFullName);
       await _updateTotalStudentsCount(teacherSchool, studentClass);
 
       setState(() {
@@ -126,7 +128,9 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
-  Future<void> calculateAggregatePointsAndPosition(String school, String studentClass, String studentFullName) async {
+  Future<void> calculate_Aggregate_Points_And_Position(
+      String school, String studentClass, String studentFullName) async {
+
     try {
       final studentsSnapshot = await _firestore
           .collection('Schools/$school/Classes/$studentClass/Student_Details')
@@ -184,14 +188,15 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   }
 
   Future<void> _fetchSchoolInfo(String school) async {
+
     try {
       DocumentSnapshot schoolDoc = await _firestore.collection('Schools').doc(school).get();
       if (schoolDoc.exists) {
         setState(() {
-          schoolAddress = schoolDoc['address'] ?? 'P.O. BOX 43, LIKUNI.';
-          schoolPhone = schoolDoc['phone'] ?? '(+265) 0 997 974 545 or (+265) 0 888 084 670';
-          schoolEmail = schoolDoc['email'] ?? 'info.likunigirls196@gmail.com/likunigirls196@gmail.com';
-          schoolAccount = schoolDoc['account'] ?? 'Centenary Bank of Malawi, Old Town Branch, Current Account, Likuni Girls Secondary School, Ace. No. 9043689270025';
+          schoolAddress = schoolDoc['address'] ?? 'P.O. BOX 47, LILONGWE';
+          schoolPhone = schoolDoc['phone'] ?? '(+265) # ### ### ### or (+265) # ### ### ###';
+          schoolEmail = schoolDoc['email'] ?? 'secondaryschool@gmail.com';
+          schoolAccount = schoolDoc['account'] ?? 'National Bank of Malawi, Old Town Branch, Current Account, Unkown Girls Secondary School, ############';
           nextTermDate = schoolDoc['nextTermDate'] ?? 'Monday, 06th January, 2025';
           formTeacherRemarks = schoolDoc['formTeacherRemarks'] ?? 'She is disciplined and mature, encourage her to continue portraying good behaviour';
           headTeacherRemarks = schoolDoc['headTeacherRemarks'] ?? 'Continue working hard and encourage her to maintain scoring above pass mark in all the subjects';
@@ -725,19 +730,19 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                 child: pw.Column(
                   children: [
                     pw.Text(
-                      schoolName ?? 'LIKUNI GIRLS\' SECONDARY SCHOOL',
+                      schoolName ?? 'UNKWON SECONDARY SCHOOL',
                       style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
                     ),
                     pw.Text(
-                      schoolAddress ?? 'P.O. BOX 43, LIKUNI.',
+                      schoolAddress ?? 'P.O. BOX 47, LILONGWE',
                       style: pw.TextStyle(fontSize: 14),
                     ),
                     pw.Text(
-                      'Tel: ${schoolPhone ?? '(+265) 0 994 459 714 or (+265) 0 880 409 468'}',
+                      'Tel: ${schoolPhone ?? '(+265) # ### ### ### or (+265) # ### ### ###'}',
                       style: pw.TextStyle(fontSize: 14),
                     ),
                     pw.Text(
-                      'Email: ${schoolEmail ?? 'jumapeter736@gmail.com'}',
+                      'Email: ${schoolEmail ?? 'secondaryschool@gmail.com'}',
                       style: pw.TextStyle(fontSize: 14),
                     ),
                     pw.SizedBox(height: 16),
@@ -868,7 +873,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text('Fees for next term', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Text('School account: ${schoolAccount ?? 'Centenary Bank of Malawi, Old Town Branch, Current Account, Likuni Girls Secondary School, Ace. No. 9043689270025'}'),
+                  pw.Text('School account: ${schoolAccount ?? 'National Bank of Malawi, Old Town Branch, Current Account, Unknwon Secondary School, ############'}'),
                   pw.SizedBox(height: 8),
                   pw.Text(
                     'Next term begins on ${nextTermDate ?? 'Monday, 06th January, 2025'}',
