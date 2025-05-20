@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -117,7 +119,7 @@ class _Register_PageState extends State<Register_Page> {
     } on FirebaseAuthException catch (e) {
       setState(() {
         _showSpinner = false;
-        if (e.code == 'email-already-in-use') {
+        if (e.code == 'email already in use') {
           _wrongEmail = true;
           _emptyEmailField = false;
         }
@@ -303,7 +305,7 @@ class _Register_PageState extends State<Register_Page> {
                     onPressed: _register,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueAccent,
-                      padding: EdgeInsets.symmetric(vertical: 13.0, horizontal: 20),
+                      padding: EdgeInsets.symmetric(vertical: 9.0, horizontal: 20),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10.0),
                       ),
@@ -370,13 +372,13 @@ class _Register_PageState extends State<Register_Page> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Already have an Account?', style: TextStyle(fontSize: 22.0,),),
+                    Text('Already have an Account?', style: TextStyle(fontSize: 20.0,),),
                     TextButton(
                       onPressed: () {
                         Navigator.pushNamed(context, Login_Page.id);
                       },
                       child: Text('Log In', style:
-                      TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 22.0,),
+                      TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 20.0,),
                       ),
                     ),
                   ],
