@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -309,7 +311,7 @@ class _Login_PageState extends State<Login_Page> {
 
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blueAccent,
-                          padding: EdgeInsets.symmetric(vertical: 13.0, horizontal: 20),
+                          padding: EdgeInsets.symmetric(vertical: 9.0, horizontal: 20),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10.0),
                           ),
@@ -382,7 +384,7 @@ class _Login_PageState extends State<Login_Page> {
                       children: [
                         Text(
                           'Already have an Account? ',
-                          style: TextStyle(fontSize: 22.0),
+                          style: TextStyle(fontSize: 20.0),
                         ),
                         GestureDetector(
                           onTap: () {
@@ -390,7 +392,7 @@ class _Login_PageState extends State<Login_Page> {
                           },
                           child: Text(
                             'Sign Up',
-                            style: TextStyle(fontSize: 22.0,
+                            style: TextStyle(fontSize: 20.0,
                                 color: Colors.blue,
                                 fontWeight: FontWeight.bold),
                           ),
