@@ -499,46 +499,35 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 decoration: BoxDecoration(color: Colors.grey[300]),
                 children: [
                   _tableCell('Mark Range', isHeader: true),
-                  _tableCell('Grade', isHeader: true),
-                  _tableCell('Interpretation', isHeader: true),
-                ],
-              ),
-              TableRow(
-                children: [
                   _tableCell('85-100', isHeader: true),
-                  _tableCell('A', isHeader: true),
-                  _tableCell('EXCELLENT', isHeader: true),
-                ],
-              ),
-              TableRow(
-                children: [
                   _tableCell('75-84', isHeader: true),
-                  _tableCell('B', isHeader: true),
-                  _tableCell('VERY GOOD', isHeader: true),
-                ],
-              ),
-              TableRow(
-                children: [
                   _tableCell('65-74', isHeader: true),
-                  _tableCell('C', isHeader: true),
-                  _tableCell('GOOD', isHeader: true),
-                ],
-              ),
-              TableRow(
-                children: [
                   _tableCell('50-64', isHeader: true),
-                  _tableCell('D', isHeader: true),
-                  _tableCell('PASS', isHeader: true),
+                  _tableCell('0-49', isHeader: true),
                 ],
               ),
               TableRow(
                 children: [
-                  _tableCell('0-49', isHeader: true),
-                  _tableCell('F', isHeader: true),
-                  _tableCell('FAIL', isHeader: true),
+                  _tableCell('Grade', isHeader: true),
+                  _tableCell('A'),
+                  _tableCell('B'),
+                  _tableCell('C'),
+                  _tableCell('D'),
+                  _tableCell('F'),
+                ],
+              ),
+              TableRow(
+                children: [
+                  _tableCell('Interpretation', isHeader: true),
+                  _tableCell('EXCELLENT'),
+                  _tableCell('VERY GOOD'),
+                  _tableCell('GOOD'),
+                  _tableCell('PASS'),
+                  _tableCell('FAIL'),
                 ],
               ),
             ],
+
           ),
           SizedBox(height: 16),
         ],
@@ -591,7 +580,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.studentClass} Progress Report'),
+        title: Text(' Progress Report'),
         actions: [
           IconButton(icon: Icon(Icons.print), onPressed: _printDocument),
         ],
@@ -734,14 +723,12 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                     border: pw.TableBorder.all(),
                     headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                     headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
-                    headers: ['Mark Range', 'Grade', 'Interpretation'],
+                    headers: ['85-100', '75-84', '65-74', '50-64', '0-49'],
                     data: [
-                      ['85-100', 'A', 'EXCELLENT'],
-                      ['75-84', 'B', 'VERY GOOD'],
-                      ['65-74', 'C', 'GOOD'],
-                      ['50-64', 'D', 'PASS'],
-                      ['0-49', 'F', 'FAIL'],
+                      ['Grade', 'A', 'B', 'C', 'D', 'F'],
+                      ['Interpretation', 'EXCELLENT', 'VERY GOOD', 'GOOD', 'PASS', 'FAIL'],
                     ],
+
                   ),
                 ],
               ),
