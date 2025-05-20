@@ -433,7 +433,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.studentClass} Progress Report'),
+        title: Text('Progress Report'),
         actions: [
           IconButton(icon: Icon(Icons.print), onPressed: _printDocument),
         ],
@@ -643,6 +643,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                   _tableCell('64-60', isHeader: true),
                   _tableCell('59-55', isHeader: true),
                   _tableCell('54-50', isHeader: true),
+                  _tableCell('0-49',  isHeader: true),
                 ],
               ),
               TableRow(

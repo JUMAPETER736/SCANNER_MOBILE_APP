@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -130,10 +128,10 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       DocumentSnapshot schoolDoc = await _firestore.collection('Schools').doc(school).get();
       if (schoolDoc.exists) {
         setState(() {
-          schoolAddress = schoolDoc['address'] ?? 'P.O. BOX 47, LILONGWE.';
+          schoolAddress = schoolDoc['address'] ?? 'P.O. BOX 47, LILONGWE';
           schoolPhone = schoolDoc['phone'] ?? '(+265) # ### ### ### or (+265) # ### ### ###';
           schoolEmail = schoolDoc['email'] ?? 'secondaryschool@gmail.com';
-          schoolAccount = schoolDoc['account'] ?? 'National Bank of Malawi, Old Town Branch, Current Account, Secondary School, ##############';
+          schoolAccount = schoolDoc['account'] ?? 'National Bank of Malawi, Old Town Branch, Current Account, Unkown Girls Secondary School, ############';
           nextTermDate = schoolDoc['nextTermDate'] ?? 'Monday, 06th January, 2025';
           formTeacherRemarks = schoolDoc['formTeacherRemarks'] ?? 'She is disciplined and mature, encourage her to continue portraying good behaviour';
           headTeacherRemarks = schoolDoc['headTeacherRemarks'] ?? 'Continue working hard and encourage her to maintain scoring above pass mark in all the subjects';
@@ -337,43 +335,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (errorMessage != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage!)));
-        setState(() => errorMessage = null);
-      });
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Progress Report'),
-        actions: [
-          IconButton(icon: Icon(Icons.print), onPressed: _printDocument),
-        ],
-      ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-        onRefresh: _fetchStudentData,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(8),
-          child: Column(
-            children: [
-              _buildSchoolHeader(),
-              _buildStudentInfo(),
-              _buildReportTable(),
-              _buildGradingKey(),
-              _buildRemarksSection(),
-              _buildFooter(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildSchoolHeader() {
     return Column(
       children: [
@@ -502,6 +463,19 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     );
   }
 
+  Widget _buildPositionSection() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('OVERALL POSITION: $studentPosition'),
+          Text('OUT OF: $totalStudents'),
+        ],
+      ),
+    );
+  }
+
   Widget _buildGradingKey() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16),
@@ -596,12 +570,50 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Fees for next term', style: TextStyle(fontWeight: FontWeight.bold)),
-          Text('School account: ${schoolAccount ?? 'Centenary Bank of Malawi, Old Town Branch, Current Account, Likuni Girls Secondary School, Ace. No. 9043689270025'}'),
+          Text('School account: ${schoolAccount ?? 'National Bank of Malawi, Old Town Branch, Current Account, Secondary School, ##############'}'),
           SizedBox(height: 8),
           Text('Next term begins on ${nextTermDate ?? 'Monday, 06th January, 2025'}',
               style: TextStyle(fontWeight: FontWeight.bold)),
           SizedBox(height: 16),
         ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (errorMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage!)));
+        setState(() => errorMessage = null);
+      });
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('${widget.studentClass} Progress Report'),
+        actions: [
+          IconButton(icon: Icon(Icons.print), onPressed: _printDocument),
+        ],
+      ),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+        onRefresh: _fetchStudentData,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(8),
+          child: Column(
+            children: [
+              _buildSchoolHeader(),
+              _buildStudentInfo(),
+              _buildReportTable(),
+              _buildPositionSection(), // Added position section
+              _buildGradingKey(),
+              _buildRemarksSection(),
+              _buildFooter(),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -621,19 +633,19 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 child: pw.Column(
                   children: [
                     pw.Text(
-                      schoolName ?? 'LIKUNI GIRLS\' SECONDARY SCHOOL',
+                      schoolName ?? 'UNKOWN SECONDARY SCHOOL',
                       style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
                     ),
                     pw.Text(
-                      schoolAddress ?? 'P.O. BOX 47, LILONGWE.',
+                      schoolAddress ?? 'P.O. BOX 47, LILONGWE',
                       style: pw.TextStyle(fontSize: 14),
                     ),
                     pw.Text(
-                      'Tel: ${schoolPhone ?? '(+265) # or (+265) 0 888 084 670'}',
+                      'Tel: ${schoolPhone ?? '(+265) # ### ### ### or (+265) # ### ### ###'}',
                       style: pw.TextStyle(fontSize: 14),
                     ),
                     pw.Text(
-                      'Email: ${schoolEmail ?? 'info.likunigirls196@gmail.com/likunigirls196@gmail.com'}',
+                      'Email: ${schoolEmail ?? 'secondaryschool@gmail.com'}',
                       style: pw.TextStyle(fontSize: 14),
                     ),
                     pw.SizedBox(height: 16),
@@ -698,7 +710,16 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 ],
               ),
 
-              pw.SizedBox(height: 20),
+              // Position Section in PDF
+              pw.SizedBox(height: 10),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('OVERALL POSITION: $studentPosition'),
+                  pw.Text('OUT OF: $totalStudents'),
+                ],
+              ),
+              pw.SizedBox(height: 10),
 
               // Grading Key
               pw.Column(
@@ -750,7 +771,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text('Fees for next term', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Text('School account: ${schoolAccount ?? 'National Bank of Malawi, Old Town Branch, Current Account,  Secondary School, #############'}'),
+                  pw.Text('School account: ${schoolAccount ?? 'National Bank of Malawi, Old Town Branch, Current Account, Secondary School, ##############'}'),
                   pw.SizedBox(height: 8),
                   pw.Text(
                     'Next term begins on ${nextTermDate ?? 'Monday, 06th January, 2025'}',
