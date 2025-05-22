@@ -111,7 +111,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
           var studentData = studentDoc.data() as Map<String, dynamic>? ?? {};
 
           // Extract basic info - adjust field names based on your actual document structure
-          var gender = studentData['studentGender'] ?? 'Not specified';
+          var gender = studentData['studentGender'];
           var studentClass = classId; // Use the class ID directly since we're iterating through classes
 
           // Parse the student name (assuming format is "LastName FirstName" or "FirstName LastName")
@@ -518,8 +518,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                     );
                   }
                 },
-
-
               ),
             );
           },
