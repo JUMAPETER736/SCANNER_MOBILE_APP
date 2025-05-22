@@ -108,7 +108,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       await fetchStudentSubjects(basePath);
       await fetchTotalMarks(basePath);
       await calculate_Subject_Stats_And_Position(teacherSchool, studentClass, studentFullName);
-      await _updateTotalStudentsCount(teacherSchool, studentClass);
 
       setState(() {
         isLoading = false;
@@ -125,31 +124,67 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
   Future<void> _fetchSchoolInfo(String school) async {
     try {
-      DocumentSnapshot schoolDoc = await _firestore.collection('Schools').doc(school).get();
-      if (schoolDoc.exists) {
+      // Try to fetch from School_Information subcollection first
+      DocumentSnapshot schoolInfoDoc = await _firestore
+          .collection('Schools')
+          .doc(school)
+          .collection('School_Information')
+          .doc('details')
+          .get();
+
+      if (schoolInfoDoc.exists) {
         setState(() {
-          schoolAddress = schoolDoc['address'] ?? 'P.O. BOX 47, LILONGWE';
-          schoolPhone = schoolDoc['phone'] ?? '(+265) # ### ### ### or (+265) # ### ### ###';
-          schoolEmail = schoolDoc['email'] ?? 'secondaryschool@gmail.com';
-          schoolAccount = schoolDoc['account'] ?? 'National Bank of Malawi, Old Town Branch, Current Account, Unkown Girls Secondary School, ############';
-          nextTermDate = schoolDoc['nextTermDate'] ?? 'Monday, 06th January, 2025';
-          formTeacherRemarks = schoolDoc['formTeacherRemarks'] ?? 'She is disciplined and mature, encourage her to continue portraying good behaviour';
-          headTeacherRemarks = schoolDoc['headTeacherRemarks'] ?? 'Continue working hard and encourage her to maintain scoring above pass mark in all the subjects';
+          schoolAddress = schoolInfoDoc['address'] ?? 'N/A';
+          schoolPhone = schoolInfoDoc['phone'] ?? 'N/A';
+          schoolEmail = schoolInfoDoc['email'] ?? 'N/A';
+          schoolAccount = schoolInfoDoc['account'] ?? 'N/A';
+          nextTermDate = schoolInfoDoc['nextTermDate'] ?? 'N/A';
+          formTeacherRemarks = schoolInfoDoc['formTeacherRemarks'] ?? 'N/A';
+          headTeacherRemarks = schoolInfoDoc['headTeacherRemarks'] ?? 'N/A';
+        });
+      } else {
+        // Create default school information document if it doesn't exist
+        Map<String, dynamic> defaultSchoolInfo = {
+          'address': 'N/A',
+          'phone': 'N/A',
+          'email': 'N/A',
+          'account': 'N/A',
+          'nextTermDate': 'N/A',
+          'formTeacherRemarks': 'N/A',
+          'headTeacherRemarks': 'N/A',
+          'createdAt': FieldValue.serverTimestamp(),
+          'lastUpdated': FieldValue.serverTimestamp(),
+        };
+
+        await _firestore
+            .collection('Schools')
+            .doc(school)
+            .collection('School_Information')
+            .doc('details')
+            .set(defaultSchoolInfo);
+
+        setState(() {
+          schoolAddress = 'N/A';
+          schoolPhone = 'N/A';
+          schoolEmail = 'N/A';
+          schoolAccount = 'N/A';
+          nextTermDate = 'N/A';
+          formTeacherRemarks = 'N/A';
+          headTeacherRemarks = 'N/A';
         });
       }
     } catch (e) {
       print("Error fetching school info: $e");
-    }
-  }
-
-  Future<void> _updateTotalStudentsCount(String school, String studentClass) async {
-    try {
-      await _firestore.collection('Schools/$school/Classes').doc(studentClass).update({
-        'totalStudents': totalStudents,
-        'lastUpdated': FieldValue.serverTimestamp(),
+      // Set defaults if there's an error
+      setState(() {
+        schoolAddress = 'N/A';
+        schoolPhone = 'N/A';
+        schoolEmail = 'N/A';
+        schoolAccount = 'N/A';
+        nextTermDate = 'N/A';
+        formTeacherRemarks = 'N/A';
+        headTeacherRemarks = 'N/A';
       });
-    } catch (e) {
-      print('Error updating total students count: $e');
     }
   }
 
@@ -165,9 +200,16 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           score = double.tryParse(data['Subject_Grade'].toString())?.round() ?? 0;
         }
 
+        int subjectPosition = (data['Subject_Position'] as num?)?.toInt() ?? 0;
+        int totalStudentsInSubject = (data['Total_Students_Subject'] as num?)?.toInt() ?? 0;
+        String gradeLetter = data['Grade_Letter']?.toString() ?? '';
+
         subjectList.add({
           'subject': data['Subject_Name'] ?? doc.id,
           'score': score,
+          'position': subjectPosition,
+          'totalStudents': totalStudentsInSubject,
+          'gradeLetter': gradeLetter,
         });
       }
 
@@ -181,13 +223,15 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
   Future<void> fetchTotalMarks(String basePath) async {
     try {
-      final doc = await _firestore.doc('$basePath/TOTAL_MARKS/Marks').get();
+      final doc = await _firestore.doc('$basePath/Marks').get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
         setState(() {
           totalMarks = data;
-          studentTotalMarks = (data['Total_Marks'] as num?)?.toInt() ?? 0;
-          teacherTotalMarks = (data['Teacher_Total_Marks'] as num?)?.toInt() ?? (subjects.length * 100);
+          studentTotalMarks = (data['Student_Total_Marks'] as num?)?.toInt() ?? 0;
+          teacherTotalMarks = (data['Teacher_Total_Marks'] as num?)?.toInt() ?? 0;
+          studentPosition = (data['Student_Class_Position'] as num?)?.toInt() ?? 0;
+          totalStudents = (data['Total_Class_Students_Number'] as num?)?.toInt() ?? 0;
         });
       }
     } catch (e) {
@@ -202,28 +246,16 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           .collection('Schools/$school/Classes/$studentClass/Student_Details')
           .get();
 
-      setState(() {
-        totalStudents = studentsSnapshot.docs.length;
-      });
-
       Map<String, List<int>> marksPerSubject = {};
-      Map<String, Map<String, int>> scoresPerStudentPerSubject = {};
-      Map<String, int> totalMarksPerStudent = {};
+      Map<String, int> totalStudentsPerSubjectMap = {};
 
+      // Calculate class averages for each subject
       for (var studentDoc in studentsSnapshot.docs) {
         final studentName = studentDoc.id;
 
-        final totalMarksDoc = await _firestore.doc('Schools/$school/Classes/$studentClass/Student_Details/$studentName/TOTAL_MARKS/Marks').get();
-        int totalMarkValue = 0;
-        if (totalMarksDoc.exists) {
-          final data = totalMarksDoc.data();
-          if (data != null && data['Total_Marks'] != null) {
-            totalMarkValue = (data['Total_Marks'] as num).round();
-          }
-        }
-        totalMarksPerStudent[studentName] = totalMarkValue;
-
-        final subjectsSnapshot = await _firestore.collection('Schools/$school/Classes/$studentClass/Student_Details/$studentName/Student_Subjects').get();
+        final subjectsSnapshot = await _firestore
+            .collection('Schools/$school/Classes/$studentClass/Student_Details/$studentName/Student_Subjects')
+            .get();
 
         for (var subjectDoc in subjectsSnapshot.docs) {
           final data = subjectDoc.data();
@@ -235,82 +267,21 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
             marksPerSubject[subjectName] = [];
           }
           marksPerSubject[subjectName]!.add(grade);
-
-          if (!scoresPerStudentPerSubject.containsKey(subjectName)) {
-            scoresPerStudentPerSubject[subjectName] = {};
-          }
-          scoresPerStudentPerSubject[subjectName]![studentName] = grade;
         }
       }
 
+      // Calculate averages and update subject stats
       Map<String, int> averages = {};
       marksPerSubject.forEach((subject, scores) {
         int total = scores.fold(0, (prev, el) => prev + el);
         int avg = scores.isNotEmpty ? (total / scores.length).round() : 0;
         averages[subject] = avg;
+        totalStudentsPerSubjectMap[subject] = scores.length;
       });
-
-      Map<String, int> positions = {};
-      Map<String, int> totalsPerSubject = {};
-
-      scoresPerStudentPerSubject.forEach((subject, studentScores) {
-        totalsPerSubject[subject] = studentScores.length;
-
-        List<MapEntry<String, int>> sortedScores = studentScores.entries.toList();
-        sortedScores.sort((a, b) => b.value.compareTo(a.value));
-
-        int position = 1;
-        int lastScore = -1;
-
-        for (int i = 0; i < sortedScores.length; i++) {
-          final studentEntry = sortedScores[i];
-          final score = studentEntry.value;
-
-          if (i > 0 && score == lastScore) {
-            // Same position for same score
-          } else {
-            position = i + 1;
-          }
-
-          lastScore = score;
-
-          if (studentEntry.key == studentFullName) {
-            positions[subject] = position;
-            break;
-          }
-        }
-      });
-
-      List<MapEntry<String, int>> sortedTotalMarks = totalMarksPerStudent.entries.toList();
-      sortedTotalMarks.sort((a, b) => b.value.compareTo(a.value));
-
-      int position = 1;
-      int lastTotalMark = -1;
-      int studentPos = 0;
-
-      for (int i = 0; i < sortedTotalMarks.length; i++) {
-        final totalMarkEntry = sortedTotalMarks[i];
-        final totalMark = totalMarkEntry.value;
-
-        if (i > 0 && totalMark == lastTotalMark) {
-          // Same position for same total marks
-        } else {
-          position = i + 1;
-        }
-
-        lastTotalMark = totalMark;
-
-        if (totalMarkEntry.key == studentFullName) {
-          studentPos = position;
-          break;
-        }
-      }
 
       setState(() {
         subjectStats = averages.map((key, value) => MapEntry(key, {'average': value}));
-        subjectPositions = positions;
-        totalStudentsPerSubject = totalsPerSubject;
-        studentPosition = studentPos;
+        totalStudentsPerSubject = totalStudentsPerSubjectMap;
       });
     } catch (e) {
       print("Error calculating stats & position: $e");
@@ -339,22 +310,22 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     return Column(
       children: [
         Text(
-          schoolName ?? 'UNKOWN SECONDARY SCHOOL',
+          schoolName ?? 'UNKNOWN SECONDARY SCHOOL',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
         Text(
-          schoolAddress ?? 'P.O. BOX 47, LILONGWE',
+          schoolAddress ?? 'N/A',
           style: TextStyle(fontSize: 14),
           textAlign: TextAlign.center,
         ),
         Text(
-          'Tel: ${schoolPhone ?? '(+265) # ### ### ### or (+265) # ### ### ###'}',
+          'Tel: ${schoolPhone ?? 'N/A'}',
           style: TextStyle(fontSize: 14),
           textAlign: TextAlign.center,
         ),
         Text(
-          'Email: ${schoolEmail ?? 'secondaryschool@gmail.com'}',
+          'Email: ${schoolEmail ?? 'N/A'}',
           style: TextStyle(fontSize: 14),
           textAlign: TextAlign.center,
         ),
@@ -413,12 +384,14 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           ...subjects.map((subj) {
             final subjectName = subj['subject'] ?? 'Unknown';
             final score = subj['score'] as int? ?? 0;
-            final grade = Juniors_Grade(score);
+            final grade = subj['gradeLetter']?.toString().isNotEmpty == true
+                ? subj['gradeLetter']
+                : Juniors_Grade(score);
             final remark = getRemark(grade);
             final subjectStat = subjectStats[subjectName];
             final avg = subjectStat != null ? subjectStat['average'] as int : 0;
-            final subjectPosition = subjectPositions[subjectName] ?? 0;
-            final totalStudentsForSubject = totalStudentsPerSubject[subjectName] ?? 0;
+            final subjectPosition = subj['position'] as int? ?? 0;
+            final totalStudentsForSubject = subj['totalStudents'] as int? ?? 0;
 
             return TableRow(
               children: [
@@ -491,8 +464,11 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
             border: TableBorder.all(),
             columnWidths: {
               0: FlexColumnWidth(2),
-              1: FlexColumnWidth(2),
-              2: FlexColumnWidth(3),
+              1: FlexColumnWidth(1),
+              2: FlexColumnWidth(1),
+              3: FlexColumnWidth(1),
+              4: FlexColumnWidth(1),
+              5: FlexColumnWidth(1),
             },
             children: [
               TableRow(
@@ -527,7 +503,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 ],
               ),
             ],
-
           ),
           SizedBox(height: 16),
         ],
@@ -541,10 +516,10 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Form Teachers\' Remarks: ${formTeacherRemarks ?? 'She is disciplined and mature, encourage her to continue portraying good behaviour'}',
+          Text('Form Teachers\' Remarks: ${formTeacherRemarks ?? 'N/A'}',
               style: TextStyle(fontStyle: FontStyle.italic)),
           SizedBox(height: 8),
-          Text('Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'Continue working hard and encourage her to maintain scoring above pass mark in all the subjects'}',
+          Text('Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
               style: TextStyle(fontStyle: FontStyle.italic)),
           SizedBox(height: 16),
         ],
@@ -559,9 +534,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Fees for next term', style: TextStyle(fontWeight: FontWeight.bold)),
-          Text('School account: ${schoolAccount ?? 'National Bank of Malawi, Old Town Branch, Current Account, Secondary School, ##############'}'),
+          Text('School account: ${schoolAccount ?? 'N/A'}'),
           SizedBox(height: 8),
-          Text('Next term begins on ${nextTermDate ?? 'Monday, 06th January, 2025'}',
+          Text('Next term begins on ${nextTermDate ?? 'N/A'}',
               style: TextStyle(fontWeight: FontWeight.bold)),
           SizedBox(height: 16),
         ],
@@ -580,7 +555,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(' Progress Report'),
+        title: Text('Progress Report'),
         actions: [
           IconButton(icon: Icon(Icons.print), onPressed: _printDocument),
         ],
@@ -596,7 +571,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
               _buildSchoolHeader(),
               _buildStudentInfo(),
               _buildReportTable(),
-              _buildPositionSection(), // Added position section
+              _buildPositionSection(),
               _buildGradingKey(),
               _buildRemarksSection(),
               _buildFooter(),
@@ -622,19 +597,19 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 child: pw.Column(
                   children: [
                     pw.Text(
-                      schoolName ?? 'UNKOWN SECONDARY SCHOOL',
+                      schoolName ?? 'UNKNOWN SECONDARY SCHOOL',
                       style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
                     ),
                     pw.Text(
-                      schoolAddress ?? 'P.O. BOX 47, LILONGWE',
+                      schoolAddress ?? 'N/A',
                       style: pw.TextStyle(fontSize: 14),
                     ),
                     pw.Text(
-                      'Tel: ${schoolPhone ?? '(+265) # ### ### ### or (+265) # ### ### ###'}',
+                      'Tel: ${schoolPhone ?? 'N/A'}',
                       style: pw.TextStyle(fontSize: 14),
                     ),
                     pw.Text(
-                      'Email: ${schoolEmail ?? 'secondaryschool@gmail.com'}',
+                      'Email: ${schoolEmail ?? 'N/A'}',
                       style: pw.TextStyle(fontSize: 14),
                     ),
                     pw.SizedBox(height: 16),
@@ -669,12 +644,14 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 data: subjects.map((subj) {
                   final subjectName = subj['subject'] ?? 'Unknown';
                   final score = subj['score'] as int? ?? 0;
-                  final grade = Juniors_Grade(score);
+                  final grade = subj['gradeLetter']?.toString().isNotEmpty == true
+                      ? subj['gradeLetter']
+                      : Juniors_Grade(score);
                   final remark = getRemark(grade);
                   final subjectStat = subjectStats[subjectName];
                   final avg = subjectStat != null ? subjectStat['average'] as int : 0;
-                  final subjectPosition = subjectPositions[subjectName] ?? 0;
-                  final totalStudentsForSubject = totalStudentsPerSubject[subjectName] ?? 0;
+                  final subjectPosition = subj['position'] as int? ?? 0;
+                  final totalStudentsForSubject = subj['totalStudents'] as int? ?? 0;
 
                   return [
                     subjectName,
@@ -723,12 +700,11 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                     border: pw.TableBorder.all(),
                     headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                     headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
-                    headers: ['85-100', '75-84', '65-74', '50-64', '0-49'],
+                    headers: ['Mark Range', '85-100', '75-84', '65-74', '50-64', '0-49'],
                     data: [
                       ['Grade', 'A', 'B', 'C', 'D', 'F'],
                       ['Interpretation', 'EXCELLENT', 'VERY GOOD', 'GOOD', 'PASS', 'FAIL'],
                     ],
-
                   ),
                 ],
               ),
@@ -740,12 +716,12 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text(
-                    'Form Teachers\' Remarks: ${formTeacherRemarks ?? 'She is disciplined and mature, encourage her to continue portraying good behaviour'}',
+                    'Form Teachers\' Remarks: ${formTeacherRemarks ?? 'N/A'}',
                     style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
                   ),
                   pw.SizedBox(height: 8),
                   pw.Text(
-                    'Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'Continue working hard and encourage her to maintain scoring above pass mark in all the subjects'}',
+                    'Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
                     style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
                   ),
                 ],
@@ -758,10 +734,10 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text('Fees for next term', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Text('School account: ${schoolAccount ?? 'National Bank of Malawi, Old Town Branch, Current Account, Secondary School, ##############'}'),
+                  pw.Text('School account: ${schoolAccount ?? 'N/A'}'),
                   pw.SizedBox(height: 8),
                   pw.Text(
-                    'Next term begins on ${nextTermDate ?? 'Monday, 06th January, 2025'}',
+                    'Next term begins on ${nextTermDate ?? 'N/A'}',
                     style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                   ),
                 ],
