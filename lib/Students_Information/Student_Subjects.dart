@@ -119,7 +119,6 @@ class _Student_SubjectsState extends State<Student_Subjects> {
   }
 
 
-
   Future<void> _updateGrade(String subject) async {
     String newGrade = '';
     String errorMessage = '';
@@ -181,9 +180,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                   setState(() {
                     errorMessage = 'Grade cannot be greater than 100';
                   });
-                }
-
-                else {
+                } else {
                   try {
                     final currentUser = FirebaseAuth.instance.currentUser;
                     if (currentUser == null) return;
@@ -230,14 +227,22 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                       }
 
                       final subjectRef = studentRef.collection('Student_Subjects').doc(subject);
+                      int gradeInt = int.parse(newGrade);
 
-                      // Check if it's FORM 3 or FORM 4
+                      // Check if subject document exists, create if not
+                      final subjectSnapshot = await subjectRef.get();
+                      Map<String, dynamic> existingData = {};
+
+                      if (subjectSnapshot.exists) {
+                        existingData = subjectSnapshot.data() as Map<String, dynamic>? ?? {};
+                      }
+
+                      // Check if it's FORM 3 or FORM 4 (Seniors)
                       if (className.toUpperCase() == 'FORM 3' || className.toUpperCase() == 'FORM 4') {
-                        // FORM 3 and FORM 4 → Add Grade_Point too
-                        int gradeInt = int.parse(newGrade);
+                        // FORM 3 and FORM 4 → Seniors grading system
                         int gradePoint;
 
-                        if (gradeInt >= 85) {
+                        if (gradeInt >= 90) {
                           gradePoint = 1;
                         } else if (gradeInt >= 80) {
                           gradePoint = 2;
@@ -257,33 +262,59 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                           gradePoint = 9;
                         }
 
-                        await subjectRef.set({
+                        // Calculate position and total students for this subject
+                        Map<String, int> positionData = await _calculateSubjectPosition(schoolName, className, subject, gradeInt);
+
+                        // Prepare data to save (create new or update existing fields)
+                        Map<String, dynamic> dataToSave = {
                           'Subject_Grade': newGrade,
                           'Grade_Point': gradePoint,
-                        }, SetOptions(merge: true));
-                      } else {
-                        // FORM 1 and FORM 2 → Save Subject_Grade and Grade_Score letter grade
-                        int gradeInt = int.parse(newGrade);
-                        String gradeScore;
+                          'Subject_Position': positionData['position'],
+                          'Total_Students_Subject': positionData['total'],
+                        };
 
-                        if (gradeInt >= 85 && gradeInt <= 100) {
-                          gradeScore = 'A';
-                        } else if (gradeInt >= 70) {
-                          gradeScore = 'B';
-                        } else if (gradeInt >= 60) {
-                          gradeScore = 'C';
-                        } else if (gradeInt >= 50) {
-                          gradeScore = 'D';
-                        } else {
-                          gradeScore = 'F';
-                        }
+                        // Merge with existing data if any
+                        existingData.addAll(dataToSave);
 
-                        await subjectRef.set({
-                          'Subject_Grade': newGrade,
-                          'Grade_Score': gradeScore,
-                        }, SetOptions(merge: true));
+                        // Save to Firestore (creates document if doesn't exist, updates if exists)
+                        await subjectRef.set(existingData, SetOptions(merge: true));
+
                       }
 
+                      // Check if it's FORM 3 or FORM 4 (Seniors)
+                      else if  (className.toUpperCase() == 'FORM 1' || className.toUpperCase() == 'FORM 2') {
+
+                        String gradeLetter;
+
+                        if (gradeInt >= 85) {
+                          gradeLetter = 'A';
+                        } else if (gradeInt >= 75) {
+                          gradeLetter = 'B';
+                        } else if (gradeInt >= 65) {
+                          gradeLetter = 'C';
+                        } else if (gradeInt >= 50) {
+                          gradeLetter = 'D';
+                        } else {
+                          gradeLetter = 'F';
+                        }
+
+                        // Calculate position and total students for this subject
+                        Map<String, int> positionData = await _calculateSubjectPosition(schoolName, className, subject, gradeInt);
+
+                        // Prepare data to save (create new or update existing fields)
+                        Map<String, dynamic> dataToSave = {
+                          'Subject_Grade': newGrade,
+                          'Grade_Letter': gradeLetter,
+                          'Subject_Position': positionData['position'],
+                          'Total_Students_Subject': positionData['total'],
+                        };
+
+                        // Merge with existing data if any
+                        existingData.addAll(dataToSave);
+
+                        // Save to Firestore (creates document if doesn't exist, updates if exists)
+                        await subjectRef.set(existingData, SetOptions(merge: true));
+                      }
 
                       setState(() {
                         _fetchSubjects();
@@ -295,15 +326,77 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                     print('Error updating Subject Grade and Grade Point: $e');
                   }
                 }
-
               },
             ),
           ],
         );
       },
     );
-
   }
+
+
+
+// Helper function to calculate subject position and total students
+  Future<Map<String, int>> _calculateSubjectPosition(String schoolName, String className, String subject, int newGrade) async {
+    try {
+      // Get all students in the class
+      final classRef = _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Classes')
+          .doc(className)
+          .collection('Student_Details');
+
+      final studentsSnapshot = await classRef.get();
+
+      List<int> subjectGrades = [];
+      int totalStudentsWithSubject = 0;
+
+      // Collect all grades for this subject from all students
+      for (var studentDoc in studentsSnapshot.docs) {
+        final subjectRef = studentDoc.reference.collection('Student_Subjects').doc(subject);
+        final subjectSnapshot = await subjectRef.get();
+
+        if (subjectSnapshot.exists) {
+          final gradeData = subjectSnapshot.data();
+          if (gradeData != null && gradeData['Subject_Grade'] != null) {
+            int grade = int.tryParse(gradeData['Subject_Grade'].toString()) ?? 0;
+            subjectGrades.add(grade);
+            totalStudentsWithSubject++;
+          }
+        }
+      }
+
+      // Add the new grade to the list
+      subjectGrades.add(newGrade);
+      totalStudentsWithSubject++;
+
+      // Sort grades in descending order (highest first)
+      subjectGrades.sort((a, b) => b.compareTo(a));
+
+      // Find position of the new grade
+      int position = 1;
+      for (int i = 0; i < subjectGrades.length; i++) {
+        if (subjectGrades[i] == newGrade) {
+          position = i + 1;
+          break;
+        }
+      }
+
+      return {
+        'position': position,
+        'total': totalStudentsWithSubject,
+      };
+
+    } catch (e) {
+      print('Error calculating subject position: $e');
+      return {
+        'position': 1,
+        'total': 1,
+      };
+    }
+  }
+
 
 
   @override
