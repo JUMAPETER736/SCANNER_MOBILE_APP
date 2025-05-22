@@ -283,7 +283,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
 
                       // Check if it's FORM 3 or FORM 4 (Seniors)
                       else if  (className.toUpperCase() == 'FORM 1' || className.toUpperCase() == 'FORM 2') {
-
+                        // FORM 1 and FORM 2 → Juniors grading system
                         String gradeLetter;
 
                         if (gradeInt >= 85) {
@@ -333,8 +333,6 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       },
     );
   }
-
-
 
 // Helper function to calculate subject position and total students
   Future<Map<String, int>> _calculateSubjectPosition(String schoolName, String className, String subject, int newGrade) async {
