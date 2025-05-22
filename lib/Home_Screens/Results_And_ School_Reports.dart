@@ -105,7 +105,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
           var studentData = studentDoc.data() as Map<String, dynamic>? ?? {};
 
           // Extract basic info - adjust field names based on your actual document structure
-          var gender = studentData['studentGender'] ?? studentData['gender'] ?? 'N/A';
+          var gender = studentData['studentGender'];
           var studentClass = classId; // Use the class ID directly since we're iterating through classes
 
           // Parse the student name (assuming format is "LastName FirstName" or "FirstName LastName")
@@ -118,42 +118,48 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
               .doc('Marks');
 
           DocumentSnapshot totalMarksDoc = await marksRef.get();
-
           if (studentClass == 'FORM 3' || studentClass == 'FORM 4') {
-            // SENIORS: Calculate Best Six Points from Subject grades
+            // Calculate Best Six Points from subject grades
             List<int> subjectPoints = [];
 
-            var subjectsSnapshot = await studentDoc.reference.collection('Student_Subjects').get();
+            var subjectsSnapshot = await studentDoc.reference
+                .collection('Student_Subjects')
+                .get();
+
             for (var subjectDoc in subjectsSnapshot.docs) {
               var subjectData = subjectDoc.data() as Map<String, dynamic>? ?? {};
-              if (subjectData.containsKey('Grade_Point')) {
-                // Handle both int and string types for Grade_Point
-                var gradePointValue = subjectData['Grade_Point'];
-                int gradePoint = 0;
 
+              if (subjectData.containsKey('Grade_Point')) {
+                var gradePointValue = subjectData['Grade_Point'];
+                int? gradePoint;
+
+                // Handle int and String grade point values
                 if (gradePointValue is int) {
                   gradePoint = gradePointValue;
                 } else if (gradePointValue is String) {
-                  gradePoint = int.tryParse(gradePointValue) ?? 0;
+                  gradePoint = int.tryParse(gradePointValue);
                 }
 
-                if (gradePoint > 0) { // Only include valid grade points
+                // Add only valid points greater than 0
+                if (gradePoint != null && gradePoint > 0) {
                   subjectPoints.add(gradePoint);
                 }
               }
             }
 
+            // Calculate Best Six Total Points
             int bestSixPoints = 0;
-            if (subjectPoints.isNotEmpty) {
-              subjectPoints.sort(); // Sort ascending (lower points are better)
+            if (subjectPoints.length >= 6) {
+              subjectPoints.sort(); // Lower is better
               bestSixPoints = subjectPoints.take(6).fold(0, (sum, point) => sum + point);
+            } else if (subjectPoints.isNotEmpty) {
+              // Optional: Sum all if fewer than 6 valid subjects
+              bestSixPoints = subjectPoints.fold(0, (sum, point) => sum + point);
             }
 
-            // Update or create Best_Six_Total_Points in Firebase
+            // Update or create Best_Six_Total_Points in Firestore
             if (totalMarksDoc.exists) {
               var totalMarksData = totalMarksDoc.data() as Map<String, dynamic>;
-
-              // Handle both int and string types for existing Best_Six_Total_Points
               var existingPointsValue = totalMarksData['Best_Six_Total_Points'];
               int? existingBestSixPoints;
 
@@ -163,32 +169,29 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                 existingBestSixPoints = int.tryParse(existingPointsValue);
               }
 
+              // Update only if changed
               if (existingBestSixPoints == null || existingBestSixPoints != bestSixPoints) {
                 await marksRef.set({
                   'Best_Six_Total_Points': bestSixPoints,
                 }, SetOptions(merge: true));
               }
-
-              tempStudentDetails.add({
-                'fullName': fullName,
-                'studentGender': gender,
-                'studentClass': studentClass,
-                'Best_Six_Total_Points': bestSixPoints,
-              });
             } else {
               // Create the document if it doesn't exist
               await marksRef.set({
                 'Best_Six_Total_Points': bestSixPoints,
               });
-
-              tempStudentDetails.add({
-                'fullName': fullName,
-                'studentGender': gender,
-                'studentClass': studentClass,
-                'Best_Six_Total_Points': bestSixPoints,
-              });
             }
+
+            // Add to temporary list
+            tempStudentDetails.add({
+              'fullName': fullName,
+              'studentGender': gender,
+              'studentClass': studentClass,
+              'Best_Six_Total_Points': bestSixPoints,
+            });
           }
+
+
           else if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
             // JUNIORS: Calculate total marks from Subject grades
             int totalMarks = 0;
