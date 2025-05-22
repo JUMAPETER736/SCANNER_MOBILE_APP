@@ -86,9 +86,13 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     }
   }
 
+
   Future<void> _fetchStudentDetails(DocumentSnapshot userDoc) async {
     try {
       List<Map<String, dynamic>> tempStudentDetails = [];
+
+      // Map to store students by class for position calculation
+      Map<String, List<Map<String, dynamic>>> studentsByClass = {};
 
       for (var classId in userDoc['classes']) {
         QuerySnapshot studentsSnapshot = await _firestore
@@ -99,13 +103,15 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
             .collection('Student_Details')
             .get();
 
+        List<Map<String, dynamic>> classStudents = [];
+
         for (var studentDoc in studentsSnapshot.docs) {
           // Get student basic information from the document ID (which is the student name)
           String studentName = studentDoc.id;
           var studentData = studentDoc.data() as Map<String, dynamic>? ?? {};
 
           // Extract basic info - adjust field names based on your actual document structure
-          var gender = studentData['studentGender'];
+          var gender = studentData['studentGender'] ?? 'Not specified';
           var studentClass = classId; // Use the class ID directly since we're iterating through classes
 
           // Parse the student name (assuming format is "LastName FirstName" or "FirstName LastName")
@@ -118,6 +124,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
               .doc('Marks');
 
           DocumentSnapshot totalMarksDoc = await marksRef.get();
+
           if (studentClass == 'FORM 3' || studentClass == 'FORM 4') {
             // Calculate Best Six Points from subject grades
             List<int> subjectPoints = [];
@@ -182,6 +189,16 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
               });
             }
 
+            // Add to class students list for position calculation
+            classStudents.add({
+              'fullName': fullName,
+              'studentGender': gender,
+              'studentClass': studentClass,
+              'Best_Six_Total_Points': bestSixPoints,
+              'marksRef': marksRef,
+              'studentType': 'senior'
+            });
+
             // Add to temporary list
             tempStudentDetails.add({
               'fullName': fullName,
@@ -190,8 +207,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
               'Best_Six_Total_Points': bestSixPoints,
             });
           }
-
-
           else if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
             // JUNIORS: Calculate total marks from Subject grades
             int totalMarks = 0;
@@ -247,34 +262,74 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                   'Teacher_Total_Marks': totalPossibleMarks,
                 });
               }
-
-              tempStudentDetails.add({
-                'fullName': fullName,
-                'studentGender': gender,
-                'studentClass': studentClass,
-                'Student_Total_Marks': totalMarks,
-                'Teacher_Total_Marks': totalPossibleMarks,
-              });
             } else {
               // Create the document if it doesn't exist
               await marksRef.set({
                 'Student_Total_Marks': totalMarks,
                 'Teacher_Total_Marks': totalPossibleMarks,
               });
-
-              tempStudentDetails.add({
-                'fullName': fullName,
-                'studentGender': gender,
-                'studentClass': studentClass,
-                'Student_Total_Marks': totalMarks,
-                'Teacher_Total_Marks': totalPossibleMarks,
-              });
             }
+
+            // Add to class students list for position calculation
+            classStudents.add({
+              'fullName': fullName,
+              'studentGender': gender,
+              'studentClass': studentClass,
+              'Student_Total_Marks': totalMarks,
+              'Teacher_Total_Marks': totalPossibleMarks,
+              'marksRef': marksRef,
+              'studentType': 'junior'
+            });
+
+            tempStudentDetails.add({
+              'fullName': fullName,
+              'studentGender': gender,
+              'studentClass': studentClass,
+              'Student_Total_Marks': totalMarks,
+              'Teacher_Total_Marks': totalPossibleMarks,
+            });
+          }
+        }
+
+        // Store students by class for position calculation
+        if (classStudents.isNotEmpty) {
+          studentsByClass[classId] = classStudents;
+        }
+      }
+
+      // Calculate positions for each class and update Firebase
+      for (String classId in studentsByClass.keys) {
+        List<Map<String, dynamic>> classStudents = studentsByClass[classId]!;
+        int totalClassStudents = classStudents.length;
+
+        // Sort students by performance for position calculation
+        if (classId == 'FORM 1' || classId == 'FORM 2') {
+          // Sort by Student_Total_Marks descending (higher is better)
+          classStudents.sort((a, b) =>
+              (b['Student_Total_Marks'] ?? 0).compareTo(a['Student_Total_Marks'] ?? 0));
+        } else if (classId == 'FORM 3' || classId == 'FORM 4') {
+          // Sort by Best_Six_Total_Points ascending (lower is better)
+          classStudents.sort((a, b) =>
+              (a['Best_Six_Total_Points'] ?? 0).compareTo(b['Best_Six_Total_Points'] ?? 0));
+        }
+
+        // Update position for each student
+        for (int i = 0; i < classStudents.length; i++) {
+          int position = i + 1;
+          DocumentReference marksRef = classStudents[i]['marksRef'];
+
+          try {
+            await marksRef.set({
+              'Student_Class_Position': position,
+              'Total_Class_Students_Number': totalClassStudents,
+            }, SetOptions(merge: true));
+          } catch (e) {
+            print("Error updating position for student ${classStudents[i]['fullName']}: $e");
           }
         }
       }
 
-      // Sort students by performance within their respective form groups
+      // Sort students by performance within their respective form groups for display
       tempStudentDetails.sort((a, b) {
         // Sort FORM 1/2 students by Student_Total_Marks descending (higher is better)
         if ((a['studentClass'] == 'FORM 1' || a['studentClass'] == 'FORM 2') &&
