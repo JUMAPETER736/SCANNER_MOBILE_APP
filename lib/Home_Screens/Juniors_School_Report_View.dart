@@ -223,7 +223,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
   Future<void> fetchTotalMarks(String basePath) async {
     try {
-      final doc = await _firestore.doc('$basePath/Marks').get();
+      final doc = await _firestore.doc('$basePath/TOTAL_MARKS/Marks').get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
         setState(() {
