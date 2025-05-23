@@ -1,12 +1,8 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:pdf/pdf.dart';
-import 'package:printing/printing.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
+import 'Seniors_School_Report_PDF.dart';
 
 class Seniors_School_Report_View extends StatefulWidget {
   final String studentClass;
@@ -49,11 +45,56 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   int teacherTotalMarks = 0;
   int aggregatePoints = 0;
   int aggregatePosition = 0;
+  String averageGradeLetter = '';
 
   @override
   void initState() {
     super.initState();
     _fetchStudentData();
+  }
+
+  // Method to determine current term based on date
+  String getCurrentTerm() {
+    DateTime now = DateTime.now();
+    int currentMonth = now.month;
+    int currentDay = now.day;
+
+    // TERM ONE: 1 Sept - 31 Dec
+    if ((currentMonth == 9 && currentDay >= 1) ||
+        (currentMonth >= 10 && currentMonth <= 12)) {
+      return 'ONE';
+    }
+    // TERM TWO: 2 Jan - 20 April
+    else if ((currentMonth == 1 && currentDay >= 2) ||
+        (currentMonth >= 2 && currentMonth <= 3) ||
+        (currentMonth == 4 && currentDay <= 20)) {
+      return 'TWO';
+    }
+    // TERM THREE: 25 April - 30 July
+    else if ((currentMonth == 4 && currentDay >= 25) ||
+        (currentMonth >= 5 && currentMonth <= 7)) {
+      return 'THREE';
+    }
+    // Default to ONE if date falls outside defined terms
+    else {
+      return 'ONE';
+    }
+  }
+
+  // Method to get academic year
+  String getAcademicYear() {
+    DateTime now = DateTime.now();
+    int currentYear = now.year;
+    int currentMonth = now.month;
+
+    // Academic year starts in September
+    if (currentMonth >= 9) {
+      // If current month is Sept-Dec, academic year is current year to next year
+      return '$currentYear/${currentYear + 1}';
+    } else {
+      // If current month is Jan-Aug, academic year is previous year to current year
+      return '${currentYear - 1}/$currentYear';
+    }
   }
 
   Future<void> _fetchStudentData() async {
@@ -113,6 +154,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       await fetchTotalMarks(basePath);
       await calculate_Subject_Stats_And_Position(teacherSchool, studentClass, studentFullName);
       await calculate_Aggregate_Points_And_Position(teacherSchool, studentClass, studentFullName);
+      await _calculateAndUpdateAverageGradeLetter(basePath);
       await _updateTotalStudentsCount(teacherSchool, studentClass);
 
       setState(() {
@@ -128,15 +170,45 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
+  Future<void> _calculateAndUpdateAverageGradeLetter(String basePath) async {
+    try {
+      if (teacherTotalMarks > 0) {
+        // Calculate percentage
+        double percentage = (studentTotalMarks / teacherTotalMarks) * 100;
+
+        // Determine grade letter based on percentage
+        String gradeLetter = Seniors_Grade(percentage.round());
+
+        // Update Firestore with the calculated average grade letter
+        await _firestore.doc('$basePath/TOTAL_MARKS/Marks').update({
+          'Average_Grade_Letter': gradeLetter,
+          'Average_Percentage': percentage,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+
+        setState(() {
+          averageGradeLetter = gradeLetter;
+        });
+
+        print("Average Grade Letter calculated: $gradeLetter (${percentage.toStringAsFixed(1)}%)");
+      }
+    } catch (e) {
+      print("Error calculating average grade letter: $e");
+      // Set default if calculation fails
+      setState(() {
+        averageGradeLetter = '9';
+      });
+    }
+  }
+
   Future<void> calculate_Aggregate_Points_And_Position(
       String school, String studentClass, String studentFullName) async {
-
     try {
       final studentsSnapshot = await _firestore
           .collection('Schools/$school/Classes/$studentClass/Student_Details')
           .get();
 
-      List<Map<String, dynamic>> studentAggregates = []; // Changed to dynamic to handle both String and int
+      List<Map<String, dynamic>> studentAggregates = [];
 
       for (var studentDoc in studentsSnapshot.docs) {
         final studentName = studentDoc.id;
@@ -160,17 +232,15 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
       studentAggregates.sort((a, b) => (a['aggregate'] as int).compareTo(b['aggregate'] as int));
 
-      // Find current student's position
       for (int i = 0; i < studentAggregates.length; i++) {
         if (studentAggregates[i]['name'] == studentFullName) {
           setState(() {
             aggregatePosition = i + 1;
           });
-          break; // This break is inside a loop, so it's valid
+          break;
         }
       }
 
-      // Calculate current student's aggregate points
       List<int> currentStudentPoints = subjects.map((subj) {
         final score = subj['score'] as int? ?? 0;
         final grade = Seniors_Grade(score);
@@ -188,7 +258,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   }
 
   Future<void> _fetchSchoolInfo(String school) async {
-
     try {
       DocumentSnapshot schoolDoc = await _firestore.collection('Schools').doc(school).get();
       if (schoolDoc.exists) {
@@ -230,9 +299,38 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           score = double.tryParse(data['Subject_Grade'].toString())?.round() ?? 0;
         }
 
+        // Enhanced position data extraction with better error handling
+        int subjectPosition = 0;
+        int totalStudentsInSubject = 0;
+
+        // Try to get position data with multiple fallbacks
+        if (data['Subject_Position'] != null) {
+          subjectPosition = (data['Subject_Position'] as num?)?.toInt() ?? 0;
+        }
+
+        if (data['Total_Students_Subject'] != null) {
+          totalStudentsInSubject = (data['Total_Students_Subject'] as num?)?.toInt() ?? 0;
+        }
+
+        // If position data is missing, try alternative field names
+        if (subjectPosition == 0 && data['position'] != null) {
+          subjectPosition = (data['position'] as num?)?.toInt() ?? 0;
+        }
+
+        if (totalStudentsInSubject == 0 && data['totalStudents'] != null) {
+          totalStudentsInSubject = (data['totalStudents'] as num?)?.toInt() ?? 0;
+        }
+
+        String gradeLetter = Seniors_Grade(score);
+
+        print("Subject: ${data['Subject_Name']}, Position: $subjectPosition, Total: $totalStudentsInSubject");
+
         subjectList.add({
           'subject': data['Subject_Name'] ?? doc.id,
           'score': score,
+          'position': subjectPosition,
+          'totalStudents': totalStudentsInSubject,
+          'gradeLetter': gradeLetter,
         });
       }
 
@@ -253,6 +351,9 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           totalMarks = data;
           studentTotalMarks = (data['Student_Total_Marks'] as num?)?.toInt() ?? 0;
           teacherTotalMarks = (data['Teacher_Total_Marks'] as num?)?.toInt() ?? (subjects.length * 100);
+          studentPosition = (data['Student_Class_Position'] as num?)?.toInt() ?? 0;
+          totalStudents = (data['Total_Class_Students_Number'] as num?)?.toInt() ?? 0;
+          averageGradeLetter = data['Average_Grade_Letter']?.toString() ?? '';
         });
       }
     } catch (e) {
@@ -267,28 +368,16 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           .collection('Schools/$school/Classes/$studentClass/Student_Details')
           .get();
 
-      setState(() {
-        totalStudents = studentsSnapshot.docs.length;
-      });
-
       Map<String, List<int>> marksPerSubject = {};
-      Map<String, Map<String, int>> scoresPerStudentPerSubject = {};
-      Map<String, int> totalMarksPerStudent = {};
+      Map<String, List<Map<String, dynamic>>> subjectStudentData = {};
 
+      // Collect all students' marks for each subject
       for (var studentDoc in studentsSnapshot.docs) {
         final studentName = studentDoc.id;
 
-        final totalMarksDoc = await _firestore.doc('Schools/$school/Classes/$studentClass/Student_Details/$studentName/TOTAL_MARKS/Marks').get();
-        int totalMarkValue = 0;
-        if (totalMarksDoc.exists) {
-          final data = totalMarksDoc.data();
-          if (data != null && data['Student_Total_Marks'] != null) {
-            totalMarkValue = (data['Student_Total_Marks'] as num).round();
-          }
-        }
-        totalMarksPerStudent[studentName] = totalMarkValue;
-
-        final subjectsSnapshot = await _firestore.collection('Schools/$school/Classes/$studentClass/Student_Details/$studentName/Student_Subjects').get();
+        final subjectsSnapshot = await _firestore
+            .collection('Schools/$school/Classes/$studentClass/Student_Details/$studentName/Student_Subjects')
+            .get();
 
         for (var subjectDoc in subjectsSnapshot.docs) {
           final data = subjectDoc.data();
@@ -298,85 +387,73 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
           if (!marksPerSubject.containsKey(subjectName)) {
             marksPerSubject[subjectName] = [];
+            subjectStudentData[subjectName] = [];
           }
-          marksPerSubject[subjectName]!.add(grade);
 
-          if (!scoresPerStudentPerSubject.containsKey(subjectName)) {
-            scoresPerStudentPerSubject[subjectName] = {};
-          }
-          scoresPerStudentPerSubject[subjectName]![studentName] = grade;
+          marksPerSubject[subjectName]!.add(grade);
+          subjectStudentData[subjectName]!.add({
+            'studentName': studentName,
+            'grade': grade,
+          });
         }
       }
 
+      // Calculate positions and update Firestore
+      for (String subjectName in subjectStudentData.keys) {
+        var studentList = subjectStudentData[subjectName]!;
+
+        // Sort by grade in descending order
+        studentList.sort((a, b) => b['grade'].compareTo(a['grade']));
+
+        // Calculate positions (handle ties)
+        Map<String, int> positions = {};
+        int currentPosition = 1;
+
+        for (int i = 0; i < studentList.length; i++) {
+          String currentStudentName = studentList[i]['studentName'];
+          int currentGrade = studentList[i]['grade'];
+
+          if (i > 0 && studentList[i-1]['grade'] != currentGrade) {
+            currentPosition = i + 1;
+          }
+
+          positions[currentStudentName] = currentPosition;
+
+          // Update the position in Firestore for each student
+          try {
+            await _firestore
+                .doc('Schools/$school/Classes/$studentClass/Student_Details/$currentStudentName/Student_Subjects/$subjectName')
+                .update({
+              'Subject_Position': currentPosition,
+              'Total_Students_Subject': studentList.length,
+              'lastUpdated': FieldValue.serverTimestamp(),
+            });
+          } catch (e) {
+            print("Error updating position for $currentStudentName in $subjectName: $e");
+          }
+        }
+      }
+
+      // Calculate averages and update subject stats
       Map<String, int> averages = {};
+      Map<String, int> totalStudentsPerSubjectMap = {};
+
       marksPerSubject.forEach((subject, scores) {
         int total = scores.fold(0, (prev, el) => prev + el);
         int avg = scores.isNotEmpty ? (total / scores.length).round() : 0;
         averages[subject] = avg;
+        totalStudentsPerSubjectMap[subject] = scores.length;
       });
-
-      Map<String, int> positions = {};
-      Map<String, int> totalsPerSubject = {};
-
-      scoresPerStudentPerSubject.forEach((subject, studentScores) {
-        totalsPerSubject[subject] = studentScores.length;
-
-        List<MapEntry<String, int>> sortedScores = studentScores.entries.toList();
-        sortedScores.sort((a, b) => b.value.compareTo(a.value));
-
-        int position = 1;
-        int lastScore = -1;
-
-        for (int i = 0; i < sortedScores.length; i++) {
-          final studentEntry = sortedScores[i];
-          final score = studentEntry.value;
-
-          if (i > 0 && score == lastScore) {
-            // Same position for same score
-          } else {
-            position = i + 1;
-          }
-
-          lastScore = score;
-
-          if (studentEntry.key == studentFullName) {
-            positions[subject] = position;
-            break; // This break is inside a loop, so it's valid
-          }
-        }
-      });
-
-      List<MapEntry<String, int>> sortedTotalMarks = totalMarksPerStudent.entries.toList();
-      sortedTotalMarks.sort((a, b) => b.value.compareTo(a.value));
-
-      int position = 1;
-      int lastTotalMark = -1;
-      int studentPos = 0;
-
-      for (int i = 0; i < sortedTotalMarks.length; i++) {
-        final totalMarkEntry = sortedTotalMarks[i];
-        final totalMark = totalMarkEntry.value;
-
-        if (i > 0 && totalMark == lastTotalMark) {
-          // Same position for same total marks
-        } else {
-          position = i + 1;
-        }
-
-        lastTotalMark = totalMark;
-
-        if (totalMarkEntry.key == studentFullName) {
-          studentPos = position;
-          break; // This break is inside a loop, so it's valid
-        }
-      }
 
       setState(() {
         subjectStats = averages.map((key, value) => MapEntry(key, {'average': value}));
-        subjectPositions = positions;
-        totalStudentsPerSubject = totalsPerSubject;
-        studentPosition = studentPos;
+        totalStudentsPerSubject = totalStudentsPerSubjectMap;
       });
+
+      // Refresh student subjects data to get updated positions
+      final String basePath = 'Schools/$school/Classes/$studentClass/Student_Details/$studentFullName';
+      await fetchStudentSubjects(basePath);
+
     } catch (e) {
       print("Error calculating stats & position: $e");
     }
@@ -422,71 +499,40 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (errorMessage != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage!)));
-        setState(() => errorMessage = null);
-      });
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Progress Report'),
-        actions: [
-          IconButton(icon: Icon(Icons.print), onPressed: _printDocument),
-        ],
-      ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-        onRefresh: _fetchStudentData,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(8),
-          child: Column(
-            children: [
-              _buildSchoolHeader(),
-              _buildStudentInfo(),
-              _buildReportTable(),
-              _buildAggregateSection(),
-              _buildGradingKey(),
-              _buildRemarksSection(),
-              _buildFooter(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildSchoolHeader() {
     return Column(
       children: [
         Text(
-          schoolName ?? 'LIKUNI GIRLS\' SECONDARY SCHOOL',
+          schoolName ?? 'UNKNOWN SECONDARY SCHOOL',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
         Text(
-          schoolAddress ?? 'P.O. BOX 43, LIKUNI.',
+          schoolAddress ?? 'N/A',
           style: TextStyle(fontSize: 14),
           textAlign: TextAlign.center,
         ),
         Text(
-          'Tel: ${schoolPhone ?? '(+265) 0 997 974 545 or (+265) 0 888 084 670'}',
+          'Tel: ${schoolPhone ?? 'N/A'}',
           style: TextStyle(fontSize: 14),
           textAlign: TextAlign.center,
         ),
         Text(
-          'Email: ${schoolEmail ?? 'info.likunigirls196@gmail.com/likunigirls196@gmail.com'}',
+          'Email: ${schoolEmail ?? 'N/A'}',
           style: TextStyle(fontSize: 14),
+          textAlign: TextAlign.center,
+        ),
+        SizedBox(height: 10),
+        // Added PROGRESS REPORT text
+        Text(
+          'PROGRESS REPORT',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
         SizedBox(height: 16),
         Text(
-          '${DateFormat('yyyy').format(DateTime.now())}/${DateFormat('yy').format(DateTime.now().add(Duration(days: 365)))} '
-              '${widget.studentClass} END OF TERM ONE STUDENT\'S PROGRESS REPORT',
+          '${getAcademicYear()} '
+              '${widget.studentClass} END OF TERM ${getCurrentTerm()} STUDENT\'S PROGRESS REPORT',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
@@ -538,13 +584,15 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           ...subjects.map((subj) {
             final subjectName = subj['subject'] ?? 'Unknown';
             final score = subj['score'] as int? ?? 0;
-            final grade = Seniors_Grade(score);
+            final grade = subj['gradeLetter']?.toString().isNotEmpty == true
+                ? subj['gradeLetter']
+                : Seniors_Grade(score);
             final remark = getRemark(grade);
             final points = getPoints(grade);
             final subjectStat = subjectStats[subjectName];
             final avg = subjectStat != null ? subjectStat['average'] as int : 0;
-            final subjectPosition = subjectPositions[subjectName] ?? 0;
-            final totalStudentsForSubject = totalStudentsPerSubject[subjectName] ?? 0;
+            final subjectPosition = subj['position'] as int? ?? 0;
+            final totalStudentsForSubject = subj['totalStudents'] as int? ?? 0;
 
             return TableRow(
               children: [
@@ -552,12 +600,13 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                 _tableCell(score.toString()),
                 _tableCell(points),
                 _tableCell(avg.toString()),
-                _tableCell(subjectPosition.toString()),
-                _tableCell(totalStudentsForSubject.toString()),
+                _tableCell(subjectPosition > 0 ? subjectPosition.toString() : '-'),
+                _tableCell(totalStudentsForSubject > 0 ? totalStudentsForSubject.toString() : '-'),
                 _tableCell(remark),
               ],
             );
           }).toList(),
+
         ],
       ),
     );
@@ -572,6 +621,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
           fontSize: isHeader ? 14 : 12,
         ),
+        textAlign: TextAlign.center,
       ),
     );
   }
@@ -597,7 +647,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('END RESULT: MSCE'),
-              Text('TOTAL MARKS: $studentTotalMarks/$teacherTotalMarks'),
+
             ],
           ),
           SizedBox(height: 16),
@@ -613,7 +663,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'MSCE GRADING KEY FOR ${schoolName?.toUpperCase() ?? 'UNKOWN SECONDARY SCHOOL'}',
+            'MSCE GRADING KEY',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8),
@@ -634,7 +684,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
               TableRow(
                 decoration: BoxDecoration(color: Colors.grey[300]),
                 children: [
-                  _tableCell('Mark Range per 100', isHeader: true),
+                  _tableCell('Mark Range', isHeader: true),
                   _tableCell('100-90', isHeader: true),
                   _tableCell('89-80', isHeader: true),
                   _tableCell('79-75', isHeader: true),
@@ -643,7 +693,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                   _tableCell('64-60', isHeader: true),
                   _tableCell('59-55', isHeader: true),
                   _tableCell('54-50', isHeader: true),
-                  _tableCell('0-49',  isHeader: true),
+                  _tableCell('0-49', isHeader: true),
                 ],
               ),
               TableRow(
@@ -688,10 +738,10 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Form Teachers\' Remarks: ${formTeacherRemarks ?? 'She is disciplined and mature, encourage her to continue portraying good behaviour'}',
+          Text('Form Teachers\' Remarks: ${formTeacherRemarks ?? 'N/A'}',
               style: TextStyle(fontStyle: FontStyle.italic)),
           SizedBox(height: 8),
-          Text('Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'Continue working hard and encourage her to maintain scoring above pass mark in all the subjects'}',
+          Text('Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
               style: TextStyle(fontStyle: FontStyle.italic)),
           SizedBox(height: 16),
         ],
@@ -706,9 +756,9 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Fees for next term', style: TextStyle(fontWeight: FontWeight.bold)),
-          Text('School account: ${schoolAccount ?? 'Centenary Bank of Malawi, Old Town Branch, Current Account, Likuni Girls Secondary School, Ace. No. 9043689270025'}'),
+          Text('School account: ${schoolAccount ?? 'N/A'}'),
           SizedBox(height: 8),
-          Text('Next term begins on ${nextTermDate ?? 'Monday, 06th January, 2025'}',
+          Text('Next term begins on ${nextTermDate ?? 'N/A'}',
               style: TextStyle(fontWeight: FontWeight.bold)),
           SizedBox(height: 16),
         ],
@@ -717,177 +767,66 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   }
 
   Future<void> _printDocument() async {
-    final doc = pw.Document();
-
-    doc.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // School Header
-              pw.Center(
-                child: pw.Column(
-                  children: [
-                    pw.Text(
-                      schoolName ?? 'UNKWON SECONDARY SCHOOL',
-                      style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-                    ),
-                    pw.Text(
-                      schoolAddress ?? 'P.O. BOX 47, LILONGWE',
-                      style: pw.TextStyle(fontSize: 14),
-                    ),
-                    pw.Text(
-                      'Tel: ${schoolPhone ?? '(+265) # ### ### ### or (+265) # ### ### ###'}',
-                      style: pw.TextStyle(fontSize: 14),
-                    ),
-                    pw.Text(
-                      'Email: ${schoolEmail ?? 'secondaryschool@gmail.com'}',
-                      style: pw.TextStyle(fontSize: 14),
-                    ),
-                    pw.SizedBox(height: 16),
-                    pw.Text(
-                      '${DateFormat('yyyy').format(DateTime.now())}/${DateFormat('yy').format(DateTime.now().add(Duration(days: 365)))} '
-                          '${widget.studentClass} END OF TERM ONE STUDENT\'S PROGRESS REPORT',
-                      style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // Student Info
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text('NAME OF STUDENT: ${widget.studentFullName}'),
-                  pw.Text('CLASS: ${widget.studentClass}'),
-                ],
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // Report Table
-              pw.Table.fromTextArray(
-                border: pw.TableBorder.all(),
-                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
-                headers: ['SUBJECT', 'MARKS %', 'POINTS', 'CLASS AVERAGE', 'POSITION', 'OUT OF', 'TEACHERS\' COMMENTS'],
-                data: subjects.map((subj) {
-                  final subjectName = subj['subject'] ?? 'Unknown';
-                  final score = subj['score'] as int? ?? 0;
-                  final grade = Seniors_Grade(score);
-                  final remark = getRemark(grade);
-                  final points = getPoints(grade);
-                  final subjectStat = subjectStats[subjectName];
-                  final avg = subjectStat != null ? subjectStat['average'] as int : 0;
-                  final subjectPosition = subjectPositions[subjectName] ?? 0;
-                  final totalStudentsForSubject = totalStudentsPerSubject[subjectName] ?? 0;
-
-                  return [
-                    subjectName,
-                    score.toString(),
-                    points,
-                    avg.toString(),
-                    subjectPosition.toString(),
-                    totalStudentsForSubject.toString(),
-                    remark,
-                  ];
-                }).toList(),
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // Aggregate Section
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text('(Best 6 subjects)', style: pw.TextStyle(fontStyle: pw.FontStyle.italic)),
-                  pw.SizedBox(height: 8),
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text('AGGREGATE POINTS: $aggregatePoints'),
-                      pw.Text('POSITION: $aggregatePosition'),
-                      pw.Text('OUT OF: $totalStudents'),
-                    ],
-                  ),
-                  pw.SizedBox(height: 8),
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text('END RESULT: MSCE'),
-
-                    ],
-                  ),
-                ],
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // Grading Key
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    'MSCE GRADING KEY FOR ${schoolName?.toUpperCase() ?? 'UNKNOWN SECONDARY SCHOOL'}',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                  ),
-                  pw.SizedBox(height: 8),
-                  pw.Table.fromTextArray(
-                    border: pw.TableBorder.all(),
-                    headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
-                    headers: ['Mark Range per 100', '100-90', '89-80', '79-75', '74-70', '69-65', '64-60', '59-55', '54-50', '0-49'],
-                    data: [
-                      ['Points', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
-                      ['Interpretation', 'Distinction', 'Distinction', 'Strong Credit', 'Strong Credit', 'Credit', 'Weak Credit', 'Pass', 'Weak Pass', 'Fail'],
-                    ],
-                  ),
-                ],
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // Remarks Section
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    'Form Teachers\' Remarks: ${formTeacherRemarks ?? 'She is disciplined and mature, encourage her to continue portraying good behaviour'}',
-                    style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
-                  ),
-                  pw.SizedBox(height: 8),
-                  pw.Text(
-                    'Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'Continue working hard and encourage her to maintain scoring above pass mark in all the subjects'}',
-                    style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
-                  ),
-                ],
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // Footer
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text('Fees for next term', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Text('School account: ${schoolAccount ?? 'National Bank of Malawi, Old Town Branch, Current Account, Unknwon Secondary School, ############'}'),
-                  pw.SizedBox(height: 8),
-                  pw.Text(
-                    'Next term begins on ${nextTermDate ?? 'Monday, 06th January, 2025'}',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                  ),
-                ],
-              ),
-            ],
-          );
-        },
-      ),
+    final pdfGenerator = Seniors_School_Report_PDF(
+      schoolName: schoolName,
+      schoolAddress: schoolAddress,
+      schoolPhone: schoolPhone,
+      schoolEmail: schoolEmail,
+      schoolAccount: schoolAccount,
+      nextTermDate: nextTermDate,
+      formTeacherRemarks: formTeacherRemarks,
+      headTeacherRemarks: headTeacherRemarks,
+      studentFullName: widget.studentFullName,
+      studentClass: widget.studentClass,
+      subjects: subjects,
+      subjectStats: subjectStats,
+      subjectPositions: subjectPositions,
+      totalStudentsPerSubject: totalStudentsPerSubject,
+      aggregatePoints: aggregatePoints,
+      aggregatePosition: aggregatePosition,
+      totalStudents: totalStudents,
+      studentTotalMarks: studentTotalMarks,
+      teacherTotalMarks: teacherTotalMarks,
     );
 
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => doc.save());
+    await pdfGenerator.generateAndPrint();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (errorMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage!)));
+        setState(() => errorMessage = null);
+      });
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Progress Report'),
+        actions: [
+          IconButton(icon: Icon(Icons.print), onPressed: _printDocument),
+        ],
+      ),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+        onRefresh: _fetchStudentData,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(8),
+          child: Column(
+            children: [
+              _buildSchoolHeader(),
+              _buildStudentInfo(),
+              _buildReportTable(),
+              _buildAggregateSection(),
+              _buildGradingKey(),
+              _buildRemarksSection(),
+              _buildFooter(),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
