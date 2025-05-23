@@ -1,12 +1,11 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../School_Report/Juniors_Class_Performance.dart';
+import '../School_Report/Seniors_Class_Performance.dart';
 
 class Performance_Statistics extends StatefulWidget {
-
   const Performance_Statistics({Key? key}) : super(key: key);
 
   @override
@@ -17,317 +16,77 @@ class _Performance_StatisticsState extends State<Performance_Statistics> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  String schoolName = '';
-  String className = '';
-  Map<String, Map<String, dynamic>> subjectStats = {};
-  bool isLoading = true;
-  String errorMessage = '';
-
   @override
   void initState() {
     super.initState();
-    loadStatistics();
+    checkAndNavigate();
   }
 
-  Future<void> loadStatistics() async {
+  Future<void> checkAndNavigate() async {
     try {
       final currentUser = _auth.currentUser;
-      if (currentUser == null) {
-        throw Exception("User is not logged in.");
-      }
+      if (currentUser == null) throw Exception("User not logged in.");
 
-      final teacherDoc = await _firestore.collection('Teachers_Details').doc(
-          currentUser.email).get();
+      final teacherDoc = await _firestore.collection('Teachers_Details').doc(currentUser.email).get();
+      if (!teacherDoc.exists) throw Exception("Teacher record not found.");
 
-      if (!teacherDoc.exists) {
-        throw Exception("Teacher details not found.");
-      }
-
-      schoolName = (teacherDoc['school'] ?? '').toString().trim();
-      className = (teacherDoc['classes'] ?? '').toString().trim();
+      final schoolName = (teacherDoc['school'] ?? '').toString().trim();
+      final classes = teacherDoc['classes'] as List?;
+      final className = (classes != null && classes.isNotEmpty) ? classes[0].toString().trim() : '';
 
       if (schoolName.isEmpty || className.isEmpty) {
-        throw Exception("School or class is missing in your profile.");
+        throw Exception("Missing school or class info.");
       }
 
-      // Get all students in the class
-      final studentsSnapshot = await _firestore
-          .collection('Schools')
-          .doc(schoolName)
-          .collection('Classes')
-          .doc(className)
-          .collection('Student_Details')
-          .get();
+      final formLevel = extractFormLevel(className);
 
-      // Initialize subject statistics map
-      subjectStats.clear();
-
-      // Loop through each student
-      for (var studentDoc in studentsSnapshot.docs) {
-        String studentFullName = studentDoc.id;
-
-        // Get all subjects for this student
-        final subjectSnapshot = await studentDoc.reference.collection(
-            'Student_Subjects').get();
-
-        // Process each subject for this student
-        for (var subjectDoc in subjectSnapshot.docs) {
-          String subject = subjectDoc.id;
-          String? gradeStr = subjectDoc.data()['Subject_Grade'] as String?;
-
-          // Initialize subject entry if it doesn't exist
-          if (!subjectStats.containsKey(subject)) {
-            subjectStats[subject] = {
-              'PASS': 0,
-              'FAIL': 0,
-              'total': 0,
-              'students': {
-                'PASS': [],
-                'FAIL': []
-              }
-            };
-          }
-
-          // Increment total students for this subject
-          subjectStats[subject]!['total'] = subjectStats[subject]!['total'] + 1;
-
-          // Process grade if available
-          if (gradeStr != null && gradeStr.isNotEmpty) {
-            int? grade = int.tryParse(gradeStr.trim());
-            if (grade != null) {
-              if (grade >= 50) {
-                // Pass
-                subjectStats[subject]!['PASS'] =
-                    subjectStats[subject]!['PASS'] + 1;
-                (subjectStats[subject]!['students']['PASS'] as List).add(
-                    studentFullName);
-              } else {
-                // Fail
-                subjectStats[subject]!['FAIL'] =
-                    subjectStats[subject]!['FAIL'] + 1;
-                (subjectStats[subject]!['students']['FAIL'] as List).add(
-                    studentFullName);
-              }
-            }
-          }
-        }
+      Widget destinationPage;
+      if (formLevel == 'FORM 1' || formLevel == 'FORM 2') {
+        destinationPage = Juniors_Class_Performance(schoolName: schoolName, className: className);
+      } else if (formLevel == 'FORM 3' || formLevel == 'FORM 4') {
+        destinationPage = Seniors_Class_Performance(schoolName: schoolName, className: className);
+      } else {
+        throw Exception("Unrecognized class level.");
       }
 
-      setState(() {
-        isLoading = false;
-        errorMessage = '';
+      // Navigate immediately
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => destinationPage),
+        );
       });
     } catch (e) {
-      setState(() {
-        errorMessage = 'Error loading statistics: $e';
-        isLoading = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
       });
     }
   }
 
-  Widget buildSubjectCard(String subject, Map<String, dynamic> stats) {
-    final int passCount = stats['PASS'] as int;
-    final int failCount = stats['FAIL'] as int;
-    final int totalCount = stats['total'] as int;
-
-    // Calculate percentages
-    final double passPercentage = totalCount > 0 ? (passCount / totalCount) *
-        100 : 0;
-    final double failPercentage = totalCount > 0 ? (failCount / totalCount) *
-        100 : 0;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(subject,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
-                      )),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    "Total: $totalCount",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade800,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text("PASS",
-                            style: TextStyle(
-                                color: Colors.green, fontWeight: FontWeight
-                                .bold)),
-                        Text("$passCount (${passPercentage.toStringAsFixed(
-                            1)}%)",
-                            style: const TextStyle(fontSize: 16)),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text("FAIL",
-                            style: TextStyle(
-                                color: Colors.red, fontWeight: FontWeight
-                                .bold)),
-                        Text("$failCount (${failPercentage.toStringAsFixed(
-                            1)}%)",
-                            style: const TextStyle(fontSize: 16)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ExpansionTile(
-              title: const Text("View Students",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-              children: [
-                if ((stats['students']['PASS'] as List).isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(left: 16, top: 8),
-                        child: Text("Passing Students:",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green
-                            )
-                        ),
-                      ),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: (stats['students']['PASS'] as List).length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 4),
-                            child: Text(
-                                (stats['students']['PASS'] as List)[index]),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-
-                if ((stats['students']['FAIL'] as List).isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(left: 16, top: 8),
-                        child: Text("Failing Students:",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red
-                            )
-                        ),
-                      ),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: (stats['students']['FAIL'] as List).length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 4),
-                            child: Text(
-                                (stats['students']['FAIL'] as List)[index]),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+  String extractFormLevel(String className) {
+    final upper = className.toUpperCase();
+    if (upper.contains('FORM 1') || upper.contains('FORM1') || upper.startsWith('1')) return 'FORM 1';
+    if (upper.contains('FORM 2') || upper.contains('FORM2') || upper.startsWith('2')) return 'FORM 2';
+    if (upper.contains('FORM 3') || upper.contains('FORM3') || upper.startsWith('3')) return 'FORM 3';
+    if (upper.contains('FORM 4') || upper.contains('FORM4') || upper.startsWith('4')) return 'FORM 4';
+    return 'UNKNOWN';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Class Performance'),
-        backgroundColor: Colors.blueAccent,
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : errorMessage.isNotEmpty
-          ? Center(child: Text(errorMessage))
-          : subjectStats.isEmpty
-          ? const Center(child: Text("No subject data available"))
-          : RefreshIndicator(
-        onRefresh: loadStatistics,
-        child: ListView(
-          padding: const EdgeInsets.only(top: 12, bottom: 24),
+    return const Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                "Class Statistics Overview",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade800,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            ...subjectStats.entries.map((entry) {
-              final subject = entry.key;
-              final stats = entry.value;
-              return buildSubjectCard(subject, stats);
-            }).toList(),
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Checking performance data...'),
           ],
         ),
       ),
     );
   }
-
 }

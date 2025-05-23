@@ -144,7 +144,7 @@ class Juniors_School_Report_PDF {
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
-        pw.Text('OVERALL POSITION: $studentPosition'),
+        pw.Text('POSITION: $studentPosition'),
         pw.Text('OUT OF: $totalStudents'),
       ],
     );
