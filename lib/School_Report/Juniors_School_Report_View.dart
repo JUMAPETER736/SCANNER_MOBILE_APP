@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:pdf/pdf.dart';
-import 'package:printing/printing.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
+import 'Juniors_School_Report_PDF.dart';
 
 class Juniors_School_Report_View extends StatefulWidget {
   final String studentClass;
@@ -45,11 +43,56 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   String? headTeacherRemarks;
   int studentTotalMarks = 0;
   int teacherTotalMarks = 0;
+  String averageGradeLetter = '';
 
   @override
   void initState() {
     super.initState();
     _fetchStudentData();
+  }
+
+  // Method to determine current term based on date
+  String getCurrentTerm() {
+    DateTime now = DateTime.now();
+    int currentMonth = now.month;
+    int currentDay = now.day;
+
+    // TERM ONE: 1 Sept - 31 Dec
+    if ((currentMonth == 9 && currentDay >= 1) ||
+        (currentMonth >= 10 && currentMonth <= 12)) {
+      return 'ONE';
+    }
+    // TERM TWO: 2 Jan - 20 April
+    else if ((currentMonth == 1 && currentDay >= 2) ||
+        (currentMonth >= 2 && currentMonth <= 3) ||
+        (currentMonth == 4 && currentDay <= 20)) {
+      return 'TWO';
+    }
+    // TERM THREE: 25 April - 30 July
+    else if ((currentMonth == 4 && currentDay >= 25) ||
+        (currentMonth >= 5 && currentMonth <= 7)) {
+      return 'THREE';
+    }
+    // Default to ONE if date falls outside defined terms
+    else {
+      return 'ONE';
+    }
+  }
+
+  // Method to get academic year
+  String getAcademicYear() {
+    DateTime now = DateTime.now();
+    int currentYear = now.year;
+    int currentMonth = now.month;
+
+    // Academic year starts in September
+    if (currentMonth >= 9) {
+      // If current month is Sept-Dec, academic year is current year to next year
+      return '$currentYear/${currentYear + 1}';
+    } else {
+      // If current month is Jan-Aug, academic year is previous year to current year
+      return '${currentYear - 1}/$currentYear';
+    }
   }
 
   Future<void> _fetchStudentData() async {
@@ -108,6 +151,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       await fetchStudentSubjects(basePath);
       await fetchTotalMarks(basePath);
       await calculate_Subject_Stats_And_Position(teacherSchool, studentClass, studentFullName);
+      await _calculateAndUpdateAverageGradeLetter(basePath);
 
       setState(() {
         isLoading = false;
@@ -120,6 +164,45 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         errorMessage = 'An error occurred while fetching data.';
       });
     }
+  }
+
+  Future<void> _calculateAndUpdateAverageGradeLetter(String basePath) async {
+    try {
+      if (teacherTotalMarks > 0) {
+        // Calculate percentage
+        double percentage = (studentTotalMarks / teacherTotalMarks) * 100;
+
+        // Determine grade letter based on percentage
+        String gradeLetter = _getGradeFromPercentage(percentage);
+
+        // Update Firestore with the calculated average grade letter
+        await _firestore.doc('$basePath/TOTAL_MARKS/Marks').update({
+          'Average_Grade_Letter': gradeLetter,
+          'Average_Percentage': percentage,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+
+        setState(() {
+          averageGradeLetter = gradeLetter;
+        });
+
+        print("Average Grade Letter calculated: $gradeLetter (${percentage.toStringAsFixed(1)}%)");
+      }
+    } catch (e) {
+      print("Error calculating average grade letter: $e");
+      // Set default if calculation fails
+      setState(() {
+        averageGradeLetter = 'F';
+      });
+    }
+  }
+
+  String _getGradeFromPercentage(double percentage) {
+    if (percentage >= 85) return 'A';
+    if (percentage >= 75) return 'B';
+    if (percentage >= 65) return 'C';
+    if (percentage >= 50) return 'D';
+    return 'F';
   }
 
   Future<void> _fetchSchoolInfo(String school) async {
@@ -200,9 +283,31 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           score = double.tryParse(data['Subject_Grade'].toString())?.round() ?? 0;
         }
 
-        int subjectPosition = (data['Subject_Position'] as num?)?.toInt() ?? 0;
-        int totalStudentsInSubject = (data['Total_Students_Subject'] as num?)?.toInt() ?? 0;
+        // Enhanced position data extraction with better error handling
+        int subjectPosition = 0;
+        int totalStudentsInSubject = 0;
+
+        // Try to get position data with multiple fallbacks
+        if (data['Subject_Position'] != null) {
+          subjectPosition = (data['Subject_Position'] as num?)?.toInt() ?? 0;
+        }
+
+        if (data['Total_Students_Subject'] != null) {
+          totalStudentsInSubject = (data['Total_Students_Subject'] as num?)?.toInt() ?? 0;
+        }
+
+        // If position data is missing, try alternative field names
+        if (subjectPosition == 0 && data['position'] != null) {
+          subjectPosition = (data['position'] as num?)?.toInt() ?? 0;
+        }
+
+        if (totalStudentsInSubject == 0 && data['totalStudents'] != null) {
+          totalStudentsInSubject = (data['totalStudents'] as num?)?.toInt() ?? 0;
+        }
+
         String gradeLetter = data['Grade_Letter']?.toString() ?? '';
+
+        print("Subject: ${data['Subject_Name']}, Position: $subjectPosition, Total: $totalStudentsInSubject");
 
         subjectList.add({
           'subject': data['Subject_Name'] ?? doc.id,
@@ -232,6 +337,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           teacherTotalMarks = (data['Teacher_Total_Marks'] as num?)?.toInt() ?? 0;
           studentPosition = (data['Student_Class_Position'] as num?)?.toInt() ?? 0;
           totalStudents = (data['Total_Class_Students_Number'] as num?)?.toInt() ?? 0;
+          averageGradeLetter = data['Average_Grade_Letter']?.toString() ?? '';
         });
       }
     } catch (e) {
@@ -247,9 +353,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           .get();
 
       Map<String, List<int>> marksPerSubject = {};
-      Map<String, int> totalStudentsPerSubjectMap = {};
+      Map<String, List<Map<String, dynamic>>> subjectStudentData = {};
 
-      // Calculate class averages for each subject
+      // Collect all students' marks for each subject
       for (var studentDoc in studentsSnapshot.docs) {
         final studentName = studentDoc.id;
 
@@ -265,13 +371,57 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
           if (!marksPerSubject.containsKey(subjectName)) {
             marksPerSubject[subjectName] = [];
+            subjectStudentData[subjectName] = [];
           }
+
           marksPerSubject[subjectName]!.add(grade);
+          subjectStudentData[subjectName]!.add({
+            'studentName': studentName,
+            'grade': grade,
+          });
+        }
+      }
+
+      // Calculate positions and update Firestore
+      for (String subjectName in subjectStudentData.keys) {
+        var studentList = subjectStudentData[subjectName]!;
+
+        // Sort by grade in descending order
+        studentList.sort((a, b) => b['grade'].compareTo(a['grade']));
+
+        // Calculate positions (handle ties)
+        Map<String, int> positions = {};
+        int currentPosition = 1;
+
+        for (int i = 0; i < studentList.length; i++) {
+          String currentStudentName = studentList[i]['studentName'];
+          int currentGrade = studentList[i]['grade'];
+
+          if (i > 0 && studentList[i-1]['grade'] != currentGrade) {
+            currentPosition = i + 1;
+          }
+
+          positions[currentStudentName] = currentPosition;
+
+          // Update the position in Firestore for each student
+          try {
+            await _firestore
+                .doc('Schools/$school/Classes/$studentClass/Student_Details/$currentStudentName/Student_Subjects/$subjectName')
+                .update({
+              'Subject_Position': currentPosition,
+              'Total_Students_Subject': studentList.length,
+              'lastUpdated': FieldValue.serverTimestamp(),
+            });
+          } catch (e) {
+            print("Error updating position for $currentStudentName in $subjectName: $e");
+          }
         }
       }
 
       // Calculate averages and update subject stats
       Map<String, int> averages = {};
+      Map<String, int> totalStudentsPerSubjectMap = {};
+
       marksPerSubject.forEach((subject, scores) {
         int total = scores.fold(0, (prev, el) => prev + el);
         int avg = scores.isNotEmpty ? (total / scores.length).round() : 0;
@@ -283,6 +433,11 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         subjectStats = averages.map((key, value) => MapEntry(key, {'average': value}));
         totalStudentsPerSubject = totalStudentsPerSubjectMap;
       });
+
+      // Refresh student subjects data to get updated positions
+      final String basePath = 'Schools/$school/Classes/$studentClass/Student_Details/$studentFullName';
+      await fetchStudentSubjects(basePath);
+
     } catch (e) {
       print("Error calculating stats & position: $e");
     }
@@ -329,10 +484,17 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           style: TextStyle(fontSize: 14),
           textAlign: TextAlign.center,
         ),
+        SizedBox(height: 10),
+        // Added PROGRESS REPORT text
+        Text(
+          'PROGRESS REPORT',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
         SizedBox(height: 16),
         Text(
-          '${DateFormat('yyyy').format(DateTime.now())}/${DateFormat('yy').format(DateTime.now().add(Duration(days: 365)))} '
-              '${widget.studentClass} END OF TERM ONE STUDENT\'S PROGRESS REPORT',
+          '${getAcademicYear()} '
+              '${widget.studentClass} END OF TERM ${getCurrentTerm()} STUDENT\'S PROGRESS REPORT',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
@@ -399,8 +561,8 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 _tableCell(score.toString()),
                 _tableCell(grade),
                 _tableCell(avg.toString()),
-                _tableCell(subjectPosition.toString()),
-                _tableCell(totalStudentsForSubject.toString()),
+                _tableCell(subjectPosition > 0 ? subjectPosition.toString() : '-'),
+                _tableCell(totalStudentsForSubject > 0 ? totalStudentsForSubject.toString() : '-'),
                 _tableCell(remark),
               ],
             );
@@ -411,7 +573,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
             children: [
               _tableCell('TOTAL MARKS', isHeader: true),
               _tableCell(studentTotalMarks.toString(), isHeader: true),
-              _tableCell('', isHeader: true),
+              _tableCell(averageGradeLetter.isNotEmpty ? averageGradeLetter : 'F', isHeader: true),
               _tableCell('', isHeader: true),
               _tableCell('', isHeader: true),
               _tableCell('', isHeader: true),
@@ -432,6 +594,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
           fontSize: isHeader ? 14 : 12,
         ),
+        textAlign: TextAlign.center,
       ),
     );
   }
@@ -442,8 +605,8 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('OVERALL POSITION: $studentPosition'),
-          Text('OUT OF: $totalStudents'),
+          Text('OVERALL POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}'),
+          Text('OUT OF: ${totalStudents > 0 ? totalStudents : 'N/A'}'),
         ],
       ),
     );
@@ -544,6 +707,28 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     );
   }
 
+  Future<void> _printDocument() async {
+    final pdfGenerator = Juniors_School_Report_PDF(
+      studentClass: widget.studentClass,
+      studentFullName: widget.studentFullName,
+      subjects: subjects,
+      subjectStats: subjectStats,
+      studentTotalMarks: studentTotalMarks,
+      studentPosition: studentPosition,
+      totalStudents: totalStudents,
+      schoolName: schoolName,
+      schoolAddress: schoolAddress,
+      schoolPhone: schoolPhone,
+      schoolEmail: schoolEmail,
+      schoolAccount: schoolAccount,
+      nextTermDate: nextTermDate,
+      formTeacherRemarks: formTeacherRemarks,
+      headTeacherRemarks: headTeacherRemarks,
+    );
+
+    await pdfGenerator.generateAndPrintPDF();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (errorMessage != null) {
@@ -558,6 +743,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         title: Text('Progress Report'),
         actions: [
           IconButton(icon: Icon(Icons.print), onPressed: _printDocument),
+
         ],
       ),
       body: isLoading
@@ -580,175 +766,5 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         ),
       ),
     );
-  }
-
-
-  Future<void> _printDocument() async {
-    final doc = pw.Document();
-
-    doc.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // School Header
-              pw.Center(
-                child: pw.Column(
-                  children: [
-                    pw.Text(
-                      schoolName ?? 'UNKNOWN SECONDARY SCHOOL',
-                      style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-                    ),
-                    pw.Text(
-                      schoolAddress ?? 'N/A',
-                      style: pw.TextStyle(fontSize: 14),
-                    ),
-                    pw.Text(
-                      'Tel: ${schoolPhone ?? 'N/A'}',
-                      style: pw.TextStyle(fontSize: 14),
-                    ),
-                    pw.Text(
-                      'Email: ${schoolEmail ?? 'N/A'}',
-                      style: pw.TextStyle(fontSize: 14),
-                    ),
-                    pw.SizedBox(height: 16),
-                    pw.Text(
-                      '${DateFormat('yyyy').format(DateTime.now())}/${DateFormat('yy').format(DateTime.now().add(Duration(days: 365)))} '
-                          '${widget.studentClass} END OF TERM ONE STUDENT\'S PROGRESS REPORT',
-                      style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // Student Info
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text('NAME OF STUDENT: ${widget.studentFullName}'),
-                  pw.Text('CLASS: ${widget.studentClass}'),
-                ],
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // Report Table
-              pw.Table.fromTextArray(
-                border: pw.TableBorder.all(),
-                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
-                headers: ['SUBJECT', 'MARKS %', 'GRADE', 'CLASS AVERAGE', 'POSITION', 'OUT OF', 'TEACHERS\' COMMENTS'],
-                data: subjects.map((subj) {
-                  final subjectName = subj['subject'] ?? 'Unknown';
-                  final score = subj['score'] as int? ?? 0;
-                  final grade = subj['gradeLetter']?.toString().isNotEmpty == true
-                      ? subj['gradeLetter']
-                      : Juniors_Grade(score);
-                  final remark = getRemark(grade);
-                  final subjectStat = subjectStats[subjectName];
-                  final avg = subjectStat != null ? subjectStat['average'] as int : 0;
-                  final subjectPosition = subj['position'] as int? ?? 0;
-                  final totalStudentsForSubject = subj['totalStudents'] as int? ?? 0;
-
-                  return [
-                    subjectName,
-                    score.toString(),
-                    grade,
-                    avg.toString(),
-                    subjectPosition.toString(),
-                    totalStudentsForSubject.toString(),
-                    remark,
-                  ];
-                }).toList(),
-              ),
-
-              // TOTAL MARKS row
-              pw.Table.fromTextArray(
-                border: pw.TableBorder.all(),
-                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
-                headers: ['TOTAL MARKS', '', '', '', '', '', ''],
-                data: [
-                  [studentTotalMarks.toString(), '', '', '', '', '', '']
-                ],
-              ),
-
-              // Position Section in PDF
-              pw.SizedBox(height: 10),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text('OVERALL POSITION: $studentPosition'),
-                  pw.Text('OUT OF: $totalStudents'),
-                ],
-              ),
-              pw.SizedBox(height: 10),
-
-              // Grading Key
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    'JCE GRADING KEY',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                  ),
-                  pw.SizedBox(height: 8),
-                  pw.Table.fromTextArray(
-                    border: pw.TableBorder.all(),
-                    headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
-                    headers: ['Mark Range', '85-100', '75-84', '65-74', '50-64', '0-49'],
-                    data: [
-                      ['Grade', 'A', 'B', 'C', 'D', 'F'],
-                      ['Interpretation', 'EXCELLENT', 'VERY GOOD', 'GOOD', 'PASS', 'FAIL'],
-                    ],
-                  ),
-                ],
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // Remarks Section
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    'Form Teachers\' Remarks: ${formTeacherRemarks ?? 'N/A'}',
-                    style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
-                  ),
-                  pw.SizedBox(height: 8),
-                  pw.Text(
-                    'Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
-                    style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
-                  ),
-                ],
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // Footer
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text('Fees for next term', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Text('School account: ${schoolAccount ?? 'N/A'}'),
-                  pw.SizedBox(height: 8),
-                  pw.Text(
-                    'Next term begins on ${nextTermDate ?? 'N/A'}',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                  ),
-                ],
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => doc.save());
   }
 }
