@@ -582,6 +582,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     );
   }
 
+
   Future<void> _printDocument() async {
     final doc = pw.Document();
 

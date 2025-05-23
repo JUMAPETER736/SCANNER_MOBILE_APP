@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:scanna/Home_Screens/Juniors_School_Report_View.dart';
+import 'package:scanna/School_Report/Juniors_School_Report_View.dart';
 import 'package:scanna/Home_Screens/Seniors_School_Report_View.dart';
 
 
