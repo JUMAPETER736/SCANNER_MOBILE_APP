@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -110,8 +108,23 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
           String studentName = studentDoc.id;
           var studentData = studentDoc.data() as Map<String, dynamic>? ?? {};
 
-          // Extract basic info - adjust field names based on your actual document structure
-          var gender = studentData['studentGender'];
+          // Fetch gender from the nested subcollection
+          String? gender;
+          try {
+            DocumentSnapshot personalInfoDoc = await studentDoc.reference
+                .collection('Personal_Information')
+                .doc('Registered_Information')
+                .get();
+
+            if (personalInfoDoc.exists) {
+              var personalData = personalInfoDoc.data() as Map<String, dynamic>? ?? {};
+              gender = personalData['studentGender'] as String?;
+            }
+          } catch (e) {
+            print("Error fetching personal info for $studentName: $e");
+            gender = 'Unknown'; // Default value if can't fetch
+          }
+
           var studentClass = classId; // Use the class ID directly since we're iterating through classes
 
           // Parse the student name (assuming format is "LastName FirstName" or "FirstName LastName")
@@ -200,7 +213,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
             // Add to class students list for position calculation
             classStudents.add({
               'fullName': fullName,
-              'studentGender': gender,
+              'studentGender': gender ?? 'Unknown',
               'studentClass': studentClass,
               'Best_Six_Total_Points': bestSixPoints,
               'marksRef': marksRef,
@@ -210,7 +223,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
             // Add to temporary list
             tempStudentDetails.add({
               'fullName': fullName,
-              'studentGender': gender,
+              'studentGender': gender ?? 'Unknown',
               'studentClass': studentClass,
               'Best_Six_Total_Points': bestSixPoints,
             });
@@ -288,7 +301,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
             // Add to class students list for position calculation
             classStudents.add({
               'fullName': fullName,
-              'studentGender': gender,
+              'studentGender': gender ?? 'Unknown',
               'studentClass': studentClass,
               'Student_Total_Marks': totalMarks,
               'Teacher_Total_Marks': totalPossibleMarks,
@@ -298,7 +311,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
 
             tempStudentDetails.add({
               'fullName': fullName,
-              'studentGender': gender,
+              'studentGender': gender ?? 'Unknown',
               'studentClass': studentClass,
               'Student_Total_Marks': totalMarks,
               'Teacher_Total_Marks': totalPossibleMarks,
@@ -461,7 +474,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                       ),
                     ),
                     Text(
-                      'Gender: ${student['studentGender']}',
+                      'Gender: ${student['studentGender'] ?? 'Unknown'}',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.normal,
