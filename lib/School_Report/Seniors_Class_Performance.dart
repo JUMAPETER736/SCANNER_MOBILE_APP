@@ -550,6 +550,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                 ),
                 SizedBox(height: 16),
                 Container(
+                  width: double.infinity,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
@@ -561,147 +562,196 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                       ),
                     ],
                   ),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      columnSpacing: 20,
-                      headingRowHeight: 56,
-                      dataRowHeight: 52,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
+                  child: Column(
+                    children: [
+                      // Header Row
+                      Container(
+                        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: Text(
+                                'Subject',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Text(
+                                'Total',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.grey[800],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Text(
+                                'Pass',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.green[700],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Text(
+                                'Fail',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.red[700],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Text(
+                                'Pass %',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.blue[700],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      headingRowColor: MaterialStateProperty.all(Colors.grey[100]),
-                      columns: [
-                        DataColumn(
-                          label: Text(
-                            'Subject',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: Colors.grey[800],
-                            ),
-                          ),
-                        ),
-                        DataColumn(
-                          label: Text(
-                            'Total',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: Colors.grey[800],
-                            ),
-                          ),
-                        ),
-                        DataColumn(
-                          label: Text(
-                            'Pass',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: Colors.green[700],
-                            ),
-                          ),
-                        ),
-                        DataColumn(
-                          label: Text(
-                            'Fail',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: Colors.red[700],
-                            ),
-                          ),
-                        ),
-                        DataColumn(
-                          label: Text(
-                            'Pass %',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: Colors.blue[700],
-                            ),
-                          ),
-                        ),
-                      ],
-                      rows: subjects.map((subject) {
+                      // Data Rows
+                      ...subjects.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final subject = entry.value;
                         final performance = subjectPerformance[subject] ?? {
                           'totalStudents': 0,
                           'passRate': 0,
                           'totalPass': 0,
                           'totalFail': 0,
                         };
-                        return DataRow(
-                          cells: [
-                            DataCell(
-                              Text(
-                                subject,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 13,
-                                ),
+
+                        return Container(
+                          padding: EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: index % 2 == 0 ? Colors.white : Colors.grey[50],
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Colors.grey[200]!,
+                                width: 0.5,
                               ),
                             ),
-                            DataCell(
-                              Text(
-                                performance['totalStudents'].toString(),
-                                style: TextStyle(fontSize: 13),
-                              ),
-                            ),
-                            DataCell(
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.green[100],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
                                 child: Text(
-                                  performance['totalPass'].toString(),
+                                  subject,
                                   style: TextStyle(
-                                    color: Colors.green[800],
                                     fontWeight: FontWeight.w500,
-                                    fontSize: 13,
+                                    fontSize: 15,
+                                    color: Colors.grey[800],
                                   ),
                                 ),
                               ),
-                            ),
-                            DataCell(
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.red[100],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
+                              Expanded(
+                                flex: 1,
                                 child: Text(
-                                  performance['totalFail'].toString(),
+                                  performance['totalStudents'].toString(),
                                   style: TextStyle(
-                                    color: Colors.red[800],
+                                    fontSize: 15,
                                     fontWeight: FontWeight.w500,
-                                    fontSize: 13,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green[100],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      performance['totalPass'].toString(),
+                                      style: TextStyle(
+                                        color: Colors.green[800],
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            DataCell(
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue[100],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  '${performance['passRate']}%',
-                                  style: TextStyle(
-                                    color: Colors.blue[800],
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 13,
+                              Expanded(
+                                flex: 1,
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red[100],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      performance['totalFail'].toString(),
+                                      style: TextStyle(
+                                        color: Colors.red[800],
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                              Expanded(
+                                flex: 1,
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue[100],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      '${performance['passRate']}%',
+                                      style: TextStyle(
+                                        color: Colors.blue[800],
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         );
                       }).toList(),
-                    ),
+                    ],
                   ),
                 ),
               ],
