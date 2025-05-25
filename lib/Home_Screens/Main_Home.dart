@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:scanna/Settings/Main_Settings.dart';
@@ -62,143 +60,163 @@ class _Main_HomeState extends State<Main_Home> {
   }
 
   Widget _buildHome(BuildContext context, User? loggedInUser) {
-    return SizedBox.expand(
-      child: Container(
-        color: const Color.fromARGB(255, 198, 205, 218),
-        padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0),
-        child: Column(
-          children: [
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 16,
-                padding: EdgeInsets.zero,
-                childAspectRatio: 4 / 2,
-                children: [
-                  _buildHomeCard(
-                    icon: Icons.class_,
-                    text: 'Select School & Class',
-                    color: Colors.blueAccent,
-                    iconSize: 60.0,
-                    textSize: 15.0,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => Class_Selection()),
-                      );
-                    },
-                  ),
-                  _buildHomeCard(
-                    icon: Icons.analytics,
-                    text: 'Grade Analytics',
-                    color: Colors.greenAccent,
-                    iconSize: 60.0,
-                    textSize: 15.0,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => Grade_Analytics()),
-                      );
-                    },
-                  ),
-                  _buildHomeCard(
-                    icon: Icons.person_add,
-                    text: 'Add Student',
-                    color: Colors.orangeAccent,
-                    iconSize: 60.0,
-                    textSize: 15.0,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => Student_Details()),
-                      );
-                    },
-                  ),
-                  _buildHomeCard(
-                    icon: Icons.qr_code_scanner,
-                    text: 'QR Scan',
-                    color: const Color.fromARGB(255, 59, 61, 60),
-                    iconSize: 60.0,
-                    textSize: 15.0,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => QR_Code_Scan()),
-                      );
-                    },
-                  ),
-                  _buildHomeCard(
-                    icon: Icons.school,
-                    text: 'Results',
-                    color: Colors.redAccent,
-                    iconSize: 60.0,
-                    textSize: 15.0,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => Results_And_School_Reports()),
-                      );
-                    },
-                  ),
-                  _buildHomeCard(
-                    icon: Icons.list,
-                    text: 'Students Names',
-                    color: Colors.purpleAccent,
-                    iconSize: 60.0,
-                    textSize: 15.0,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => Student_Name_List(loggedInUser: loggedInUser),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildHomeCard(
-                    icon: Icons.bar_chart,
-                    text: 'Statistics',
-                    color: Colors.tealAccent,
-                    iconSize: 60.0,
-                    textSize: 15.0,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => Performance_Statistics()), // Replace with your actual class
-                      );
-                    },
-                  ),
-                  _buildHomeCard(
-                    icon: Icons.picture_as_pdf,
-                    text: 'School Reports PDFs',
-                    color: Colors.deepOrangeAccent,
-                    iconSize: 60.0,
-                    textSize: 15.0,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) =>  School_Reports_PDF_List()), // Replace with your actual class
-                      );
-                    },
-                  ),
-                ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calculate responsive dimensions
+        final screenWidth = constraints.maxWidth;
+        final screenHeight = constraints.maxHeight;
+
+        // Calculate padding based on screen size
+        final horizontalPadding = screenWidth * 0.04; // 4% of screen width
+        final verticalPadding = screenHeight * 0.02; // 2% of screen height
+
+        // Calculate grid dimensions
+        final cardSpacing = screenWidth * 0.025; // 2.5% of screen width
+        final availableWidth = screenWidth - (2 * horizontalPadding);
+        final availableHeight = screenHeight - (2 * verticalPadding);
+
+        // Calculate card dimensions for 2x4 grid
+        final cardWidth = (availableWidth - cardSpacing) / 2;
+        final cardHeight = (availableHeight - (3 * cardSpacing)) / 4;
+        final aspectRatio = cardWidth / cardHeight;
+
+        // Calculate responsive icon and text sizes
+        final iconSize = (cardHeight * 0.35).clamp(24.0, 60.0);
+        final textSize = (cardHeight * 0.12).clamp(10.0, 16.0);
+
+        return Container(
+          color: const Color.fromARGB(255, 198, 205, 218),
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
+          child: GridView.count(
+            crossAxisCount: 2,
+            crossAxisSpacing: cardSpacing,
+            mainAxisSpacing: cardSpacing,
+            padding: EdgeInsets.zero,
+            childAspectRatio: aspectRatio,
+            physics: const NeverScrollableScrollPhysics(), // Disable scrolling
+            children: [
+              _buildHomeCard(
+                icon: Icons.class_,
+                text: 'Select School & Class',
+                color: Colors.blueAccent,
+                iconSize: iconSize,
+                textSize: textSize,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Class_Selection()),
+                  );
+                },
               ),
-            ),
-          ],
-        ),
-      ),
+              _buildHomeCard(
+                icon: Icons.analytics,
+                text: 'Grade Analytics',
+                color: Colors.greenAccent,
+                iconSize: iconSize,
+                textSize: textSize,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Grade_Analytics()),
+                  );
+                },
+              ),
+              _buildHomeCard(
+                icon: Icons.person_add,
+                text: 'Add Student',
+                color: Colors.orangeAccent,
+                iconSize: iconSize,
+                textSize: textSize,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Student_Details()),
+                  );
+                },
+              ),
+              _buildHomeCard(
+                icon: Icons.qr_code_scanner,
+                text: 'QR Scan',
+                color: const Color.fromARGB(255, 59, 61, 60),
+                iconSize: iconSize,
+                textSize: textSize,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => QR_Code_Scan()),
+                  );
+                },
+              ),
+              _buildHomeCard(
+                icon: Icons.school,
+                text: 'Results',
+                color: Colors.redAccent,
+                iconSize: iconSize,
+                textSize: textSize,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Results_And_School_Reports()),
+                  );
+                },
+              ),
+              _buildHomeCard(
+                icon: Icons.list,
+                text: 'Students Names',
+                color: Colors.purpleAccent,
+                iconSize: iconSize,
+                textSize: textSize,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Student_Name_List(loggedInUser: loggedInUser),
+                    ),
+                  );
+                },
+              ),
+              _buildHomeCard(
+                icon: Icons.bar_chart,
+                text: 'Statistics',
+                color: Colors.tealAccent,
+                iconSize: iconSize,
+                textSize: textSize,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Performance_Statistics()),
+                  );
+                },
+              ),
+              _buildHomeCard(
+                icon: Icons.picture_as_pdf,
+                text: 'School Reports PDFs',
+                color: Colors.deepOrangeAccent,
+                iconSize: iconSize,
+                textSize: textSize,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => School_Reports_PDF_List()),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
-
-
 
   Widget _buildHomeCard({
     required IconData icon,
     required String text,
     required Color color,
-    required double iconSize, // Icon size parameter
-    required double textSize, // Text size parameter
+    required double iconSize,
+    required double textSize,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -206,33 +224,48 @@ class _Main_HomeState extends State<Main_Home> {
       child: Card(
         color: color,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.0),
+          borderRadius: BorderRadius.circular(12.0),
         ),
         elevation: 4.0,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: iconSize, // Set the icon size here
-              color: Colors.white,
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              text,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: textSize, // Set the text size here
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                flex: 3,
+                child: Icon(
+                  icon,
+                  size: iconSize,
+                  color: Colors.white,
+                ),
               ),
-            ),
-          ],
+              Flexible(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: textSize,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
-
 
   Widget _buildHelp() => Help();
 
@@ -263,24 +296,19 @@ class _Main_HomeState extends State<Main_Home> {
             : _buildSettings(),
       ),
       bottomNavigationBar: BottomNavigationBar(
-
         items: const <BottomNavigationBarItem>[
-
           BottomNavigationBarItem(
             icon: Icon(Icons.help),
             label: 'Help',
           ),
-
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
-
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: 'Settings',
           ),
-
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
@@ -291,5 +319,3 @@ class _Main_HomeState extends State<Main_Home> {
     );
   }
 }
-
-

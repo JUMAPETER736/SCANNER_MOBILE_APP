@@ -585,7 +585,7 @@ class _Register_PageState extends State<Register_Page> {
                                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 ),
                                 child: Text(
-                                  'Sign In',
+                                  'Log In',
                                   style: TextStyle(
                                     color: Colors.blueAccent,
                                     fontWeight: FontWeight.bold,
