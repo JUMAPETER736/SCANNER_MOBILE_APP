@@ -136,19 +136,27 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
             for (var subjectDoc in subjectsSnapshot.docs) {
               var subjectData = subjectDoc.data() as Map<String, dynamic>? ?? {};
 
-              if (subjectData.containsKey('Grade_Point')) {
-                var gradePointValue = subjectData['Grade_Point'];
-                int? gradePoint;
+              // Check if Subject_Grade exists and is not "N/A"
+              if (subjectData.containsKey('Subject_Grade')) {
+                var subjectGradeValue = subjectData['Subject_Grade'];
 
-                // Handle int and String grade point values
-                if (gradePointValue is int) {
-                  gradePoint = gradePointValue;
-                } else if (gradePointValue is String) {
-                  gradePoint = int.tryParse(gradePointValue);
+                // Skip subjects with "N/A" grades
+                if (subjectGradeValue == null ||
+                    subjectGradeValue.toString().toUpperCase() == 'N/A') {
+                  continue;
                 }
 
-                // Add only valid points greater than 0
-                if (gradePoint != null && gradePoint > 0) {
+                // Convert Subject_Grade to integer score
+                int? subjectScore;
+                if (subjectGradeValue is int) {
+                  subjectScore = subjectGradeValue;
+                } else if (subjectGradeValue is String) {
+                  subjectScore = int.tryParse(subjectGradeValue);
+                }
+
+                // Calculate grade point using the Seniors_Grade function
+                if (subjectScore != null && subjectScore >= 0) {
+                  int gradePoint = int.parse(Seniors_Grade(subjectScore));
                   subjectPoints.add(gradePoint);
                 }
               }
@@ -160,7 +168,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
               subjectPoints.sort(); // Lower is better
               bestSixPoints = subjectPoints.take(6).fold(0, (sum, point) => sum + point);
             } else if (subjectPoints.isNotEmpty) {
-              // Optional: Sum all if fewer than 6 valid subjects
+              // Sum all valid subjects if fewer than 6
               bestSixPoints = subjectPoints.fold(0, (sum, point) => sum + point);
             }
 
@@ -218,6 +226,13 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
               if (subjectData.containsKey('Subject_Grade')) {
                 // Handle both int and string types for Subject_Grade
                 var subjectGradeValue = subjectData['Subject_Grade'];
+
+                // Skip subjects with "N/A" grades for juniors too
+                if (subjectGradeValue == null ||
+                    subjectGradeValue.toString().toUpperCase() == 'N/A') {
+                  continue;
+                }
+
                 int subjectGrade = 0;
 
                 if (subjectGradeValue is int) {
@@ -356,6 +371,19 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
         errorMessage = 'An error occurred while fetching student details.';
       });
     }
+  }
+
+// Helper function to convert score to grade point
+  String Seniors_Grade(int Seniors_Score) {
+    if (Seniors_Score >= 90) return '1';
+    if (Seniors_Score >= 80) return '2';
+    if (Seniors_Score >= 75) return '3';
+    if (Seniors_Score >= 70) return '4';
+    if (Seniors_Score >= 65) return '5';
+    if (Seniors_Score >= 60) return '6';
+    if (Seniors_Score >= 55) return '7';
+    if (Seniors_Score >= 50) return '8';
+    return '9';
   }
 
 
