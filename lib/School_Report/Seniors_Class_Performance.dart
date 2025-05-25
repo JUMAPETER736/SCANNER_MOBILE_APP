@@ -72,6 +72,9 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
       await _fetchStudentData();
       await _calculatePerformanceMetrics();
 
+      // Create/Update Firestore statistics
+      await _createOrUpdateClassStatistics();
+
       setState(() {
         isLoading = false;
       });
@@ -80,16 +83,20 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
       setState(() {
         isLoading = false;
         hasError = true;
-        errorMessage = 'An error occurred while fetching data.';
+        errorMessage = 'An error occurred while fetching data: $e';
       });
     }
   }
 
   Future<void> _fetchSubjects() async {
     try {
-      // Get subjects from any student's record (assuming all students take same subjects)
+      // Get students from the Student_Details subcollection
       final studentsSnapshot = await _firestore
-          .collection('Schools/${widget.schoolName}/Classes/${widget.className}/Student_Details')
+          .collection('Schools')
+          .doc(widget.schoolName)
+          .collection('Classes')
+          .doc(widget.className)
+          .collection('Student_Details')
           .limit(1)
           .get();
 
@@ -97,42 +104,69 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
         throw Exception('No students found in this class');
       }
 
-      final studentId = studentsSnapshot.docs.first.id;
+      // Get the first student's document ID (student name)
+      final studentName = studentsSnapshot.docs.first.id;
+
+      // Get subjects from the first student's Student_Subjects subcollection
       final subjectsSnapshot = await _firestore
-          .collection('Schools/${widget.schoolName}/Classes/${widget.className}/Student_Details/$studentId/Student_Subjects')
+          .collection('Schools')
+          .doc(widget.schoolName)
+          .collection('Classes')
+          .doc(widget.className)
+          .collection('Student_Details')
+          .doc(studentName)
+          .collection('Student_Subjects')
           .get();
 
+      List<String> fetchedSubjects = [];
+      for (var doc in subjectsSnapshot.docs) {
+        String subjectName = doc['Subject_Name'] as String;
+        fetchedSubjects.add(subjectName);
+      }
+
       setState(() {
-        subjects = subjectsSnapshot.docs.map((doc) => doc['Subject_Name'] as String).toList();
+        subjects = fetchedSubjects;
       });
+
+      print("Fetched subjects: $subjects");
     } catch (e) {
       print("Error fetching subjects: $e");
-      throw Exception("Failed to fetch subjects");
+      throw Exception("Failed to fetch subjects: $e");
     }
   }
 
   Future<void> _fetchStudentData() async {
     try {
       final studentsSnapshot = await _firestore
-          .collection('Schools/${widget.schoolName}/Classes/${widget.className}/Student_Details')
+          .collection('Schools')
+          .doc(widget.schoolName)
+          .collection('Classes')
+          .doc(widget.className)
+          .collection('Student_Details')
           .get();
 
       setState(() {
         classPerformance['totalStudents'] = studentsSnapshot.docs.length;
       });
+
+      print("Total students found: ${studentsSnapshot.docs.length}");
     } catch (e) {
       print("Error fetching student data: $e");
-      throw Exception("Failed to fetch student data");
+      throw Exception("Failed to fetch student data: $e");
     }
   }
+
 
   Future<void> _calculatePerformanceMetrics() async {
     try {
       final studentsSnapshot = await _firestore
-          .collection('Schools/${widget.schoolName}/Classes/${widget.className}/Student_Details')
+          .collection('Schools')
+          .doc(widget.schoolName)
+          .collection('Classes')
+          .doc(widget.className)
+          .collection('Student_Details')
           .get();
 
-      // Initialize subject performance tracking
       Map<String, dynamic> tempSubjectPerformance = {};
       for (String subject in subjects) {
         tempSubjectPerformance[subject] = {
@@ -141,72 +175,156 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
           'averageScore': 0,
           'passRate': 0,
           'totalScore': 0,
+          'totalPass': 0,
+          'totalFail': 0,
         };
       }
 
-      // Initialize class performance tracking
       Map<String, int> tempGradeDistribution = {'1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0, '7': 0, '8': 0, '9': 0};
       int totalPassed = 0;
       int totalAggregate = 0;
+      int totalClassFail = 0;
 
       for (var studentDoc in studentsSnapshot.docs) {
-        // Process subject grades
+        String studentName = studentDoc.id;
+
         final subjectsSnapshot = await _firestore
-            .collection('Schools/${widget.schoolName}/Classes/${widget.className}/Student_Details/${studentDoc.id}/Student_Subjects')
+            .collection('Schools')
+            .doc(widget.schoolName)
+            .collection('Classes')
+            .doc(widget.className)
+            .collection('Student_Details')
+            .doc(studentName)
+            .collection('Student_Subjects')
             .get();
 
         List<int> points = [];
+        bool hasGradeNine = false;
+        int studentTotalMarks = 0;
+        int validSubjectCount = 0;
+
         for (var subjectDoc in subjectsSnapshot.docs) {
           final subjectName = subjectDoc['Subject_Name'] as String;
-          final score = (subjectDoc['Subject_Grade'] as num?)?.toInt() ?? 0;
-          final grade = _seniorsGrade(score);
 
-          // Update subject performance
+          // Skip if Subject_Grade is missing
+          if (!subjectDoc.data().containsKey('Subject_Grade')) {
+            print("Skipping ${subjectDoc.id} — Subject_Grade is missing");
+            continue;
+          }
+
+          final subjectGradeRaw = subjectDoc['Subject_Grade'];
+
+          // Skip if Subject_Grade is "N/A" or null
+          if (subjectGradeRaw == "N/A" || subjectGradeRaw == null) {
+            print("Skipping ${subjectDoc.id} — Subject_Grade is N/A or null");
+            continue;
+          }
+
+          int score = 0;
+          if (subjectGradeRaw is String) {
+            score = int.tryParse(subjectGradeRaw) ?? 0;
+          } else if (subjectGradeRaw is num) {
+            score = subjectGradeRaw.toInt();
+          }
+
+          int currentGradePoint = int.tryParse(_getPoints(_seniorsGrade(score))) ?? 9;
+          if (currentGradePoint == 9) {
+            hasGradeNine = true;
+          }
+
+          studentTotalMarks += score;
+          validSubjectCount++;
+
           if (tempSubjectPerformance.containsKey(subjectName)) {
+            final grade = _seniorsGrade(score);
             tempSubjectPerformance[subjectName]['gradeDistribution'][grade]++;
             tempSubjectPerformance[subjectName]['totalStudents']++;
             tempSubjectPerformance[subjectName]['totalScore'] += score;
 
             if (score >= 50) {
-              tempSubjectPerformance[subjectName]['passRate']++;
+              tempSubjectPerformance[subjectName]['totalPass']++;
+            } else {
+              tempSubjectPerformance[subjectName]['totalFail']++;
             }
           }
 
-          points.add(int.tryParse(_getPoints(grade)) ?? 9);
+          points.add(currentGradePoint);
         }
 
-        // Calculate aggregate (best 6 subjects)
-        points.sort();
-        int aggregate = points.take(6).reduce((a, b) => a + b);
-        totalAggregate += aggregate;
+        if (points.isNotEmpty) {
+          points.sort();
+          int bestSixTotal = points.take(6).reduce((a, b) => a + b);
+          totalAggregate += bestSixTotal;
 
-        // Process overall performance from TOTAL_MARKS
-        final totalMarksDoc = await _firestore
-            .doc('Schools/${widget.schoolName}/Classes/${widget.className}/Student_Details/${studentDoc.id}/TOTAL_MARKS/Marks')
-            .get();
-
-        if (totalMarksDoc.exists) {
-          final studentTotal = (totalMarksDoc['Student_Total_Marks'] as num?)?.toInt() ?? 0;
-          final teacherTotal = (totalMarksDoc['Teacher_Total_Marks'] as num?)?.toInt() ?? (subjects.length * 100);
-          final percentage = (studentTotal / teacherTotal * 100).round();
-          final grade = _seniorsGrade(percentage);
-
-          tempGradeDistribution[grade] = (tempGradeDistribution[grade] ?? 0) + 1;
-          if (percentage >= 50) {
-            totalPassed++;
+          if (hasGradeNine || bestSixTotal >= 54) {
+            totalClassFail++;
           }
+        }
+
+        try {
+          final totalMarksDoc = await _firestore
+              .collection('Schools')
+              .doc(widget.schoolName)
+              .collection('Classes')
+              .doc(widget.className)
+              .collection('Student_Details')
+              .doc(studentName)
+              .collection('TOTAL_MARKS')
+              .doc('Marks')
+              .get();
+
+          if (totalMarksDoc.exists) {
+            final studentTotalRaw = totalMarksDoc['Student_Total_Marks'];
+            final teacherTotalRaw = totalMarksDoc['Teacher_Total_Marks'];
+
+            int studentTotal = 0;
+            if (studentTotalRaw != null) {
+              if (studentTotalRaw is String) {
+                studentTotal = int.tryParse(studentTotalRaw) ?? 0;
+              } else if (studentTotalRaw is num) {
+                studentTotal = studentTotalRaw.toInt();
+              }
+            }
+
+            int teacherTotal = subjects.length * 100;
+            if (teacherTotalRaw != null) {
+              if (teacherTotalRaw is String) {
+                teacherTotal = int.tryParse(teacherTotalRaw) ?? (subjects.length * 100);
+              } else if (teacherTotalRaw is num) {
+                teacherTotal = teacherTotalRaw.toInt();
+              }
+            }
+
+            final percentage = teacherTotal > 0 ? (studentTotal / teacherTotal * 100).round() : 0;
+            final grade = _seniorsGrade(percentage);
+
+            tempGradeDistribution[grade] = (tempGradeDistribution[grade] ?? 0) + 1;
+            if (percentage >= 50) {
+              totalPassed++;
+            }
+          } else {
+            if (validSubjectCount > 0) {
+              final percentage = (studentTotalMarks / (validSubjectCount * 100) * 100).round();
+              final grade = _seniorsGrade(percentage);
+
+              tempGradeDistribution[grade] = (tempGradeDistribution[grade] ?? 0) + 1;
+              if (percentage >= 50) {
+                totalPassed++;
+              }
+            }
+          }
+        } catch (e) {
+          print("Error fetching TOTAL_MARKS for student $studentName: $e");
         }
       }
 
-      // Calculate averages and pass rates for subjects
       tempSubjectPerformance.forEach((subject, data) {
         if (data['totalStudents'] > 0) {
           data['averageScore'] = (data['totalScore'] / data['totalStudents']).round();
-          data['passRate'] = (data['passRate'] / data['totalStudents'] * 100).round();
+          data['passRate'] = (data['totalPass'] / data['totalStudents'] * 100).round();
         }
       });
 
-      // Update class performance
       setState(() {
         subjectPerformance = tempSubjectPerformance;
         classPerformance = {
@@ -218,11 +336,78 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
           'averageAggregate': studentsSnapshot.docs.length > 0
               ? (totalAggregate / studentsSnapshot.docs.length).round()
               : 0,
+          'totalClassFail': totalClassFail,
         };
       });
+
+      print("Performance metrics calculated successfully");
+      print("Subject performance keys: ${subjectPerformance.keys}");
     } catch (e) {
       print("Error calculating performance metrics: $e");
-      throw Exception("Failed to calculate performance metrics");
+      throw Exception("Failed to calculate performance metrics: $e");
+    }
+  }
+
+
+
+  Future<void> _createOrUpdateClassStatistics() async {
+    try {
+      final String basePath = 'Schools/${widget.schoolName}/Classes/${widget.className}/Student_Details/Class_Results_Statistics';
+
+      // Create/Update subject statistics
+      for (String subject in subjects) {
+        final subjectData = subjectPerformance[subject];
+        if (subjectData != null) {
+          await _firestore.doc('$basePath/$subject').set({
+            'Total_Students': subjectData['totalStudents'],
+            'Total_Pass': subjectData['totalPass'],
+            'Total_Fail': subjectData['totalFail'],
+            'Pass_Rate': subjectData['passRate'],
+            'Average_Score': subjectData['averageScore'],
+            'Grade_Distribution': subjectData['gradeDistribution'],
+            'lastUpdated': FieldValue.serverTimestamp(),
+            'updatedBy': userEmail,
+          }, SetOptions(merge: true));
+        }
+      }
+
+      // Create/Update overall class pass rate statistics
+      await _firestore.doc('$basePath/Class_Pass_Rate').set({
+        'Total_Class_Students': classPerformance['totalStudents'],
+        'Total_Class_Pass': classPerformance['totalStudents'] - classPerformance['totalClassFail'],
+        'Total_Class_Fail': classPerformance['totalClassFail'],
+        'Class_Pass_Rate': classPerformance['totalStudents'] > 0
+            ? ((classPerformance['totalStudents'] - classPerformance['totalClassFail']) / classPerformance['totalStudents'] * 100).round()
+            : 0,
+        'Average_Aggregate_Points': classPerformance['averageAggregate'],
+        'Grade_Distribution': classPerformance['gradeDistribution'],
+        'Criteria': 'Students with Best_Six_Total_Points >= 54 or any Grade_Point = 9 are considered failed',
+        'lastUpdated': FieldValue.serverTimestamp(),
+        'updatedBy': userEmail,
+      }, SetOptions(merge: true));
+
+      print("Class statistics successfully created/updated in Firestore");
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Class statistics updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+    } catch (e) {
+      print("Error creating/updating class statistics: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating statistics: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -306,7 +491,10 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
             ),
             SizedBox(height: 16),
             _buildSummaryRow('Total Students:', classPerformance['totalStudents'].toString()),
-            _buildSummaryRow('Pass Rate:', '${classPerformance['passRate']}%'),
+            _buildSummaryRow('Overall Pass Rate:', '${classPerformance['passRate']}%'),
+            _buildSummaryRow('Class Pass Rate (MSCE Criteria):',
+                '${classPerformance['totalStudents'] > 0 ? ((classPerformance['totalStudents'] - classPerformance['totalClassFail']) / classPerformance['totalStudents'] * 100).round() : 0}%'),
+            _buildSummaryRow('Students Failed (MSCE):', classPerformance['totalClassFail'].toString()),
             _buildSummaryRow('Average Aggregate:', classPerformance['averageAggregate'].toString()),
             SizedBox(height: 8),
             Text(
@@ -319,6 +507,11 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                 (classPerformance['gradeDistribution'][grade] ?? 0).toString(),
               );
             }).toList(),
+            SizedBox(height: 8),
+            Text(
+              'Note: MSCE failure criteria - Students with aggregate ≥54 points or any subject grade 9',
+              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey[600]),
+            ),
           ],
         ),
       ),
@@ -331,7 +524,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label),
+          Expanded(child: Text(label)),
           Text(value, style: TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
@@ -443,13 +636,31 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                 ),
                 DataColumn(
                   label: Text(
-                    'Avg',
+                    'Total',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Pass',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Fail',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
                 DataColumn(
                   label: Text(
                     'Pass %',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Avg',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -465,14 +676,20 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
               rows: subjects.map((subject) {
                 final performance = subjectPerformance[subject] ?? {
                   'gradeDistribution': {'1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0, '7': 0, '8': 0, '9': 0},
+                  'totalStudents': 0,
                   'averageScore': 0,
                   'passRate': 0,
+                  'totalPass': 0,
+                  'totalFail': 0,
                 };
                 return DataRow(
                   cells: [
                     DataCell(Text(subject)),
-                    DataCell(Text(performance['averageScore'].toString())),
+                    DataCell(Text(performance['totalStudents'].toString())),
+                    DataCell(Text(performance['totalPass'].toString())),
+                    DataCell(Text(performance['totalFail'].toString())),
                     DataCell(Text('${performance['passRate']}%')),
+                    DataCell(Text(performance['averageScore'].toString())),
                     ...['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((grade) {
                       return DataCell(Text(performance['gradeDistribution'][grade].toString()));
                     }).toList(),
@@ -498,6 +715,18 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
     return Scaffold(
       appBar: AppBar(
         title: Text('${widget.className} Performance'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: () {
+              setState(() {
+                isLoading = true;
+              });
+              _fetchClassData();
+            },
+            tooltip: 'Refresh Statistics',
+          ),
+        ],
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
