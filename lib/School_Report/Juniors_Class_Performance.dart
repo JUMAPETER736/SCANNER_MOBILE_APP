@@ -781,7 +781,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(
-          'END OF TERM PERFORMANCE',
+          'RESULTS STATISTICS',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18,
