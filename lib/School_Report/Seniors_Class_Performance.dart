@@ -24,8 +24,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
   Map<String, dynamic> subjectPerformance = {};
   Map<String, dynamic> classPerformance = {
     'totalStudents': 0,
-    'passRate': 0.0,
-    'averageAggregate': 0.0,
+    'classPassRate': 0,
   };
   bool isLoading = true;
   bool hasError = false;
@@ -66,7 +65,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
       await _fetchSubjects();
       await _fetchStudentData();
       await _calculatePerformanceMetrics();
-      await _createOrUpdateClassStatistics();
+      await _saveClassPerformanceData();
 
       setState(() {
         isLoading = false;
@@ -155,16 +154,12 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
       for (String subject in subjects) {
         tempSubjectPerformance[subject] = {
           'totalStudents': 0,
-          'averageScore': 0,
           'passRate': 0,
-          'totalScore': 0,
           'totalPass': 0,
           'totalFail': 0,
         };
       }
 
-      int totalPassed = 0;
-      int totalAggregate = 0;
       int totalClassFail = 0;
 
       for (var studentDoc in studentsSnapshot.docs) {
@@ -182,8 +177,6 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
 
         List<int> points = [];
         bool hasGradeNine = false;
-        int studentTotalMarks = 0;
-        int validSubjectCount = 0;
 
         for (var subjectDoc in subjectsSnapshot.docs) {
           final subjectName = subjectDoc['Subject_Name'] as String;
@@ -209,12 +202,8 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
             hasGradeNine = true;
           }
 
-          studentTotalMarks += score;
-          validSubjectCount++;
-
           if (tempSubjectPerformance.containsKey(subjectName)) {
             tempSubjectPerformance[subjectName]['totalStudents']++;
-            tempSubjectPerformance[subjectName]['totalScore'] += score;
 
             if (score >= 50) {
               tempSubjectPerformance[subjectName]['totalPass']++;
@@ -229,67 +218,15 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
         if (points.isNotEmpty) {
           points.sort();
           int bestSixTotal = points.take(6).reduce((a, b) => a + b);
-          totalAggregate += bestSixTotal;
 
           if (hasGradeNine || bestSixTotal >= 54) {
             totalClassFail++;
           }
         }
-
-        try {
-          final totalMarksDoc = await _firestore
-              .collection('Schools')
-              .doc(widget.schoolName)
-              .collection('Classes')
-              .doc(widget.className)
-              .collection('Student_Details')
-              .doc(studentName)
-              .collection('TOTAL_MARKS')
-              .doc('Marks')
-              .get();
-
-          if (totalMarksDoc.exists) {
-            final studentTotalRaw = totalMarksDoc['Student_Total_Marks'];
-            final teacherTotalRaw = totalMarksDoc['Teacher_Total_Marks'];
-
-            int studentTotal = 0;
-            if (studentTotalRaw != null) {
-              if (studentTotalRaw is String) {
-                studentTotal = int.tryParse(studentTotalRaw) ?? 0;
-              } else if (studentTotalRaw is num) {
-                studentTotal = studentTotalRaw.toInt();
-              }
-            }
-
-            int teacherTotal = subjects.length * 100;
-            if (teacherTotalRaw != null) {
-              if (teacherTotalRaw is String) {
-                teacherTotal = int.tryParse(teacherTotalRaw) ?? (subjects.length * 100);
-              } else if (teacherTotalRaw is num) {
-                teacherTotal = teacherTotalRaw.toInt();
-              }
-            }
-
-            final percentage = teacherTotal > 0 ? (studentTotal / teacherTotal * 100).round() : 0;
-            if (percentage >= 50) {
-              totalPassed++;
-            }
-          } else {
-            if (validSubjectCount > 0) {
-              final percentage = (studentTotalMarks / (validSubjectCount * 100) * 100).round();
-              if (percentage >= 50) {
-                totalPassed++;
-              }
-            }
-          }
-        } catch (e) {
-          print("Error fetching TOTAL_MARKS for student $studentName: $e");
-        }
       }
 
       tempSubjectPerformance.forEach((subject, data) {
         if (data['totalStudents'] > 0) {
-          data['averageScore'] = (data['totalScore'] / data['totalStudents']).round();
           data['passRate'] = (data['totalPass'] / data['totalStudents'] * 100).round();
         }
       });
@@ -298,11 +235,8 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
         subjectPerformance = tempSubjectPerformance;
         classPerformance = {
           'totalStudents': studentsSnapshot.docs.length,
-          'passRate': studentsSnapshot.docs.length > 0
-              ? (totalPassed / studentsSnapshot.docs.length * 100).round()
-              : 0,
-          'averageAggregate': studentsSnapshot.docs.length > 0
-              ? (totalAggregate / studentsSnapshot.docs.length).round()
+          'classPassRate': studentsSnapshot.docs.length > 0
+              ? ((studentsSnapshot.docs.length - totalClassFail) / studentsSnapshot.docs.length * 100).round()
               : 0,
           'totalClassFail': totalClassFail,
         };
@@ -313,58 +247,58 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
     }
   }
 
-  Future<void> _createOrUpdateClassStatistics() async {
+  Future<void> _saveClassPerformanceData() async {
     try {
-      final String basePath = 'Schools/${widget.schoolName}/Classes/${widget.className}/Student_Details/Class_Results_Statistics';
+      final String basePath = 'Schools/${widget.schoolName}/Classes/${widget.className}';
 
+      // Save Class Summary
+      await _firestore.doc('$basePath/Class_Performance/Class_Summary').set({
+        'Total_Students': classPerformance['totalStudents'],
+        'Class_Pass_Rate': classPerformance['classPassRate'],
+        'Total_Class_Passed': classPerformance['totalStudents'] - classPerformance['totalClassFail'],
+        'Total_Class_Failed': classPerformance['totalClassFail'],
+        'lastUpdated': FieldValue.serverTimestamp(),
+        'updatedBy': userEmail,
+      }, SetOptions(merge: true));
+
+      // Save Subject Performance - Fixed to save each subject separately
       for (String subject in subjects) {
         final subjectData = subjectPerformance[subject];
         if (subjectData != null) {
-          await _firestore.doc('$basePath/$subject').set({
+          await _firestore.doc('$basePath/Class_Performance/Subject_Performance/Subject_Perfomance/$subject').set({
             'Total_Students': subjectData['totalStudents'],
             'Total_Pass': subjectData['totalPass'],
             'Total_Fail': subjectData['totalFail'],
             'Pass_Rate': subjectData['passRate'],
-            'Average_Score': subjectData['averageScore'],
             'lastUpdated': FieldValue.serverTimestamp(),
             'updatedBy': userEmail,
           }, SetOptions(merge: true));
         }
       }
 
-      await _firestore.doc('$basePath/Class_Pass_Rate').set({
-        'Total_Class_Students': classPerformance['totalStudents'],
-        'Total_Class_Pass': classPerformance['totalStudents'] - classPerformance['totalClassFail'],
-        'Total_Class_Fail': classPerformance['totalClassFail'],
-        'Class_Pass_Rate': classPerformance['totalStudents'] > 0
-            ? ((classPerformance['totalStudents'] - classPerformance['totalClassFail']) / classPerformance['totalStudents'] * 100).round()
-            : 0,
-        'Average_Aggregate_Points': classPerformance['averageAggregate'],
-        'Criteria': 'Students with Best_Six_Total_Points >= 54 or any Grade_Point = 9 are considered failed',
-        'lastUpdated': FieldValue.serverTimestamp(),
-        'updatedBy': userEmail,
-      }, SetOptions(merge: true));
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Class statistics updated successfully'),
+            content: Text('Class performance data saved successfully'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
           ),
         );
       }
     } catch (e) {
-      print("Error creating/updating class statistics: $e");
+      print("Error saving class performance data: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating statistics: $e'),
+            content: Text('Error saving performance data: $e'),
             backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
           ),
         );
       }
     }
   }
+
 
   String _seniorsGrade(int score) {
     if (score >= 90) return '1';
@@ -392,149 +326,388 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
     }
   }
 
-  Widget _buildSchoolHeader() {
-    return Column(
-      children: [
-        Text(
-          widget.schoolName,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue[600]!, Colors.blue[800]!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        SizedBox(height: 8),
-        Text(
-          'SENIOR CLASS PERFORMANCE STATISTICS',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
         ),
-        SizedBox(height: 16),
-        Text(
-          'CLASS: ${widget.className}',
-          style: TextStyle(fontSize: 16),
-          textAlign: TextAlign.center,
-        ),
-        SizedBox(height: 16),
-      ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            widget.schoolName,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 12),
+          Text(
+            'END OF TERM PERFORMANCE',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+              letterSpacing: 1.2,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 8),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              'CLASS: ${widget.className}',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildClassSummary() {
-    return Card(
+    final totalPassed = classPerformance['totalStudents'] - classPerformance['totalClassFail'];
+
+    return Container(
       margin: EdgeInsets.all(16),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'CLASS SUMMARY',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              colors: [Colors.green[50]!, Colors.green[100]!],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            SizedBox(height: 16),
-            _buildSummaryRow('Total Students:', classPerformance['totalStudents'].toString()),
-            _buildSummaryRow('Overall Pass Rate:', '${classPerformance['passRate']}%'),
-            _buildSummaryRow('Class Pass Rate (MSCE Criteria):',
-                '${classPerformance['totalStudents'] > 0 ? ((classPerformance['totalStudents'] - classPerformance['totalClassFail']) / classPerformance['totalStudents'] * 100).round() : 0}%'),
-            _buildSummaryRow('Students Failed (MSCE):', classPerformance['totalClassFail'].toString()),
-            _buildSummaryRow('Average Aggregate:', classPerformance['averageAggregate'].toString()),
-            SizedBox(height: 8),
-            Text(
-              'Note: MSCE failure criteria - Students with aggregate ≥54 points or any subject grade 9',
-              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey[600]),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.assessment, color: Colors.green[700], size: 24),
+                    SizedBox(width: 8),
+                    Text(
+                      'CLASS SUMMARY',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green[800],
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSummaryCard(
+                        'Total Students',
+                        classPerformance['totalStudents'].toString(),
+                        Icons.people,
+                        Colors.blue,
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: _buildSummaryCard(
+                        'Class Pass Rate',
+                        '${classPerformance['classPassRate']}%',
+                        Icons.trending_up,
+                        Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(width: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSummaryCard(
+                        'Passed',
+                        totalPassed.toString(),
+                        Icons.check_circle,
+                        Colors.green,
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: _buildSummaryCard(
+                        'Failed',
+                        classPerformance['totalClassFail'].toString(),
+                        Icons.cancel,
+                        Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSummaryRow(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildSummaryCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
         children: [
-          Expanded(child: Text(label)),
-          Text(value, style: TextStyle(fontWeight: FontWeight.bold)),
+          Icon(icon, color: color, size: 28),
+          SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
   }
 
   Widget _buildSubjectPerformanceTable() {
-    return Padding(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'SUBJECT PERFORMANCE',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    return Container(
+      margin: EdgeInsets.all(16),
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              colors: [Colors.blue[50]!, Colors.blue[100]!],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-          SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              columnSpacing: 16,
-              columns: [
-                DataColumn(
-                  label: Text(
-                    'Subject',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.subject, color: Colors.blue[700], size: 24),
+                    SizedBox(width: 8),
+                    Text(
+                      'SUBJECT PERFORMANCE',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue[800],
+                      ),
+                    ),
+                  ],
                 ),
-                DataColumn(
-                  label: Text(
-                    'Total',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
                   ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Pass',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Fail',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Pass %',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Avg',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columnSpacing: 20,
+                      headingRowHeight: 56,
+                      dataRowHeight: 52,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      headingRowColor: MaterialStateProperty.all(Colors.grey[100]),
+                      columns: [
+                        DataColumn(
+                          label: Text(
+                            'Subject',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Text(
+                            'Total',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Text(
+                            'Pass',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.green[700],
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Text(
+                            'Fail',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.red[700],
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Text(
+                            'Pass %',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                      rows: subjects.map((subject) {
+                        final performance = subjectPerformance[subject] ?? {
+                          'totalStudents': 0,
+                          'passRate': 0,
+                          'totalPass': 0,
+                          'totalFail': 0,
+                        };
+                        return DataRow(
+                          cells: [
+                            DataCell(
+                              Text(
+                                subject,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                performance['totalStudents'].toString(),
+                                style: TextStyle(fontSize: 13),
+                              ),
+                            ),
+                            DataCell(
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.green[100],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  performance['totalPass'].toString(),
+                                  style: TextStyle(
+                                    color: Colors.green[800],
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.red[100],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  performance['totalFail'].toString(),
+                                  style: TextStyle(
+                                    color: Colors.red[800],
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue[100],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '${performance['passRate']}%',
+                                  style: TextStyle(
+                                    color: Colors.blue[800],
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ),
               ],
-              rows: subjects.map((subject) {
-                final performance = subjectPerformance[subject] ?? {
-                  'totalStudents': 0,
-                  'averageScore': 0,
-                  'passRate': 0,
-                  'totalPass': 0,
-                  'totalFail': 0,
-                };
-                return DataRow(
-                  cells: [
-                    DataCell(Text(subject)),
-                    DataCell(Text(performance['totalStudents'].toString())),
-                    DataCell(Text(performance['totalPass'].toString())),
-                    DataCell(Text(performance['totalFail'].toString())),
-                    DataCell(Text('${performance['passRate']}%')),
-                    DataCell(Text(performance['averageScore'].toString())),
-                  ],
-                );
-              }).toList(),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -543,40 +716,121 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
   Widget build(BuildContext context) {
     if (errorMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage!)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage!),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
         setState(() => errorMessage = null);
       });
     }
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text('${widget.className} Performance'),
+        title: Text(
+          'END OF TERM PERFORMANCE',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.blue[600],
+        foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: () {
-              setState(() {
-                isLoading = true;
-              });
-              _fetchClassData();
-            },
-            tooltip: 'Refresh Statistics',
+          Container(
+            margin: EdgeInsets.only(right: 8),
+            child: IconButton(
+              icon: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.refresh, color: Colors.white),
+              ),
+              onPressed: () {
+                setState(() {
+                  isLoading = true;
+                });
+                _fetchClassData();
+              },
+              tooltip: 'Refresh Performance Data',
+            ),
           ),
         ],
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[600]!),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Loading performance data...',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      )
           : hasError
-          ? Center(child: Text(errorMessage ?? 'An error occurred'))
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red[400],
+            ),
+            SizedBox(height: 16),
+            Text(
+              errorMessage ?? 'An error occurred',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.red[700],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  isLoading = true;
+                  hasError = false;
+                });
+                _fetchClassData();
+              },
+              child: Text('Retry'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[600],
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      )
           : RefreshIndicator(
         onRefresh: _fetchClassData,
+        color: Colors.blue[600],
         child: SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
-              _buildSchoolHeader(),
+              _buildHeader(),
+              SizedBox(height: 8),
               _buildClassSummary(),
               _buildSubjectPerformanceTable(),
-              SizedBox(height: 20),
+              SizedBox(height: 32),
             ],
           ),
         ),
