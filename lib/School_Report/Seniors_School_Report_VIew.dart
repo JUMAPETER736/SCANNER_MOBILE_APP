@@ -287,6 +287,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
+
   Future<void> fetchStudentSubjects(String basePath) async {
     try {
       final snapshot = await _firestore.collection('$basePath/Student_Subjects').get();
@@ -295,15 +296,18 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       for (var doc in snapshot.docs) {
         final data = doc.data();
         int score = 0;
-        if (data['Subject_Grade'] != null) {
+        bool hasGrade = true;
+
+        // Check if grade is N/A
+        if (data['Subject_Grade'] == 'N/A' || data['Subject_Grade'] == null) {
+          hasGrade = false;
+        } else {
           score = double.tryParse(data['Subject_Grade'].toString())?.round() ?? 0;
         }
 
-        // Enhanced position data extraction with better error handling
         int subjectPosition = 0;
         int totalStudentsInSubject = 0;
 
-        // Try to get position data with multiple fallbacks
         if (data['Subject_Position'] != null) {
           subjectPosition = (data['Subject_Position'] as num?)?.toInt() ?? 0;
         }
@@ -312,25 +316,15 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           totalStudentsInSubject = (data['Total_Students_Subject'] as num?)?.toInt() ?? 0;
         }
 
-        // If position data is missing, try alternative field names
-        if (subjectPosition == 0 && data['position'] != null) {
-          subjectPosition = (data['position'] as num?)?.toInt() ?? 0;
-        }
-
-        if (totalStudentsInSubject == 0 && data['totalStudents'] != null) {
-          totalStudentsInSubject = (data['totalStudents'] as num?)?.toInt() ?? 0;
-        }
-
-        String gradeLetter = Seniors_Grade(score);
-
-        print("Subject: ${data['Subject_Name']}, Position: $subjectPosition, Total: $totalStudentsInSubject");
+        String gradeLetter = hasGrade ? Seniors_Grade(score) : '';
 
         subjectList.add({
           'subject': data['Subject_Name'] ?? doc.id,
-          'score': score,
+          'score': hasGrade ? score : null,
           'position': subjectPosition,
           'totalStudents': totalStudentsInSubject,
           'gradeLetter': gradeLetter,
+          'hasGrade': hasGrade, // Add flag to track if grade exists
         });
       }
 
@@ -341,6 +335,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       print("Error fetching subjects: $e");
     }
   }
+
 
   Future<void> fetchTotalMarks(String basePath) async {
     try {
@@ -460,6 +455,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   }
 
   String Seniors_Grade(int Seniors_Score) {
+    if (Seniors_Score == "N/A") return '';
     if (Seniors_Score >= 90) return '1';
     if (Seniors_Score >= 80) return '2';
     if (Seniors_Score >= 75) return '3';
@@ -554,6 +550,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     );
   }
 
+
   Widget _buildReportTable() {
     return Padding(
       padding: EdgeInsets.all(16),
@@ -583,12 +580,13 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           ),
           ...subjects.map((subj) {
             final subjectName = subj['subject'] ?? 'Unknown';
+            final hasGrade = subj['hasGrade'] as bool? ?? true;
             final score = subj['score'] as int? ?? 0;
-            final grade = subj['gradeLetter']?.toString().isNotEmpty == true
+            final grade = hasGrade ? (subj['gradeLetter']?.toString().isNotEmpty == true
                 ? subj['gradeLetter']
-                : Seniors_Grade(score);
-            final remark = getRemark(grade);
-            final points = getPoints(grade);
+                : Seniors_Grade(score)) : '';
+            final remark = hasGrade ? getRemark(grade) : 'Doesn\'t take';
+            final points = hasGrade ? getPoints(grade) : '';
             final subjectStat = subjectStats[subjectName];
             final avg = subjectStat != null ? subjectStat['average'] as int : 0;
             final subjectPosition = subj['position'] as int? ?? 0;
@@ -597,16 +595,15 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
             return TableRow(
               children: [
                 _tableCell(subjectName),
-                _tableCell(score.toString()),
+                _tableCell(hasGrade ? score.toString() : ''),
                 _tableCell(points),
-                _tableCell(avg.toString()),
-                _tableCell(subjectPosition > 0 ? subjectPosition.toString() : '-'),
-                _tableCell(totalStudentsForSubject > 0 ? totalStudentsForSubject.toString() : '-'),
+                _tableCell(hasGrade ? avg.toString() : ''),
+                _tableCell(hasGrade && subjectPosition > 0 ? subjectPosition.toString() : ''),
+                _tableCell(hasGrade && totalStudentsForSubject > 0 ? totalStudentsForSubject.toString() : ''),
                 _tableCell(remark),
               ],
             );
           }).toList(),
-
         ],
       ),
     );
