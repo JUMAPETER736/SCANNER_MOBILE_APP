@@ -354,7 +354,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
           ),
           SizedBox(height: 12),
           Text(
-            'END OF TERM PERFORMANCE',
+            'RESULTS STATISTICS',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
