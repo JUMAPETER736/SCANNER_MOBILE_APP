@@ -127,6 +127,41 @@ class _Class_SelectionState extends State<Class_Selection> {
     }
   }
 
+  // Check if all subjects are taken for the selected school and class
+  bool _areAllSubjectsTaken() {
+    if (selectedClasses.isEmpty || selectedSchool == null) {
+      return false;
+    }
+
+    String className = selectedClasses[0];
+    List<String> allSubjects = classSubjects[className] ?? [];
+
+    // Get unavailable subjects for this school and class
+    List<String> unavailableSubjects = [];
+    if (unavailable_Subjects_BySchool_And_Class.containsKey(selectedSchool)) {
+      if (unavailable_Subjects_BySchool_And_Class[selectedSchool]!.containsKey(className)) {
+        unavailableSubjects = unavailable_Subjects_BySchool_And_Class[selectedSchool]![className]!;
+      }
+    }
+
+    // Check if all subjects are unavailable (excluding user's current selections)
+    List<String> availableSubjects = allSubjects.where((subject) {
+      return !unavailableSubjects.contains(subject) || selectedSubjects.contains(subject);
+    }).toList();
+
+    // If the user has saved selections, we need to consider only the truly available subjects
+    // (excluding their own selections from the unavailable count)
+    if (isSaved && selectedSubjects.isNotEmpty) {
+      // For a saved user, check if there are any subjects available other than their own
+      List<String> subjectsAvailableToOthers = allSubjects.where((subject) {
+        return !unavailableSubjects.contains(subject);
+      }).toList();
+      return subjectsAvailableToOthers.isEmpty;
+    }
+
+    return availableSubjects.isEmpty;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -437,6 +472,8 @@ class _Class_SelectionState extends State<Class_Selection> {
 
   Widget _buildSubjectSelection() {
     List<String> availableSubjects = _getAvailableSubjects();
+    bool allSubjectsTaken = _areAllSubjectsTaken();
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -476,60 +513,90 @@ class _Class_SelectionState extends State<Class_Selection> {
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Text(
                 'Please select a school and class first',
-                style: TextStyle(color: Colors.grey, fontSize: 18),
+                style: TextStyle(color: Colors.black, fontSize: 18),
               ),
             )
-          else
-            ...availableSubjects.map((subject) {
-              bool isUnavailable = _isSubjectUnavailable(subject) && !selectedSubjects.contains(subject);
-              return Card(
-                elevation: 4,
+          else if (allSubjectsTaken)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16.0),
                 margin: const EdgeInsets.symmetric(vertical: 8.0),
-                child: CheckboxListTile(
-                  title: Row(
-                    children: [
-                      Text(
-                        subject,
-                        style: TextStyle(
-                          color: isUnavailable ? Colors.grey : Colors.black,
-                          fontSize: 18,
-                        ),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  border: Border.all(color: Colors.red.shade300),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: Colors.red.shade600,
+                      size: 48,
+                    ),
+
+                    SizedBox(height: 4),
+                    Text(
+                      'All subjects for this class have been assigned to other teachers.',
+                      style: TextStyle(
+                        color: Colors.red.shade600,
+                        fontSize: 18,
                       ),
-                      if (isUnavailable)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8.0),
-                          child: Text(
-                            '(Already assigned)',
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontSize: 14,
-                              fontStyle: FontStyle.italic,
-                            ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              )
+            else
+              ...availableSubjects.map((subject) {
+                bool isUnavailable = _isSubjectUnavailable(subject) && !selectedSubjects.contains(subject);
+                return Card(
+                  elevation: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: CheckboxListTile(
+                    title: Row(
+                      children: [
+                        Text(
+                          subject,
+                          style: TextStyle(
+                            color: isUnavailable ? Colors.grey : Colors.black,
+                            fontSize: 18,
                           ),
                         ),
-                    ],
-                  ),
-                  value: selectedSubjects.contains(subject),
-                  onChanged: (isSaved || isUnavailable)
-                      ? null
-                      : (bool? value) {
-                    setState(() {
-                      if (value == true) {
-                        if (selectedSubjects.length < 2) {
-                          selectedSubjects.add(subject);
+                        if (isUnavailable)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: Text(
+                              '(Already assigned)',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 14,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    value: selectedSubjects.contains(subject),
+                    onChanged: (isSaved || isUnavailable)
+                        ? null
+                        : (bool? value) {
+                      setState(() {
+                        if (value == true) {
+                          if (selectedSubjects.length < 2) {
+                            selectedSubjects.add(subject);
+                          } else {
+                            _showToast("You can't select more than 2 subjects");
+                          }
                         } else {
-                          _showToast("You can't select more than 2 subjects");
+                          selectedSubjects.remove(subject);
                         }
-                      } else {
-                        selectedSubjects.remove(subject);
-                      }
-                    });
-                  },
-                  activeColor: Colors.blue,
-                  checkColor: Colors.white,
-                ),
-              );
-            }).toList(),
+                      });
+                    },
+                    activeColor: Colors.blue,
+                    checkColor: Colors.white,
+                  ),
+                );
+              }).toList(),
         ],
       ),
     );
