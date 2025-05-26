@@ -862,6 +862,48 @@ class _Class_SelectionState extends State<Class_Selection> {
       );
     }
 
+    int totalSubjects = _getTotalSelectedSubjects();
+    bool hasValidSelection = false;
+
+    // Check if selection is complete and valid
+    if (selectedClasses.length == 1) {
+      // One class selected - should have exactly 2 subjects
+      hasValidSelection = totalSubjects == 2;
+    } else if (selectedClasses.length == 2) {
+      // Two classes selected - should have exactly 2 subjects total (1 per class)
+      hasValidSelection = totalSubjects == 2 &&
+          selectedSubjectsByClass.values.every((subjects) => subjects.length == 1);
+    }
+
+    // If saved and has valid selection, hide buttons completely
+    if (isSaved && hasValidSelection) {
+      return Container(
+        width: double.infinity,
+        height: 56,
+        decoration: BoxDecoration(
+          color: Colors.green.shade100,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: Colors.green.shade300, width: 2),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.check_circle, color: Colors.green.shade600, size: 24),
+            SizedBox(width: 12),
+            Text(
+              'Selections Complete',
+              style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.green.shade600,
+                  fontWeight: FontWeight.bold
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // If saved but selection is incomplete, show edit button
     if (isSaved) {
       return Row(
         children: [
@@ -869,21 +911,22 @@ class _Class_SelectionState extends State<Class_Selection> {
             child: Container(
               height: 56,
               decoration: BoxDecoration(
-                color: Colors.green.shade100,
+                color: Colors.orange.shade100,
                 borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.green.shade300, width: 2),
+                border: Border.all(color: Colors.orange.shade300, width: 2),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.check_circle, color: Colors.green.shade600,
-                      size: 24),
+                  Icon(Icons.warning, color: Colors.orange.shade600, size: 24),
                   SizedBox(width: 12),
                   Text(
-                    'Selections Saved',
-                    style: TextStyle(fontSize: 18,
-                        color: Colors.green.shade600,
-                        fontWeight: FontWeight.bold),
+                    'Incomplete Selection',
+                    style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.orange.shade600,
+                        fontWeight: FontWeight.bold
+                    ),
                   ),
                 ],
               ),
@@ -896,7 +939,8 @@ class _Class_SelectionState extends State<Class_Selection> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blueAccent,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15)),
+                    borderRadius: BorderRadius.circular(15)
+                ),
                 padding: EdgeInsets.symmetric(horizontal: 20),
               ),
               onPressed: _editSelections,
@@ -905,8 +949,13 @@ class _Class_SelectionState extends State<Class_Selection> {
                 children: [
                   Icon(Icons.edit, color: Colors.white),
                   SizedBox(width: 8),
-                  Text('Edit', style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
+                  Text(
+                      'Edit',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold
+                      )
+                  ),
                 ],
               ),
             ),
@@ -915,7 +964,7 @@ class _Class_SelectionState extends State<Class_Selection> {
       );
     }
 
-    int totalSubjects = _getTotalSelectedSubjects();
+    // Show save button when not saved
     bool canSave = selectedSchool != null &&
         selectedClasses.isNotEmpty &&
         totalSubjects > 0 &&
@@ -928,7 +977,8 @@ class _Class_SelectionState extends State<Class_Selection> {
         style: ElevatedButton.styleFrom(
           backgroundColor: canSave ? Colors.blueAccent : Colors.grey.shade400,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15)),
+              borderRadius: BorderRadius.circular(15)
+          ),
           elevation: canSave ? 8 : 2,
         ),
         onPressed: canSave ? _saveSelection : null,
@@ -939,9 +989,11 @@ class _Class_SelectionState extends State<Class_Selection> {
             SizedBox(width: 12),
             Text(
               'Save Selections',
-              style: TextStyle(fontSize: 18,
+              style: TextStyle(
+                  fontSize: 18,
                   color: Colors.white,
-                  fontWeight: FontWeight.bold),
+                  fontWeight: FontWeight.bold
+              ),
             ),
           ],
         ),
