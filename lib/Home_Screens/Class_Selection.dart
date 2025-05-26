@@ -1052,6 +1052,7 @@ class _Class_SelectionState extends State<Class_Selection> {
   }
 
 // Missing build method - add this as the main build method
+  // Replace your build method with this:
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1084,10 +1085,18 @@ class _Class_SelectionState extends State<Class_Selection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Always show school selection
             _buildSchoolSelection(),
-            _buildClassSelection(),
-            _buildSubjectSelection(),
+
+            // Only show class selection if conditions are not met
+            if (!_isSelectionComplete()) _buildClassSelection(),
+
+            // Only show subject selection if conditions are not met
+            if (!_isSelectionComplete()) _buildSubjectSelection(),
+
+            // Always show selection summary
             _buildSelectionSummary(),
+
             SizedBox(height: 20),
             _buildActionButton(),
             SizedBox(height: 20),
@@ -1095,6 +1104,26 @@ class _Class_SelectionState extends State<Class_Selection> {
         ),
       ),
     );
+  }
+
+// Add this helper method to check if selection is complete:
+  bool _isSelectionComplete() {
+    if (!isSaved) return false;
+
+    int totalSubjects = _getTotalSelectedSubjects();
+    bool hasValidSelection = false;
+
+    // Check if selection is complete and valid
+    if (selectedClasses.length == 1) {
+      // One class selected - should have exactly 2 subjects
+      hasValidSelection = totalSubjects == 2;
+    } else if (selectedClasses.length == 2) {
+      // Two classes selected - should have exactly 2 subjects total (1 per class)
+      hasValidSelection = totalSubjects == 2 &&
+          selectedSubjectsByClass.values.every((subjects) => subjects.length == 1);
+    }
+
+    return hasValidSelection;
   }
 
 // Add refresh functionality
