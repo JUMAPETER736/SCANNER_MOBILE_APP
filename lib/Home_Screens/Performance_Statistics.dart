@@ -42,9 +42,15 @@ class _Performance_StatisticsState extends State<Performance_Statistics> {
 
       Widget destinationPage;
       if (formLevel == 'FORM 1' || formLevel == 'FORM 2') {
-        destinationPage = Juniors_Class_Performance(schoolName: schoolName, className: className);
+
+        destinationPage = Seniors_Class_Performance(
+            schoolName: schoolName, className: className);
+
       } else if (formLevel == 'FORM 3' || formLevel == 'FORM 4') {
-        destinationPage = Seniors_Class_Performance(schoolName: schoolName, className: className);
+
+        destinationPage = Seniors_Class_Performance(
+            schoolName: schoolName, className: className);
+
       } else {
         throw Exception("Unrecognized class level.");
       }

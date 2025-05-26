@@ -354,7 +354,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
           ),
           SizedBox(height: 12),
           Text(
-            'END OF TERM PERFORMANCE',
+            'RESULTS STATISTICS',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -781,7 +781,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(
-          'RESULTS STATISTICS',
+          'END OF TERM PERFORMANCE',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18,
