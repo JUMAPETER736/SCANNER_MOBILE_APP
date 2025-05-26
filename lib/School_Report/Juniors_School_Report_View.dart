@@ -708,12 +708,14 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   }
 
   Future<void> _printDocument() async {
+
     final pdfGenerator = Juniors_School_Report_PDF(
       studentClass: widget.studentClass,
       studentFullName: widget.studentFullName,
       subjects: subjects,
       subjectStats: subjectStats,
       studentTotalMarks: studentTotalMarks,
+      teacherTotalMarks: teacherTotalMarks, // Add this
       studentPosition: studentPosition,
       totalStudents: totalStudents,
       schoolName: schoolName,
@@ -724,6 +726,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       nextTermDate: nextTermDate,
       formTeacherRemarks: formTeacherRemarks,
       headTeacherRemarks: headTeacherRemarks,
+      averageGradeLetter: averageGradeLetter, // Add this
     );
 
     await pdfGenerator.generateAndPrintPDF();
