@@ -767,8 +767,8 @@ class _Class_SelectionState extends State<Class_Selection> {
             color: isSelected
                 ? Colors.blue
                 : (isUnavailable
-                ? Colors.red.shade300
-                : (canSelect ? Colors.orange.shade300 : Colors.grey.shade300)),
+                ? Colors.blue
+                : (canSelect ? Colors.blue : Colors.grey.shade300)),
             width: 1.5,
           ),
         ),
@@ -817,7 +817,7 @@ class _Class_SelectionState extends State<Class_Selection> {
           SizedBox(height: 16),
           Text(
             'Please select a school and at least one class first',
-            style: TextStyle(color: Colors.grey.shade600,
+            style: TextStyle(color: Colors.red,
                 fontSize: 18,
                 fontWeight: FontWeight.w500),
             textAlign: TextAlign.center,
@@ -834,7 +834,7 @@ class _Class_SelectionState extends State<Class_Selection> {
       decoration: BoxDecoration(
         color: Colors.red[50],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.shade300),
+        border: Border.all(color: Colors.blue),
       ),
       child: Row(
         children: [
