@@ -459,7 +459,7 @@ class _Class_SelectionState extends State<Class_Selection> {
       title: 'Class Selection',
       subtitle: 'Select 1-2 classes • Max 2 subjects total',
       icon: Icons.class_,
-      color: Colors.green,
+      color: Colors.blue,
       child: isSaved
           ? _buildReadOnlyField(selectedClasses.join(', '))
           : Wrap(
@@ -484,7 +484,7 @@ class _Class_SelectionState extends State<Class_Selection> {
                 }
               });
             },
-            color: Colors.green,
+            color: Colors.blue,
           );
         }).toList(),
       ),
@@ -528,7 +528,7 @@ class _Class_SelectionState extends State<Class_Selection> {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade600,
+                  color: Colors.blueAccent,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(className, style: TextStyle(color: Colors.white,
@@ -539,7 +539,7 @@ class _Class_SelectionState extends State<Class_Selection> {
               Expanded(
                 child: Text(
                   'Subjects (${selectedSubjects.length}/$maxSubjectsPerClass)',
-                  style: TextStyle(color: Colors.orange.shade600,
+                  style: TextStyle(color: Colors.blueAccent,
                       fontSize: 20,
                       fontWeight: FontWeight.bold),
                 ),
@@ -551,7 +551,7 @@ class _Class_SelectionState extends State<Class_Selection> {
             selectedClasses.length == 1
                 ? 'Max 2 subjects for single class'
                 : 'Max 1 subject per class (2 classes selected)',
-            style: TextStyle(color: Colors.orange.shade600,
+            style: TextStyle(color: Colors.blue,
                 fontSize: 14,
                 fontStyle: FontStyle.italic),
           ),
@@ -610,13 +610,13 @@ class _Class_SelectionState extends State<Class_Selection> {
     return _buildSection(
       title: 'Selection Summary',
       icon: Icons.summarize,
-      color: Colors.purple,
+      color: Colors.blue,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Total Subjects: ${_getTotalSelectedSubjects()}/2',
-            style: TextStyle(color: Colors.purple.shade700,
+            style: TextStyle(color: Colors.blue,
                 fontSize: 18,
                 fontWeight: FontWeight.w600),
           ),
@@ -631,7 +631,7 @@ class _Class_SelectionState extends State<Class_Selection> {
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.purple.shade600,
+                      color: Colors.blue,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(className, style: TextStyle(color: Colors.white,
@@ -644,7 +644,7 @@ class _Class_SelectionState extends State<Class_Selection> {
                       subjects.isNotEmpty
                           ? subjects.join(', ')
                           : 'No subjects selected',
-                      style: TextStyle(color: Colors.purple.shade700,
+                      style: TextStyle(color: Colors.blue,
                           fontSize: 16),
                     ),
                   ),
@@ -760,12 +760,12 @@ class _Class_SelectionState extends State<Class_Selection> {
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.orange.shade600
+              ? Colors.blue
               : (canSelect ? Colors.white : Colors.grey.shade100),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected
-                ? Colors.orange.shade600
+                ? Colors.blue
                 : (isUnavailable
                 ? Colors.red.shade300
                 : (canSelect ? Colors.orange.shade300 : Colors.grey.shade300)),
@@ -781,8 +781,8 @@ class _Class_SelectionState extends State<Class_Selection> {
                 color: isSelected
                     ? Colors.white
                     : (isUnavailable
-                    ? Colors.red.shade600
-                    : (canSelect ? Colors.orange.shade700 : Colors.grey
+                    ? Colors.blue
+                    : (canSelect ? Colors.blue : Colors.grey
                     .shade600)),
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
@@ -791,7 +791,7 @@ class _Class_SelectionState extends State<Class_Selection> {
             if (isUnavailable && !isSelected)
               Padding(
                 padding: EdgeInsets.only(left: 4),
-                child: Icon(Icons.lock, size: 14, color: Colors.red.shade600),
+                child: Icon(Icons.lock, size: 14, color: Colors.blue),
               ),
           ],
         ),
@@ -888,13 +888,13 @@ class _Class_SelectionState extends State<Class_Selection> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle, color: Colors.green.shade600, size: 24),
+            Icon(Icons.check_circle, color: Colors.blue, size: 24),
             SizedBox(width: 12),
             Text(
               'Selections Complete',
               style: TextStyle(
                   fontSize: 18,
-                  color: Colors.green.shade600,
+                  color: Colors.blue,
                   fontWeight: FontWeight.bold
               ),
             ),
@@ -913,18 +913,18 @@ class _Class_SelectionState extends State<Class_Selection> {
               decoration: BoxDecoration(
                 color: Colors.orange.shade100,
                 borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.orange.shade300, width: 2),
+                border: Border.all(color: Colors.blue, width: 2),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.warning, color: Colors.orange.shade600, size: 24),
+                  Icon(Icons.warning, color: Colors.red, size: 24),
                   SizedBox(width: 12),
                   Text(
                     'Incomplete Selection',
                     style: TextStyle(
                         fontSize: 18,
-                        color: Colors.orange.shade600,
+                        color: Colors.red,
                         fontWeight: FontWeight.bold
                     ),
                   ),
@@ -1025,7 +1025,7 @@ class _Class_SelectionState extends State<Class_Selection> {
             Text(message),
           ],
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.blue,
         duration: Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
