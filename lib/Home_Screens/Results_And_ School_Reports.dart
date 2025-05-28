@@ -4,22 +4,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/School_Report/Juniors_School_Report_View.dart';
 import 'package:scanna/School_Report/Seniors_School_Report_View.dart';
 
-
 class Results_And_School_Reports extends StatefulWidget {
-
   @override
   _Results_And_School_ReportsState createState() => _Results_And_School_ReportsState();
 }
 
 class _Results_And_School_ReportsState extends State<Results_And_School_Reports> {
+
+  String _searchQuery = '';
+  TextEditingController _searchController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  bool _noSearchResults = false;
 
   late String userEmail;
   bool isLoading = true;
   bool hasError = false;
   String errorMessage = '';
   List<Map<String, dynamic>> studentDetails = [];
+  List<Map<String, dynamic>> allStudentDetails = []; // Store original list for search reset
 
   // Added variables for class selection
   String? teacherSchool;
@@ -27,17 +30,16 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
   String? selectedClass;
   bool _hasSelectedCriteria = false;
 
-
   @override
   void initState() {
     super.initState();
     _simulateLoading();
   }
 
-  // Simulate loading for 1 second
+  // Simulate loading for 0.5 seconds (reduced for faster loading)
   Future<void> _simulateLoading() async {
-    await Future.delayed(Duration(seconds: 1)); // Delay for 1 second
-    _fetchUserDetails(); // After delay, fetch user details
+    await Future.delayed(Duration(milliseconds: 500)); // Reduced delay
+    _fetchUserDetails();
   }
 
   // Fetch user details from Firestore based on logged-in user's email
@@ -95,7 +97,49 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     }
   }
 
-  // Modified to fetch students for a specific class
+  // Enhanced MSCE Aggregate calculation with complex rules
+  Map<String, dynamic> calculateMSCEAggregate(List<int> subjectPoints) {
+    // Rule 1: If best six subject points total < 6, result = FAIL
+    if (subjectPoints.length < 6) {
+      return {
+        'status': 'FAIL',
+        'points': 0,
+        'message': 'Insufficient subjects (less than 6)'
+      };
+    }
+
+    // Sort points (lower is better for MSCE)
+    subjectPoints.sort();
+    List<int> bestSix = subjectPoints.take(6).toList();
+    int totalPoints = bestSix.fold(0, (sum, point) => sum + point);
+
+    // Rule 2: If best six includes a Grade 9, result = STATEMENT
+    if (bestSix.contains(9)) {
+      return {
+        'status': 'STATEMENT',
+        'points': totalPoints,
+        'message': 'Contains Grade 9 in best six subjects'
+      };
+    }
+
+    // Rule 3: If best six total > 48, result = STATEMENT
+    if (totalPoints > 48) {
+      return {
+        'status': 'STATEMENT',
+        'points': totalPoints,
+        'message': 'Total points exceed 48'
+      };
+    }
+
+    // Rule 4: Normal aggregate points display
+    return {
+      'status': 'PASS',
+      'points': totalPoints,
+      'message': 'Qualified aggregate'
+    };
+  }
+
+  // Modified to fetch students for a specific class with improved performance
   Future<void> _fetchStudentDetailsForClass(DocumentSnapshot userDoc, String classId) async {
     try {
       setState(() {
@@ -105,268 +149,40 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
       List<Map<String, dynamic>> tempStudentDetails = [];
       List<Map<String, dynamic>> classStudents = [];
 
+      // Use get() with source preference for faster loading
       QuerySnapshot studentsSnapshot = await _firestore
           .collection('Schools')
           .doc(userDoc['school'])
           .collection('Classes')
           .doc(classId)
           .collection('Student_Details')
-          .get();
+          .get(GetOptions(source: Source.serverAndCache));
+
+      // Use batch processing for better performance
+      List<Future<Map<String, dynamic>?>> studentFutures = [];
 
       for (var studentDoc in studentsSnapshot.docs) {
-        // Get student basic information from the document ID (which is the student name)
-        String studentName = studentDoc.id;
-        var studentData = studentDoc.data() as Map<String, dynamic>? ?? {};
+        studentFutures.add(_processStudentData(studentDoc, classId));
+      }
 
-        // Fetch gender from the nested subcollection
-        String? gender;
-        try {
-          DocumentSnapshot personalInfoDoc = await studentDoc.reference
-              .collection('Personal_Information')
-              .doc('Registered_Information')
-              .get();
+      // Wait for all students to be processed concurrently
+      List<Map<String, dynamic>?> processedStudents = await Future.wait(studentFutures);
 
-          if (personalInfoDoc.exists) {
-            var personalData = personalInfoDoc.data() as Map<String, dynamic>? ?? {};
-            gender = personalData['studentGender'] as String?;
-          }
-        } catch (e) {
-          print("Error fetching personal info for $studentName: $e");
-          gender = 'Unknown'; // Default value if can't fetch
-        }
-
-        var studentClass = classId; // Use the class ID directly
-
-        // Parse the student name (assuming format is "LastName FirstName" or "FirstName LastName")
-        String fullName = studentName; // Keep original name format
-
-        // Get total marks document
-        DocumentReference marksRef = studentDoc.reference
-            .collection('TOTAL_MARKS')
-            .doc('Marks');
-
-        DocumentSnapshot totalMarksDoc = await marksRef.get();
-
-        if (studentClass == 'FORM 3' || studentClass == 'FORM 4') {
-          // Calculate Best Six Points from subject grades
-          List<int> subjectPoints = [];
-
-          var subjectsSnapshot = await studentDoc.reference
-              .collection('Student_Subjects')
-              .get();
-
-          for (var subjectDoc in subjectsSnapshot.docs) {
-            var subjectData = subjectDoc.data() as Map<String, dynamic>? ?? {};
-
-            // Check if Subject_Grade exists and is not "N/A"
-            if (subjectData.containsKey('Subject_Grade')) {
-              var subjectGradeValue = subjectData['Subject_Grade'];
-
-              // Skip subjects with "N/A" grades
-              if (subjectGradeValue == null ||
-                  subjectGradeValue.toString().toUpperCase() == 'N/A') {
-                continue;
-              }
-
-              // Convert Subject_Grade to integer score
-              int? subjectScore;
-              if (subjectGradeValue is int) {
-                subjectScore = subjectGradeValue;
-              } else if (subjectGradeValue is String) {
-                subjectScore = int.tryParse(subjectGradeValue);
-              }
-
-              // Calculate grade point using the Seniors_Grade function
-              if (subjectScore != null && subjectScore >= 0) {
-                int gradePoint = int.parse(Seniors_Grade(subjectScore));
-                subjectPoints.add(gradePoint);
-              }
-            }
-          }
-
-          // Calculate Best Six Total Points
-          int bestSixPoints = 0;
-          if (subjectPoints.length >= 6) {
-            subjectPoints.sort(); // Lower is better
-            bestSixPoints = subjectPoints.take(6).fold(0, (sum, point) => sum + point);
-          } else if (subjectPoints.isNotEmpty) {
-            // Sum all valid subjects if fewer than 6
-            bestSixPoints = subjectPoints.fold(0, (sum, point) => sum + point);
-          }
-
-          // Update or create Best_Six_Total_Points in Firestore
-          if (totalMarksDoc.exists) {
-            var totalMarksData = totalMarksDoc.data() as Map<String, dynamic>;
-            var existingPointsValue = totalMarksData['Best_Six_Total_Points'];
-            int? existingBestSixPoints;
-
-            if (existingPointsValue is int) {
-              existingBestSixPoints = existingPointsValue;
-            } else if (existingPointsValue is String) {
-              existingBestSixPoints = int.tryParse(existingPointsValue);
-            }
-
-            // Update only if changed
-            if (existingBestSixPoints == null || existingBestSixPoints != bestSixPoints) {
-              await marksRef.set({
-                'Best_Six_Total_Points': bestSixPoints,
-              }, SetOptions(merge: true));
-            }
-          } else {
-            // Create the document if it doesn't exist
-            await marksRef.set({
-              'Best_Six_Total_Points': bestSixPoints,
-            });
-          }
-
-          // Add to class students list for position calculation
-          classStudents.add({
-            'fullName': fullName,
-            'studentGender': gender ?? 'Unknown',
-            'studentClass': studentClass,
-            'Best_Six_Total_Points': bestSixPoints,
-            'marksRef': marksRef,
-            'studentType': 'senior'
-          });
-
-          // Add to temporary list
-          tempStudentDetails.add({
-            'fullName': fullName,
-            'studentGender': gender ?? 'Unknown',
-            'studentClass': studentClass,
-            'Best_Six_Total_Points': bestSixPoints,
-          });
-        }
-        else if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
-          // JUNIORS: Calculate total marks from Subject grades
-          int totalMarks = 0;
-          int totalPossibleMarks = 0;
-
-          var subjectsSnapshot = await studentDoc.reference.collection('Student_Subjects').get();
-          for (var subjectDoc in subjectsSnapshot.docs) {
-            var subjectData = subjectDoc.data() as Map<String, dynamic>? ?? {};
-            if (subjectData.containsKey('Subject_Grade')) {
-              // Handle both int and string types for Subject_Grade
-              var subjectGradeValue = subjectData['Subject_Grade'];
-
-              // Skip subjects with "N/A" grades for juniors too
-              if (subjectGradeValue == null ||
-                  subjectGradeValue.toString().toUpperCase() == 'N/A') {
-                continue;
-              }
-
-              int subjectGrade = 0;
-
-              if (subjectGradeValue is int) {
-                subjectGrade = subjectGradeValue;
-              } else if (subjectGradeValue is String) {
-                subjectGrade = int.tryParse(subjectGradeValue) ?? 0;
-              }
-
-              if (subjectGrade > 0) {
-                totalMarks += subjectGrade;
-                totalPossibleMarks += 100; // Assuming each subject is out of 100
-              }
-            }
-          }
-
-          // Update or create total marks in Firebase
-          if (totalMarksDoc.exists) {
-            var totalMarksData = totalMarksDoc.data() as Map<String, dynamic>;
-
-            // Handle both int and string types for existing values
-            var existingStudentTotalValue = totalMarksData['Student_Total_Marks'];
-            var existingTeacherTotalValue = totalMarksData['Teacher_Total_Marks'];
-
-            int existingStudentTotal = 0;
-            int existingTeacherTotal = 0;
-
-            if (existingStudentTotalValue is int) {
-              existingStudentTotal = existingStudentTotalValue;
-            } else if (existingStudentTotalValue is String) {
-              existingStudentTotal = int.tryParse(existingStudentTotalValue) ?? 0;
-            }
-
-            if (existingTeacherTotalValue is int) {
-              existingTeacherTotal = existingTeacherTotalValue;
-            } else if (existingTeacherTotalValue is String) {
-              existingTeacherTotal = int.tryParse(existingTeacherTotalValue) ?? 0;
-            }
-
-            if (existingStudentTotal != totalMarks || existingTeacherTotal != totalPossibleMarks) {
-              await marksRef.update({
-                'Student_Total_Marks': totalMarks,
-                'Teacher_Total_Marks': totalPossibleMarks,
-              });
-            }
-          } else {
-            // Create the document if it doesn't exist
-            await marksRef.set({
-              'Student_Total_Marks': totalMarks,
-              'Teacher_Total_Marks': totalPossibleMarks,
-            });
-          }
-
-          // Add to class students list for position calculation
-          classStudents.add({
-            'fullName': fullName,
-            'studentGender': gender ?? 'Unknown',
-            'studentClass': studentClass,
-            'Student_Total_Marks': totalMarks,
-            'Teacher_Total_Marks': totalPossibleMarks,
-            'marksRef': marksRef,
-            'studentType': 'junior'
-          });
-
-          tempStudentDetails.add({
-            'fullName': fullName,
-            'studentGender': gender ?? 'Unknown',
-            'studentClass': studentClass,
-            'Student_Total_Marks': totalMarks,
-            'Teacher_Total_Marks': totalPossibleMarks,
-          });
+      // Filter out null results and separate by type
+      for (var student in processedStudents) {
+        if (student != null) {
+          tempStudentDetails.add(student);
+          classStudents.add(student);
         }
       }
 
       // Calculate positions for the class and update Firebase
-      int totalClassStudents = classStudents.length;
+      await _updateStudentPositions(classStudents, classId);
 
-      // Sort students by performance for position calculation
-      if (classId == 'FORM 1' || classId == 'FORM 2') {
-        // Sort by Student_Total_Marks descending (higher is better)
-        classStudents.sort((a, b) =>
-            (b['Student_Total_Marks'] ?? 0).compareTo(a['Student_Total_Marks'] ?? 0));
-
-        // Sort display list as well
-        tempStudentDetails.sort((a, b) =>
-            (b['Student_Total_Marks'] ?? 0).compareTo(a['Student_Total_Marks'] ?? 0));
-      } else if (classId == 'FORM 3' || classId == 'FORM 4') {
-        // Sort by Best_Six_Total_Points ascending (lower is better)
-        classStudents.sort((a, b) =>
-            (a['Best_Six_Total_Points'] ?? 0).compareTo(b['Best_Six_Total_Points'] ?? 0));
-
-        // Sort display list as well
-        tempStudentDetails.sort((a, b) =>
-            (a['Best_Six_Total_Points'] ?? 0).compareTo(b['Best_Six_Total_Points'] ?? 0));
-      }
-
-      // Update position for each student
-      for (int i = 0; i < classStudents.length; i++) {
-        int position = i + 1;
-        DocumentReference marksRef = classStudents[i]['marksRef'];
-
-        try {
-          await marksRef.set({
-            'Student_Class_Position': position,
-            'Total_Class_Students_Number': totalClassStudents,
-          }, SetOptions(merge: true));
-        } catch (e) {
-          print("Error updating position for student ${classStudents[i]['fullName']}: $e");
-        }
-      }
-
+      // Store both lists
       setState(() {
         studentDetails = tempStudentDetails;
+        allStudentDetails = List.from(tempStudentDetails); // Store original for search reset
         isLoading = false;
       });
     } catch (e) {
@@ -379,7 +195,199 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     }
   }
 
-// Helper function to convert score to grade point
+  // Extract student processing logic for better performance
+  Future<Map<String, dynamic>?> _processStudentData(QueryDocumentSnapshot studentDoc, String classId) async {
+    try {
+      String studentName = studentDoc.id;
+      var studentData = studentDoc.data() as Map<String, dynamic>? ?? {};
+
+      // Fetch gender from the nested subcollection
+      String? gender;
+      try {
+        DocumentSnapshot personalInfoDoc = await studentDoc.reference
+            .collection('Personal_Information')
+            .doc('Registered_Information')
+            .get(GetOptions(source: Source.serverAndCache));
+
+        if (personalInfoDoc.exists) {
+          var personalData = personalInfoDoc.data() as Map<String, dynamic>? ?? {};
+          gender = personalData['studentGender'] as String?;
+        }
+      } catch (e) {
+        print("Error fetching personal info for $studentName: $e");
+        gender = 'Unknown';
+      }
+
+      String fullName = studentName;
+
+      // Get total marks document reference
+      DocumentReference marksRef = studentDoc.reference
+          .collection('TOTAL_MARKS')
+          .doc('Marks');
+
+      DocumentSnapshot totalMarksDoc = await marksRef.get(GetOptions(source: Source.serverAndCache));
+
+      if (classId == 'FORM 3' || classId == 'FORM 4') {
+        // SENIORS: Calculate Best Six Points with MSCE rules
+        List<int> subjectPoints = [];
+
+        var subjectsSnapshot = await studentDoc.reference
+            .collection('Student_Subjects')
+            .get(GetOptions(source: Source.serverAndCache));
+
+        for (var subjectDoc in subjectsSnapshot.docs) {
+          var subjectData = subjectDoc.data() as Map<String, dynamic>? ?? {};
+
+          if (subjectData.containsKey('Subject_Grade')) {
+            var subjectGradeValue = subjectData['Subject_Grade'];
+
+            if (subjectGradeValue == null ||
+                subjectGradeValue.toString().toUpperCase() == 'N/A') {
+              continue;
+            }
+
+            int? subjectScore;
+            if (subjectGradeValue is int) {
+              subjectScore = subjectGradeValue;
+            } else if (subjectGradeValue is String) {
+              subjectScore = int.tryParse(subjectGradeValue);
+            }
+
+            if (subjectScore != null && subjectScore >= 0) {
+              int gradePoint = int.parse(Seniors_Grade(subjectScore));
+              subjectPoints.add(gradePoint);
+            }
+          }
+        }
+
+        // Apply MSCE Aggregate Rules
+        Map<String, dynamic> msceResult = calculateMSCEAggregate(subjectPoints);
+        int bestSixPoints = msceResult['points'];
+        String msceStatus = msceResult['status'];
+        String msceMessage = msceResult['message'];
+
+        // Update Firebase with MSCE results
+        Map<String, dynamic> updateData = {
+          'Best_Six_Total_Points': bestSixPoints,
+          'MSCE_Status': msceStatus,
+          'MSCE_Message': msceMessage,
+        };
+
+        if (totalMarksDoc.exists) {
+          await marksRef.set(updateData, SetOptions(merge: true));
+        } else {
+          await marksRef.set(updateData);
+        }
+
+        return {
+          'fullName': fullName,
+          'studentGender': gender ?? 'Unknown',
+          'studentClass': classId,
+          'Best_Six_Total_Points': bestSixPoints,
+          'MSCE_Status': msceStatus,
+          'MSCE_Message': msceMessage,
+          'marksRef': marksRef,
+          'studentType': 'senior'
+        };
+      } else if (classId == 'FORM 1' || classId == 'FORM 2') {
+        // JUNIORS: Calculate total marks from Subject grades
+        int totalMarks = 0;
+        int totalPossibleMarks = 0;
+
+        var subjectsSnapshot = await studentDoc.reference
+            .collection('Student_Subjects')
+            .get(GetOptions(source: Source.serverAndCache));
+
+        for (var subjectDoc in subjectsSnapshot.docs) {
+          var subjectData = subjectDoc.data() as Map<String, dynamic>? ?? {};
+          if (subjectData.containsKey('Subject_Grade')) {
+            var subjectGradeValue = subjectData['Subject_Grade'];
+
+            if (subjectGradeValue == null ||
+                subjectGradeValue.toString().toUpperCase() == 'N/A') {
+              continue;
+            }
+
+            int subjectGrade = 0;
+            if (subjectGradeValue is int) {
+              subjectGrade = subjectGradeValue;
+            } else if (subjectGradeValue is String) {
+              subjectGrade = int.tryParse(subjectGradeValue) ?? 0;
+            }
+
+            if (subjectGrade > 0) {
+              totalMarks += subjectGrade;
+              totalPossibleMarks += 100;
+            }
+          }
+        }
+
+        // Update Firebase for juniors
+        Map<String, dynamic> updateData = {
+          'Student_Total_Marks': totalMarks,
+          'Teacher_Total_Marks': totalPossibleMarks,
+        };
+
+        if (totalMarksDoc.exists) {
+          await marksRef.set(updateData, SetOptions(merge: true));
+        } else {
+          await marksRef.set(updateData);
+        }
+
+        return {
+          'fullName': fullName,
+          'studentGender': gender ?? 'Unknown',
+          'studentClass': classId,
+          'Student_Total_Marks': totalMarks,
+          'Teacher_Total_Marks': totalPossibleMarks,
+          'marksRef': marksRef,
+          'studentType': 'junior'
+        };
+      }
+    } catch (e) {
+      print("Error processing student $e");
+      return null;
+    }
+    return null;
+  }
+
+  // Extract position update logic
+  Future<void> _updateStudentPositions(List<Map<String, dynamic>> classStudents, String classId) async {
+    int totalClassStudents = classStudents.length;
+
+    // Sort students by performance for position calculation
+    if (classId == 'FORM 1' || classId == 'FORM 2') {
+      classStudents.sort((a, b) =>
+          (b['Student_Total_Marks'] ?? 0).compareTo(a['Student_Total_Marks'] ?? 0));
+      studentDetails.sort((a, b) =>
+          (b['Student_Total_Marks'] ?? 0).compareTo(a['Student_Total_Marks'] ?? 0));
+    } else if (classId == 'FORM 3' || classId == 'FORM 4') {
+      classStudents.sort((a, b) =>
+          (a['Best_Six_Total_Points'] ?? 0).compareTo(b['Best_Six_Total_Points'] ?? 0));
+      studentDetails.sort((a, b) =>
+          (a['Best_Six_Total_Points'] ?? 0).compareTo(b['Best_Six_Total_Points'] ?? 0));
+    }
+
+    // Batch update positions
+    WriteBatch batch = _firestore.batch();
+    for (int i = 0; i < classStudents.length; i++) {
+      int position = i + 1;
+      DocumentReference marksRef = classStudents[i]['marksRef'];
+
+      batch.set(marksRef, {
+        'Student_Class_Position': position,
+        'Total_Class_Students_Number': totalClassStudents,
+      }, SetOptions(merge: true));
+    }
+
+    try {
+      await batch.commit();
+    } catch (e) {
+      print("Error updating positions: $e");
+    }
+  }
+
+  // Helper function to convert score to grade point
   String Seniors_Grade(int Seniors_Score) {
     if (Seniors_Score >= 90) return '1';
     if (Seniors_Score >= 80) return '2';
@@ -392,6 +400,33 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     return '9';
   }
 
+  // Enhanced search functionality with real-time filtering
+  void performSearch(String searchQuery) {
+    setState(() {
+      _searchQuery = searchQuery.trim();
+      _noSearchResults = false;
+    });
+
+    if (_searchQuery.isEmpty) {
+      // Reset to original list
+      setState(() {
+        studentDetails = List.from(allStudentDetails);
+      });
+      return;
+    }
+
+    List<Map<String, dynamic>> filteredList = allStudentDetails
+        .where((student) =>
+        student['fullName']
+            .toLowerCase()
+            .contains(_searchQuery.toLowerCase()))
+        .toList();
+
+    setState(() {
+      studentDetails = filteredList;
+      _noSearchResults = filteredList.isEmpty;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -409,7 +444,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
         actions: [
-          // Add a search icon only if data is loaded and no errors
           if (!isLoading && !hasError && _hasSelectedCriteria)
             IconButton(
               icon: Icon(Icons.search),
@@ -444,10 +478,12 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                     child: ElevatedButton(
                       onPressed: () async {
                         setState(() {
-                          selectedClass = classItem; // Update selected class
+                          selectedClass = classItem;
+                          _searchQuery = '';
+                          _noSearchResults = false;
+                          _searchController.clear();
                         });
 
-                        // Fetch user doc and reload data for the new class
                         DocumentSnapshot userDoc = await _firestore
                             .collection('Teachers_Details')
                             .doc(userEmail)
@@ -468,12 +504,55 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                 }).toList(),
               ),
             ),
+
+            // Search status indicator
+            if (_searchQuery.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Searching for: "$_searchQuery"',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontStyle: FontStyle.italic,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _searchQuery = '';
+                          _searchController.clear();
+                          _noSearchResults = false;
+                          studentDetails = List.from(allStudentDetails);
+                        });
+                      },
+                      child: Text(
+                        'Clear',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             SizedBox(height: 16),
 
             // Student list
             Expanded(
               child: isLoading
-                  ? Center(child: CircularProgressIndicator()) // Show loading indicator
+                  ? Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                  strokeWidth: 3,
+                ),
+              )
                   : hasError
                   ? Center(
                 child: Text(
@@ -481,17 +560,35 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                   style: TextStyle(color: Colors.red, fontSize: 18),
                 ),
               )
+                  : _noSearchResults
+                  ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  
+                ),
+              )
                   : studentDetails.isEmpty
                   ? Center(
-                child: Text(
-                  'No students found in $selectedClass.',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.school_outlined,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'No students found in $selectedClass.',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
                 ),
-              ) // This message shows after loading
+              )
                   : ListView.separated(
                 shrinkWrap: true,
                 itemCount: studentDetails.length,
@@ -535,29 +632,47 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                           ),
                         ],
                       ),
-
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (student['studentClass'] == 'FORM 1' || student['studentClass'] == 'FORM 2')
-                            Text(
-                              '${student['Student_Total_Marks']} / ${student['Teacher_Total_Marks']}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                            )
-                          else if (student['studentClass'] == 'FORM 3' || student['studentClass'] == 'FORM 4')
-                            Text(
-                              '${student['Best_Six_Total_Points'] ?? 0} Points',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                            ),
-
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              if (student['studentClass'] == 'FORM 1' || student['studentClass'] == 'FORM 2')
+                                Text(
+                                  '${student['Student_Total_Marks']} / ${student['Teacher_Total_Marks']}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                )
+                              else if (student['studentClass'] == 'FORM 3' || student['studentClass'] == 'FORM 4') ...[
+                                Text(
+                                  '${student['Best_Six_Total_Points'] ?? 0} Points',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  student['MSCE_Status'] ?? 'Unknown',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: student['MSCE_Status'] == 'PASS'
+                                        ? Colors.green
+                                        : student['MSCE_Status'] == 'FAIL'
+                                        ? Colors.red
+                                        : Colors.orange,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                           SizedBox(width: 10),
                           Icon(
                             Icons.arrow_forward,
@@ -566,12 +681,10 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                           ),
                         ],
                       ),
-
                       onTap: () {
                         String studentClass = student['studentClass']?.toUpperCase() ?? '';
 
                         if (studentClass == 'FORM 1' || studentClass == 'FORM 2') {
-                          // Junior school report
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -582,7 +695,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                             ),
                           );
                         } else if (studentClass == 'FORM 3' || studentClass == 'FORM 4') {
-                          // Senior school report
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -593,7 +705,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                             ),
                           );
                         } else {
-                          // Unknown or unsupported class
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Unknown Student Class: $studentClass')),
                           );
@@ -608,7 +719,10 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
         )
             : Center(
           child: isLoading
-              ? CircularProgressIndicator()
+              ? CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+            strokeWidth: 3,
+          )
               : Text(
             hasError ? errorMessage : 'Please select Class First',
             style: TextStyle(
@@ -623,61 +737,96 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
   }
 
   void showSearchDialog(BuildContext context) {
-    String searchQuery = '';
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Search Student'),
-          content: TextField(
-            decoration: InputDecoration(
-              hintText: 'Enter first or last name',
-            ),
-            onChanged: (value) {
-              searchQuery = value;
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text(
-                'Cancel',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                setState(() {
-                  // Filter the student list based on the search query
-                  if (searchQuery.isNotEmpty) {
-                    studentDetails = studentDetails
-                        .where((student) =>
-                        student['fullName']
-                            .toLowerCase()
-                            .contains(searchQuery.toLowerCase()))
-                        .toList();
-                  } else {
-                    // If search is empty, reload all students for the selected class
-                    _fetchUserDetails();
-                  }
-                });
-              },
-              child: Text(
-                'Search',
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(
+                'Search Student',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.blueAccent,
                 ),
               ),
-            ),
-          ],
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _searchController,
+                    cursorColor: Colors.blueAccent,
+                    decoration: InputDecoration(
+                      hintText: 'Enter first or last name',
+                      prefixIcon: Icon(Icons.search, color: Colors.blueAccent),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.blueAccent),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.blueAccent),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        _searchController.text = value;
+                      });
+                    },
+                    onSubmitted: (value) {
+                      Navigator.of(context).pop();
+                      performSearch(value);
+                    },
+                  ),
+                  SizedBox(height: 10),
+                  if (_searchController.text.isNotEmpty)
+                    Text(
+                      'Press Enter or Search to find students',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _searchController.clear();
+                  },
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    performSearch(_searchController.text.trim());
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(
+                    'Search',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );

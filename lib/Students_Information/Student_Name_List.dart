@@ -39,7 +39,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
 
   void _startAutoRefresh() {
     // Auto-refresh every 30 seconds when not searching
-    _refreshTimer = Timer.periodic(Duration(seconds: 30), (timer) {
+    _refreshTimer = Timer.periodic(Duration(seconds: 10), (timer) {
       if (_searchQuery.isEmpty && mounted) {
         setState(() {
           // This will trigger a rebuild and refresh the StreamBuilder
