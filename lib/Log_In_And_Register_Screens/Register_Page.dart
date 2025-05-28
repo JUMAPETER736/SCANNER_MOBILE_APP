@@ -135,7 +135,7 @@ class _Register_PageState extends State<Register_Page> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Registered Successfully!'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.blue,
           ),
         );
       }
@@ -269,7 +269,7 @@ class _Register_PageState extends State<Register_Page> {
     return Scaffold(
       body: ModalProgressHUD(
         inAsyncCall: _showSpinner,
-        color: Colors.blueAccent,
+        color: Colors.white,
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -572,7 +572,7 @@ class _Register_PageState extends State<Register_Page> {
                                 'Already have an account? ',
                                 style: TextStyle(
                                   color: Colors.grey[600],
-                                  fontSize: _getResponsiveFontSize(context, 22.0),
+                                  fontSize: _getResponsiveFontSize(context, 20.0),
                                 ),
                               ),
                               TextButton(
@@ -589,7 +589,7 @@ class _Register_PageState extends State<Register_Page> {
                                   style: TextStyle(
                                     color: Colors.blueAccent,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: _getResponsiveFontSize(context, 22.0),
+                                    fontSize: _getResponsiveFontSize(context, 20.0),
                                   ),
                                 ),
                               ),

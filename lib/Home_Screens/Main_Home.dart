@@ -85,7 +85,7 @@ class _Main_HomeState extends State<Main_Home> {
         final textSize = (cardHeight * 0.12).clamp(10.0, 16.0);
 
         return Container(
-          color: const Color.fromARGB(255, 198, 205, 218),
+          color: Colors.white,
           padding: EdgeInsets.symmetric(
             horizontal: horizontalPadding,
             vertical: verticalPadding,
@@ -279,7 +279,7 @@ class _Main_HomeState extends State<Main_Home> {
           'Scanna',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.blue,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
@@ -312,7 +312,7 @@ class _Main_HomeState extends State<Main_Home> {
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.blue,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white54,
       ),
