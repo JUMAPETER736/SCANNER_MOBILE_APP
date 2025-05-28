@@ -20,6 +20,8 @@ class _Student_SubjectsState extends State<Student_Subjects> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<String> _subjects = [];
   List<String> _userSubjects = [];
+  List<String> _userClasses = [];
+  Map<String, String> _subjectGrades = {}; // Cache grades
   bool isLoading = true;
 
   Future<void> _fetchSubjects() async {
@@ -27,14 +29,56 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) return;
 
-      final userRef = _firestore.collection('Teachers_Details').doc(currentUser.email);
-      final docSnapshot = await userRef.get();
+      // Use a single query to get teacher details
+      final userDoc = await _firestore
+          .collection('Teachers_Details')
+          .doc(currentUser.email)
+          .get();
 
-      if (docSnapshot.exists) {
-        String schoolName = docSnapshot['school'] ?? '';
-        String className = widget.studentClass;
+      if (!userDoc.exists) {
+        setState(() => isLoading = false);
+        return;
+      }
 
-        // Fetch all subjects for the selected class
+      final userData = userDoc.data()!;
+      String schoolName = userData['school'] ?? '';
+      String className = widget.studentClass;
+
+      // Fetch user's subjects and classes in parallel
+      List<String> userSubjectsList = List<String>.from(userData['subjects'] ?? []);
+      List<String> userClassesList = List<String>.from(userData['classes'] ?? []);
+
+      // Use batch operations for better performance
+      final batch = _firestore.batch();
+
+      // Get specific student's subjects directly instead of querying all students
+      final studentSubjectsRef = _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Classes')
+          .doc(className)
+          .collection('Student_Details')
+          .doc(widget.studentName)
+          .collection('Student_Subjects');
+
+      final studentSubjectsSnapshot = await studentSubjectsRef.get();
+
+      Set<String> subjectsSet = {};
+      Map<String, String> gradesMap = {};
+
+      // Process student's subjects and grades in a single loop
+      for (var doc in studentSubjectsSnapshot.docs) {
+        String subjectName = doc['Subject_Name']?.toString() ?? doc.id;
+        String grade = doc['Subject_Grade']?.toString() ?? '';
+
+        subjectsSet.add(subjectName);
+        if (grade.isNotEmpty) {
+          gradesMap[subjectName] = grade;
+        }
+      }
+
+      // If no subjects found for this student, fetch from class level (fallback)
+      if (subjectsSet.isEmpty) {
         final classRef = _firestore
             .collection('Schools')
             .doc(schoolName)
@@ -42,29 +86,35 @@ class _Student_SubjectsState extends State<Student_Subjects> {
             .doc(className)
             .collection('Student_Details');
 
-        final classSnapshot = await classRef.get();
-        Set<String> allSubjectsSet = {};
+        final classSnapshot = await classRef.limit(5).get(); // Limit to improve performance
 
         for (var studentDoc in classSnapshot.docs) {
-          final studentSubjectRef = studentDoc.reference.collection('Student_Subjects');
-          final subjectSnapshot = await studentSubjectRef.get();
+          final subjectSnapshot = await studentDoc.reference
+              .collection('Student_Subjects')
+              .limit(10) // Limit subjects per student
+              .get();
+
           for (var subjectDoc in subjectSnapshot.docs) {
-            allSubjectsSet.add(subjectDoc['Subject_Name'].toString());
+            subjectsSet.add(subjectDoc['Subject_Name']?.toString() ?? subjectDoc.id);
           }
+
+          // Break after finding some subjects to improve performance
+          if (subjectsSet.isNotEmpty) break;
         }
-
-        // ✅ Fetch the logged-in user's subjects from Firestore array field
-        List<String> userSubjectsList = List<String>.from(docSnapshot['subjects'] ?? []);
-
-        setState(() {
-          _subjects = allSubjectsSet.toList();
-          _userSubjects = userSubjectsList;
-          isLoading = false;
-        });
-
-        print("All subjects: $_subjects");
-        print("User's assigned Subjects: $_userSubjects");
       }
+
+      setState(() {
+        _subjects = subjectsSet.toList()..sort(); // Sort for consistent display
+        _userSubjects = userSubjectsList;
+        _userClasses = userClassesList;
+        _subjectGrades = gradesMap;
+        isLoading = false;
+      });
+
+      print("All subjects: $_subjects");
+      print("User's assigned Subjects: $_userSubjects");
+      print("User's assigned Classes: $_userClasses");
+      print("Current student class: ${widget.studentClass}");
     } catch (e) {
       print('Error fetching Subjects: $e');
       setState(() {
@@ -73,8 +123,37 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     }
   }
 
+  // Helper function to check if teacher can edit this subject
+  bool _canEditSubject(String subject) {
+    // Check if the current class is in teacher's assigned classes
+    if (!_userClasses.contains(widget.studentClass)) {
+      return false;
+    }
 
+    // If teacher has only one class, they can edit all their assigned subjects
+    if (_userClasses.length == 1) {
+      return _userSubjects.contains(subject);
+    }
+
+    // For multiple classes, use index-based matching (original logic)
+    int classIndex = _userClasses.indexOf(widget.studentClass);
+
+    // Check if there's a subject at the same index position
+    if (classIndex < _userSubjects.length) {
+      String subjectAtSameIndex = _userSubjects[classIndex];
+      return subjectAtSameIndex == subject;
+    }
+
+    return false;
+  }
+
+  // Optimized grade fetching - use cached data first
   Future<String> _fetchGradeForSubject(String subject) async {
+    // Return cached grade if available
+    if (_subjectGrades.containsKey(subject)) {
+      return _subjectGrades[subject]!;
+    }
+
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) return 'N/A';
@@ -101,23 +180,18 @@ class _Student_SubjectsState extends State<Student_Subjects> {
         if (gradeSnapshot.exists) {
           final grade = gradeSnapshot['Subject_Grade'];
           if (grade != null && grade.isNotEmpty) {
-            print("Fetched Grade for $subject: $grade");  // Debugging statement
-            return grade; // Return the grade if it's not null or empty
-          } else {
-            print("Subject_Grade is null or empty for $subject");  // Debugging statement
+            print("Fetched Grade for $subject: $grade");
+            // Cache the grade
+            _subjectGrades[subject] = grade.toString();
+            return grade.toString();
           }
-        } else {
-          print("No document found for $subject");  // Debugging statement
         }
-      } else {
-        print("User document does not exist.");  // Debugging statement
       }
     } catch (e) {
       print('Error fetching Grade for Subject: $e');
     }
-    return ''; // Return empty string if no grade is found
+    return '';
   }
-
 
   Future<void> _updateGrade(String subject) async {
     String newGrade = '';
@@ -137,8 +211,8 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                     decoration: InputDecoration(hintText: "Enter new Grade"),
                     onChanged: (value) {
                       setState(() {
-                        newGrade = value.trim(); // Remove extra spaces
-                        errorMessage = ''; // Clear error message when input changes
+                        newGrade = value.trim();
+                        errorMessage = '';
                       });
                     },
                   ),
@@ -223,13 +297,12 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                       } else if (studentSnapshotReversed.exists) {
                         studentRef = studentRefReversed;
                       } else {
-                        return; // Student not found
+                        return;
                       }
 
                       final subjectRef = studentRef.collection('Student_Subjects').doc(subject);
                       int gradeInt = int.parse(newGrade);
 
-                      // Check if subject document exists, create if not
                       final subjectSnapshot = await subjectRef.get();
                       Map<String, dynamic> existingData = {};
 
@@ -239,7 +312,6 @@ class _Student_SubjectsState extends State<Student_Subjects> {
 
                       // Check if it's FORM 3 or FORM 4 (Seniors)
                       if (className.toUpperCase() == 'FORM 3' || className.toUpperCase() == 'FORM 4') {
-                        // FORM 3 and FORM 4 → Seniors grading system
                         int gradePoint;
 
                         if (gradeInt >= 90) {
@@ -262,10 +334,8 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                           gradePoint = 9;
                         }
 
-                        // Calculate position and total students for this subject
                         Map<String, int> positionData = await _calculateSubjectPosition(schoolName, className, subject, gradeInt);
 
-                        // Prepare data to save (create new or update existing fields)
                         Map<String, dynamic> dataToSave = {
                           'Subject_Grade': newGrade,
                           'Grade_Point': gradePoint,
@@ -273,17 +343,10 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                           'Total_Students_Subject': positionData['total'],
                         };
 
-                        // Merge with existing data if any
                         existingData.addAll(dataToSave);
-
-                        // Save to Firestore (creates document if doesn't exist, updates if exists)
                         await subjectRef.set(existingData, SetOptions(merge: true));
 
-                      }
-
-                      // Check if it's FORM 3 or FORM 4 (Seniors)
-                      else if  (className.toUpperCase() == 'FORM 1' || className.toUpperCase() == 'FORM 2') {
-                        // FORM 1 and FORM 2 → Juniors grading system
+                      } else if (className.toUpperCase() == 'FORM 1' || className.toUpperCase() == 'FORM 2') {
                         String gradeLetter;
 
                         if (gradeInt >= 85) {
@@ -298,10 +361,8 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                           gradeLetter = 'F';
                         }
 
-                        // Calculate position and total students for this subject
                         Map<String, int> positionData = await _calculateSubjectPosition(schoolName, className, subject, gradeInt);
 
-                        // Prepare data to save (create new or update existing fields)
                         Map<String, dynamic> dataToSave = {
                           'Subject_Grade': newGrade,
                           'Grade_Letter': gradeLetter,
@@ -309,18 +370,19 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                           'Total_Students_Subject': positionData['total'],
                         };
 
-                        // Merge with existing data if any
                         existingData.addAll(dataToSave);
-
-                        // Save to Firestore (creates document if doesn't exist, updates if exists)
                         await subjectRef.set(existingData, SetOptions(merge: true));
                       }
 
+                      // Update cached grade
                       setState(() {
-                        _fetchSubjects();
+                        _subjectGrades[subject] = newGrade;
                       });
 
                       Navigator.of(context).pop();
+
+                      // Refresh the main widget state
+                      this.setState(() {});
                     }
                   } catch (e) {
                     print('Error updating Subject Grade and Grade Point: $e');
@@ -334,10 +396,8 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     );
   }
 
-// Helper function to calculate subject position and total students
   Future<Map<String, int>> _calculateSubjectPosition(String schoolName, String className, String subject, int newGrade) async {
     try {
-      // Get all students in the class
       final classRef = _firestore
           .collection('Schools')
           .doc(schoolName)
@@ -350,7 +410,6 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       List<int> subjectGrades = [];
       int totalStudentsWithSubject = 0;
 
-      // Collect all grades for this subject from all students
       for (var studentDoc in studentsSnapshot.docs) {
         final subjectRef = studentDoc.reference.collection('Student_Subjects').doc(subject);
         final subjectSnapshot = await subjectRef.get();
@@ -365,14 +424,11 @@ class _Student_SubjectsState extends State<Student_Subjects> {
         }
       }
 
-      // Add the new grade to the list
       subjectGrades.add(newGrade);
       totalStudentsWithSubject++;
 
-      // Sort grades in descending order (highest first)
       subjectGrades.sort((a, b) => b.compareTo(a));
 
-      // Find position of the new grade
       int position = 1;
       for (int i = 0; i < subjectGrades.length; i++) {
         if (subjectGrades[i] == newGrade) {
@@ -395,8 +451,6 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     }
   }
 
-
-
   @override
   void initState() {
     super.initState();
@@ -415,7 +469,12 @@ class _Student_SubjectsState extends State<Student_Subjects> {
         backgroundColor: Colors.blueAccent,
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+        child: CircularProgressIndicator(
+          color: Colors.blueAccent, // Changed to blue color
+          strokeWidth: 3.0,
+        ),
+      )
           : _subjects.isEmpty
           ? const Center(
         child: Text(
@@ -439,67 +498,70 @@ class _Student_SubjectsState extends State<Student_Subjects> {
         child: ListView.builder(
           itemCount: _subjects.length,
           itemBuilder: (context, index) {
-            bool isUserSubject = _userSubjects.contains(_subjects[index]);
+            bool canEditThisSubject = _canEditSubject(_subjects[index]);
+            String subject = _subjects[index];
 
-            return FutureBuilder<String>(
-              future: _fetchGradeForSubject(_subjects[index]),
-              builder: (context, snapshot) {
-                String grade = snapshot.data ?? '';  // Default to an empty string instead of 'N/A'
+            // Use cached grade if available, otherwise show loading
+            String grade = _subjectGrades[subject] ?? '';
 
-                // Show N/A if the grade is empty
-                if (grade.isEmpty) {
-                  grade = 'N/A';
+            if (grade.isEmpty) {
+              // Load grade asynchronously and update cache
+              _fetchGradeForSubject(subject).then((fetchedGrade) {
+                if (fetchedGrade.isNotEmpty && mounted) {
+                  setState(() {
+                    _subjectGrades[subject] = fetchedGrade;
+                  });
                 }
+              });
+              grade = 'Loading...'; // Show loading state
+            }
 
-                return Container(
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 4,
-                        offset: Offset(2, 2),
-                      ),
-                    ],
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 4,
+                    offset: Offset(2, 2),
                   ),
-                  margin: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(16),
-                    title: Text(
-                      '${index + 1}. ${_subjects[index]}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Grade: $grade',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black54,
-                      ),
-                    ),
-                    trailing: isUserSubject
-                        ? IconButton(
-                      icon: const Icon(Icons.edit),
-                      color: Colors.blueAccent,
-                      onPressed: () {
-                        _updateGrade(_subjects[index]);
-                      },
-                    )
-                        : null,
+                ],
+              ),
+              margin: const EdgeInsets.symmetric(vertical: 4.0),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                title: Text(
+                  '${index + 1}. $subject',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueAccent,
                   ),
-                );
-              },
+                ),
+                subtitle: Text(
+                  'Grade: ${grade.isEmpty || grade == 'Loading...' ? (grade == 'Loading...' ? grade : 'N/A') : grade}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: grade == 'Loading...' ? Colors.orange : Colors.black54,
+                  ),
+                ),
+                trailing: canEditThisSubject
+                    ? IconButton(
+                  icon: const Icon(Icons.edit),
+                  color: Colors.blueAccent,
+                  iconSize: 20,
+                  onPressed: () {
+                    _updateGrade(subject);
+                  },
+                )
+                    : null,
+              ),
             );
-
           },
         ),
       ),
     );
   }
 }
-

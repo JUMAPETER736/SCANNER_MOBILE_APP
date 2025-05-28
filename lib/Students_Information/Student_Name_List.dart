@@ -234,6 +234,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                                 'Gender: $studentGender',
                                 style: TextStyle(
                                   fontSize: 13,
+                                  fontWeight: FontWeight.bold,
                                   color: Colors.black54,
                                 ),
                               ),
