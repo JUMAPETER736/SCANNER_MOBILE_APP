@@ -10,7 +10,6 @@ class Results_And_School_Reports extends StatefulWidget {
 }
 
 class _Results_And_School_ReportsState extends State<Results_And_School_Reports> {
-
   String _searchQuery = '';
   TextEditingController _searchController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -22,9 +21,8 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
   bool hasError = false;
   String errorMessage = '';
   List<Map<String, dynamic>> studentDetails = [];
-  List<Map<String, dynamic>> allStudentDetails = []; // Store original list for search reset
+  List<Map<String, dynamic>> allStudentDetails = [];
 
-  // Added variables for class selection
   String? teacherSchool;
   List<String>? teacherClasses;
   String? selectedClass;
@@ -36,24 +34,20 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     _simulateLoading();
   }
 
-  // Simulate loading for 0.5 seconds (reduced for faster loading)
   Future<void> _simulateLoading() async {
-    await Future.delayed(Duration(milliseconds: 500)); // Reduced delay
+    await Future.delayed(Duration(milliseconds: 500));
     _fetchUserDetails();
   }
 
-  // Fetch user details from Firestore based on logged-in user's email
   Future<void> _fetchUserDetails() async {
     User? user = _auth.currentUser;
     if (user != null) {
       userEmail = user.email!;
 
       try {
-        // Fetch user details from Firestore (Teachers_Details)
         DocumentSnapshot userDoc = await _firestore.collection('Teachers_Details').doc(userEmail).get();
 
         if (userDoc.exists) {
-          // Check if the user has selected a school and classes
           if (userDoc['school'] == null || userDoc['classes'] == null || userDoc['classes'].isEmpty) {
             setState(() {
               hasError = true;
@@ -61,16 +55,13 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
               isLoading = false;
             });
           } else {
-            // Set up class selection variables
             setState(() {
               teacherSchool = userDoc['school'];
               teacherClasses = List<String>.from(userDoc['classes']);
-              selectedClass = teacherClasses![0]; // Set the first class as default
+              selectedClass = teacherClasses![0];
               _hasSelectedCriteria = true;
-              isLoading = true; // Keep loading until student data is fetched
+              isLoading = true;
             });
-
-            // Fetch student details for the selected class initially
             await _fetchStudentDetailsForClass(userDoc, selectedClass!);
           }
         } else {
@@ -97,9 +88,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     }
   }
 
-  // Enhanced MSCE Aggregate calculation with complex rules
   Map<String, dynamic> calculateMSCEAggregate(List<int> subjectPoints) {
-    // Rule 1: If best six subject points total < 6, result = FAIL
     if (subjectPoints.length < 6) {
       return {
         'status': 'FAIL',
@@ -108,12 +97,10 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
       };
     }
 
-    // Sort points (lower is better for MSCE)
     subjectPoints.sort();
     List<int> bestSix = subjectPoints.take(6).toList();
     int totalPoints = bestSix.fold(0, (sum, point) => sum + point);
 
-    // Rule 2: If best six includes a Grade 9, result = STATEMENT
     if (bestSix.contains(9)) {
       return {
         'status': 'STATEMENT',
@@ -122,7 +109,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
       };
     }
 
-    // Rule 3: If best six total > 48, result = STATEMENT
     if (totalPoints > 48) {
       return {
         'status': 'STATEMENT',
@@ -131,7 +117,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
       };
     }
 
-    // Rule 4: Normal aggregate points display
     return {
       'status': 'PASS',
       'points': totalPoints,
@@ -139,7 +124,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     };
   }
 
-  // Modified to fetch students for a specific class with improved performance
   Future<void> _fetchStudentDetailsForClass(DocumentSnapshot userDoc, String classId) async {
     try {
       setState(() {
@@ -149,7 +133,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
       List<Map<String, dynamic>> tempStudentDetails = [];
       List<Map<String, dynamic>> classStudents = [];
 
-      // Use get() with source preference for faster loading
       QuerySnapshot studentsSnapshot = await _firestore
           .collection('Schools')
           .doc(userDoc['school'])
@@ -158,17 +141,14 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
           .collection('Student_Details')
           .get(GetOptions(source: Source.serverAndCache));
 
-      // Use batch processing for better performance
       List<Future<Map<String, dynamic>?>> studentFutures = [];
 
       for (var studentDoc in studentsSnapshot.docs) {
         studentFutures.add(_processStudentData(studentDoc, classId));
       }
 
-      // Wait for all students to be processed concurrently
       List<Map<String, dynamic>?> processedStudents = await Future.wait(studentFutures);
 
-      // Filter out null results and separate by type
       for (var student in processedStudents) {
         if (student != null) {
           tempStudentDetails.add(student);
@@ -176,13 +156,11 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
         }
       }
 
-      // Calculate positions for the class and update Firebase
       await _updateStudentPositions(classStudents, classId);
 
-      // Store both lists
       setState(() {
         studentDetails = tempStudentDetails;
-        allStudentDetails = List.from(tempStudentDetails); // Store original for search reset
+        allStudentDetails = List.from(tempStudentDetails);
         isLoading = false;
       });
     } catch (e) {
@@ -195,13 +173,12 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     }
   }
 
-  // Extract student processing logic for better performance
-  Future<Map<String, dynamic>?> _processStudentData(QueryDocumentSnapshot studentDoc, String classId) async {
+  Future<Map<String, dynamic>?> _processStudentData(
+      QueryDocumentSnapshot studentDoc, String classId) async {
     try {
       String studentName = studentDoc.id;
       var studentData = studentDoc.data() as Map<String, dynamic>? ?? {};
 
-      // Fetch gender from the nested subcollection
       String? gender;
       try {
         DocumentSnapshot personalInfoDoc = await studentDoc.reference
@@ -219,8 +196,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
       }
 
       String fullName = studentName;
-
-      // Get total marks document reference
       DocumentReference marksRef = studentDoc.reference
           .collection('TOTAL_MARKS')
           .doc('Marks');
@@ -228,7 +203,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
       DocumentSnapshot totalMarksDoc = await marksRef.get(GetOptions(source: Source.serverAndCache));
 
       if (classId == 'FORM 3' || classId == 'FORM 4') {
-        // SENIORS: Calculate Best Six Points with MSCE rules
         List<int> subjectPoints = [];
 
         var subjectsSnapshot = await studentDoc.reference
@@ -260,13 +234,11 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
           }
         }
 
-        // Apply MSCE Aggregate Rules
         Map<String, dynamic> msceResult = calculateMSCEAggregate(subjectPoints);
         int bestSixPoints = msceResult['points'];
         String msceStatus = msceResult['status'];
         String msceMessage = msceResult['message'];
 
-        // Update Firebase with MSCE results
         Map<String, dynamic> updateData = {
           'Best_Six_Total_Points': bestSixPoints,
           'MSCE_Status': msceStatus,
@@ -290,7 +262,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
           'studentType': 'senior'
         };
       } else if (classId == 'FORM 1' || classId == 'FORM 2') {
-        // JUNIORS: Calculate total marks from Subject grades
         int totalMarks = 0;
         int totalPossibleMarks = 0;
 
@@ -322,10 +293,12 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
           }
         }
 
-        // Update Firebase for juniors
+        String jceStatus = totalMarks >= 550 ? 'PASS' : 'FAIL';
+
         Map<String, dynamic> updateData = {
           'Student_Total_Marks': totalMarks,
           'Teacher_Total_Marks': totalPossibleMarks,
+          'JCE_Status': jceStatus,
         };
 
         if (totalMarksDoc.exists) {
@@ -340,6 +313,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
           'studentClass': classId,
           'Student_Total_Marks': totalMarks,
           'Teacher_Total_Marks': totalPossibleMarks,
+          'JCE_Status': jceStatus,
           'marksRef': marksRef,
           'studentType': 'junior'
         };
@@ -351,11 +325,9 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     return null;
   }
 
-  // Extract position update logic
   Future<void> _updateStudentPositions(List<Map<String, dynamic>> classStudents, String classId) async {
     int totalClassStudents = classStudents.length;
 
-    // Sort students by performance for position calculation
     if (classId == 'FORM 1' || classId == 'FORM 2') {
       classStudents.sort((a, b) =>
           (b['Student_Total_Marks'] ?? 0).compareTo(a['Student_Total_Marks'] ?? 0));
@@ -368,7 +340,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
           (a['Best_Six_Total_Points'] ?? 0).compareTo(b['Best_Six_Total_Points'] ?? 0));
     }
 
-    // Batch update positions
     WriteBatch batch = _firestore.batch();
     for (int i = 0; i < classStudents.length; i++) {
       int position = i + 1;
@@ -387,7 +358,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     }
   }
 
-  // Helper function to convert score to grade point
   String Seniors_Grade(int Seniors_Score) {
     if (Seniors_Score >= 90) return '1';
     if (Seniors_Score >= 80) return '2';
@@ -400,7 +370,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     return '9';
   }
 
-  // Enhanced search functionality with real-time filtering
   void performSearch(String searchQuery) {
     setState(() {
       _searchQuery = searchQuery.trim();
@@ -408,7 +377,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     });
 
     if (_searchQuery.isEmpty) {
-      // Reset to original list
       setState(() {
         studentDetails = List.from(allStudentDetails);
       });
@@ -465,7 +433,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
         child: _hasSelectedCriteria
             ? Column(
           children: [
-            // Class selection buttons
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.all(10),
@@ -505,7 +472,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
               ),
             ),
 
-            // Search status indicator
             if (_searchQuery.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.all(8.0),
@@ -544,7 +510,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
 
             SizedBox(height: 16),
 
-            // Student list
             Expanded(
               child: isLoading
                   ? Center(
@@ -564,7 +529,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                   ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  
+
                 ),
               )
                   : studentDetails.isEmpty
@@ -632,6 +597,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                           ),
                         ],
                       ),
+
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -639,25 +605,38 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              if (student['studentClass'] == 'FORM 1' || student['studentClass'] == 'FORM 2')
+                              if (student['studentClass'] == 'FORM 1' || student['studentClass'] == 'FORM 2') ...[
                                 Text(
                                   '${student['Student_Total_Marks']} / ${student['Teacher_Total_Marks']}',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                  ),
-                                )
-                              else if (student['studentClass'] == 'FORM 3' || student['studentClass'] == 'FORM 4') ...[
-                                Text(
-                                  '${student['Best_Six_Total_Points'] ?? 0} Points',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black,
                                   ),
                                 ),
-                                SizedBox(height: 2),
+                                const SizedBox(height: 2),
+                                Text(
+                                  student['JCE_Status'] ?? 'Unknown',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: student['JCE_Status'] == 'PASS'
+                                        ? Colors.green
+                                        : student['JCE_Status'] == 'FAIL'
+                                        ? Colors.red
+                                        : Colors.orange,
+                                  ),
+                                ),
+                              ] else if (student['studentClass'] == 'FORM 3' || student['studentClass'] == 'FORM 4') ...[
+                                Text(
+                                  '${student['Best_Six_Total_Points'] ?? 0} Points',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
                                 Text(
                                   student['MSCE_Status'] ?? 'Unknown',
                                   style: TextStyle(
@@ -673,14 +652,15 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                               ],
                             ],
                           ),
-                          SizedBox(width: 10),
-                          Icon(
+                          const SizedBox(width: 10),
+                          const Icon(
                             Icons.arrow_forward,
                             color: Colors.blueAccent,
                             size: 20,
                           ),
                         ],
                       ),
+
                       onTap: () {
                         String studentClass = student['studentClass']?.toUpperCase() ?? '';
 
