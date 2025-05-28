@@ -783,11 +783,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
               onPressed: _printDocument,
               tooltip: 'Print Report',
             ),
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _fetchStudentData,
-            tooltip: 'Refresh Data',
-          ),
         ],
       ),
       body: isLoading
