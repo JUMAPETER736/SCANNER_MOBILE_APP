@@ -717,11 +717,15 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
   }
 
   void showSearchDialog(BuildContext context) {
+    TextEditingController localSearchController = TextEditingController(
+        text: _searchController.text);
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (BuildContext context,
+              void Function(void Function()) setState) {
             return AlertDialog(
               title: Text(
                 'Search Student',
@@ -734,11 +738,10 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
-                    controller: _searchController,
+                    controller: localSearchController,
                     cursorColor: Colors.blueAccent,
                     decoration: InputDecoration(
                       hintText: 'Enter first or last name',
-                      prefixIcon: Icon(Icons.search, color: Colors.blueAccent),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide(color: Colors.blueAccent),
@@ -749,36 +752,20 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+                        borderSide: BorderSide(color: Colors.blueAccent,
+                            width: 2),
                       ),
                     ),
-                    onChanged: (value) {
-                      setDialogState(() {
-                        _searchController.text = value;
-                      });
-                    },
-                    onSubmitted: (value) {
-                      Navigator.of(context).pop();
-                      performSearch(value);
-                    },
+                    // No need for onChanged here to avoid state jumps
                   ),
                   SizedBox(height: 10),
-                  if (_searchController.text.isNotEmpty)
-                    Text(
-                      'Press Enter or Search to find students',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
                 ],
               ),
               actions: [
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    _searchController.clear();
+                    localSearchController.clear();
                   },
                   child: Text(
                     'Cancel',
@@ -791,7 +778,12 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                 ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    performSearch(_searchController.text.trim());
+                    setState(() {
+                      _searchController.text =
+                          localSearchController.text.trim();
+                      _searchQuery = _searchController.text.trim();
+                      _noSearchResults = false;
+                    });
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blueAccent,
