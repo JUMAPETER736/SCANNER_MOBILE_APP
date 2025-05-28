@@ -567,7 +567,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                       borderRadius: BorderRadius.circular(15.0),
                     ),
                     child: ListTile(
-                      contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                      contentPadding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
                       leading: Text(
                         '${index + 1}.',
                         style: TextStyle(
