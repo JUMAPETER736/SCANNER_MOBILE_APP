@@ -19,6 +19,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
   List<String>? teacherClasses;
   String? selectedClass;
   bool _hasSelectedCriteria = false;
+  bool _noSearchResults = false;
 
   @override
   void initState() {
@@ -26,7 +27,6 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     _checkTeacherSelection();
   }
 
-  // Method to check if the teacher has selected school and class
   void _checkTeacherSelection() async {
     if (widget.loggedInUser != null) {
       var teacherSnapshot = await FirebaseFirestore.instance
@@ -43,7 +43,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
           setState(() {
             teacherSchool = school;
             teacherClasses = List<String>.from(classes);
-            selectedClass = classes[0]; // Set the first class as default
+            selectedClass = classes[0];
             _hasSelectedCriteria = true;
           });
         }
@@ -69,7 +69,6 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     }
 
     return Scaffold(
-
       appBar: AppBar(
         title: _hasSelectedCriteria
             ? Text(
@@ -104,30 +103,30 @@ class _Student_Name_ListState extends State<Student_Name_List> {
         padding: const EdgeInsets.all(16.0),
         child: _hasSelectedCriteria
             ? Column(
-
           children: [
-
-
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.all(10),
               child: Row(
                 children: (teacherClasses ?? []).map((classItem) {
                   final isSelected = classItem == selectedClass;
-
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 5),
                     child: ElevatedButton(
                       onPressed: () {
                         setState(() {
-                          selectedClass = classItem; // Update selected class
-                          _searchQuery = ''; // Reset search if needed
-                          _searchController.clear(); // Clear search box
+                          selectedClass = classItem;
+                          _searchQuery = '';
+                          _noSearchResults = false;
+                          _searchController.clear();
                         });
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isSelected ? Colors.blue : Colors.grey[300],
-                        foregroundColor: isSelected ? Colors.white : Colors.black,
+                        backgroundColor: isSelected
+                            ? Colors.blue
+                            : Colors.grey[300],
+                        foregroundColor:
+                        isSelected ? Colors.white : Colors.black,
                       ),
                       child: Text(
                         classItem,
@@ -138,24 +137,24 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                 }).toList(),
               ),
             ),
-
-
-            SizedBox(height: 16),
+            SizedBox(height: 8),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('Schools')
-                    .doc(teacherSchool) // Use the logged-in teacher's school
+                    .doc(teacherSchool)
                     .collection('Classes')
-                    .doc(selectedClass) // Use the selected class
+                    .doc(selectedClass)
                     .collection('Student_Details')
                     .snapshots(),
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
                   }
 
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  if (!snapshot.hasData ||
+                      snapshot.data!.docs.isEmpty) {
                     return Center(
                       child: Text(
                         'No Student Found.',
@@ -169,46 +168,56 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                   }
 
                   var studentDocs = snapshot.data!.docs;
+                  List<Widget> studentCards = [];
 
-                  return ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: studentDocs.length,
-                    separatorBuilder: (context, index) => SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      var studentDoc = studentDocs[index];
-                      var registeredInformationDocRef = studentDoc.reference
-                          .collection('Personal_Information')
-                          .doc('Registered_Information');
+                  for (int index = 0;
+                  index < studentDocs.length;
+                  index++) {
+                    var studentDoc = studentDocs[index];
+                    var registeredInformationDocRef =
+                    studentDoc.reference
+                        .collection('Personal_Information')
+                        .doc('Registered_Information');
 
-                      return FutureBuilder<DocumentSnapshot>(
+                    studentCards.add(
+                      FutureBuilder<DocumentSnapshot>(
                         future: registeredInformationDocRef.get(),
                         builder: (context, futureSnapshot) {
-                          if (!futureSnapshot.hasData || !futureSnapshot.data!.exists) {
-                            return Container(); // Skip if no data
+                          if (!futureSnapshot.hasData ||
+                              !futureSnapshot.data!.exists) {
+                            return SizedBox.shrink();
                           }
 
-                          var data = futureSnapshot.data!.data() as Map<String, dynamic>;
+                          var data = futureSnapshot.data!.data()
+                          as Map<String, dynamic>;
                           var firstName = data['firstName'] ?? 'N/A';
                           var lastName = data['lastName'] ?? 'N/A';
-                          var studentGender = data['studentGender'] ?? 'N/A';
-                          var fullName = '$lastName $firstName'; // Change order to lastName firstName
+                          var studentGender =
+                              data['studentGender'] ?? 'N/A';
+                          var fullName = '$lastName $firstName';
 
                           if (_searchQuery.isNotEmpty &&
-                              !fullName.toLowerCase().contains(_searchQuery.toLowerCase())) {
-                            return Container(); // Skip if search query doesn't match
+                              !fullName
+                                  .toLowerCase()
+                                  .contains(
+                                  _searchQuery.toLowerCase())) {
+                            return SizedBox.shrink();
                           }
 
                           return Card(
-                            elevation: 6,
+                            elevation: 3,
+                            margin: const EdgeInsets.symmetric(
+                                vertical: 4.0),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15.0),
+                              borderRadius: BorderRadius.circular(10.0),
                             ),
                             child: ListTile(
-                              contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                              contentPadding: EdgeInsets.symmetric(
+                                  vertical: 4.0, horizontal: 12.0),
                               leading: Text(
                                 '${index + 1}.',
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.blueAccent,
                                 ),
@@ -216,7 +225,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                               title: Text(
                                 fullName.toUpperCase(),
                                 style: TextStyle(
-                                  fontSize: 18,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.blueAccent,
                                 ),
@@ -224,28 +233,59 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                               subtitle: Text(
                                 'Gender: $studentGender',
                                 style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
                                   color: Colors.black54,
                                 ),
                               ),
-                              trailing: Icon(Icons.arrow_forward, color: Colors.blueAccent),
-                              onTap: () async {
-                                // Navigate to StudentSubjects page
+                              trailing: Icon(Icons.arrow_forward,
+                                  color: Colors.blueAccent),
+                              onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => Student_Subjects(
-                                      studentName: fullName,
-                                      studentClass: selectedClass!,
-                                    ),
+                                    builder: (context) =>
+                                        Student_Subjects(
+                                          studentName: fullName,
+                                          studentClass: selectedClass!,
+                                        ),
                                   ),
                                 );
                               },
                             ),
                           );
                         },
-                      );
+                      ),
+                    );
+                  }
+
+                  // Remove empty SizedBox.shrink() widgets
+                  studentCards = studentCards
+                      .where((widget) => widget is! SizedBox)
+                      .toList();
+
+                  if (_searchQuery.isNotEmpty &&
+                      studentCards.isEmpty) {
+                    _noSearchResults = true;
+                    return Center(
+                      child: Text(
+                        'No student matches your search.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                    );
+                  } else {
+                    _noSearchResults = false;
+                  }
+
+                  return ListView.separated(
+                    itemCount: studentCards.length,
+                    separatorBuilder: (context, index) =>
+                        SizedBox(height: 6),
+                    itemBuilder: (context, index) {
+                      return studentCards[index];
                     },
                   );
                 },
@@ -279,11 +319,9 @@ class _Student_Name_ListState extends State<Student_Name_List> {
               hintText: 'Enter first or last name',
             ),
             onChanged: (value) {
-              if (mounted) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              }
+              setState(() {
+                _searchQuery = value;
+              });
             },
           ),
           actions: [
