@@ -22,16 +22,23 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // Data variables
   List<Map<String, dynamic>> subjects = [];
   Map<String, dynamic> totalMarks = {};
   Map<String, dynamic> subjectStats = {};
   Map<String, int> subjectPositions = {};
   Map<String, int> totalStudentsPerSubject = {};
+
+  // Student info
   int studentPosition = 0;
   int totalStudents = 0;
-  bool isLoading = true;
-  bool hasError = false;
-  String? errorMessage;
+  int studentTotalMarks = 0;
+  int teacherTotalMarks = 0;
+  String averageGradeLetter = '';
+  String jceStatus = 'FAIL';
+  double averagePercentage = 0.0;
+
+  // School info
   String? userEmail;
   String? schoolName;
   String? schoolAddress;
@@ -41,9 +48,11 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   String? nextTermDate;
   String? formTeacherRemarks;
   String? headTeacherRemarks;
-  int studentTotalMarks = 0;
-  int teacherTotalMarks = 0;
-  String averageGradeLetter = '';
+
+  // State variables
+  bool isLoading = true;
+  bool hasError = false;
+  String? errorMessage;
 
   @override
   void initState() {
@@ -51,51 +60,48 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     _fetchStudentData();
   }
 
-  // Method to determine current term based on date
   String getCurrentTerm() {
     DateTime now = DateTime.now();
     int currentMonth = now.month;
     int currentDay = now.day;
 
-    // TERM ONE: 1 Sept - 31 Dec
     if ((currentMonth == 9 && currentDay >= 1) ||
         (currentMonth >= 10 && currentMonth <= 12)) {
       return 'ONE';
     }
-    // TERM TWO: 2 Jan - 20 April
     else if ((currentMonth == 1 && currentDay >= 2) ||
         (currentMonth >= 2 && currentMonth <= 3) ||
         (currentMonth == 4 && currentDay <= 20)) {
       return 'TWO';
     }
-    // TERM THREE: 25 April - 30 July
     else if ((currentMonth == 4 && currentDay >= 25) ||
         (currentMonth >= 5 && currentMonth <= 7)) {
       return 'THREE';
     }
-    // Default to ONE if date falls outside defined terms
     else {
       return 'ONE';
     }
   }
 
-  // Method to get academic year
   String getAcademicYear() {
     DateTime now = DateTime.now();
     int currentYear = now.year;
     int currentMonth = now.month;
 
-    // Academic year starts in September
     if (currentMonth >= 9) {
-      // If current month is Sept-Dec, academic year is current year to next year
       return '$currentYear/${currentYear + 1}';
     } else {
-      // If current month is Jan-Aug, academic year is previous year to current year
       return '${currentYear - 1}/$currentYear';
     }
   }
 
   Future<void> _fetchStudentData() async {
+    setState(() {
+      isLoading = true;
+      hasError = false;
+      errorMessage = null;
+    });
+
     User? user = _auth.currentUser;
     if (user == null) {
       setState(() {
@@ -147,11 +153,18 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
       final String basePath = 'Schools/$teacherSchool/Classes/$studentClass/Student_Details/$studentFullName';
 
-      await _fetchSchoolInfo(teacherSchool);
-      await fetchStudentSubjects(basePath);
-      await fetchTotalMarks(basePath);
-      await calculate_Subject_Stats_And_Position(teacherSchool, studentClass, studentFullName);
+      await Future.wait([
+        _fetchSchoolInfo(teacherSchool),
+        fetchStudentSubjects(basePath),
+        fetchTotalMarks(basePath),
+        calculate_Subject_Stats_And_Position(teacherSchool, studentClass, studentFullName),
+      ]);
+
+      // Calculate and update average grade letter
       await _calculateAndUpdateAverageGradeLetter(basePath);
+
+      // Calculate JCE status based on total marks
+      jceStatus = studentTotalMarks >= 550 ? 'PASS' : 'FAIL';
 
       setState(() {
         isLoading = false;
@@ -161,7 +174,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       setState(() {
         isLoading = false;
         hasError = true;
-        errorMessage = 'An error occurred while fetching data.';
+        errorMessage = 'An error occurred while fetching data: ${e.toString()}';
       });
     }
   }
@@ -169,13 +182,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   Future<void> _calculateAndUpdateAverageGradeLetter(String basePath) async {
     try {
       if (teacherTotalMarks > 0) {
-        // Calculate percentage
         double percentage = (studentTotalMarks / teacherTotalMarks) * 100;
-
-        // Determine grade letter based on percentage
         String gradeLetter = _getGradeFromPercentage(percentage);
 
-        // Update Firestore with the calculated average grade letter
         await _firestore.doc('$basePath/TOTAL_MARKS/Marks').update({
           'Average_Grade_Letter': gradeLetter,
           'Average_Percentage': percentage,
@@ -184,13 +193,11 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
         setState(() {
           averageGradeLetter = gradeLetter;
+          averagePercentage = percentage;
         });
-
-        print("Average Grade Letter calculated: $gradeLetter (${percentage.toStringAsFixed(1)}%)");
       }
     } catch (e) {
       print("Error calculating average grade letter: $e");
-      // Set default if calculation fails
       setState(() {
         averageGradeLetter = 'F';
       });
@@ -207,7 +214,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
   Future<void> _fetchSchoolInfo(String school) async {
     try {
-      // Try to fetch from School_Information subcollection first
       DocumentSnapshot schoolInfoDoc = await _firestore
           .collection('Schools')
           .doc(school)
@@ -226,7 +232,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           headTeacherRemarks = schoolInfoDoc['headTeacherRemarks'] ?? 'N/A';
         });
       } else {
-        // Create default school information document if it doesn't exist
         Map<String, dynamic> defaultSchoolInfo = {
           'address': 'N/A',
           'phone': 'N/A',
@@ -258,7 +263,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       }
     } catch (e) {
       print("Error fetching school info: $e");
-      // Set defaults if there's an error
       setState(() {
         schoolAddress = 'N/A';
         schoolPhone = 'N/A';
@@ -283,11 +287,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           score = double.tryParse(data['Subject_Grade'].toString())?.round() ?? 0;
         }
 
-        // Enhanced position data extraction with better error handling
         int subjectPosition = 0;
         int totalStudentsInSubject = 0;
 
-        // Try to get position data with multiple fallbacks
         if (data['Subject_Position'] != null) {
           subjectPosition = (data['Subject_Position'] as num?)?.toInt() ?? 0;
         }
@@ -296,7 +298,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           totalStudentsInSubject = (data['Total_Students_Subject'] as num?)?.toInt() ?? 0;
         }
 
-        // If position data is missing, try alternative field names
         if (subjectPosition == 0 && data['position'] != null) {
           subjectPosition = (data['position'] as num?)?.toInt() ?? 0;
         }
@@ -306,8 +307,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         }
 
         String gradeLetter = data['Grade_Letter']?.toString() ?? '';
-
-        print("Subject: ${data['Subject_Name']}, Position: $subjectPosition, Total: $totalStudentsInSubject");
 
         subjectList.add({
           'subject': data['Subject_Name'] ?? doc.id,
@@ -338,6 +337,8 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           studentPosition = (data['Student_Class_Position'] as num?)?.toInt() ?? 0;
           totalStudents = (data['Total_Class_Students_Number'] as num?)?.toInt() ?? 0;
           averageGradeLetter = data['Average_Grade_Letter']?.toString() ?? '';
+          averagePercentage = (data['Average_Percentage'] as num?)?.toDouble() ?? 0.0;
+          jceStatus = studentTotalMarks >= 550 ? 'PASS' : 'FAIL';
         });
       }
     } catch (e) {
@@ -355,7 +356,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       Map<String, List<int>> marksPerSubject = {};
       Map<String, List<Map<String, dynamic>>> subjectStudentData = {};
 
-      // Collect all students' marks for each subject
       for (var studentDoc in studentsSnapshot.docs) {
         final studentName = studentDoc.id;
 
@@ -382,14 +382,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         }
       }
 
-      // Calculate positions and update Firestore
       for (String subjectName in subjectStudentData.keys) {
         var studentList = subjectStudentData[subjectName]!;
-
-        // Sort by grade in descending order
         studentList.sort((a, b) => b['grade'].compareTo(a['grade']));
-
-        // Calculate positions (handle ties)
         Map<String, int> positions = {};
         int currentPosition = 1;
 
@@ -403,7 +398,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
           positions[currentStudentName] = currentPosition;
 
-          // Update the position in Firestore for each student
           try {
             await _firestore
                 .doc('Schools/$school/Classes/$studentClass/Student_Details/$currentStudentName/Student_Subjects/$subjectName')
@@ -418,7 +412,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         }
       }
 
-      // Calculate averages and update subject stats
       Map<String, int> averages = {};
       Map<String, int> totalStudentsPerSubjectMap = {};
 
@@ -434,7 +427,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         totalStudentsPerSubject = totalStudentsPerSubjectMap;
       });
 
-      // Refresh student subjects data to get updated positions
       final String basePath = 'Schools/$school/Classes/$studentClass/Student_Details/$studentFullName';
       await fetchStudentSubjects(basePath);
 
@@ -465,7 +457,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     return Column(
       children: [
         Text(
-          schoolName ?? 'UNKNOWN SECONDARY SCHOOL',
+          (schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase(),
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
@@ -485,7 +477,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           textAlign: TextAlign.center,
         ),
         SizedBox(height: 10),
-        // Added PROGRESS REPORT text
         Text(
           'PROGRESS REPORT',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -506,11 +497,32 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   Widget _buildStudentInfo() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
-          Text('NAME OF STUDENT: ${widget.studentFullName}'),
-          Text('CLASS: ${widget.studentClass}'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 4,
+                child: Text('NAME OF STUDENT: ${widget.studentFullName}'),
+              ),
+              Expanded(
+                flex: 3,
+                child: Row(
+                  children: [
+                    Text('POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}'),
+                    SizedBox(width: 10),
+                    Text('OUT OF: ${totalStudents > 0 ? totalStudents : 'N/A'}'),
+                  ],
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text('CLASS: ${widget.studentClass}'),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
         ],
       ),
     );
@@ -567,7 +579,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
               ],
             );
           }).toList(),
-          // TOTAL MARKS row
           TableRow(
             decoration: BoxDecoration(color: Colors.grey[300]),
             children: [
@@ -599,14 +610,20 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     );
   }
 
-  Widget _buildPositionSection() {
+  Widget _buildResultSection() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
-          Text('OVERALL POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}'),
-          Text('OUT OF: ${totalStudents > 0 ? totalStudents : 'N/A'}'),
+          Row(
+            children: [
+              Text(
+                'RESULT: $jceStatus',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
         ],
       ),
     );
@@ -619,8 +636,8 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'JCE GRADING KEY',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            'JCE GRADING KEY FOR ${(schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase()}',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           SizedBox(height: 8),
           Table(
@@ -708,35 +725,48 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   }
 
   Future<void> _printDocument() async {
+    try {
+      final pdfGenerator = Juniors_School_Report_PDF(
+        studentClass: widget.studentClass,
+        studentFullName: widget.studentFullName,
+        subjects: subjects,
+        subjectStats: subjectStats,
+        studentTotalMarks: studentTotalMarks,
+        teacherTotalMarks: teacherTotalMarks,
+        studentPosition: studentPosition,
+        totalStudents: totalStudents,
+        schoolName: schoolName,
+        schoolAddress: schoolAddress,
+        schoolPhone: schoolPhone,
+        schoolEmail: schoolEmail,
+        schoolAccount: schoolAccount,
+        nextTermDate: nextTermDate,
+        formTeacherRemarks: formTeacherRemarks,
+        headTeacherRemarks: headTeacherRemarks,
+        averageGradeLetter: averageGradeLetter,
+        jceStatus: jceStatus,
+      );
 
-    final pdfGenerator = Juniors_School_Report_PDF(
-      studentClass: widget.studentClass,
-      studentFullName: widget.studentFullName,
-      subjects: subjects,
-      subjectStats: subjectStats,
-      studentTotalMarks: studentTotalMarks,
-      teacherTotalMarks: teacherTotalMarks, // Add this
-      studentPosition: studentPosition,
-      totalStudents: totalStudents,
-      schoolName: schoolName,
-      schoolAddress: schoolAddress,
-      schoolPhone: schoolPhone,
-      schoolEmail: schoolEmail,
-      schoolAccount: schoolAccount,
-      nextTermDate: nextTermDate,
-      formTeacherRemarks: formTeacherRemarks,
-      headTeacherRemarks: headTeacherRemarks,
-      averageGradeLetter: averageGradeLetter, // Add this
-    );
-
-    await pdfGenerator.generateAndPrintPDF();
+      await pdfGenerator.generateAndPrintPDF();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error generating PDF: ${e.toString()}')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Handle error messages
     if (errorMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage!)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage!),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
         setState(() => errorMessage = null);
       });
     }
@@ -744,26 +774,75 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     return Scaffold(
       appBar: AppBar(
         title: Text('Progress Report'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
         actions: [
-          IconButton(icon: Icon(Icons.print), onPressed: _printDocument),
-
+          if (!isLoading && !hasError)
+            IconButton(
+              icon: Icon(Icons.print),
+              onPressed: _printDocument,
+              tooltip: 'Print Report',
+            ),
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _fetchStudentData,
+            tooltip: 'Refresh Data',
+          ),
         ],
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+            ),
+            SizedBox(height: 16),
+            Text('Loading student report...'),
+          ],
+        ),
+      )
+          : hasError
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.red),
+            SizedBox(height: 16),
+            Text(
+              'Error Loading Report',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              errorMessage ?? 'An unknown error occurred',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.red),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _fetchStudentData,
+              child: Text('Try Again'),
+            ),
+          ],
+        ),
+      )
           : RefreshIndicator(
         onRefresh: _fetchStudentData,
         child: SingleChildScrollView(
           padding: EdgeInsets.all(8),
+          physics: AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
               _buildSchoolHeader(),
               _buildStudentInfo(),
               _buildReportTable(),
-              _buildPositionSection(),
+              _buildResultSection(),
               _buildGradingKey(),
               _buildRemarksSection(),
               _buildFooter(),
+              SizedBox(height: 20), // Extra spacing at bottom
             ],
           ),
         ),
