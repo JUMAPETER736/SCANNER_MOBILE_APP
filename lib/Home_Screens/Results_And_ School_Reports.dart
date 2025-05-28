@@ -35,9 +35,11 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
   }
 
   Future<void> _simulateLoading() async {
-    await Future.delayed(Duration(milliseconds: 500));
+    await Future.delayed(Duration(milliseconds: 10));
     _fetchUserDetails();
   }
+
+
 
   Future<void> _fetchUserDetails() async {
     User? user = _auth.currentUser;
