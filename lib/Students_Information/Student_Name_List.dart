@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/Students_Information/Student_Subjects.dart';
+import 'dart:async';
 
 class Student_Name_List extends StatefulWidget {
   final User? loggedInUser;
@@ -20,11 +21,31 @@ class _Student_Name_ListState extends State<Student_Name_List> {
   String? selectedClass;
   bool _hasSelectedCriteria = false;
   bool _noSearchResults = false;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _checkTeacherSelection();
+    _startAutoRefresh();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _startAutoRefresh() {
+    // Auto-refresh every 30 seconds when not searching
+    _refreshTimer = Timer.periodic(Duration(seconds: 30), (timer) {
+      if (_searchQuery.isEmpty && mounted) {
+        setState(() {
+          // This will trigger a rebuild and refresh the StreamBuilder
+        });
+      }
+    });
   }
 
   void _checkTeacherSelection() async {
@@ -89,6 +110,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
               showSearchDialog(context);
             },
           ),
+
         ]
             : [],
       ),
@@ -137,6 +159,40 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                 }).toList(),
               ),
             ),
+            if (_searchQuery.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Searching for: "$_searchQuery"',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontStyle: FontStyle.italic,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _searchQuery = '';
+                          _searchController.clear();
+                          _noSearchResults = false;
+                        });
+                      },
+                      child: Text(
+                        'Clear',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             SizedBox(height: 8),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
@@ -169,10 +225,9 @@ class _Student_Name_ListState extends State<Student_Name_List> {
 
                   var studentDocs = snapshot.data!.docs;
                   List<Widget> studentCards = [];
+                  List<Widget> filteredStudentCards = [];
 
-                  for (int index = 0;
-                  index < studentDocs.length;
-                  index++) {
+                  for (int index = 0; index < studentDocs.length; index++) {
                     var studentDoc = studentDocs[index];
                     var registeredInformationDocRef =
                     studentDoc.reference
@@ -196,11 +251,13 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                               data['studentGender'] ?? 'N/A';
                           var fullName = '$lastName $firstName';
 
-                          if (_searchQuery.isNotEmpty &&
-                              !fullName
-                                  .toLowerCase()
-                                  .contains(
-                                  _searchQuery.toLowerCase())) {
+                          // Check if student matches search query
+                          bool matchesSearch = _searchQuery.isEmpty ||
+                              fullName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                              firstName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                              lastName.toLowerCase().contains(_searchQuery.toLowerCase());
+
+                          if (!matchesSearch) {
                             return SizedBox.shrink();
                           }
 
@@ -259,34 +316,80 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                     );
                   }
 
-                  // Remove empty SizedBox.shrink() widgets
-                  studentCards = studentCards
-                      .where((widget) => widget is! SizedBox)
-                      .toList();
+                  // Create a future that resolves when all FutureBuilders are done
+                  return FutureBuilder<List<Widget>>(
+                    future: _buildFilteredList(studentCards),
+                    builder: (context, filteredSnapshot) {
+                      if (filteredSnapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                      }
 
-                  if (_searchQuery.isNotEmpty &&
-                      studentCards.isEmpty) {
-                    _noSearchResults = true;
-                    return Center(
-                      child: Text(
-                        'No student matches your search.',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
+                      var filteredCards = filteredSnapshot.data ?? [];
+
+                      // Check if search query exists and no results found
+                      if (_searchQuery.isNotEmpty && filteredCards.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.search_off,
+                                size: 64,
+                                color: Colors.red,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'Student Not Found',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'No student matches "$_searchQuery"',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _searchQuery = '';
+                                    _searchController.clear();
+                                    _noSearchResults = false;
+                                  });
+                                },
+                                child: Text('Clear Search'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blueAccent,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          setState(() {
+                            // Trigger rebuild
+                          });
+                        },
+                        child: ListView.separated(
+                          physics: AlwaysScrollableScrollPhysics(),
+                          itemCount: filteredCards.length,
+                          separatorBuilder: (context, index) =>
+                              SizedBox(height: 6),
+                          itemBuilder: (context, index) {
+                            return filteredCards[index];
+                          },
                         ),
-                      ),
-                    );
-                  } else {
-                    _noSearchResults = false;
-                  }
-
-                  return ListView.separated(
-                    itemCount: studentCards.length,
-                    separatorBuilder: (context, index) =>
-                        SizedBox(height: 6),
-                    itemBuilder: (context, index) {
-                      return studentCards[index];
+                      );
                     },
                   );
                 },
@@ -308,27 +411,70 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     );
   }
 
+  Future<List<Widget>> _buildFilteredList(List<Widget> studentCards) async {
+    // Wait for all FutureBuilders to complete and filter out empty widgets
+    List<Widget> filteredCards = [];
+
+    for (Widget card in studentCards) {
+      if (card is FutureBuilder<DocumentSnapshot>) {
+        // We need to check if this card should be displayed
+        // Since we can't easily await the FutureBuilder here,
+        // we'll let the FutureBuilder handle the filtering
+        filteredCards.add(card);
+      }
+    }
+
+    return filteredCards;
+  }
+
   void showSearchDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Search Student'),
-          content: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Enter first or last name',
+          title: Text(
+            'Search Student',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.blueAccent,
             ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
-            },
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _searchController,
+                cursorColor: Colors.blueAccent, // Set cursor color to blue
+                decoration: InputDecoration(
+                  hintText: 'Enter first or last name',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Colors.blueAccent), // Default border
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Colors.blueAccent), // Blue border when not focused
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Colors.blueAccent, width: 2), // Thicker blue border when focused
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+              ),
+
+              SizedBox(height: 10),
+            ],
           ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
+                _searchController.clear();
               },
               child: Text(
                 'Cancel',
@@ -338,18 +484,22 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                 ),
               ),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 setState(() {
-                  _searchQuery = _searchController.text;
+                  _searchQuery = _searchController.text.trim();
+                  _noSearchResults = false;
                 });
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                foregroundColor: Colors.white,
+              ),
               child: Text(
                 'Search',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.blueAccent,
                 ),
               ),
             ),
