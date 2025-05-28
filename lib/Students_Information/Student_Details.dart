@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:intl/intl.dart';
-
+import 'package:flutter/services.dart';
 
 class Student_Details extends StatefulWidget {
   @override
@@ -12,33 +12,34 @@ class Student_Details extends StatefulWidget {
 }
 
 class _Student_DetailsState extends State<Student_Details> {
+  // Form and Firebase instances
   final _formKey = GlobalKey<FormState>();
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
 
-  // Controllers for text fields
+  // Text controllers
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
 
-// Function to calculate age based on DOB in DD-MM-YYYY format
-  int calculateAge(String dob) {
-    DateFormat dateFormat = DateFormat('dd-MM-yyyy'); // Use the correct date format
-    DateTime birthDate = dateFormat.parse(dob); // Parse DOB correctly
-    DateTime currentDate = DateTime.now();
-    int age = currentDate.year - birthDate.year;
-    if (currentDate.month < birthDate.month ||
-        (currentDate.month == birthDate.month && currentDate.day < birthDate.day)) {
-      age--;
-    }
-    return age;
-  }
-
+  // State variables
   String? studentClass;
   String? studentGender;
   String? studentID;
   String? generatedQRcode;
   String? studentFullName;
+  User? loggedInUser;
+
+  // Default subjects for each form
+  final Map<String, List<String>> defaultSubjects = {
+
+    'FORM 1': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
+    'FORM 2': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
+    'FORM 3': ['ADDITIONAL MATHEMATICS', 'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
+    'FORM 4': ['ADDITIONAL MATHEMATICS', 'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
+
+
+  };
 
   @override
   void initState() {
@@ -46,8 +47,15 @@ class _Student_DetailsState extends State<Student_Details> {
     getCurrentUser();
   }
 
-  // Fetch the current logged-in user
-  User? loggedInUser;
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _dobController.dispose();
+    super.dispose();
+  }
+
+  // Get current logged-in user
   void getCurrentUser() {
     final user = _auth.currentUser;
     if (user != null) {
@@ -55,37 +63,99 @@ class _Student_DetailsState extends State<Student_Details> {
     }
   }
 
-  // Generate a random student ID
+  // Generate a random 6-digit student ID
   String generateRandomStudentID() {
     Random random = Random();
     int id = 100000 + random.nextInt(900000);
     return id.toString();
   }
 
+  // Calculate age based on DOB in DD-MM-YYYY format
+  int calculateAge(String dob) {
+    try {
+      DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+      DateTime birthDate = dateFormat.parse(dob);
+      DateTime currentDate = DateTime.now();
+      int age = currentDate.year - birthDate.year;
 
+      if (currentDate.month < birthDate.month ||
+          (currentDate.month == birthDate.month && currentDate.day < birthDate.day)) {
+        age--;
+      }
+      return age;
+    } catch (e) {
+      return 0; // Return 0 if parsing fails
+    }
+  }
+
+  // Validate date format and future date
+  String? validateDateOfBirth(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter the student\'s Date of Birth';
+    }
+
+    // Check if the format is correct (DD-MM-YYYY)
+    if (!RegExp(r'^\d{2}-\d{2}-\d{4}$').hasMatch(value)) {
+      return 'Please enter date in DD-MM-YYYY format';
+    }
+
+    try {
+      DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+      DateTime dob = dateFormat.parseStrict(value);
+
+      if (dob.isAfter(DateTime.now())) {
+        return 'Date of Birth cannot be in the future';
+      }
+
+      // Check if the date is reasonable (not too old)
+      if (DateTime.now().year - dob.year > 100) {
+        return 'Please enter a valid Date of Birth';
+      }
+
+    } catch (e) {
+      return 'Please enter a valid Date of Birth (DD-MM-YYYY)';
+    }
+
+    return null;
+  }
+
+  // Save student details to Firestore
   void saveStudentDetails() async {
     if (_formKey.currentState!.validate()) {
-      // Create a unique student ID and combine the full name
-      studentFullName = '${_lastNameController.text.trim().toUpperCase()} ${_firstNameController.text.trim().toUpperCase()}';
-      studentID = generateRandomStudentID();  // Generate a new student ID
-
-
-
-      // Define default subjects for each form
-      final defaultSubjects = {
-        'FORM 1': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
-        'FORM 2': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
-        'FORM 3': ['ADDITIONAL MATHEMATICS', 'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
-        'FORM 4': ['ADDITIONAL MATHEMATICS', 'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
-      };
-
       try {
-        // Assuming the school name is stored in the teacher's details
+        // Show loading indicator
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return const Center(
+              child: CircularProgressIndicator(
+                color: Colors.white, // Set to white
+              ),
+            );
+          },
+        );
+
+
+        // Create student data
+        studentFullName = '${_lastNameController.text.trim().toUpperCase()}'
+            ' ${_firstNameController.text.trim().toUpperCase()}';
+        studentID = generateRandomStudentID();
+
+        // Get teacher's school information
         final teacherEmail = loggedInUser?.email;
-        final teacherDetails = await _firestore.collection('Teachers_Details').doc(teacherEmail).get();
+        final teacherDetails = await _firestore
+            .collection('Teachers_Details')
+            .doc(teacherEmail)
+            .get();
+
+        if (!teacherDetails.exists) {
+          throw Exception('Teacher details not found');
+        }
+
         String schoolName = teacherDetails['school'];
 
-        // Save the student details under the corresponding school and class
+        // Save main student document
         await _firestore
             .collection('Schools')
             .doc(schoolName)
@@ -97,7 +167,7 @@ class _Student_DetailsState extends State<Student_Details> {
           'timestamp': FieldValue.serverTimestamp(),
         });
 
-        // Create the Student_Biography document containing student details
+        // Save student personal information (keeping DOB in DD-MM-YYYY format)
         await _firestore
             .collection('Schools')
             .doc(schoolName)
@@ -106,22 +176,23 @@ class _Student_DetailsState extends State<Student_Details> {
             .collection('Student_Details')
             .doc(studentFullName)
             .collection('Personal_Information')
-            .doc('Registered_Information') // Single document for biography details
+            .doc('Registered_Information')
             .set({
           'firstName': _firstNameController.text.trim().toUpperCase(),
           'lastName': _lastNameController.text.trim().toUpperCase(),
           'studentClass': studentClass!,
-          'studentDOB': _dobController.text.trim(),
+          'studentDOB': _dobController.text.trim(), // Saved in DD-MM-YYYY format
           'studentAge': calculateAge(_dobController.text.trim()).toString(),
           'studentGender': studentGender!,
           'studentID': studentID!,
           'createdBy': loggedInUser?.email ?? '',
-          'timestamp': FieldValue.serverTimestamp(), // Timestamp
+          'timestamp': FieldValue.serverTimestamp(),
         });
 
-        // Create the Student_Subjects documents with default grades
+        // Create student subjects with default grades
+        final batch = _firestore.batch();
         for (String subject in defaultSubjects[studentClass]!) {
-          await _firestore
+          final subjectRef = _firestore
               .collection('Schools')
               .doc(schoolName)
               .collection('Classes')
@@ -129,14 +200,16 @@ class _Student_DetailsState extends State<Student_Details> {
               .collection('Student_Details')
               .doc(studentFullName)
               .collection('Student_Subjects')
-              .doc(subject) // Use the subject name as the document ID
-              .set({
+              .doc(subject);
+
+          batch.set(subjectRef, {
             'Subject_Name': subject,
-            'Subject_Grade': 'N/A', // Default grade for all subjects
+            'Subject_Grade': 'N/A',
           });
         }
+        await batch.commit();
 
-        // Add TOTAL_MARKS document
+        // Add total marks document
         await _firestore
             .collection('Schools')
             .doc(schoolName)
@@ -145,51 +218,45 @@ class _Student_DetailsState extends State<Student_Details> {
             .collection('Student_Details')
             .doc(studentFullName)
             .collection('TOTAL_MARKS')
-            .doc('Marks') // Single document for total marks
+            .doc('Marks')
             .set({
-          'Aggregate_Grade' : 'N/A',
+          'Aggregate_Grade': 'N/A',
           'Best_Six_Total_Points': 0,
-          'Student_Total_Marks': '0', // Default total marks
+          'Student_Total_Marks': '0',
           'Teacher_Total_Marks': '0',
         });
 
-        // Encode the QR code with the studentID
+        // Generate QR code with student ID
         setState(() {
-          generatedQRcode = studentID;  // Encode only the studentID in the QR code
+          generatedQRcode = studentID;
         });
 
+        // Hide loading indicator
+        Navigator.of(context).pop();
+
+        // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Student Details saved Successfully!'),
-            backgroundColor: Colors.green,
+            content: Text('Student Details saved successfully!'),
+            backgroundColor: Colors.blueAccent,
+            duration: Duration(seconds: 3),
           ),
         );
+
       } catch (e) {
+        // Hide loading indicator
+        Navigator.of(context).pop();
+
+        // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error saving Student Details: $e'),
+            content: Text('Error saving Student Details: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: Duration(seconds: 5),
           ),
         );
       }
     }
-  }
-
-
-// Generate a random number to append to the ID for uniqueness
-  String generateRandomNumber() {
-    Random random = Random();
-    return random.nextInt(1000).toString(); // Generate a random number between 0-999
-  }
-
-
-  @override
-  void dispose() {
-    // Dispose controllers when the widget is disposed
-    _firstNameController.dispose();
-    _lastNameController.dispose();
-    _dobController.dispose();
-    super.dispose();
   }
 
   @override
@@ -198,10 +265,14 @@ class _Student_DetailsState extends State<Student_Details> {
       appBar: AppBar(
         title: Text(
           'Enter Student Details',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
+        elevation: 2,
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -215,186 +286,229 @@ class _Student_DetailsState extends State<Student_Details> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    _buildStyledTextFormField(
-                      controller: _firstNameController,
-                      labelText: 'First Name',
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter the student\'s first name';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 16),
-                    _buildStyledTextFormField(
-                      controller: _lastNameController,
-                      labelText: 'Last Name',
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter the student\'s last name';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 16),
-                    _buildStyledDropdownField(
-                      value: studentClass,
-                      labelText: 'Class',
-                      items: ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'],
-                      onChanged: (newValue) {
-                        setState(() {
-                          studentClass = newValue;
-                        });
-                      },
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select the student\'s Class';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 16),
-
-                    _buildStyledTextFormField(
-                      controller: _dobController,
-                      labelText: 'Date of Birth (DD-MM-YYYY)',
-                      keyboardType: TextInputType.datetime,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter the student\'s Date of Birth';
-                        }
-                        try {
-                          // Use DateFormat to validate and parse the input
-                          DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-                          DateTime dob = dateFormat.parseStrict(value);
-
-                          // Ensure the date is not in the future
-                          if (dob.isAfter(DateTime.now())) {
-                            return 'Date of Birth cannot be in the future';
-                          }
-                        } catch (e) {
-                          return 'Please enter a valid Date of Birth (DD-MM-YYYY)';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    SizedBox(height: 16),
-                    _buildStyledDropdownField(
-                      value: studentGender,
-                      labelText: 'Gender',
-                      items: ['Male', 'Female'],
-                      onChanged: (newValue) {
-                        setState(() {
-                          studentGender = newValue;
-                        });
-                      },
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select the student\'s Gender';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 32),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.redAccent,
-                              padding: EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                            child: Text(
-                              'Cancel',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 20),
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.greenAccent,
-                              padding: EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            onPressed: saveStudentDetails,
-                            child: Text(
-                              'Save & Generate QR Code',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              _buildForm(),
               SizedBox(height: 40),
-              if (generatedQRcode != null) ...[
-                Text(
-                  'Below is the QR Code Generated:',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueAccent,
-                  ),
-                ),
-                SizedBox(height: 20),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 4,
-                        offset: Offset(2, 2),
-                      ),
-                    ],
-                  ),
-                  padding: EdgeInsets.all(16),
-                  child: BarcodeWidget(
-                    barcode: Barcode.qrCode(),
-                    data: generatedQRcode!,
-                    width: 200,
-                    height: 200,
-                  ),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  'Student ID: $studentID',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
+              _buildQRCodeSection(),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  // Build main form
+  Widget _buildForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          _buildStyledTextFormField(
+            controller: _firstNameController,
+            labelText: 'First Name',
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter the student\'s first name';
+              }
+              if (value.length < 2) {
+                return 'First name must be at least 2 characters';
+              }
+              return null;
+            },
+          ),
+          SizedBox(height: 16),
+
+          _buildStyledTextFormField(
+            controller: _lastNameController,
+            labelText: 'Last Name',
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter the student\'s last name';
+              }
+              if (value.length < 2) {
+                return 'Last name must be at least 2 characters';
+              }
+              return null;
+            },
+          ),
+          SizedBox(height: 16),
+
+          _buildStyledDropdownField(
+            value: studentClass,
+            labelText: 'Class',
+            items: ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'],
+            onChanged: (newValue) {
+              setState(() {
+                studentClass = newValue;
+              });
+            },
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please select the student\'s class';
+              }
+              return null;
+            },
+          ),
+          SizedBox(height: 16),
+
+          _buildStyledTextFormField(
+            controller: _dobController,
+            labelText: 'Date of Birth (DD-MM-YYYY)',
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+              _DateInputFormatter(),
+            ],
+            validator: validateDateOfBirth,
+          ),
+          SizedBox(height: 16),
+
+          _buildStyledDropdownField(
+            value: studentGender,
+            labelText: 'Gender',
+            items: ['Male', 'Female'],
+            onChanged: (newValue) {
+              setState(() {
+                studentGender = newValue;
+              });
+            },
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please select the student\'s gender';
+              }
+              return null;
+            },
+          ),
+          SizedBox(height: 32),
+
+          _buildActionButtons(),
+        ],
+      ),
+    );
+  }
+
+  // Build action buttons
+  Widget _buildActionButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: 15),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 2,
+            ),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: 20),
+        Expanded(
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: 15),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 2,
+            ),
+            onPressed: saveStudentDetails,
+            child: Text(
+              'Save & Generate QR Code',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Build QR code section
+  Widget _buildQRCodeSection() {
+    if (generatedQRcode == null) return SizedBox.shrink();
+
+    return Column(
+      children: [
+        Text(
+          'QR Code Generated Successfully!',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blueAccent,
+          ),
+        ),
+        SizedBox(height: 20),
+
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          padding: EdgeInsets.all(20),
+          child: Column(
+            children: [
+              BarcodeWidget(
+                barcode: Barcode.qrCode(),
+                data: generatedQRcode!,
+                width: 200,
+                height: 200,
+              ),
+              SizedBox(height: 16),
+
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Student ID: $studentID',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 20),
+
+        Text(
+          'Save this QR code for student identification',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      ],
     );
   }
 
@@ -403,32 +517,40 @@ class _Student_DetailsState extends State<Student_Details> {
     required TextEditingController controller,
     required String labelText,
     TextInputType keyboardType = TextInputType.text,
+    List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
   }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(2, 2),
+            blurRadius: 6,
+            offset: Offset(0, 2),
           ),
         ],
       ),
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         validator: validator,
         decoration: InputDecoration(
           labelText: labelText,
           labelStyle: TextStyle(color: Colors.blueAccent),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
           ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+          ),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          filled: true,
+          fillColor: Colors.white,
         ),
       ),
     );
@@ -445,12 +567,12 @@ class _Student_DetailsState extends State<Student_Details> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(2, 2),
+            blurRadius: 6,
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -460,10 +582,16 @@ class _Student_DetailsState extends State<Student_Details> {
           labelText: labelText,
           labelStyle: TextStyle(color: Colors.blueAccent),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
           ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+          ),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          filled: true,
+          fillColor: Colors.white,
         ),
         items: items.map((String item) {
           return DropdownMenuItem<String>(
@@ -473,8 +601,35 @@ class _Student_DetailsState extends State<Student_Details> {
         }).toList(),
         onChanged: onChanged,
         validator: validator,
+        dropdownColor: Colors.white,
       ),
     );
   }
 }
+
+// Custom date input formatter for DD-MM-YYYY format
+class _DateInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
+    var text = newValue.text.replaceAll('-', '');
+    var newText = '';
+
+    for (int i = 0; i < text.length && i < 8; i++) {
+      newText += text[i];
+      if ((i == 1 || i == 3) && i != text.length - 1) {
+        newText += '-';
+      }
+    }
+
+    return TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newText.length),
+    );
+  }
+}
+
+
 

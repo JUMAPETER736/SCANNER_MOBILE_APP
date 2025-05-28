@@ -204,10 +204,15 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                     .collection('Student_Details')
                     .snapshots(),
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
+
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(
+                      child: CircularProgressIndicator(
+                        color: Colors.blue, // Set progress indicator color to blue
+                      ),
+                    );
                   }
+
 
                   if (!snapshot.hasData ||
                       snapshot.data!.docs.isEmpty) {
