@@ -204,11 +204,11 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                     .collection('Student_Details')
                     .snapshots(),
                 builder: (context, snapshot) {
-
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(
                       child: CircularProgressIndicator(
-                        color: Colors.blue, // Set progress indicator color to blue
+                        color: Colors
+                            .blue, // Set progress indicator color to blue
                       ),
                     );
                   }
@@ -258,9 +258,12 @@ class _Student_Name_ListState extends State<Student_Name_List> {
 
                           // Check if student matches search query
                           bool matchesSearch = _searchQuery.isEmpty ||
-                              fullName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                              firstName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                              lastName.toLowerCase().contains(_searchQuery.toLowerCase());
+                              fullName.toLowerCase().contains(
+                                  _searchQuery.toLowerCase()) ||
+                              firstName.toLowerCase().contains(
+                                  _searchQuery.toLowerCase()) ||
+                              lastName.toLowerCase().contains(
+                                  _searchQuery.toLowerCase());
 
                           if (!matchesSearch) {
                             return SizedBox.shrink();
@@ -325,7 +328,8 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                   return FutureBuilder<List<Widget>>(
                     future: _buildFilteredList(studentCards),
                     builder: (context, filteredSnapshot) {
-                      if (filteredSnapshot.connectionState == ConnectionState.waiting) {
+                      if (filteredSnapshot.connectionState ==
+                          ConnectionState.waiting) {
                         return Center(child: CircularProgressIndicator());
                       }
 
@@ -433,82 +437,88 @@ class _Student_Name_ListState extends State<Student_Name_List> {
   }
 
   void showSearchDialog(BuildContext context) {
+    TextEditingController localSearchController = TextEditingController(
+        text: _searchController.text);
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            'Search Student',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.blueAccent,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _searchController,
-                cursorColor: Colors.blueAccent, // Set cursor color to blue
-                decoration: InputDecoration(
-                  hintText: 'Enter first or last name',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.blueAccent), // Default border
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.blueAccent), // Blue border when not focused
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.blueAccent, width: 2), // Thicker blue border when focused
-                  ),
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
-              ),
-
-              SizedBox(height: 10),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _searchController.clear();
-              },
-              child: Text(
-                'Cancel',
+        return StatefulBuilder(
+          builder: (BuildContext context,
+              void Function(void Function()) setState) {
+            return AlertDialog(
+              title: Text(
+                'Search Student',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.red,
+                  color: Colors.blueAccent,
                 ),
               ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                setState(() {
-                  _searchQuery = _searchController.text.trim();
-                  _noSearchResults = false;
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                foregroundColor: Colors.white,
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: localSearchController,
+                    cursorColor: Colors.blueAccent,
+                    decoration: InputDecoration(
+                      hintText: 'Enter first or last name',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.blueAccent),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.blueAccent),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.blueAccent,
+                            width: 2),
+                      ),
+                    ),
+                    // No need for onChanged here to avoid state jumps
+                  ),
+                  SizedBox(height: 10),
+                ],
               ),
-              child: Text(
-                'Search',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    localSearchController.clear();
+                  },
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    setState(() {
+                      _searchController.text =
+                          localSearchController.text.trim();
+                      _searchQuery = _searchController.text.trim();
+                      _noSearchResults = false;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(
+                    'Search',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
