@@ -292,9 +292,13 @@ class _Login_PageState extends State<Login_Page> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+
       body: ModalProgressHUD(
         inAsyncCall: _showSpinner,
         color: Colors.blueAccent,
+        progressIndicator: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        ),
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -585,7 +589,7 @@ class _Login_PageState extends State<Login_Page> {
                           "Don't have an account? ",
                           style: TextStyle(
                             color: Colors.grey[600],
-                            fontSize: _getResponsiveFontSize(context, 22.0),
+                            fontSize: _getResponsiveFontSize(context, 20.0),
                           ),
                         ),
                         TextButton(
@@ -602,7 +606,7 @@ class _Login_PageState extends State<Login_Page> {
                             style: TextStyle(
                               color: Colors.blueAccent,
                               fontWeight: FontWeight.bold,
-                              fontSize: _getResponsiveFontSize(context, 22.0),
+                              fontSize: _getResponsiveFontSize(context, 20.0),
                             ),
                           ),
                         ),

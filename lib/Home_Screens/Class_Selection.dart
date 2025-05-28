@@ -95,58 +95,12 @@ class _Class_SelectionState extends State<Class_Selection> {
   final List<String> classes = ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'];
 
   final Map<String, List<String>> classSubjects = {
-    'FORM 1': [
-      'AGRICULTURE',
-      'BIOLOGY',
-      'BIBLE KNOWLEDGE',
-      'COMPUTER SCIENCE',
-      'CHEMISTRY',
-      'CHICHEWA',
-      'ENGLISH',
-      'LIFE SKILLS',
-      'MATHEMATICS',
-      'PHYSICS',
-      'SOCIAL STUDIES'
-    ],
-    'FORM 2': [
-      'AGRICULTURE',
-      'BIOLOGY',
-      'BIBLE KNOWLEDGE',
-      'COMPUTER SCIENCE',
-      'CHEMISTRY',
-      'CHICHEWA',
-      'ENGLISH',
-      'LIFE SKILLS',
-      'MATHEMATICS',
-      'PHYSICS',
-      'SOCIAL STUDIES'
-    ],
-    'FORM 3': [
-      'AGRICULTURE',
-      'BIOLOGY',
-      'BIBLE KNOWLEDGE',
-      'COMPUTER SCIENCE',
-      'CHEMISTRY',
-      'CHICHEWA',
-      'ENGLISH',
-      'LIFE SKILLS',
-      'MATHEMATICS',
-      'PHYSICS',
-      'SOCIAL STUDIES'
-    ],
-    'FORM 4': [
-      'AGRICULTURE',
-      'BIOLOGY',
-      'BIBLE KNOWLEDGE',
-      'COMPUTER SCIENCE',
-      'CHEMISTRY',
-      'CHICHEWA',
-      'ENGLISH',
-      'LIFE SKILLS',
-      'MATHEMATICS',
-      'PHYSICS',
-      'SOCIAL STUDIES'
-    ]
+
+    'FORM 1': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
+    'FORM 2': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
+    'FORM 3': ['ADDITIONAL MATHEMATICS', 'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
+    'FORM 4': ['ADDITIONAL MATHEMATICS', 'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
+
   };
 
   @override
@@ -404,52 +358,114 @@ class _Class_SelectionState extends State<Class_Selection> {
   Future<bool?> _showConfirmDialog(String title, String content) {
     return showDialog<bool>(
       context: context,
-      builder: (context) =>
-          AlertDialog(
-            title: Text(title),
-            content: Text(content),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: Text('Confirm'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red, // Set Cancel text to red
+            ),
+            child: Text('Cancel'),
           ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.blue, // Set Confirm text to blue
+            ),
+            child: Text('Confirm'),
+          ),
+        ],
+      ),
     );
   }
 
+
   Widget _buildSchoolSelection() {
     return _buildSection(
-      title: 'School Selection',
+      title: 'School Selected',
       icon: Icons.school,
       color: Colors.blue,
       child: isSaved
-          ? _buildReadOnlyField(selectedSchool ?? "No school selected")
-          : DropdownButtonFormField<String>(
-        value: selectedSchool,
-        decoration: InputDecoration(
-          labelText: 'Select School',
-          prefixIcon: Icon(Icons.location_on, color: Colors.blueAccent),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          filled: true,
-          fillColor: Colors.white,
+          ? _buildSelectedSchoolDisplay(selectedSchool ?? "No school selected")
+          : _buildSchoolDropdown(),
+    );
+  }
+
+  Widget _buildSelectedSchoolDisplay(String schoolName) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        SizedBox(height: 3),
+        Text(
+          schoolName,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+            color: Colors.blue,
+          ),
         ),
-        items: schools.map((school) =>
-            DropdownMenuItem(
-              value: school,
-              child: Text(school),
-            )).toList(),
-        onChanged: (value) {
-          setState(() {
-            selectedSchool = value;
-            selectedClasses.clear();
-            selectedSubjectsByClass.clear();
-          });
-        },
+      ],
+    );
+  }
+
+  Widget _buildSchoolDropdown() {
+    return DropdownButtonFormField<String>(
+      value: selectedSchool,
+      decoration: InputDecoration(
+        labelText: 'Select Your School',
+        border: OutlineInputBorder(),
+      ),
+      items: schools.map((school) => DropdownMenuItem(
+        value: school,
+        child: Text(school),
+      )).toList(),
+      onChanged: (value) {
+        setState(() {
+          selectedSchool = value;
+          selectedClasses.clear();
+          selectedSubjectsByClass.clear();
+        });
+      },
+    );
+  }
+
+/// Add this new method for better read-only school field styling
+  Widget _buildReadOnlySchoolField(String text) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue, width: 2), // Blue border to match dropdown
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.1),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.location_on, color: Colors.blueAccent, size: 20),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: Colors.black87,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          if (text != "No school selected")
+            Icon(Icons.check_circle, color: Colors.blue, size: 20),
+        ],
       ),
     );
   }
