@@ -162,7 +162,7 @@ class Juniors_School_Report_PDF {
                 child: pw.Text('NAME OF STUDENT: $studentFullName'),
               ),
               pw.Expanded(
-                flex: 3,
+                flex: 4,
                 child: pw.Text('POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}'),
               ),
               pw.Expanded(
