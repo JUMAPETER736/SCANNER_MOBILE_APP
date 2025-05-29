@@ -91,7 +91,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
   Map<String, dynamic> calculateMSCEAggregate(List<int> subjectPoints) {
     if (subjectPoints.length < 6) {
       return {
-        'status': 'FAIL',
+        'status': 'STATEMENT',
         'points': 0,
         'message': 'Insufficient subjects (less than 6)'
       };
@@ -609,7 +609,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                                         ? Colors.green
                                         : student['JCE_Status'] == 'FAIL'
                                         ? Colors.red
-                                        : Colors.orange,
+                                        : Colors.red,
                                   ),
                                 ),
                               ] else if (student['studentClass'] == 'FORM 3' || student['studentClass'] == 'FORM 4') ...[
@@ -629,9 +629,9 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                                     fontWeight: FontWeight.bold,
                                     color: student['MSCE_Status'] == 'PASS'
                                         ? Colors.green
-                                        : student['MSCE_Status'] == 'FAIL'
+                                        : student['MSCE_Status'] == 'STATEMENT'
                                         ? Colors.red
-                                        : Colors.orange,
+                                        : Colors.red,
                                   ),
                                 ),
                               ],

@@ -46,6 +46,8 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   int aggregatePoints = 0;
   int aggregatePosition = 0;
   String averageGradeLetter = '';
+  String msceStatus = '';
+  String msceMessage = '';
 
   @override
   void initState() {
@@ -95,6 +97,42 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       // If current month is Jan-Aug, academic year is previous year to current year
       return '${currentYear - 1}/$currentYear';
     }
+  }
+
+  Map<String, dynamic> calculateMSCEAggregate(List<int> subjectPoints) {
+    if (subjectPoints.length < 6) {
+      return {
+        'status': 'STATEMENT',
+        'points': 0,
+        'message': 'Insufficient subjects (less than 6)'
+      };
+    }
+
+    subjectPoints.sort();
+    List<int> bestSix = subjectPoints.take(6).toList();
+    int totalPoints = bestSix.fold(0, (sum, point) => sum + point);
+
+    if (bestSix.contains(9)) {
+      return {
+        'status': 'STATEMENT',
+        'points': totalPoints,
+        'message': 'Contains Grade 9 in best six subjects'
+      };
+    }
+
+    if (totalPoints > 48) {
+      return {
+        'status': 'STATEMENT',
+        'points': totalPoints,
+        'message': 'Total points exceed 48'
+      };
+    }
+
+    return {
+      'status': 'PASS',
+      'points': totalPoints,
+      'message': 'Qualified aggregate'
+    };
   }
 
   Future<void> _fetchStudentData() async {
@@ -219,15 +257,35 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         List<int> points = [];
         for (var subjectDoc in subjectsSnapshot.docs) {
           final data = subjectDoc.data();
-          final gradeStr = data['Subject_Grade']?.toString() ?? '0';
+          final gradeStr = data['Subject_Grade']?.toString() ?? 'N/A';
+
+          // Skip subjects with N/A grades
+          if (gradeStr == 'N/A' || gradeStr == null) continue;
+
           int grade = double.tryParse(gradeStr)?.round() ?? 0;
           final pointsStr = getPoints(Seniors_Grade(grade));
           points.add(int.tryParse(pointsStr) ?? 9);
         }
 
-        points.sort();
-        int aggregate = points.take(6).reduce((a, b) => a + b);
-        studentAggregates.add({'name': studentName, 'aggregate': aggregate});
+        // Calculate MSCE aggregate using the new function
+        Map<String, dynamic> msceResult = calculateMSCEAggregate(points);
+        int aggregate = msceResult['points'];
+
+        studentAggregates.add({
+          'name': studentName,
+          'aggregate': aggregate,
+          'status': msceResult['status'],
+          'message': msceResult['message']
+        });
+
+        // Update student's MSCE status in Firestore
+        final basePath = 'Schools/$school/Classes/$studentClass/Student_Details/$studentName';
+        await _firestore.doc('$basePath/TOTAL_MARKS/Marks').update({
+          'MSCE_Status': msceResult['status'],
+          'MSCE_Message': msceResult['message'],
+          'Best_Six_Total_Points': aggregate,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
       }
 
       studentAggregates.sort((a, b) => (a['aggregate'] as int).compareTo(b['aggregate'] as int));
@@ -236,21 +294,27 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         if (studentAggregates[i]['name'] == studentFullName) {
           setState(() {
             aggregatePosition = i + 1;
+            msceStatus = studentAggregates[i]['status'];
+            msceMessage = studentAggregates[i]['message'];
           });
           break;
         }
       }
 
-      List<int> currentStudentPoints = subjects.map((subj) {
+      List<int> currentStudentPoints = subjects
+          .where((subj) => subj['hasGrade'] == true)
+          .map((subj) {
         final score = subj['score'] as int? ?? 0;
         final grade = Seniors_Grade(score);
         return int.tryParse(getPoints(grade)) ?? 9;
       }).toList();
-      currentStudentPoints.sort();
-      int currentAggregate = currentStudentPoints.take(6).reduce((a, b) => a + b);
+
+      Map<String, dynamic> currentMsceResult = calculateMSCEAggregate(currentStudentPoints);
 
       setState(() {
-        aggregatePoints = currentAggregate;
+        aggregatePoints = currentMsceResult['points'];
+        msceStatus = currentMsceResult['status'];
+        msceMessage = currentMsceResult['message'];
       });
     } catch (e) {
       print("Error calculating aggregate points and position: $e");
@@ -262,13 +326,13 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       DocumentSnapshot schoolDoc = await _firestore.collection('Schools').doc(school).get();
       if (schoolDoc.exists) {
         setState(() {
-          schoolAddress = schoolDoc['address'] ?? 'P.O. BOX 47, LILONGWE';
-          schoolPhone = schoolDoc['phone'] ?? '(+265) # ### ### ### or (+265) # ### ### ###';
-          schoolEmail = schoolDoc['email'] ?? 'secondaryschool@gmail.com';
-          schoolAccount = schoolDoc['account'] ?? 'National Bank of Malawi, Old Town Branch, Current Account, Unkown Girls Secondary School, ############';
-          nextTermDate = schoolDoc['nextTermDate'] ?? 'Monday, 06th January, 2025';
-          formTeacherRemarks = schoolDoc['formTeacherRemarks'] ?? 'She is disciplined and mature, encourage her to continue portraying good behaviour';
-          headTeacherRemarks = schoolDoc['headTeacherRemarks'] ?? 'Continue working hard and encourage her to maintain scoring above pass mark in all the subjects';
+          schoolAddress = schoolDoc['address'];
+          schoolPhone = schoolDoc['phone'];
+          schoolEmail = schoolDoc['email'];
+          schoolAccount = schoolDoc['account'];
+          nextTermDate = schoolDoc['nextTermDate'];
+          formTeacherRemarks = schoolDoc['formTeacherRemarks'];
+          headTeacherRemarks = schoolDoc['headTeacherRemarks'];
         });
       }
     } catch (e) {
@@ -278,15 +342,42 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
   Future<void> _updateTotalStudentsCount(String school, String studentClass) async {
     try {
-      await _firestore.collection('Schools/$school/Classes').doc(studentClass).update({
-        'totalStudents': totalStudents,
-        'lastUpdated': FieldValue.serverTimestamp(),
-      });
+      // Get total class students from existing data
+      final classInfoDoc = await _firestore
+          .collection('Schools/$school/Classes/$studentClass')
+          .doc('Class_Info')
+          .get();
+
+      if (classInfoDoc.exists) {
+        final classData = classInfoDoc.data() as Map<String, dynamic>;
+        setState(() {
+          totalStudents = classData['totalStudents'] ?? 0;
+        });
+      } else {
+        // If Class_Info doesn't exist, count from Student_Details
+        final studentsSnapshot = await _firestore
+            .collection('Schools/$school/Classes/$studentClass/Student_Details')
+            .get();
+
+        final totalClassStudents = studentsSnapshot.docs.length;
+
+        // Update Class_Info with total students
+        await _firestore
+            .collection('Schools/$school/Classes/$studentClass')
+            .doc('Class_Info')
+            .set({
+          'totalStudents': totalClassStudents,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+
+        setState(() {
+          totalStudents = totalClassStudents;
+        });
+      }
     } catch (e) {
       print('Error updating total students count: $e');
     }
   }
-
 
   Future<void> fetchStudentSubjects(String basePath) async {
     try {
@@ -324,7 +415,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           'position': subjectPosition,
           'totalStudents': totalStudentsInSubject,
           'gradeLetter': gradeLetter,
-          'hasGrade': hasGrade, // Add flag to track if grade exists
+          'hasGrade': hasGrade,
         });
       }
 
@@ -336,23 +427,43 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
-
   Future<void> fetchTotalMarks(String basePath) async {
     try {
       final doc = await _firestore.doc('$basePath/TOTAL_MARKS/Marks').get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
+
+        // Helper function to safely parse numeric values
+        int safeParse(dynamic value) {
+          if (value == null) return 0;
+          if (value is num) return value.toInt();
+          if (value is String) return int.tryParse(value) ?? 0;
+          return 0;
+        }
+
         setState(() {
           totalMarks = data;
-          studentTotalMarks = (data['Student_Total_Marks'] as num?)?.toInt() ?? 0;
-          teacherTotalMarks = (data['Teacher_Total_Marks'] as num?)?.toInt() ?? (subjects.length * 100);
-          studentPosition = (data['Student_Class_Position'] as num?)?.toInt() ?? 0;
-          totalStudents = (data['Total_Class_Students_Number'] as num?)?.toInt() ?? 0;
+          studentTotalMarks = safeParse(data['Student_Total_Marks']);
+          teacherTotalMarks = safeParse(data['Teacher_Total_Marks']) == 0
+              ? (subjects.where((s) => s['hasGrade'] == true).length * 100)
+              : safeParse(data['Teacher_Total_Marks']);
+          studentPosition = safeParse(data['Student_Class_Position']);
           averageGradeLetter = data['Average_Grade_Letter']?.toString() ?? '';
+          msceStatus = data['MSCE_Status']?.toString() ?? '';
+          msceMessage = data['MSCE_Message']?.toString() ?? '';
         });
       }
     } catch (e) {
       print("Error fetching total marks: $e");
+      setState(() {
+        // Set default values if there's an error
+        studentTotalMarks = 0;
+        teacherTotalMarks = subjects.where((s) => s['hasGrade'] == true).length * 100;
+        studentPosition = 0;
+        averageGradeLetter = '';
+        msceStatus = '';
+        msceMessage = '';
+      });
     }
   }
 
@@ -377,7 +488,11 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         for (var subjectDoc in subjectsSnapshot.docs) {
           final data = subjectDoc.data();
           final subjectName = data['Subject_Name'] ?? subjectDoc.id;
-          final gradeStr = data['Subject_Grade']?.toString() ?? '0';
+          final gradeStr = data['Subject_Grade']?.toString() ?? 'N/A';
+
+          // Skip students who don't take the subject (N/A grades)
+          if (gradeStr == 'N/A' || gradeStr == null) continue;
+
           int grade = double.tryParse(gradeStr)?.round() ?? 0;
 
           if (!marksPerSubject.containsKey(subjectName)) {
@@ -420,7 +535,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                 .doc('Schools/$school/Classes/$studentClass/Student_Details/$currentStudentName/Student_Subjects/$subjectName')
                 .update({
               'Subject_Position': currentPosition,
-              'Total_Students_Subject': studentList.length,
+              'Total_Students_Subject': studentList.length, // Only count students who actually take the subject
               'lastUpdated': FieldValue.serverTimestamp(),
             });
           } catch (e) {
@@ -437,7 +552,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         int total = scores.fold(0, (prev, el) => prev + el);
         int avg = scores.isNotEmpty ? (total / scores.length).round() : 0;
         averages[subject] = avg;
-        totalStudentsPerSubjectMap[subject] = scores.length;
+        totalStudentsPerSubjectMap[subject] = scores.length; // Only students who take the subject
       });
 
       setState(() {
@@ -455,7 +570,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   }
 
   String Seniors_Grade(int Seniors_Score) {
-    if (Seniors_Score == "N/A") return '';
     if (Seniors_Score >= 90) return '1';
     if (Seniors_Score >= 80) return '2';
     if (Seniors_Score >= 75) return '3';
@@ -499,27 +613,29 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     return Column(
       children: [
         Text(
-          schoolName ?? 'UNKNOWN SECONDARY SCHOOL',
+          schoolName ?? 'SCHOOL NAME NOT SET',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
-        Text(
-          schoolAddress ?? 'N/A',
-          style: TextStyle(fontSize: 14),
-          textAlign: TextAlign.center,
-        ),
-        Text(
-          'Tel: ${schoolPhone ?? 'N/A'}',
-          style: TextStyle(fontSize: 14),
-          textAlign: TextAlign.center,
-        ),
-        Text(
-          'Email: ${schoolEmail ?? 'N/A'}',
-          style: TextStyle(fontSize: 14),
-          textAlign: TextAlign.center,
-        ),
+        if (schoolAddress != null)
+          Text(
+            schoolAddress!,
+            style: TextStyle(fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+        if (schoolPhone != null)
+          Text(
+            'Tel: $schoolPhone',
+            style: TextStyle(fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+        if (schoolEmail != null)
+          Text(
+            'Email: $schoolEmail',
+            style: TextStyle(fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
         SizedBox(height: 10),
-        // Added PROGRESS REPORT text
         Text(
           'PROGRESS REPORT',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -549,7 +665,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       ),
     );
   }
-
 
   Widget _buildReportTable() {
     return Padding(
@@ -643,8 +758,8 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('END RESULT: MSCE'),
-
+              Text('RESULT: $msceStatus'),
+           
             ],
           ),
           SizedBox(height: 16),
@@ -676,6 +791,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
               6: FlexColumnWidth(1),
               7: FlexColumnWidth(1),
               8: FlexColumnWidth(1),
+              9: FlexColumnWidth(1),
             },
             children: [
               TableRow(
