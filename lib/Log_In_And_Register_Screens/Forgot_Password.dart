@@ -26,7 +26,7 @@ class _Forgot_PasswordState extends State<Forgot_Password> {
         dialogType: DialogType.success,
         animType: AnimType.scale,
         title: 'Email Sent ✈️',
-        desc: 'Hello $name, check your email to reset your password!',
+        desc: 'Hello, check your email to reset your password!',
         btnOkOnPress: () {},
       ).show();
     } catch (e) {
