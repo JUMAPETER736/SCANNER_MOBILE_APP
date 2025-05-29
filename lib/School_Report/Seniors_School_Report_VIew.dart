@@ -642,7 +642,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     return Column(
       children: [
         Text(
-          schoolName ?? 'SCHOOL NAME NOT SET',
+          (schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase(),
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
