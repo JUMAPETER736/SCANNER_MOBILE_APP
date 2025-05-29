@@ -107,81 +107,94 @@ class Juniors_School_Report_PDF {
     return 'F';
   }
 
-  // Build school header (exact match to Flutter UI)
+  // Build school header with optimized font sizes
   pw.Widget _buildSchoolHeader() {
     return pw.Column(
       children: [
         pw.Text(
           (schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase(),
-          style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+          style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
           textAlign: pw.TextAlign.center,
         ),
+        pw.SizedBox(height: 4),
         pw.Text(
           schoolAddress ?? 'N/A',
-          style: pw.TextStyle(fontSize: 14),
+          style: pw.TextStyle(fontSize: 12),
           textAlign: pw.TextAlign.center,
         ),
         pw.Text(
           'Tel: ${schoolPhone ?? 'N/A'}',
-          style: pw.TextStyle(fontSize: 14),
+          style: pw.TextStyle(fontSize: 11),
           textAlign: pw.TextAlign.center,
         ),
         pw.Text(
           'Email: ${schoolEmail ?? 'N/A'}',
-          style: pw.TextStyle(fontSize: 14),
+          style: pw.TextStyle(fontSize: 11),
           textAlign: pw.TextAlign.center,
         ),
-        pw.SizedBox(height: 10),
+        pw.SizedBox(height: 8),
         pw.Text(
           'PROGRESS REPORT',
-          style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+          style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
           textAlign: pw.TextAlign.center,
         ),
-        pw.SizedBox(height: 16),
+        pw.SizedBox(height: 8),
         pw.Text(
           '${getAcademicYear()} '
               '$studentClass END OF TERM ${getCurrentTerm()} STUDENT\'S PROGRESS REPORT',
-          style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+          style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
           textAlign: pw.TextAlign.center,
         ),
-        pw.SizedBox(height: 16),
+        pw.SizedBox(height: 12),
       ],
     );
   }
 
-  // Build student info section (exact match to Flutter UI)
+  // Build student info section with smaller font
   pw.Widget _buildStudentInfo() {
     return pw.Padding(
-      padding: pw.EdgeInsets.symmetric(horizontal: 16),
+      padding: pw.EdgeInsets.symmetric(horizontal: 8),
       child: pw.Column(
         children: [
           pw.Row(
             children: [
               pw.Expanded(
                 flex: 4,
-                child: pw.Text('NAME OF STUDENT: $studentFullName'),
+                child: pw.Text(
+                  'NAME OF STUDENT: $studentFullName',
+                  style: pw.TextStyle(fontSize: 11),
+                ),
               ),
               pw.Expanded(
-                flex: 4,
-                child: pw.Text('POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}'),
+                flex: 3,
+                child: pw.Text(
+                  'POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}',
+                  style: pw.TextStyle(fontSize: 11),
+                ),
               ),
               pw.Expanded(
-                flex: 1,
-                child: pw.Text('OUT OF: ${totalStudents > 0 ? totalStudents : 'N/A'}'),
+                flex: 2,
+                child: pw.Text(
+                  'OUT OF: ${totalStudents > 0 ? totalStudents : 'N/A'}',
+                  style: pw.TextStyle(fontSize: 11),
+                ),
               ),
               pw.Expanded(
-                flex: 1,
-                child: pw.Text('CLASS: $studentClass'),
+                flex: 2,
+                child: pw.Text(
+                  'CLASS: $studentClass',
+                  style: pw.TextStyle(fontSize: 11),
+                ),
               ),
             ],
           ),
-          pw.SizedBox(height: 16),
+          pw.SizedBox(height: 10),
         ],
       ),
     );
   }
 
-  // Build report table (exact match to Flutter UI)
+  // Build report table with optimized column widths and smaller fonts
   pw.Widget _buildReportTable() {
     List<List<String>> tableRows = [];
 
@@ -190,7 +203,7 @@ class Juniors_School_Report_PDF {
       'SUBJECT',
       'MARKS %',
       'GRADE',
-      'CLASS AVERAGE',
+      'CLASS AVG',
       'POSITION',
       'OUT OF',
       'TEACHERS\' COMMENTS',
@@ -232,17 +245,17 @@ class Juniors_School_Report_PDF {
     ]);
 
     return pw.Padding(
-      padding: pw.EdgeInsets.all(16),
+      padding: pw.EdgeInsets.all(8),
       child: pw.Table(
-        border: pw.TableBorder.all(),
+        border: pw.TableBorder.all(width: 0.5),
         columnWidths: {
-          0: pw.FlexColumnWidth(3),
-          1: pw.FlexColumnWidth(1.5),
-          2: pw.FlexColumnWidth(1),
-          3: pw.FlexColumnWidth(1.5),
-          4: pw.FlexColumnWidth(1.5),
-          5: pw.FlexColumnWidth(1.5),
-          6: pw.FlexColumnWidth(3),
+          0: pw.FlexColumnWidth(3.5),  // Subject name
+          1: pw.FlexColumnWidth(1.2),  // Marks - reduced
+          2: pw.FlexColumnWidth(0.8),  // Grade
+          3: pw.FlexColumnWidth(1.0),  // Class average - reduced
+          4: pw.FlexColumnWidth(0.8),  // Position - reduced
+          5: pw.FlexColumnWidth(0.9),  // Out of - reduced
+          6: pw.FlexColumnWidth(2.5),  // Comments
         },
         children: tableRows.asMap().entries.map((entry) {
           int index = entry.key;
@@ -262,54 +275,54 @@ class Juniors_School_Report_PDF {
 
   pw.Widget _tableCell(String text, {bool isHeader = false}) {
     return pw.Padding(
-      padding: pw.EdgeInsets.all(4),
+      padding: pw.EdgeInsets.all(3),
       child: pw.Text(
         text,
         style: pw.TextStyle(
           fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
-          fontSize: isHeader ? 14 : 12,
+          fontSize: isHeader ? 10 : 9,  // Reduced font sizes
         ),
         textAlign: pw.TextAlign.center,
       ),
     );
   }
 
-  // Build result section (exact match to Flutter UI)
+  // Build result section with smaller font
   pw.Widget _buildResultSection() {
     return pw.Padding(
-      padding: pw.EdgeInsets.symmetric(horizontal: 16),
+      padding: pw.EdgeInsets.symmetric(horizontal: 8),
       child: pw.Column(
         children: [
           pw.Row(
             children: [
               pw.Text(
                 'RESULT: ${jceStatus ?? 'FAIL'}',
-                style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 16),
+                style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
               ),
             ],
           ),
-          pw.SizedBox(height: 16),
+          pw.SizedBox(height: 10),
         ],
       ),
     );
   }
 
-  // Build grading key (exact match to Flutter UI)
+  // Build grading key with optimized layout
   pw.Widget _buildGradingKey() {
     return pw.Padding(
-      padding: pw.EdgeInsets.symmetric(horizontal: 16),
+      padding: pw.EdgeInsets.symmetric(horizontal: 8),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text(
             'JCE GRADING KEY FOR ${(schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase()}',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 16),
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
           ),
-          pw.SizedBox(height: 8),
+          pw.SizedBox(height: 6),
           pw.Table(
-            border: pw.TableBorder.all(),
+            border: pw.TableBorder.all(width: 0.5),
             columnWidths: {
-              0: pw.FlexColumnWidth(2),
+              0: pw.FlexColumnWidth(2.5),
               1: pw.FlexColumnWidth(1),
               2: pw.FlexColumnWidth(1),
               3: pw.FlexColumnWidth(1),
@@ -320,82 +333,99 @@ class Juniors_School_Report_PDF {
               pw.TableRow(
                 decoration: pw.BoxDecoration(color: PdfColors.grey300),
                 children: [
-                  _tableCell('Mark Range', isHeader: true),
-                  _tableCell('85-100', isHeader: true),
-                  _tableCell('75-84', isHeader: true),
-                  _tableCell('65-74', isHeader: true),
-                  _tableCell('50-64', isHeader: true),
-                  _tableCell('0-49', isHeader: true),
+                  _gradingKeyCell('Mark Range', isHeader: true),
+                  _gradingKeyCell('85-100', isHeader: true),
+                  _gradingKeyCell('75-84', isHeader: true),
+                  _gradingKeyCell('65-74', isHeader: true),
+                  _gradingKeyCell('50-64', isHeader: true),
+                  _gradingKeyCell('0-49', isHeader: true),
                 ],
               ),
               pw.TableRow(
                 children: [
-                  _tableCell('Grade', isHeader: true),
-                  _tableCell('A'),
-                  _tableCell('B'),
-                  _tableCell('C'),
-                  _tableCell('D'),
-                  _tableCell('F'),
+                  _gradingKeyCell('Grade', isHeader: true),
+                  _gradingKeyCell('A'),
+                  _gradingKeyCell('B'),
+                  _gradingKeyCell('C'),
+                  _gradingKeyCell('D'),
+                  _gradingKeyCell('F'),
                 ],
               ),
               pw.TableRow(
                 children: [
-                  _tableCell('Interpretation', isHeader: true),
-                  _tableCell('EXCELLENT'),
-                  _tableCell('VERY GOOD'),
-                  _tableCell('GOOD'),
-                  _tableCell('PASS'),
-                  _tableCell('FAIL'),
+                  _gradingKeyCell('Interpretation', isHeader: true),
+                  _gradingKeyCell('EXCELLENT'),
+                  _gradingKeyCell('VERY GOOD'),
+                  _gradingKeyCell('GOOD'),
+                  _gradingKeyCell('PASS'),
+                  _gradingKeyCell('FAIL'),
                 ],
               ),
             ],
           ),
-          pw.SizedBox(height: 16),
+          pw.SizedBox(height: 10),
         ],
       ),
     );
   }
 
-  // Build remarks section (exact match to Flutter UI)
+  pw.Widget _gradingKeyCell(String text, {bool isHeader = false}) {
+    return pw.Padding(
+      padding: pw.EdgeInsets.all(2),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(
+          fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+          fontSize: 9,
+        ),
+        textAlign: pw.TextAlign.center,
+      ),
+    );
+  }
+
+  // Build remarks section with smaller font
   pw.Widget _buildRemarksSection() {
     return pw.Padding(
-      padding: pw.EdgeInsets.symmetric(horizontal: 16),
+      padding: pw.EdgeInsets.symmetric(horizontal: 8),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text(
             'Form Teachers\' Remarks: ${formTeacherRemarks ?? 'N/A'}',
-            style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
+            style: pw.TextStyle(fontStyle: pw.FontStyle.italic, fontSize: 10),
           ),
-          pw.SizedBox(height: 8),
+          pw.SizedBox(height: 4),
           pw.Text(
             'Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
-            style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
+            style: pw.TextStyle(fontStyle: pw.FontStyle.italic, fontSize: 10),
           ),
-          pw.SizedBox(height: 16),
+          pw.SizedBox(height: 10),
         ],
       ),
     );
   }
 
-  // Build footer (exact match to Flutter UI)
+  // Build footer with smaller font
   pw.Widget _buildFooter() {
     return pw.Padding(
-      padding: pw.EdgeInsets.symmetric(horizontal: 16),
+      padding: pw.EdgeInsets.symmetric(horizontal: 8),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text(
             'Fees for next term',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
           ),
-          pw.Text('School account: ${schoolAccount ?? 'N/A'}'),
-          pw.SizedBox(height: 8),
+          pw.Text(
+            'School account: ${schoolAccount ?? 'N/A'}',
+            style: pw.TextStyle(fontSize: 10),
+          ),
+          pw.SizedBox(height: 4),
           pw.Text(
             'Next term begins on ${nextTermDate ?? 'N/A'}',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
           ),
-          pw.SizedBox(height: 16),
+          pw.SizedBox(height: 8),
         ],
       ),
     );
@@ -408,7 +438,7 @@ class Juniors_School_Report_PDF {
       doc.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
-          margin: pw.EdgeInsets.all(8), // Match Flutter padding
+          margin: pw.EdgeInsets.all(12), // Reduced margin for more space
           build: (pw.Context context) {
             return pw.Column(
               children: [
@@ -419,7 +449,6 @@ class Juniors_School_Report_PDF {
                 _buildGradingKey(),
                 _buildRemarksSection(),
                 _buildFooter(),
-                pw.SizedBox(height: 20), // Extra spacing at bottom
               ],
             );
           },
@@ -444,7 +473,7 @@ class Juniors_School_Report_PDF {
       doc.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
-          margin: pw.EdgeInsets.all(8),
+          margin: pw.EdgeInsets.all(12),
           build: (pw.Context context) {
             return pw.Column(
               children: [
@@ -455,7 +484,6 @@ class Juniors_School_Report_PDF {
                 _buildGradingKey(),
                 _buildRemarksSection(),
                 _buildFooter(),
-                pw.SizedBox(height: 20),
               ],
             );
           },
