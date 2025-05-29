@@ -52,7 +52,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   @override
   void initState() {
     super.initState();
-    _fetchStudentData();
+    _fetchStudentDataWithTimeout(); // Use the timeout version
   }
 
   // Method to determine current term based on date
@@ -135,6 +135,27 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     };
   }
 
+  Future<void> _fetchStudentDataWithTimeout() async {
+    try {
+      await _fetchStudentData().timeout(
+        Duration(seconds: 30),
+        onTimeout: () {
+          setState(() {
+            isLoading = false;
+            hasError = true;
+            errorMessage = 'Loading timeout. Please check your internet connection.';
+          });
+        },
+      );
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        hasError = true;
+        errorMessage = 'Failed to load data: ${e.toString()}';
+      });
+    }
+  }
+
   Future<void> _fetchStudentData() async {
     User? user = _auth.currentUser;
     if (user == null) {
@@ -149,7 +170,13 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     userEmail = user.email;
 
     try {
-      DocumentSnapshot userDoc = await _firestore.collection('Teachers_Details').doc(userEmail).get();
+      // Use parallel execution for independent operations
+      final futures = <Future>[
+        _firestore.collection('Teachers_Details').doc(userEmail).get(),
+      ];
+
+      final results = await Future.wait(futures);
+      final userDoc = results[0] as DocumentSnapshot;
 
       if (!userDoc.exists) {
         setState(() {
@@ -187,13 +214,20 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
       final String basePath = 'Schools/$teacherSchool/Classes/$studentClass/Student_Details/$studentFullName';
 
-      await _fetchSchoolInfo(teacherSchool);
-      await fetchStudentSubjects(basePath);
-      await fetchTotalMarks(basePath);
-      await calculate_Subject_Stats_And_Position(teacherSchool, studentClass, studentFullName);
-      await calculate_Aggregate_Points_And_Position(teacherSchool, studentClass, studentFullName);
-      await _calculateAndUpdateAverageGradeLetter(basePath);
-      await _updateTotalStudentsCount(teacherSchool, studentClass);
+      // Execute all data fetching operations in parallel
+      await Future.wait([
+        _fetchSchoolInfo(teacherSchool),
+        fetchStudentSubjects(basePath),
+        fetchTotalMarks(basePath),
+        _updateTotalStudentsCount(teacherSchool, studentClass),
+      ]);
+
+      // Execute calculations in parallel (these depend on the above data)
+      await Future.wait([
+        calculate_Subject_Stats_And_Position(teacherSchool, studentClass, studentFullName),
+        calculate_Aggregate_Points_And_Position(teacherSchool, studentClass, studentFullName),
+        _calculateAndUpdateAverageGradeLetter(basePath),
+      ]);
 
       setState(() {
         isLoading = false;
@@ -381,7 +415,10 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
   Future<void> fetchStudentSubjects(String basePath) async {
     try {
-      final snapshot = await _firestore.collection('$basePath/Student_Subjects').get();
+      final snapshot = await _firestore
+          .collection('$basePath/Student_Subjects')
+          .get(GetOptions(source: Source.serverAndCache)); // Use cache when available
+
       List<Map<String, dynamic>> subjectList = [];
 
       for (var doc in snapshot.docs) {
@@ -389,24 +426,14 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         int score = 0;
         bool hasGrade = true;
 
-        // Check if grade is N/A
         if (data['Subject_Grade'] == 'N/A' || data['Subject_Grade'] == null) {
           hasGrade = false;
         } else {
           score = double.tryParse(data['Subject_Grade'].toString())?.round() ?? 0;
         }
 
-        int subjectPosition = 0;
-        int totalStudentsInSubject = 0;
-
-        if (data['Subject_Position'] != null) {
-          subjectPosition = (data['Subject_Position'] as num?)?.toInt() ?? 0;
-        }
-
-        if (data['Total_Students_Subject'] != null) {
-          totalStudentsInSubject = (data['Total_Students_Subject'] as num?)?.toInt() ?? 0;
-        }
-
+        int subjectPosition = (data['Subject_Position'] as num?)?.toInt() ?? 0;
+        int totalStudentsInSubject = (data['Total_Students_Subject'] as num?)?.toInt() ?? 0;
         String gradeLetter = hasGrade ? Seniors_Grade(score) : '';
 
         subjectList.add({
@@ -427,13 +454,16 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
+
   Future<void> fetchTotalMarks(String basePath) async {
     try {
-      final doc = await _firestore.doc('$basePath/TOTAL_MARKS/Marks').get();
+      final doc = await _firestore
+          .doc('$basePath/TOTAL_MARKS/Marks')
+          .get(GetOptions(source: Source.serverAndCache)); // Use cache when available
+
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
 
-        // Helper function to safely parse numeric values
         int safeParse(dynamic value) {
           if (value == null) return 0;
           if (value is num) return value.toInt();
@@ -456,7 +486,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     } catch (e) {
       print("Error fetching total marks: $e");
       setState(() {
-        // Set default values if there's an error
         studentTotalMarks = 0;
         teacherTotalMarks = subjects.where((s) => s['hasGrade'] == true).length * 100;
         studentPosition = 0;
@@ -659,8 +688,24 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('NAME OF STUDENT: ${widget.studentFullName}'),
-          Text('CLASS: ${widget.studentClass}'),
+          Expanded(
+            flex: 4,
+            child: Text('NAME OF STUDENT: ${widget.studentFullName}'),
+          ),
+          Expanded(
+            flex: 3,
+            child: Row(
+              children: [
+                Text('POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}'),
+                SizedBox(width: 10),
+                Text('OUT OF: ${totalStudents > 0 ? totalStudents : 'N/A'}'),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text('CLASS: ${widget.studentClass}'),
+          ),
         ],
       ),
     );
@@ -750,8 +795,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('AGGREGATE POINTS: $aggregatePoints'),
-              Text('POSITION: $aggregatePosition'),
-              Text('OUT OF: $totalStudents'),
             ],
           ),
           SizedBox(height: 8),
@@ -759,7 +802,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('RESULT: $msceStatus'),
-           
+
             ],
           ),
           SizedBox(height: 16),
@@ -775,7 +818,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'MSCE GRADING KEY',
+            'MSCE GRADING KEY FOR ${(schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase()}',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8),
@@ -922,10 +965,15 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         ],
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+        ),
+      )
           : RefreshIndicator(
         onRefresh: _fetchStudentData,
         child: SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.all(8),
           child: Column(
             children: [

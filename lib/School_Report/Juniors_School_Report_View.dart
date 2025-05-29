@@ -507,7 +507,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 child: Text('NAME OF STUDENT: ${widget.studentFullName}'),
               ),
               Expanded(
-                flex: 3,
+                flex: 4,
                 child: Row(
                   children: [
                     Text('POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}'),
