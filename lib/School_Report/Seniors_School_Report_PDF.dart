@@ -20,7 +20,7 @@ class Seniors_School_Report_PDF {
   final Map<String, int> totalStudentsPerSubject;
   final int aggregatePoints;
   final int aggregatePosition;
-  final int totalStudents;
+  final int Total_Class_Students_Number;
   final int studentTotalMarks;
   final int teacherTotalMarks;
   final String? averageGradeLetter;
@@ -42,7 +42,7 @@ class Seniors_School_Report_PDF {
     required this.totalStudentsPerSubject,
     required this.aggregatePoints,
     required this.aggregatePosition,
-    required this.totalStudents,
+    required this.Total_Class_Students_Number,
     required this.studentTotalMarks,
     required this.teacherTotalMarks,
     this.averageGradeLetter,
@@ -237,7 +237,7 @@ class Seniors_School_Report_PDF {
                       children: [
                         pw.Text('AGGREGATE POINTS: $aggregatePoints'),
                         pw.Text('POSITION: $aggregatePosition'),
-                        pw.Text('OUT OF: $totalStudents'),
+                        pw.Text('OUT OF: $Total_Class_Students_Number'),
                       ],
                     ),
                     pw.SizedBox(height: 8),

@@ -28,7 +28,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   Map<String, int> subjectPositions = {};
   Map<String, int> totalStudentsPerSubject = {};
   int studentPosition = 0;
-  int totalStudents = 0;
+  int Total_Class_Students_Number = 0;
   bool isLoading = true;
   bool hasError = false;
   String? errorMessage;
@@ -143,7 +143,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           setState(() {
             isLoading = false;
             hasError = true;
-            errorMessage = 'Loading timeout. Please check your internet connection.';
+
           });
         },
       );
@@ -385,7 +385,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       if (classInfoDoc.exists) {
         final classData = classInfoDoc.data() as Map<String, dynamic>;
         setState(() {
-          totalStudents = classData['totalStudents'] ?? 0;
+          Total_Class_Students_Number = classData['Total_Class_Students_Number'] ?? 0;
         });
       } else {
         // If Class_Info doesn't exist, count from Student_Details
@@ -393,19 +393,19 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
             .collection('Schools/$school/Classes/$studentClass/Student_Details')
             .get();
 
-        final totalClassStudents = studentsSnapshot.docs.length;
+        var Total_Class_Students_Number = studentsSnapshot.docs.length;
 
         // Update Class_Info with total students
         await _firestore
             .collection('Schools/$school/Classes/$studentClass')
             .doc('Class_Info')
             .set({
-          'totalStudents': totalClassStudents,
+          'totalStudents': Total_Class_Students_Number,
           'lastUpdated': FieldValue.serverTimestamp(),
         });
 
         setState(() {
-          totalStudents = totalClassStudents;
+          Total_Class_Students_Number = Total_Class_Students_Number;
         });
       }
     } catch (e) {
@@ -698,7 +698,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
               children: [
                 Text('POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}'),
                 SizedBox(width: 10),
-                Text('OUT OF: ${totalStudents > 0 ? totalStudents : 'N/A'}'),
+                Text('OUT OF: ${Total_Class_Students_Number > 0 ? Total_Class_Students_Number : 'N/A'}'),
               ],
             ),
           ),
@@ -940,7 +940,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       totalStudentsPerSubject: totalStudentsPerSubject,
       aggregatePoints: aggregatePoints,
       aggregatePosition: aggregatePosition,
-      totalStudents: totalStudents,
+      Total_Class_Students_Number: Total_Class_Students_Number,
       studentTotalMarks: studentTotalMarks,
       teacherTotalMarks: teacherTotalMarks,
     );
