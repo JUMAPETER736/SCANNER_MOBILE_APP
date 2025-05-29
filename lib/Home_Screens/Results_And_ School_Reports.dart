@@ -39,8 +39,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     _fetchUserDetails();
   }
 
-
-
   Future<void> _fetchUserDetails() async {
     User? user = _auth.currentUser;
     if (user != null) {
@@ -126,6 +124,23 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     };
   }
 
+  // Helper method to sort students based on their class
+  List<Map<String, dynamic>> _sortStudents(List<Map<String, dynamic>> students, String classId) {
+    List<Map<String, dynamic>> sortedStudents = List.from(students);
+
+    if (classId == 'FORM 1' || classId == 'FORM 2') {
+      // For juniors: higher marks first (descending order)
+      sortedStudents.sort((a, b) =>
+          (b['Student_Total_Marks'] ?? 0).compareTo(a['Student_Total_Marks'] ?? 0));
+    } else if (classId == 'FORM 3' || classId == 'FORM 4') {
+      // For seniors: lower points first (ascending order)
+      sortedStudents.sort((a, b) =>
+          (a['Best_Six_Total_Points'] ?? 0).compareTo(b['Best_Six_Total_Points'] ?? 0));
+    }
+
+    return sortedStudents;
+  }
+
   Future<void> _fetchStudentDetailsForClass(DocumentSnapshot userDoc, String classId) async {
     try {
       setState(() {
@@ -158,11 +173,15 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
         }
       }
 
-      await _updateStudentPositions(classStudents, classId);
+      // Sort students based on class type
+      List<Map<String, dynamic>> sortedStudents = _sortStudents(tempStudentDetails, classId);
+      List<Map<String, dynamic>> sortedClassStudents = _sortStudents(classStudents, classId);
+
+      await _updateStudentPositions(sortedClassStudents, classId);
 
       setState(() {
-        studentDetails = tempStudentDetails;
-        allStudentDetails = List.from(tempStudentDetails);
+        studentDetails = sortedStudents;
+        allStudentDetails = sortedStudents; // Store the sorted list
         isLoading = false;
       });
     } catch (e) {
@@ -330,18 +349,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
   Future<void> _updateStudentPositions(List<Map<String, dynamic>> classStudents, String classId) async {
     int totalClassStudents = classStudents.length;
 
-    if (classId == 'FORM 1' || classId == 'FORM 2') {
-      classStudents.sort((a, b) =>
-          (b['Student_Total_Marks'] ?? 0).compareTo(a['Student_Total_Marks'] ?? 0));
-      studentDetails.sort((a, b) =>
-          (b['Student_Total_Marks'] ?? 0).compareTo(a['Student_Total_Marks'] ?? 0));
-    } else if (classId == 'FORM 3' || classId == 'FORM 4') {
-      classStudents.sort((a, b) =>
-          (a['Best_Six_Total_Points'] ?? 0).compareTo(b['Best_Six_Total_Points'] ?? 0));
-      studentDetails.sort((a, b) =>
-          (a['Best_Six_Total_Points'] ?? 0).compareTo(b['Best_Six_Total_Points'] ?? 0));
-    }
-
+    // Students are already sorted correctly from _sortStudents method
     WriteBatch batch = _firestore.batch();
     for (int i = 0; i < classStudents.length; i++) {
       int position = i + 1;
@@ -392,8 +400,11 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
             .contains(_searchQuery.toLowerCase()))
         .toList();
 
+    // Maintain sorting after search
+    List<Map<String, dynamic>> sortedFilteredList = _sortStudents(filteredList, selectedClass!);
+
     setState(() {
-      studentDetails = filteredList;
+      studentDetails = sortedFilteredList;
       _noSearchResults = filteredList.isEmpty;
     });
   }
@@ -531,7 +542,23 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                   ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-
+                  children: [
+                    Icon(
+                      Icons.search_off,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'No students found matching "$_searchQuery"',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[600],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               )
                   : studentDetails.isEmpty
@@ -758,7 +785,11 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                             width: 2),
                       ),
                     ),
-                    // No need for onChanged here to avoid state jumps
+                    onSubmitted: (value) {
+                      Navigator.of(context).pop();
+                      _searchController.text = value.trim();
+                      performSearch(value.trim());
+                    },
                   ),
                   SizedBox(height: 10),
                 ],
@@ -780,12 +811,8 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                 ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    setState(() {
-                      _searchController.text =
-                          localSearchController.text.trim();
-                      _searchQuery = _searchController.text.trim();
-                      _noSearchResults = false;
-                    });
+                    _searchController.text = localSearchController.text.trim();
+                    performSearch(localSearchController.text.trim());
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blueAccent,

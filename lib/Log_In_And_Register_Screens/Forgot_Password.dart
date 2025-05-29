@@ -15,74 +15,74 @@ class _Forgot_PasswordState extends State<Forgot_Password> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _emailController = TextEditingController();
   String errorMessage = '';
+  bool isLoading = false;
 
-  // Function to reset password using Firebase Authentication
+  // Send reset email
   Future<void> resetPassword(String email, String name) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
-
-      // Show success dialog with customized greeting
       AwesomeDialog(
         context: context,
         dialogType: DialogType.success,
         animType: AnimType.scale,
         title: 'Email Sent ✈️',
-        desc: 'Hello $name, Check your Email to reset your Password!',
-        btnOkText: 'OK',
+        desc: 'Hello $name, check your email to reset your password!',
         btnOkOnPress: () {},
-      )..show();
+      ).show();
     } catch (e) {
-      print('Failed to send reset Email: $e');
       AwesomeDialog(
         context: context,
         dialogType: DialogType.error,
         animType: AnimType.scale,
         title: 'Failed to Reset Password',
         desc: 'Error: ${e.toString()}',
-        btnOkText: 'OK',
         btnOkOnPress: () {},
-      )..show();
+      ).show();
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
-  // Function to validate the email and check if it exists in Firestore
+  // Validate and check email in Firestore
   Future<void> validateAndResetPassword(String email) async {
     if (!isValidEmail(email)) {
-      setState(() {
-        errorMessage = 'Please Enter a valid Email Address';
-      });
+      setState(() => errorMessage = 'Please enter a valid email address');
       return;
     }
 
+    setState(() {
+      errorMessage = '';
+      isLoading = true;
+    });
+
     try {
-      // Query Firestore to get user info based on the email
       final userDoc = await _firestore
           .collection('TeachersDetails')
           .where('email', isEqualTo: email)
+          .limit(1)
           .get();
 
       if (userDoc.docs.isEmpty) {
         setState(() {
-          errorMessage = 'Email is not Registered';
+          errorMessage = 'Email is not registered';
+          isLoading = false;
         });
         return;
       }
 
-      // Get the first and last name from Firestore
-      final name = userDoc.docs.first.data()['name'];
+      final data = userDoc.docs.first.data();
+      final name = data['name'] ?? 'User';
 
-
-      // If email is valid and exists, proceed to reset password with customized message
       await resetPassword(email, name);
     } catch (e) {
-      print('Error checking Email in Firestore: $e');
+      print('Error checking email: $e');
       setState(() {
-        errorMessage = 'An error occurred. Please try again later.';
+        errorMessage = 'Something went wrong. Please try again later.';
+        isLoading = false;
       });
     }
   }
 
-  // Regular expression to check for valid email
   bool isValidEmail(String email) {
     final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
     return emailRegex.hasMatch(email);
@@ -108,27 +108,28 @@ class _Forgot_PasswordState extends State<Forgot_Password> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Text(
-                'Enter your Email to reset your Password',
-                style: TextStyle(fontSize: 30.0, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                'Enter your email to reset your password',
+                style: TextStyle(fontSize: 26.0, fontWeight: FontWeight.bold, color: Colors.blueAccent),
               ),
-              SizedBox(height: 10.0),
+              SizedBox(height: 20.0),
               _buildStyledTextField(
                 controller: _emailController,
                 labelText: 'Email',
               ),
               if (errorMessage.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.only(top: 3.0),
+                  padding: const EdgeInsets.only(top: 8.0),
                   child: Text(
                     errorMessage,
                     style: TextStyle(color: Colors.red),
                   ),
                 ),
               SizedBox(height: 30.0),
-              ElevatedButton(
+              isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : ElevatedButton(
                 onPressed: () {
                   final email = _emailController.text.trim();
                   validateAndResetPassword(email);
