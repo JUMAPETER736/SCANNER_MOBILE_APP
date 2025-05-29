@@ -21,7 +21,10 @@ class _Student_Name_ListState extends State<Student_Name_List> {
   String? selectedClass;
   bool _hasSelectedCriteria = false;
   bool _noSearchResults = false;
+  bool _isSearching = false;
   Timer? _refreshTimer;
+  List<Map<String, dynamic>> allStudentDetails = [];
+  List<Map<String, dynamic>> studentDetails = [];
 
   @override
   void initState() {
@@ -38,7 +41,6 @@ class _Student_Name_ListState extends State<Student_Name_List> {
   }
 
   void _startAutoRefresh() {
-    // Auto-refresh every 30 seconds when not searching
     _refreshTimer = Timer.periodic(Duration(seconds: 10), (timer) {
       if (_searchQuery.isEmpty && mounted) {
         setState(() {
@@ -70,6 +72,90 @@ class _Student_Name_ListState extends State<Student_Name_List> {
         }
       }
     }
+  }
+
+  void performSearch(String searchQuery) {
+    setState(() {
+      _searchQuery = searchQuery.trim();
+      _isSearching = true;
+      _noSearchResults = false;
+    });
+
+    if (_searchQuery.isEmpty) {
+      setState(() {
+        studentDetails = List.from(allStudentDetails);
+        _isSearching = false;
+        _noSearchResults = false;
+      });
+      return;
+    }
+
+    List<Map<String, dynamic>> filteredList = allStudentDetails
+        .where((student) =>
+    student['fullName']
+        .toLowerCase()
+        .contains(_searchQuery.toLowerCase()) ||
+        student['firstName']
+            .toLowerCase()
+            .contains(_searchQuery.toLowerCase()) ||
+        student['lastName']
+            .toLowerCase()
+            .contains(_searchQuery.toLowerCase()))
+        .toList();
+
+    setState(() {
+      studentDetails = filteredList;
+      _noSearchResults = filteredList.isEmpty && _searchQuery.isNotEmpty;
+      _isSearching = false;
+    });
+  }
+
+  Future<void> _loadStudentData() async {
+    if (teacherSchool == null || selectedClass == null) return;
+
+    var snapshot = await FirebaseFirestore.instance
+        .collection('Schools')
+        .doc(teacherSchool)
+        .collection('Classes')
+        .doc(selectedClass)
+        .collection('Student_Details')
+        .get();
+
+    List<Map<String, dynamic>> loadedStudents = [];
+
+    for (int index = 0; index < snapshot.docs.length; index++) {
+      var studentDoc = snapshot.docs[index];
+      var registeredInfoDoc = await studentDoc.reference
+          .collection('Personal_Information')
+          .doc('Registered_Information')
+          .get();
+
+      if (registeredInfoDoc.exists) {
+        var data = registeredInfoDoc.data() as Map<String, dynamic>;
+        var firstName = data['firstName'] ?? 'N/A';
+        var lastName = data['lastName'] ?? 'N/A';
+        var studentGender = data['studentGender'] ?? 'N/A';
+        var fullName = '$lastName $firstName';
+
+        loadedStudents.add({
+          'index': index,
+          'firstName': firstName,
+          'lastName': lastName,
+          'fullName': fullName,
+          'studentGender': studentGender,
+          'docId': studentDoc.id,
+        });
+      }
+    }
+
+    setState(() {
+      allStudentDetails = loadedStudents;
+      if (_searchQuery.isEmpty) {
+        studentDetails = List.from(allStudentDetails);
+      } else {
+        performSearch(_searchQuery);
+      }
+    });
   }
 
   @override
@@ -110,7 +196,6 @@ class _Student_Name_ListState extends State<Student_Name_List> {
               showSearchDialog(context);
             },
           ),
-
         ]
             : [],
       ),
@@ -141,7 +226,10 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                           _searchQuery = '';
                           _noSearchResults = false;
                           _searchController.clear();
+                          allStudentDetails.clear();
+                          studentDetails.clear();
                         });
+                        _loadStudentData();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isSelected
@@ -159,6 +247,8 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                 }).toList(),
               ),
             ),
+
+            // Show search query info when searching
             if (_searchQuery.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.all(8.0),
@@ -180,6 +270,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                           _searchQuery = '';
                           _searchController.clear();
                           _noSearchResults = false;
+                          studentDetails = List.from(allStudentDetails);
                         });
                       },
                       child: Text(
@@ -193,29 +284,23 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                   ],
                 ),
               ),
+
             SizedBox(height: 8),
             Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('Schools')
-                    .doc(teacherSchool)
-                    .collection('Classes')
-                    .doc(selectedClass)
-                    .collection('Student_Details')
-                    .snapshots(),
+              child: FutureBuilder(
+                future: allStudentDetails.isEmpty ? _loadStudentData() : null,
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+                  if (_isSearching || (allStudentDetails.isEmpty && snapshot.connectionState == ConnectionState.waiting)) {
                     return Center(
                       child: CircularProgressIndicator(
-                        color: Colors
-                            .blue, // Set progress indicator color to blue
+                        color: Colors.blue,
                       ),
                     );
                   }
+                  
 
-
-                  if (!snapshot.hasData ||
-                      snapshot.data!.docs.isEmpty) {
+                  // Show no students message
+                  if (studentDetails.isEmpty && allStudentDetails.isEmpty) {
                     return Center(
                       child: Text(
                         'No Student Found.',
@@ -228,178 +313,66 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                     );
                   }
 
-                  var studentDocs = snapshot.data!.docs;
-                  List<Widget> studentCards = [];
-                  List<Widget> filteredStudentCards = [];
-
-                  for (int index = 0; index < studentDocs.length; index++) {
-                    var studentDoc = studentDocs[index];
-                    var registeredInformationDocRef =
-                    studentDoc.reference
-                        .collection('Personal_Information')
-                        .doc('Registered_Information');
-
-                    studentCards.add(
-                      FutureBuilder<DocumentSnapshot>(
-                        future: registeredInformationDocRef.get(),
-                        builder: (context, futureSnapshot) {
-                          if (!futureSnapshot.hasData ||
-                              !futureSnapshot.data!.exists) {
-                            return SizedBox.shrink();
-                          }
-
-                          var data = futureSnapshot.data!.data()
-                          as Map<String, dynamic>;
-                          var firstName = data['firstName'] ?? 'N/A';
-                          var lastName = data['lastName'] ?? 'N/A';
-                          var studentGender =
-                              data['studentGender'] ?? 'N/A';
-                          var fullName = '$lastName $firstName';
-
-                          // Check if student matches search query
-                          bool matchesSearch = _searchQuery.isEmpty ||
-                              fullName.toLowerCase().contains(
-                                  _searchQuery.toLowerCase()) ||
-                              firstName.toLowerCase().contains(
-                                  _searchQuery.toLowerCase()) ||
-                              lastName.toLowerCase().contains(
-                                  _searchQuery.toLowerCase());
-
-                          if (!matchesSearch) {
-                            return SizedBox.shrink();
-                          }
-
-                          return Card(
-                            elevation: 3,
-                            margin: const EdgeInsets.symmetric(
-                                vertical: 4.0),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.0),
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      await _loadStudentData();
+                    },
+                    child: ListView.separated(
+                      physics: AlwaysScrollableScrollPhysics(),
+                      itemCount: studentDetails.length,
+                      separatorBuilder: (context, index) => SizedBox(height: 6),
+                      itemBuilder: (context, index) {
+                        var student = studentDetails[index];
+                        return Card(
+                          elevation: 3,
+                          margin: const EdgeInsets.symmetric(vertical: 4.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          child: ListTile(
+                            contentPadding: EdgeInsets.symmetric(
+                                vertical: 4.0, horizontal: 12.0),
+                            leading: Text(
+                              '${student['index'] + 1}.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blueAccent,
+                              ),
                             ),
-                            child: ListTile(
-                              contentPadding: EdgeInsets.symmetric(
-                                  vertical: 4.0, horizontal: 12.0),
-                              leading: Text(
-                                '${index + 1}.',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blueAccent,
-                                ),
+                            title: Text(
+                              student['fullName'].toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blueAccent,
                               ),
-                              title: Text(
-                                fullName.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blueAccent,
-                                ),
+                            ),
+                            subtitle: Text(
+                              'Gender: ${student['studentGender']}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black54,
                               ),
-                              subtitle: Text(
-                                'Gender: $studentGender',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                              trailing: Icon(Icons.arrow_forward,
-                                  color: Colors.blueAccent),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        Student_Subjects(
-                                          studentName: fullName,
-                                          studentClass: selectedClass!,
-                                        ),
+                            ),
+                            trailing: Icon(Icons.arrow_forward,
+                                color: Colors.blueAccent),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => Student_Subjects(
+                                    studentName: student['fullName'],
+                                    studentClass: selectedClass!,
                                   ),
-                                );
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  }
-
-                  // Create a future that resolves when all FutureBuilders are done
-                  return FutureBuilder<List<Widget>>(
-                    future: _buildFilteredList(studentCards),
-                    builder: (context, filteredSnapshot) {
-                      if (filteredSnapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      }
-
-                      var filteredCards = filteredSnapshot.data ?? [];
-
-                      // Check if search query exists and no results found
-                      if (_searchQuery.isNotEmpty && filteredCards.isEmpty) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.search_off,
-                                size: 64,
-                                color: Colors.red,
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'Student Not Found',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.red,
                                 ),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'No student matches "$_searchQuery"',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _searchQuery = '';
-                                    _searchController.clear();
-                                    _noSearchResults = false;
-                                  });
-                                },
-                                child: Text('Clear Search'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blueAccent,
-                                  foregroundColor: Colors.white,
-                                ),
-                              ),
-                            ],
+                              );
+                            },
                           ),
                         );
-                      }
-
-                      return RefreshIndicator(
-                        onRefresh: () async {
-                          setState(() {
-                            // Trigger rebuild
-                          });
-                        },
-                        child: ListView.separated(
-                          physics: AlwaysScrollableScrollPhysics(),
-                          itemCount: filteredCards.length,
-                          separatorBuilder: (context, index) =>
-                              SizedBox(height: 6),
-                          itemBuilder: (context, index) {
-                            return filteredCards[index];
-                          },
-                        ),
-                      );
-                    },
+                      },
+                    ),
                   );
                 },
               ),
@@ -418,22 +391,6 @@ class _Student_Name_ListState extends State<Student_Name_List> {
         ),
       ),
     );
-  }
-
-  Future<List<Widget>> _buildFilteredList(List<Widget> studentCards) async {
-    // Wait for all FutureBuilders to complete and filter out empty widgets
-    List<Widget> filteredCards = [];
-
-    for (Widget card in studentCards) {
-      if (card is FutureBuilder<DocumentSnapshot>) {
-        // We need to check if this card should be displayed
-        // Since we can't easily await the FutureBuilder here,
-        // we'll let the FutureBuilder handle the filtering
-        filteredCards.add(card);
-      }
-    }
-
-    return filteredCards;
   }
 
   void showSearchDialog(BuildContext context) {
@@ -476,7 +433,6 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                             width: 2),
                       ),
                     ),
-                    // No need for onChanged here to avoid state jumps
                   ),
                   SizedBox(height: 10),
                 ],
@@ -498,12 +454,8 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                 ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    setState(() {
-                      _searchController.text =
-                          localSearchController.text.trim();
-                      _searchQuery = _searchController.text.trim();
-                      _noSearchResults = false;
-                    });
+                    _searchController.text = localSearchController.text.trim();
+                    performSearch(localSearchController.text);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blueAccent,
