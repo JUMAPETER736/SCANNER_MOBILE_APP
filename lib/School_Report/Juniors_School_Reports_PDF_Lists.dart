@@ -77,7 +77,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error loading PDF files: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.blue,
         ),
       );
     } finally {
@@ -103,7 +103,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('PDF file not found for $studentName'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.blue,
           ),
         );
       }
@@ -112,7 +112,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error opening PDF: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.blue,
         ),
       );
     }
