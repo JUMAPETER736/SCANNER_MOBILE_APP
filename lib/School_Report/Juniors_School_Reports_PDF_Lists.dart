@@ -1,7 +1,3 @@
-
-
-
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
@@ -9,7 +5,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:open_file/open_file.dart';
 import 'Juniors_School_Report_PDF.dart';
-
 
 class Juniors_School_Reports_PDF_List extends StatefulWidget {
   final String schoolName;
@@ -63,10 +58,9 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
     }
   }
 
-  // Fetch students with complete data for PDF generation (FORM 3 & 4 only)
+  // Fetch students with complete data for PDF generation
   Future<List<Map<String, dynamic>>> _fetchStudentsWithData() async {
     try {
-      // Query only students from the specific class (FORM 3 or FORM 4)
       QuerySnapshot snapshot = await _firestore
           .collection('Schools')
           .doc(widget.schoolName)
@@ -82,27 +76,29 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
         final firstName = data['firstName'] ?? '';
         final lastName = data['lastName'] ?? '';
         final fullName = '$firstName $lastName';
-        final studentClass = widget.className; // Use the class from widget
 
         // Fetch subjects/grades for this student
         final subjects = await _fetchStudentSubjects(doc.id);
 
+        // Calculate subject statistics
+        final subjectStats = await _calculateSubjectStats(subjects);
+
         students.add({
           'id': doc.id,
           'fullName': fullName,
-          'class': studentClass,
+          'class': widget.className,
           'subjects': subjects,
+          'subjectStats': subjectStats,
           'firstName': firstName,
           'lastName': lastName,
-          // Add other required fields from your database
-          'aggregatePoints': data['aggregatePoints'] ?? 0,
-          'aggregatePosition': data['aggregatePosition'] ?? 0,
-          'totalClassStudents': data['totalClassStudents'] ?? 0,
           'studentTotalMarks': data['studentTotalMarks'] ?? 0,
           'teacherTotalMarks': data['teacherTotalMarks'] ?? 0,
+          'studentPosition': data['studentPosition'] ?? 0,
+          'totalStudents': data['totalStudents'] ?? 0,
           'formTeacherRemarks': data['formTeacherRemarks'],
           'headTeacherRemarks': data['headTeacherRemarks'],
           'averageGradeLetter': data['averageGradeLetter'],
+          'jceStatus': data['jceStatus'] ?? 'FAIL',
         });
       }
 
@@ -143,6 +139,65 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
     }
   }
 
+  // Calculate subject statistics (averages, etc.)
+  Future<Map<String, dynamic>> _calculateSubjectStats(List<Map<String, dynamic>> subjects) async {
+    Map<String, dynamic> stats = {};
+
+    for (var subject in subjects) {
+      final subjectName = subject['subject'];
+
+      try {
+        // Fetch all students' scores for this subject to calculate average
+        QuerySnapshot allStudentsSnapshot = await _firestore
+            .collection('Schools')
+            .doc(widget.schoolName)
+            .collection('Classes')
+            .doc(widget.className)
+            .collection('Students')
+            .get();
+
+        List<int> allScores = [];
+
+        for (var studentDoc in allStudentsSnapshot.docs) {
+          QuerySnapshot subjectSnapshot = await _firestore
+              .collection('Schools')
+              .doc(widget.schoolName)
+              .collection('Classes')
+              .doc(widget.className)
+              .collection('Students')
+              .doc(studentDoc.id)
+              .collection('subjects')
+              .where('subject', isEqualTo: subjectName)
+              .get();
+
+          if (subjectSnapshot.docs.isNotEmpty) {
+            final score = subjectSnapshot.docs.first.data() as Map<String, dynamic>;
+            allScores.add(score['score'] ?? 0);
+          }
+        }
+
+        // Calculate average
+        int average = 0;
+        if (allScores.isNotEmpty) {
+          average = (allScores.reduce((a, b) => a + b) / allScores.length).round();
+        }
+
+        stats[subjectName] = {
+          'average': average,
+          'totalStudents': allScores.length,
+        };
+      } catch (e) {
+        print('Error calculating stats for $subjectName: $e');
+        stats[subjectName] = {
+          'average': 0,
+          'totalStudents': 0,
+        };
+      }
+    }
+
+    return stats;
+  }
+
   // Fetch school information
   Future<Map<String, dynamic>> _fetchSchoolInfo() async {
     try {
@@ -172,8 +227,16 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
       if (await Permission.storage.request().isGranted) {
         final schoolInfo = await _fetchSchoolInfo();
 
-        // Create PDF using your existing class
+        // Create PDF using the correct parameters from Juniors_School_Report_PDF
         final pdfGenerator = Juniors_School_Report_PDF(
+          studentClass: studentData['class'],
+          studentFullName: studentData['fullName'],
+          subjects: studentData['subjects'],
+          subjectStats: studentData['subjectStats'],
+          studentTotalMarks: studentData['studentTotalMarks'],
+          teacherTotalMarks: studentData['teacherTotalMarks'],
+          studentPosition: studentData['studentPosition'],
+          totalStudents: studentData['totalStudents'],
           schoolName: schoolInfo['name'] ?? widget.schoolName,
           schoolAddress: schoolInfo['address'],
           schoolPhone: schoolInfo['phone'],
@@ -182,21 +245,11 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
           nextTermDate: schoolInfo['nextTermDate'],
           formTeacherRemarks: studentData['formTeacherRemarks'],
           headTeacherRemarks: studentData['headTeacherRemarks'],
-          studentFullName: studentData['fullName'],
-          studentClass: studentData['class'],
-          subjects: studentData['subjects'],
-          subjectStats: {}, // You'll need to calculate this
-          subjectPositions: {}, // You'll need to fetch this
-          totalStudentsPerSubject: {}, // You'll need to fetch this
-          aggregatePoints: studentData['aggregatePoints'],
-          aggregatePosition: studentData['aggregatePosition'],
-          Total_Class_Students_Number: studentData['totalClassStudents'],
-          studentTotalMarks: studentData['studentTotalMarks'],
-          teacherTotalMarks: studentData['teacherTotalMarks'],
           averageGradeLetter: studentData['averageGradeLetter'],
+          jceStatus: studentData['jceStatus'],
         );
 
-        // Generate and save PDF
+        // Generate and save PDF to specific path
         await _savePDFToStorage(pdfGenerator, studentData['fullName']);
 
         // Refresh the PDF list
@@ -240,11 +293,13 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
         await pdfDir.create(recursive: true);
       }
 
-      final filePath = '${pdfDir.path}/$studentName.pdf';
+      final fileName = '${studentName.replaceAll(' ', '_')}_Report.pdf';
 
-      // You'll need to modify your PDF class to save to the specific path
-      // For now, this is a placeholder for the save functionality
-      // The PDF should be saved to the filePath above
+      // Use the generateAndSavePDF method from your PDF class
+      await pdfGenerator.generateAndSavePDF(fileName);
+
+      // The PDF should now be saved to the correct location
+      print('PDF saved to: ${pdfDir.path}/$fileName');
 
     } catch (e) {
       throw Exception('Failed to save PDF: $e');
@@ -301,6 +356,49 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  // Generate PDFs for all students
+  Future<void> _generateAllPDFs() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final students = await _fetchStudentsWithData();
+      int successCount = 0;
+      int errorCount = 0;
+
+      for (var student in students) {
+        try {
+          if (!savedPDFs.contains(student['fullName'])) {
+            await _generateStudentPDF(student);
+            successCount++;
+          }
+        } catch (e) {
+          errorCount++;
+          print('Error generating PDF for ${student['fullName']}: $e');
+        }
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Generated $successCount PDFs successfully. $errorCount errors.'),
+          backgroundColor: errorCount == 0 ? Colors.green : Colors.orange,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generating PDFs: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -460,7 +558,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
                         subtitle: Text(
                           hasExistingPDF
                               ? 'PDF already exists - Class: ${student['class']}'
-                              : 'Class: ${student['class']}',
+                              : 'Class: ${student['class']} - ${student['subjects'].length} subjects',
                         ),
                         trailing: isLoading
                             ? SizedBox(
@@ -487,17 +585,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: isLoading
-            ? null
-            : () async {
-          // Generate PDFs for all students
-          final students = await _fetchStudentsWithData();
-          for (var student in students) {
-            if (!savedPDFs.contains(student['fullName'])) {
-              await _generateStudentPDF(student);
-            }
-          }
-        },
+        onPressed: isLoading ? null : _generateAllPDFs,
         icon: Icon(Icons.auto_awesome),
         label: Text('Generate All'),
         backgroundColor: isLoading ? Colors.grey : null,
