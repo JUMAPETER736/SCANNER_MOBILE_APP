@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../School_Report/Juniors_School_Reports_PDF_Lists.dart';
+import '../School_Report/Seniors_School_Reports_PDF_Lists.dart';
 
 
 class School_Reports_PDF_List extends StatefulWidget {
@@ -294,7 +295,7 @@ class _School_Reports_PDF_ListState extends State<School_Reports_PDF_List> {
                             MaterialPageRoute(
                               builder: (context) => Seniors_School_Reports_PDF_List(
                                 studentClass: studentClass,
-                                studentFullName: student['fullName'],
+                                studentFullName: student['fullName'], schoolName: '', className: '',
                               ),
                             ),
                           );
