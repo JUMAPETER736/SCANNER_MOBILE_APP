@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:scanna/School_Report/Juniors_School_Report_PDF_Lists.dart';
-import 'package:scanna/School_Report/Seniors_School_Report_PDF_Lists.dart';
+
+import '../School_Report/Juniors_School_Reports_PDF_Lists.dart';
+
 
 class School_Reports_PDF_List extends StatefulWidget {
   @override
@@ -280,9 +281,9 @@ class _School_Reports_PDF_ListState extends State<School_Reports_PDF_List> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => Juniors_School_Report_PDF_Lists(
+                              builder: (context) => Juniors_School_Reports_PDF_List(
                                 studentClass: studentClass,
-                                studentFullName: student['fullName'],
+                                studentFullName: student['fullName'], schoolName: '', className: '',
                               ),
                             ),
                           );
@@ -291,7 +292,7 @@ class _School_Reports_PDF_ListState extends State<School_Reports_PDF_List> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => Seniors_School_Report_PDF_Lists(
+                              builder: (context) => Seniors_School_Reports_PDF_List(
                                 studentClass: studentClass,
                                 studentFullName: student['fullName'],
                               ),
