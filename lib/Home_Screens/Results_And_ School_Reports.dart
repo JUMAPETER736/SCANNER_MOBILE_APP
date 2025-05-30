@@ -659,7 +659,8 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                               ),
                             ),
                           );
-                        } else if (studentClass == 'FORM 3' || studentClass == 'FORM 4') {
+                        }
+                        else if (studentClass == 'FORM 3' || studentClass == 'FORM 4') {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
