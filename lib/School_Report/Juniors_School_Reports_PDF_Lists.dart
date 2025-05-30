@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:open_file/open_file.dart';
-import 'Juniors_School_Report_PDF.dart';
 
 class Juniors_School_Reports_PDF_List extends StatefulWidget {
   final String schoolName;
@@ -23,7 +20,6 @@ class Juniors_School_Reports_PDF_List extends StatefulWidget {
 }
 
 class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports_PDF_List> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<String> savedPDFs = [];
   bool isLoading = false;
 
@@ -40,241 +36,47 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
 
   // Load list of saved PDFs from device storage
   Future<void> _loadSavedPDFs() async {
-    try {
-      final directory = await getExternalStorageDirectory();
-      if (directory != null) {
-        final pdfDir = Directory('${directory.path}${_pdfStoragePath}');
-        if (await pdfDir.exists()) {
-          final files = pdfDir.listSync()
-              .where((file) => file.path.endsWith('.pdf'))
-              .map((file) => file.path.split('/').last.replaceAll('.pdf', ''))
-              .toList();
-
-          setState(() {
-            savedPDFs = files;
-          });
-        }
-      }
-    } catch (e) {
-      print('Error loading saved PDFs: $e');
-    }
-  }
-
-  // Fetch students with complete data for PDF generation
-  Future<List<Map<String, dynamic>>> _fetchStudentsWithData() async {
-    try {
-      QuerySnapshot snapshot = await _firestore
-          .collection('Schools')
-          .doc(widget.schoolName)
-          .collection('Classes')
-          .doc(widget.className)
-          .collection('Students')
-          .get();
-
-      List<Map<String, dynamic>> students = [];
-
-      for (var doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        final firstName = data['firstName'] ?? '';
-        final lastName = data['lastName'] ?? '';
-        final fullName = '$firstName $lastName';
-
-        // Fetch subjects/grades for this student
-        final subjects = await _fetchStudentSubjects(doc.id);
-
-        // Calculate subject statistics
-        final subjectStats = await _calculateSubjectStats(subjects);
-
-        students.add({
-          'id': doc.id,
-          'fullName': fullName,
-          'class': widget.className,
-          'subjects': subjects,
-          'subjectStats': subjectStats,
-          'firstName': firstName,
-          'lastName': lastName,
-          'studentTotalMarks': data['studentTotalMarks'] ?? 0,
-          'teacherTotalMarks': data['teacherTotalMarks'] ?? 0,
-          'studentPosition': data['studentPosition'] ?? 0,
-          'totalStudents': data['totalStudents'] ?? 0,
-          'formTeacherRemarks': data['formTeacherRemarks'],
-          'headTeacherRemarks': data['headTeacherRemarks'],
-          'averageGradeLetter': data['averageGradeLetter'],
-          'jceStatus': data['jceStatus'] ?? 'FAIL',
-        });
-      }
-
-      return students;
-    } catch (e) {
-      print('Error fetching students: $e');
-      return [];
-    }
-  }
-
-  // Fetch subjects for a specific student
-  Future<List<Map<String, dynamic>>> _fetchStudentSubjects(String studentId) async {
-    try {
-      QuerySnapshot subjectsSnapshot = await _firestore
-          .collection('Schools')
-          .doc(widget.schoolName)
-          .collection('Classes')
-          .doc(widget.className)
-          .collection('Students')
-          .doc(studentId)
-          .collection('subjects')
-          .get();
-
-      return subjectsSnapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        return {
-          'subject': data['subject'] ?? '',
-          'score': data['score'] ?? 0,
-          'hasGrade': data['hasGrade'] ?? true,
-          'gradeLetter': data['gradeLetter'] ?? '',
-          'position': data['position'] ?? 0,
-          'totalStudents': data['totalStudents'] ?? 0,
-        };
-      }).toList();
-    } catch (e) {
-      print('Error fetching student subjects: $e');
-      return [];
-    }
-  }
-
-  // Calculate subject statistics (averages, etc.)
-  Future<Map<String, dynamic>> _calculateSubjectStats(List<Map<String, dynamic>> subjects) async {
-    Map<String, dynamic> stats = {};
-
-    for (var subject in subjects) {
-      final subjectName = subject['subject'];
-
-      try {
-        // Fetch all students' scores for this subject to calculate average
-        QuerySnapshot allStudentsSnapshot = await _firestore
-            .collection('Schools')
-            .doc(widget.schoolName)
-            .collection('Classes')
-            .doc(widget.className)
-            .collection('Students')
-            .get();
-
-        List<int> allScores = [];
-
-        for (var studentDoc in allStudentsSnapshot.docs) {
-          QuerySnapshot subjectSnapshot = await _firestore
-              .collection('Schools')
-              .doc(widget.schoolName)
-              .collection('Classes')
-              .doc(widget.className)
-              .collection('Students')
-              .doc(studentDoc.id)
-              .collection('subjects')
-              .where('subject', isEqualTo: subjectName)
-              .get();
-
-          if (subjectSnapshot.docs.isNotEmpty) {
-            final score = subjectSnapshot.docs.first.data() as Map<String, dynamic>;
-            allScores.add(score['score'] ?? 0);
-          }
-        }
-
-        // Calculate average
-        int average = 0;
-        if (allScores.isNotEmpty) {
-          average = (allScores.reduce((a, b) => a + b) / allScores.length).round();
-        }
-
-        stats[subjectName] = {
-          'average': average,
-          'totalStudents': allScores.length,
-        };
-      } catch (e) {
-        print('Error calculating stats for $subjectName: $e');
-        stats[subjectName] = {
-          'average': 0,
-          'totalStudents': 0,
-        };
-      }
-    }
-
-    return stats;
-  }
-
-  // Fetch school information
-  Future<Map<String, dynamic>> _fetchSchoolInfo() async {
-    try {
-      DocumentSnapshot schoolDoc = await _firestore
-          .collection('Schools')
-          .doc(widget.schoolName)
-          .get();
-
-      if (schoolDoc.exists) {
-        return schoolDoc.data() as Map<String, dynamic>;
-      }
-    } catch (e) {
-      print('Error fetching school info: $e');
-    }
-
-    return {};
-  }
-
-  // Generate PDF for a specific student
-  Future<void> _generateStudentPDF(Map<String, dynamic> studentData) async {
     setState(() {
       isLoading = true;
     });
 
     try {
-      // Request storage permission
-      if (await Permission.storage.request().isGranted) {
-        final schoolInfo = await _fetchSchoolInfo();
+      final directory = await getExternalStorageDirectory();
+      if (directory != null) {
+        final pdfDir = Directory('${directory.path}${_pdfStoragePath}');
 
-        // Create PDF using the correct parameters from Juniors_School_Report_PDF
-        final pdfGenerator = Juniors_School_Report_PDF(
-          studentClass: studentData['class'],
-          studentFullName: studentData['fullName'],
-          subjects: studentData['subjects'],
-          subjectStats: studentData['subjectStats'],
-          studentTotalMarks: studentData['studentTotalMarks'],
-          teacherTotalMarks: studentData['teacherTotalMarks'],
-          studentPosition: studentData['studentPosition'],
-          totalStudents: studentData['totalStudents'],
-          schoolName: schoolInfo['name'] ?? widget.schoolName,
-          schoolAddress: schoolInfo['address'],
-          schoolPhone: schoolInfo['phone'],
-          schoolEmail: schoolInfo['email'],
-          schoolAccount: schoolInfo['account'],
-          nextTermDate: schoolInfo['nextTermDate'],
-          formTeacherRemarks: studentData['formTeacherRemarks'],
-          headTeacherRemarks: studentData['headTeacherRemarks'],
-          averageGradeLetter: studentData['averageGradeLetter'],
-          jceStatus: studentData['jceStatus'],
-        );
+        // Create the directory if it doesn't exist
+        if (!await pdfDir.exists()) {
+          await pdfDir.create(recursive: true);
+          print('Created PDF directory: ${pdfDir.path}');
+        }
 
-        // Generate and save PDF to specific path
-        await _savePDFToStorage(pdfGenerator, studentData['fullName']);
+        final files = pdfDir.listSync()
+            .where((file) => file.path.endsWith('.pdf'))
+            .map((file) {
+          String fileName = file.path.split('/').last;
+          // Remove .pdf extension and _Report suffix, replace underscores with spaces
+          return fileName
+              .replaceAll('.pdf', '')
+              .replaceAll('_Report', '')
+              .replaceAll('_', ' ');
+        })
+            .toList();
 
-        // Refresh the PDF list
-        await _loadSavedPDFs();
+        // Sort the files alphabetically
+        files.sort();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('PDF generated for ${studentData['fullName']}'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Storage permission denied'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        setState(() {
+          savedPDFs = files;
+        });
+
+        print('Loaded ${files.length} PDF files from: ${pdfDir.path}');
       }
     } catch (e) {
+      print('Error loading saved PDFs: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error generating PDF: $e'),
+          content: Text('Error loading PDF files: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -285,46 +87,28 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
     }
   }
 
-  // Save PDF to device storage using dynamic path
-  Future<void> _savePDFToStorage(Juniors_School_Report_PDF pdfGenerator, String studentName) async {
-    try {
-      final directory = await getExternalStorageDirectory();
-      final pdfDir = Directory('${directory!.path}${_pdfStoragePath}');
-
-      if (!await pdfDir.exists()) {
-        await pdfDir.create(recursive: true);
-      }
-
-      final fileName = '${studentName.replaceAll(' ', '_')}_Report.pdf';
-
-      // Use the generateAndSavePDF method from your PDF class
-      await pdfGenerator.generateAndSavePDF(fileName);
-
-      // The PDF should now be saved to the correct location
-      print('PDF saved to: ${pdfDir.path}/$fileName');
-
-    } catch (e) {
-      throw Exception('Failed to save PDF: $e');
-    }
-  }
-
   // Open saved PDF
-  Future<void> _openPDF(String fileName) async {
+  Future<void> _openPDF(String studentName) async {
     try {
       final directory = await getExternalStorageDirectory();
-      final filePath = '${directory!.path}${_pdfStoragePath}/$fileName.pdf';
+      final fileName = '${studentName.replaceAll(' ', '_')}_Report.pdf';
+      final filePath = '${directory!.path}${_pdfStoragePath}/$fileName';
+
+      print('Attempting to open PDF: $filePath');
 
       if (await File(filePath).exists()) {
         await OpenFile.open(filePath);
       } else {
+        print('PDF file not found at: $filePath');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('PDF file not found'),
+            content: Text('PDF file not found for $studentName'),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
+      print('Error opening PDF: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error opening PDF: $e'),
@@ -335,23 +119,33 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
   }
 
   // Delete PDF
-  Future<void> _deletePDF(String fileName) async {
+  Future<void> _deletePDF(String studentName) async {
     try {
       final directory = await getExternalStorageDirectory();
-      final filePath = '${directory!.path}${_pdfStoragePath}/$fileName.pdf';
+      final fileName = '${studentName.replaceAll(' ', '_')}_Report.pdf';
+      final filePath = '${directory!.path}${_pdfStoragePath}/$fileName';
       final file = File(filePath);
 
       if (await file.exists()) {
         await file.delete();
-        await _loadSavedPDFs();
+        print('Deleted PDF: $filePath');
+        await _loadSavedPDFs(); // Refresh the list
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('PDF deleted successfully'),
+            content: Text('PDF deleted successfully for $studentName'),
             backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF file not found for $studentName'),
+            backgroundColor: Colors.orange,
           ),
         );
       }
     } catch (e) {
+      print('Error deleting PDF: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error deleting PDF: $e'),
@@ -361,74 +155,66 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
     }
   }
 
-  // Generate PDFs for all students
-  Future<void> _generateAllPDFs() async {
-    setState(() {
-      isLoading = true;
-    });
+  // Get full PDF file path for external use
+  String getPDFFilePath(String studentName) {
+    return '${_pdfStoragePath}/${studentName.replaceAll(' ', '_')}_Report.pdf';
+  }
 
+  // Check if PDF exists for a student
+  Future<bool> pdfExistsForStudent(String studentName) async {
     try {
-      final students = await _fetchStudentsWithData();
-      int successCount = 0;
-      int errorCount = 0;
-
-      for (var student in students) {
-        try {
-          if (!savedPDFs.contains(student['fullName'])) {
-            await _generateStudentPDF(student);
-            successCount++;
-          }
-        } catch (e) {
-          errorCount++;
-          print('Error generating PDF for ${student['fullName']}: $e');
-        }
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Generated $successCount PDFs successfully. $errorCount errors.'),
-          backgroundColor: errorCount == 0 ? Colors.green : Colors.orange,
-        ),
-      );
+      final directory = await getExternalStorageDirectory();
+      final fileName = '${studentName.replaceAll(' ', '_')}_Report.pdf';
+      final filePath = '${directory!.path}${_pdfStoragePath}/$fileName';
+      return await File(filePath).exists();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error generating PDFs: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
+      print('Error checking PDF existence: $e');
+      return false;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue.shade50,
       appBar: AppBar(
-        title: Text('${widget.className} Reports - ${widget.schoolName}'),
+        title: Text(
+          '${widget.className} Reports',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.blue.shade700,
+        iconTheme: IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh),
+            icon: Icon(Icons.refresh, color: Colors.white),
             onPressed: () => _loadSavedPDFs(),
           ),
           IconButton(
-            icon: Icon(Icons.info_outline),
+            icon: Icon(Icons.info_outline, color: Colors.white),
             onPressed: () {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: Text('Storage Path'),
-                  content: Text(
-                    'PDFs are saved to:\n${_pdfStoragePath}',
-                    style: TextStyle(fontFamily: 'monospace'),
+                  title: Text('Storage Information', style: TextStyle(color: Colors.blue.shade700)),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('School: ${widget.schoolName}', style: TextStyle(fontWeight: FontWeight.bold)),
+                      SizedBox(height: 8),
+                      Text('Class: ${widget.className}', style: TextStyle(fontWeight: FontWeight.bold)),
+                      SizedBox(height: 8),
+                      Text('Storage Path:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        _pdfStoragePath,
+                        style: TextStyle(fontFamily: 'monospace', fontSize: 12),
+                      ),
+                    ],
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: Text('OK'),
+                      child: Text('OK', style: TextStyle(color: Colors.blue.shade700)),
                     ),
                   ],
                 ),
@@ -439,46 +225,171 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
       ),
       body: Column(
         children: [
-          // Saved PDFs Section
-          if (savedPDFs.isNotEmpty) ...[
-            Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Icon(Icons.folder, color: Colors.blue),
-                  SizedBox(width: 8),
-                  Text(
-                    'Saved Reports (${savedPDFs.length})',
+          // Header Section
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(20.0),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blue.shade600, Colors.blue.shade400],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.school,
+                  size: 48,
+                  color: Colors.white,
+                ),
+                SizedBox(height: 12),
+                Text(
+                  widget.schoolName,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 8),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${widget.className} - ${savedPDFs.length} Reports Available',
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // PDF List Section
+          Expanded(
+            child: isLoading
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Loading PDF reports...',
+                    style: TextStyle(
+                      color: Colors.blue.shade600,
+                      fontSize: 16,
                     ),
                   ),
                 ],
               ),
-            ),
-            Container(
-              height: 200,
+            )
+                : savedPDFs.isEmpty
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.folder_open,
+                    size: 80,
+                    color: Colors.blue.shade300,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'No PDF Reports Found',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade600,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'No student reports have been generated yet.',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.blue.shade400,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+                : Padding(
+              padding: EdgeInsets.all(16.0),
               child: ListView.builder(
                 itemCount: savedPDFs.length,
                 itemBuilder: (context, index) {
-                  final fileName = savedPDFs[index];
-                  return Card(
-                    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  final studentName = savedPDFs[index];
+                  return Container(
+                    margin: EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.blue.shade50, Colors.white],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.blue.shade200),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.shade100,
+                          offset: Offset(0, 2),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
                     child: ListTile(
-                      leading: Icon(Icons.picture_as_pdf, color: Colors.green),
-                      title: Text(fileName),
-                      subtitle: Text('Tap to open'),
-                      trailing: PopupMenuButton(
+                      contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      leading: Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade600,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.picture_as_pdf,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                      title: Text(
+                        studentName,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue.shade800,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Tap to open report',
+                        style: TextStyle(
+                          color: Colors.blue.shade600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      trailing: PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert, color: Colors.blue.shade600),
+                        color: Colors.white,
                         itemBuilder: (context) => [
                           PopupMenuItem(
                             value: 'open',
                             child: Row(
                               children: [
-                                Icon(Icons.open_in_new),
+                                Icon(Icons.open_in_new, color: Colors.blue.shade600),
                                 SizedBox(width: 8),
-                                Text('Open'),
+                                Text('Open Report', style: TextStyle(color: Colors.blue.shade800)),
                               ],
                             ),
                           ),
@@ -486,111 +397,49 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
                             value: 'delete',
                             child: Row(
                               children: [
-                                Icon(Icons.delete, color: Colors.red),
+                                Icon(Icons.delete, color: Colors.red.shade600),
                                 SizedBox(width: 8),
-                                Text('Delete'),
+                                Text('Delete', style: TextStyle(color: Colors.red.shade600)),
                               ],
                             ),
                           ),
                         ],
                         onSelected: (value) {
                           if (value == 'open') {
-                            _openPDF(fileName);
+                            _openPDF(studentName);
                           } else if (value == 'delete') {
-                            _deletePDF(fileName);
+                            // Show confirmation dialog
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Text('Delete PDF Report', style: TextStyle(color: Colors.blue.shade700)),
+                                content: Text('Are you sure you want to delete the report for $studentName?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      _deletePDF(studentName);
+                                    },
+                                    child: Text('Delete', style: TextStyle(color: Colors.red)),
+                                  ),
+                                ],
+                              ),
+                            );
                           }
                         },
                       ),
-                      onTap: () => _openPDF(fileName),
+                      onTap: () => _openPDF(studentName),
                     ),
                   );
                 },
               ),
             ),
-            Divider(thickness: 2),
-          ],
-
-          // Generate New PDFs Section
-          Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Icon(Icons.add_circle, color: Colors.orange),
-                SizedBox(width: 8),
-                Text(
-                  'Generate New Reports',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.orange,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Students List for PDF Generation
-          Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: _fetchStudentsWithData(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text('No student records found.'));
-                }
-
-                final students = snapshot.data!;
-                return ListView.builder(
-                  itemCount: students.length,
-                  itemBuilder: (context, index) {
-                    final student = students[index];
-                    final fullName = student['fullName'];
-                    final hasExistingPDF = savedPDFs.contains(fullName);
-
-                    return Card(
-                      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      child: ListTile(
-                        leading: Icon(
-                          hasExistingPDF ? Icons.check_circle : Icons.person,
-                          color: hasExistingPDF ? Colors.green : Colors.grey,
-                        ),
-                        title: Text(fullName),
-                        subtitle: Text(
-                          hasExistingPDF
-                              ? 'PDF already exists - Class: ${student['class']}'
-                              : 'Class: ${student['class']} - ${student['subjects'].length} subjects',
-                        ),
-                        trailing: isLoading
-                            ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                            : Icon(
-                          hasExistingPDF ? Icons.refresh : Icons.picture_as_pdf,
-                          color: hasExistingPDF ? Colors.orange : Colors.blue,
-                        ),
-                        onTap: isLoading
-                            ? null
-                            : () async {
-                          await _generateStudentPDF(student);
-                        },
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: isLoading ? null : _generateAllPDFs,
-        icon: Icon(Icons.auto_awesome),
-        label: Text('Generate All'),
-        backgroundColor: isLoading ? Colors.grey : null,
       ),
     );
   }
