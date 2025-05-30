@@ -173,7 +173,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
         final schoolInfo = await _fetchSchoolInfo();
 
         // Create PDF using your existing class
-        final pdfGenerator = Seniors_School_Report_PDF(
+        final pdfGenerator = Juniors_School_Report_PDF(
           schoolName: schoolInfo['name'] ?? widget.schoolName,
           schoolAddress: schoolInfo['address'],
           schoolPhone: schoolInfo['phone'],
@@ -231,7 +231,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
   }
 
   // Save PDF to device storage using dynamic path
-  Future<void> _savePDFToStorage(Seniors_School_Report_PDF pdfGenerator, String studentName) async {
+  Future<void> _savePDFToStorage(Juniors_School_Report_PDF pdfGenerator, String studentName) async {
     try {
       final directory = await getExternalStorageDirectory();
       final pdfDir = Directory('${directory!.path}${_pdfStoragePath}');
