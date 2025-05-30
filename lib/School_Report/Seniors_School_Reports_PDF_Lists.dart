@@ -18,7 +18,7 @@ class Seniors_School_Reports_PDF_List extends StatefulWidget {
   const Seniors_School_Reports_PDF_List({
     Key? key,
     required this.schoolName,
-    required this.className,
+    required this.className, required String studentClass, required studentFullName,
   }) : super(key: key);
 
   @override
