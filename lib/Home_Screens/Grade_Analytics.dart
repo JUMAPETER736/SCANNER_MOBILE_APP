@@ -10,15 +10,15 @@ class Grade_Analytics extends StatelessWidget {
   ];
 
   final List<Map<String, String>> seniorGradeRanges = [
-    {'range': '100 - 90%', 'grade': '1', 'interpretation': 'Distinction'},
-    {'range': '89 - 80%', 'grade': '2', 'interpretation': 'Distinction'},
-    {'range': '79 - 75%', 'grade': '3', 'interpretation': 'Strong Credit'},
-    {'range': '74 - 70%', 'grade': '4', 'interpretation': 'Strong Credit'},
-    {'range': '69 - 65%', 'grade': '5', 'interpretation': 'Credit'},
-    {'range': '64 - 60%', 'grade': '6', 'interpretation': 'Weak Credit'},
-    {'range': '59 - 55%', 'grade': '7', 'interpretation': 'Pass'},
-    {'range': '54 - 50%', 'grade': '8', 'interpretation': 'Weak Pass'},
-    {'range': '0 - 49%', 'grade': '9', 'interpretation': 'Fail'},
+    {'range': '100 - 90%', 'grade': '1', 'interpretation': 'DISTIONCTION'},
+    {'range': '89 - 80%', 'grade': '2', 'interpretation': 'DISTIONCTION'},
+    {'range': '79 - 75%', 'grade': '3', 'interpretation': 'STRONG CREDIT'},
+    {'range': '74 - 70%', 'grade': '4', 'interpretation': 'CREDIT'},
+    {'range': '69 - 65%', 'grade': '5', 'interpretation': 'WEAK CREDIT'},
+    {'range': '64 - 60%', 'grade': '6', 'interpretation': 'SATISFACTORY PASS'},
+    {'range': '59 - 55%', 'grade': '7', 'interpretation': 'PASS'},
+    {'range': '54 - 50%', 'grade': '8', 'interpretation': 'WEAK PASS'},
+    {'range': '0 - 49%', 'grade': '9', 'interpretation': 'FAIL'},
   ];
 
   @override
