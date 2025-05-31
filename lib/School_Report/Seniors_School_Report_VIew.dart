@@ -987,6 +987,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       Total_Class_Students_Number: Total_Class_Students_Number,
       studentTotalMarks: studentTotalMarks,
       teacherTotalMarks: teacherTotalMarks,
+      studentPosition: studentPosition,
     );
 
     await pdfGenerator.generateAndPrint();
