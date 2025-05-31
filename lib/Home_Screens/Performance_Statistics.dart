@@ -9,87 +9,154 @@ class Performance_Statistics extends StatefulWidget {
   const Performance_Statistics({Key? key}) : super(key: key);
 
   @override
-  _Performance_StatisticsState createState() => _Performance_StatisticsState();
+  State<Performance_Statistics> createState() => _Performance_StatisticsState();
 }
 
 class _Performance_StatisticsState extends State<Performance_Statistics> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    checkAndNavigate();
+    _checkAndNavigate();
   }
 
-  Future<void> checkAndNavigate() async {
+  Future<void> _checkAndNavigate() async {
     try {
       final currentUser = _auth.currentUser;
-      if (currentUser == null) throw Exception("User not logged in.");
+      if (currentUser == null) {
+        throw Exception("User is not logged in.");
+      }
 
-      final teacherDoc = await _firestore.collection('Teachers_Details').doc(currentUser.email).get();
-      if (!teacherDoc.exists) throw Exception("Teacher record not found.");
+      final teacherSnapshot = await _firestore
+          .collection('Teachers_Details')
+          .doc(currentUser.email)
+          .get();
 
-      final schoolName = (teacherDoc['school'] ?? '').toString().trim();
-      final classes = teacherDoc['classes'] as List?;
-      final className = (classes != null && classes.isNotEmpty) ? classes[0].toString().trim() : '';
+      if (!teacherSnapshot.exists) {
+        throw Exception("Teacher record not found.");
+      }
+
+      final data = teacherSnapshot.data()!;
+      final String schoolName = (data['school'] ?? '').toString().trim();
+      final List<dynamic>? classList = data['classes'];
+      final String className = (classList != null && classList.isNotEmpty)
+          ? classList[0].toString().trim()
+          : '';
 
       if (schoolName.isEmpty || className.isEmpty) {
-        throw Exception("Missing school or class info.");
+        throw Exception("School or class information is missing.");
       }
 
-      final formLevel = extractFormLevel(className);
+      final String formLevel = _getFormLevel(className);
 
-      Widget destinationPage;
-      if (formLevel == 'FORM 1' || formLevel == 'FORM 2') {
+      late Widget targetPage;
 
-        destinationPage = Seniors_Class_Performance(
-            schoolName: schoolName, className: className);
-
-      } else if (formLevel == 'FORM 3' || formLevel == 'FORM 4') {
-
-        destinationPage = Seniors_Class_Performance(
-            schoolName: schoolName, className: className);
-
-      } else {
-        throw Exception("Unrecognized class level.");
+      switch (formLevel) {
+        case 'FORM 1':
+        case 'FORM 2':
+          targetPage = Juniors_Class_Performance(
+            schoolName: schoolName,
+            className: className,
+          );
+          break;
+        case 'FORM 3':
+        case 'FORM 4':
+          targetPage = Seniors_Class_Performance(
+            schoolName: schoolName,
+            className: className,
+          );
+          break;
+        default:
+          throw Exception("Unrecognized class level: $className");
       }
 
-      // Navigate immediately
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => destinationPage),
-        );
-      });
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => targetPage),
+      );
     } catch (e) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
+      setState(() {
+        _isLoading = false;
       });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () {
+                setState(() {
+                  _isLoading = true;
+                });
+                _checkAndNavigate();
+              },
+            ),
+          ),
+        );
+      }
     }
   }
 
-  String extractFormLevel(String className) {
-    final upper = className.toUpperCase();
-    if (upper.contains('FORM 1') || upper.contains('FORM1') || upper.startsWith('1')) return 'FORM 1';
-    if (upper.contains('FORM 2') || upper.contains('FORM2') || upper.startsWith('2')) return 'FORM 2';
-    if (upper.contains('FORM 3') || upper.contains('FORM3') || upper.startsWith('3')) return 'FORM 3';
-    if (upper.contains('FORM 4') || upper.contains('FORM4') || upper.startsWith('4')) return 'FORM 4';
+  String _getFormLevel(String className) {
+    final name = className.toUpperCase();
+    if (name.contains('FORM 1') || name.contains('FORM1') || name.startsWith('1')) return 'FORM 1';
+    if (name.contains('FORM 2') || name.contains('FORM2') || name.startsWith('2')) return 'FORM 2';
+    if (name.contains('FORM 3') || name.contains('FORM3') || name.startsWith('3')) return 'FORM 3';
+    if (name.contains('FORM 4') || name.contains('FORM4') || name.startsWith('4')) return 'FORM 4';
     return 'UNKNOWN';
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Performance Statistics'),
+        backgroundColor: Colors.blue,
+      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Checking performance data...'),
+            if (_isLoading) ...[
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Performance data loading...',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ] else ...[
+              Icon(Icons.error, color: Colors.red, size: 40),
+              SizedBox(height: 20),
+              Text(
+                'Failed to load data',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _isLoading = true;
+                  });
+                  _checkAndNavigate();
+                },
+                child: Text('Retry'),
+              ),
+            ],
           ],
         ),
       ),
