@@ -374,7 +374,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       print("Error calculating aggregate points and position: $e");
     }
   }
-  
+
 
 
 
