@@ -4,54 +4,71 @@ description: "A new Flutter project."
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-
 version: 1.0.0+1
 
 environment:
   sdk: ^3.7.0
 
-
 dependencies:
   flutter:
     sdk: flutter
-  flutter_facebook_auth: ^7.1.1
-  modal_progress_hud_nsn: ^0.5.1
-  google_fonts: ^6.2.1
-  awesome_dialog: ^3.1.1
-  cupertino_icons: ^1.0.5
-  firebase_auth: ^5.2.1
-  firebase_core: ^3.4.1
-  firebase_auth_web: ^5.8.13
-  cloud_firestore: ^5.6.5
-  validators: ^3.0.0
-  fluttertoast: ^8.2.6
-  provider: ^6.0.3
-  local_auth: ^2.1.7
-  shared_preferences: ^2.3.2
-  firebase_database: ^11.1.2
-  flutter_local_notifications: ^17.2.2
-  mobile_scanner: ^5.2.3
-  qr_code_scanner: ^1.0.0
-  qr_flutter: ^4.1.0
-  barcode: ^2.2.8
-  barcode_widget: ^2.0.0
-  path_provider: ^2.0.15
-  pdf: ^3.8.0
-  printing: ^5.11.0
-  flutter_plugin_android_lifecycle: ^2.0.8
-  permission_handler: ^10.4.3
-  open_file: ^3.3.2
-
-
-
   flutter_localizations:
     sdk: flutter
+
+  # UI & Styling
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  awesome_dialog: ^3.2.1
+  modal_progress_hud_nsn: ^0.5.1
+
+  # Firebase
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  firebase_auth_web: ^5.13.2
+  cloud_firestore: ^5.4.4
+  firebase_database: ^11.1.4
+
+  # Authentication & Social Login
+  flutter_facebook_auth: ^7.1.2
+  google_sign_in: ^6.2.1
+  local_auth: ^2.3.0
+
+  # State Management & Storage
+  provider: ^6.1.2
+  shared_preferences: ^2.3.3
+
+  # Validation & Utils
+  validators: ^3.0.0
+  fluttertoast: ^8.2.8
   intl: ^0.19.0
-  google_sign_in: ^6.1.4
+
+  # Notifications
+  flutter_local_notifications: ^17.2.3
+
+  # Scanning & QR Codes
+  mobile_scanner: ^5.2.3
+  qr_code_scanner: ^1.0.1
+  qr_flutter: ^4.1.0
+  barcode: ^2.2.8
+  barcode_widget: ^2.0.3
+
+  # File & PDF Operations
+  path_provider: ^2.1.5
+  pdf: ^3.11.1
+  printing: ^5.13.4
+  open_file: ^3.5.7
+
+  # Permissions & Lifecycle
+  permission_handler: ^11.3.1
+  flutter_plugin_android_lifecycle: ^2.0.22
+
+  # Cross-platform compatibility (NEW)
+  universal_io: ^2.2.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: ^5.0.0
 
 flutter:
   generate: true
@@ -64,4 +81,4 @@ flutter:
         - asset: assets/fonts/Abel-Regular.ttf
 
 l10n:
-  path: l10n   please update all of them to the latest versions
+  path: l10n
