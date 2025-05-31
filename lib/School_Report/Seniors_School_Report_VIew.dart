@@ -411,7 +411,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
-  
+
   Future<void> fetchStudentSubjects(String basePath) async {
     try {
       final snapshot = await _firestore
@@ -458,7 +458,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     try {
       final doc = await _firestore
           .doc('$basePath/TOTAL_MARKS/Marks')
-          .get(GetOptions(source: Source.serverAndCache)); // Use cache when available
+          .get(GetOptions(source: Source.serverAndCache));
 
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
@@ -477,6 +477,10 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
               ? (subjects.where((s) => s['hasGrade'] == true).length * 100)
               : safeParse(data['Teacher_Total_Marks']);
           studentPosition = safeParse(data['Student_Class_Position']);
+          // Use the total from Firestore if available
+          if (data['Total_Class_Students_Number'] != null) {
+            Total_Class_Students_Number = safeParse(data['Total_Class_Students_Number']);
+          }
           averageGradeLetter = data['Average_Grade_Letter']?.toString() ?? '';
           msceStatus = data['MSCE_Status']?.toString() ?? '';
           msceMessage = data['MSCE_Message']?.toString() ?? '';
@@ -494,6 +498,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       });
     }
   }
+
 
   Future<void> calculate_Subject_Stats_And_Position(
       String school, String studentClass, String studentFullName) async {
@@ -697,7 +702,8 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
               children: [
                 Text('POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}'),
                 SizedBox(width: 10),
-                Text('OUT OF: ${Total_Class_Students_Number > 0 ? Total_Class_Students_Number : 'N/A'}'),
+                Text('OUT OF: ${Total_Class_Students_Number > 0 ? Total_Class_Students_Number :
+                (subjects.isNotEmpty ? subjects.first['totalStudents'] ?? 'N/A' : 'N/A')}'),
               ],
             ),
           ),
