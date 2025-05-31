@@ -116,6 +116,8 @@ class _Performance_StatisticsState extends State<Performance_Statistics> {
               setState(() {
                 selectedClass = className;
               });
+              // Auto-navigate when class is selected
+              navigateToPerformancePage(className);
             },
             child: AnimatedContainer(
               duration: Duration(milliseconds: 250),
@@ -218,115 +220,40 @@ class _Performance_StatisticsState extends State<Performance_Statistics> {
           ),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // School name header
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(20),
-              child: Text(
-                schoolName ?? 'School Name',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-
-            // Class selection label
-            Padding(
-              padding: EdgeInsets.only(left: 20, bottom: 8),
-              child: Text(
-                'Select Class:',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-
-            // Horizontal class selector
-            buildHorizontalClassSelector(),
-
-            // Selected class info and action button
+            // Main content area
             Expanded(
-              child: Container(
-                margin: EdgeInsets.all(16),
-                padding: EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      spreadRadius: 1,
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
+              child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.analytics_outlined,
-                      size: 80,
-                      color: Colors.redAccent.withOpacity(0.7),
-                    ),
-                    SizedBox(height: 24),
                     Text(
-                      'Performance Statistics',
+                      'RESULT STATISTICS',
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 32,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: Colors.redAccent,
+                        letterSpacing: 2.0,
                       ),
                     ),
-                    SizedBox(height: 12),
+                    SizedBox(height: 16),
                     Text(
-                      'Selected Class: ${selectedClass ?? 'None'}',
+                      schoolName ?? 'School Name',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: Colors.redAccent,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Form Level: ${selectedClass != null ? extractFormLevel(selectedClass!) : 'Unknown'}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.black54,
-                      ),
-                    ),
-                    SizedBox(height: 32),
-                    ElevatedButton(
-                      onPressed: selectedClass != null
-                          ? () => navigateToPerformancePage(selectedClass!)
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        elevation: 4,
-                      ),
-                      child: Text(
-                        'View Performance Data',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        color: Colors.black87,
                       ),
                     ),
                   ],
                 ),
               ),
+            ),
+
+            // Bottom class selector
+            Container(
+              padding: EdgeInsets.only(bottom: 20),
+              child: buildHorizontalClassSelector(),
             ),
           ],
         ),
