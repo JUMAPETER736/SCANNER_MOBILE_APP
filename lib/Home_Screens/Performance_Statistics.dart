@@ -20,7 +20,8 @@ class _Performance_StatisticsState extends State<Performance_Statistics> {
   @override
   void initState() {
     super.initState();
-    _checkAndNavigate();
+    // Execute after first frame to avoid delays during build
+    Future.microtask(_checkAndNavigate);
   }
 
   Future<void> _checkAndNavigate() async {
@@ -30,85 +31,72 @@ class _Performance_StatisticsState extends State<Performance_Statistics> {
         throw Exception("User is not logged in.");
       }
 
-      final teacherSnapshot = await _firestore
+      final doc = await _firestore
           .collection('Teachers_Details')
           .doc(currentUser.email)
           .get();
 
-      if (!teacherSnapshot.exists) {
-        throw Exception("Teacher record not found.");
-      }
+      final data = doc.data();
+      if (data == null) throw Exception("Teacher record not found.");
 
-      final data = teacherSnapshot.data()!;
-      final String schoolName = (data['school'] ?? '').toString().trim();
-      final List<dynamic>? classList = data['classes'];
-      final String className = (classList != null && classList.isNotEmpty)
-          ? classList[0].toString().trim()
-          : '';
+      final schoolName = data['school'] ?? '';
+      final classList = data['classes'] as List<dynamic>?;
 
-      if (schoolName.isEmpty || className.isEmpty) {
+      if (schoolName == '' || classList == null || classList.isEmpty) {
         throw Exception("School or class information is missing.");
       }
 
-      final String formLevel = _getFormLevel(className);
+      final className = classList.first.toString().toUpperCase();
+      final formLevel = _getFormLevel(className);
 
       late Widget targetPage;
 
-      switch (formLevel) {
-        case 'FORM 1':
-        case 'FORM 2':
-          targetPage = Juniors_Class_Performance(
-            schoolName: schoolName,
-            className: className,
-          );
-          break;
-        case 'FORM 3':
-        case 'FORM 4':
-          targetPage = Seniors_Class_Performance(
-            schoolName: schoolName,
-            className: className,
-          );
-          break;
-        default:
-          throw Exception("Unrecognized class level: $className");
+      if (formLevel == 'FORM 1' || formLevel == 'FORM 2') {
+        targetPage = Juniors_Class_Performance(
+          schoolName: schoolName,
+          className: className,
+        );
+      } else if (formLevel == 'FORM 3' || formLevel == 'FORM 4') {
+        targetPage = Seniors_Class_Performance(
+          schoolName: schoolName,
+          className: className,
+        );
+      } else {
+        throw Exception("Unrecognized class level: $className");
       }
 
       if (!mounted) return;
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => targetPage),
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            action: SnackBarAction(
-              label: 'Retry',
-              onPressed: () {
-                setState(() {
-                  _isLoading = true;
-                });
-                _checkAndNavigate();
-              },
-            ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: () {
+              setState(() => _isLoading = true);
+              _checkAndNavigate();
+            },
           ),
-        );
-      }
+        ),
+      );
     }
   }
 
   String _getFormLevel(String className) {
-    final name = className.toUpperCase();
-    if (name.contains('FORM 1') || name.contains('FORM1') || name.startsWith('1')) return 'FORM 1';
-    if (name.contains('FORM 2') || name.contains('FORM2') || name.startsWith('2')) return 'FORM 2';
-    if (name.contains('FORM 3') || name.contains('FORM3') || name.startsWith('3')) return 'FORM 3';
-    if (name.contains('FORM 4') || name.contains('FORM4') || name.startsWith('4')) return 'FORM 4';
+    if (className.contains('FORM 1') || className.contains('FORM1') || className.startsWith('1')) return 'FORM 1';
+    if (className.contains('FORM 2') || className.contains('FORM2') || className.startsWith('2')) return 'FORM 2';
+    if (className.contains('FORM 3') || className.contains('FORM3') || className.startsWith('3')) return 'FORM 3';
+    if (className.contains('FORM 4') || className.contains('FORM4') || className.startsWith('4')) return 'FORM 4';
     return 'UNKNOWN';
   }
 
@@ -121,42 +109,29 @@ class _Performance_StatisticsState extends State<Performance_Statistics> {
         backgroundColor: Colors.blue,
       ),
       body: Center(
-        child: Column(
+        child: _isLoading
+            ? Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.blue)),
+            SizedBox(height: 20),
+            Text('Loading performance data...', style: TextStyle(fontSize: 16, color: Colors.grey)),
+          ],
+        )
+            : Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (_isLoading) ...[
-              CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-              ),
-              SizedBox(height: 20),
-              Text(
-                'Performance data loading...',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey.shade700,
-                ),
-              ),
-            ] else ...[
-              Icon(Icons.error, color: Colors.red, size: 40),
-              SizedBox(height: 20),
-              Text(
-                'Failed to load data',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey.shade700,
-                ),
-              ),
-              SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _isLoading = true;
-                  });
-                  _checkAndNavigate();
-                },
-                child: Text('Retry'),
-              ),
-            ],
+            const Icon(Icons.error, color: Colors.red, size: 40),
+            const SizedBox(height: 20),
+            const Text('Failed to load data', style: TextStyle(fontSize: 16, color: Colors.grey)),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () {
+                setState(() => _isLoading = true);
+                _checkAndNavigate();
+              },
+              child: const Text('Retry'),
+            ),
           ],
         ),
       ),
