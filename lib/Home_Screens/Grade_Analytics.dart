@@ -10,8 +10,8 @@ class Grade_Analytics extends StatelessWidget {
   ];
 
   final List<Map<String, String>> seniorGradeRanges = [
-    {'range': '100 - 90%', 'grade': '1', 'interpretation': 'DISTIONCTION'},
-    {'range': '89 - 80%', 'grade': '2', 'interpretation': 'DISTIONCTION'},
+    {'range': '100 - 90%', 'grade': '1', 'interpretation': 'DISTINCTION'},
+    {'range': '89 - 80%', 'grade': '2', 'interpretation': 'DISTINCTION'},
     {'range': '79 - 75%', 'grade': '3', 'interpretation': 'STRONG CREDIT'},
     {'range': '74 - 70%', 'grade': '4', 'interpretation': 'CREDIT'},
     {'range': '69 - 65%', 'grade': '5', 'interpretation': 'WEAK CREDIT'},
@@ -21,8 +21,18 @@ class Grade_Analytics extends StatelessWidget {
     {'range': '0 - 49%', 'grade': '9', 'interpretation': 'FAIL'},
   ];
 
+  // Responsive scale factor based on screen width
+  double getTextScaleFactor(double screenWidth) {
+    if (screenWidth >= 900) return 1.6; // tablets
+    if (screenWidth >= 600) return 1.3; // medium phones
+    return 1.0; // small phones
+  }
+
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    double scale = getTextScaleFactor(screenWidth);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -30,7 +40,7 @@ class Grade_Analytics extends StatelessWidget {
           'Grade Format',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            fontSize: 18,
+            fontSize: 18 * scale,
             color: Colors.white,
           ),
         ),
@@ -70,14 +80,14 @@ class Grade_Analytics extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.analytics,
-                      size: 28,
+                      size: 28 * scale,
                       color: Colors.white,
                     ),
                     SizedBox(height: 8),
                     Text(
                       'Grading System Overview',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 16 * scale,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
@@ -91,18 +101,22 @@ class Grade_Analytics extends StatelessWidget {
 
               // Junior Certificate Section
               _buildGradeSection(
+                context,
                 'Junior Certificate Education (JCE)',
                 juniorGradeRanges,
                 Color(0xFF1976D2),
+                scale,
               ),
 
               SizedBox(height: 20),
 
               // Senior Certificate Section
               _buildGradeSection(
+                context,
                 'Senior Certificate Education (MSCE)',
                 seniorGradeRanges,
                 Color(0xFF1565C0),
+                scale,
               ),
 
               SizedBox(height: 16),
@@ -114,9 +128,11 @@ class Grade_Analytics extends StatelessWidget {
   }
 
   Widget _buildGradeSection(
+      BuildContext context,
       String title,
       List<Map<String, String>> grades,
       Color primaryColor,
+      double scale,
       ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,7 +149,7 @@ class Grade_Analytics extends StatelessWidget {
           child: Text(
             title,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 14 * scale,
               fontWeight: FontWeight.w600,
               color: primaryColor,
             ),
@@ -156,7 +172,9 @@ class Grade_Analytics extends StatelessWidget {
 
               return Container(
                 decoration: BoxDecoration(
-                  border: isLast ? null : Border(
+                  border: isLast
+                      ? null
+                      : Border(
                     bottom: BorderSide(color: Colors.grey[200]!, width: 1),
                   ),
                 ),
@@ -170,7 +188,7 @@ class Grade_Analytics extends StatelessWidget {
                         child: Text(
                           grade['range']!,
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 13 * scale,
                             fontWeight: FontWeight.w500,
                             color: Colors.black87,
                           ),
@@ -179,11 +197,11 @@ class Grade_Analytics extends StatelessWidget {
 
                       // Grade
                       Container(
-                        width: 30,
+                        width: 30 * scale,
                         child: Text(
                           grade['grade']!,
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 13 * scale,
                             fontWeight: FontWeight.bold,
                             color: primaryColor,
                           ),
@@ -199,7 +217,7 @@ class Grade_Analytics extends StatelessWidget {
                         child: Text(
                           grade['interpretation']!,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 12 * scale,
                             color: Colors.grey[700],
                           ),
                           textAlign: TextAlign.end,
