@@ -38,7 +38,7 @@ class _Forgot_PasswordState extends State<Forgot_Password> {
                   text: name,
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-                TextSpan(text: '! Check your email to reset your password.'),
+                TextSpan(text: '  Check your email to reset your password.'),
               ],
             ),
           ),
