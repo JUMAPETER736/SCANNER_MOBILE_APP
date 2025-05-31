@@ -133,7 +133,7 @@ class _School_Reports_PDF_ListState extends State<School_Reports_PDF_List> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.redAccent, Colors.white],
+            colors: [Colors.blueAccent, Colors.white],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -143,7 +143,7 @@ class _School_Reports_PDF_ListState extends State<School_Reports_PDF_List> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.redAccent),
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
                 strokeWidth: 3,
               ),
               SizedBox(height: 16),
@@ -151,8 +151,7 @@ class _School_Reports_PDF_ListState extends State<School_Reports_PDF_List> {
                 'Loading PDF Reports...',
                 style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.redAccent,
+                  color: Colors.blueAccent,
                 ),
               ),
             ],
