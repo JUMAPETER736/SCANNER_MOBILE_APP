@@ -26,7 +26,23 @@ class _Forgot_PasswordState extends State<Forgot_Password> {
         dialogType: DialogType.success,
         animType: AnimType.scale,
         title: 'Email Sent ✈️',
-        desc: 'Hello, check your email to reset your password!',
+        body: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: TextStyle(color: Colors.black87, fontSize: 16),
+              children: [
+                TextSpan(text: 'Hello, '),
+                TextSpan(
+                  text: name,
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                TextSpan(text: '! Check your email to reset your password.'),
+              ],
+            ),
+          ),
+        ),
         btnOkOnPress: () {},
       ).show();
     } catch (e) {
@@ -83,7 +99,6 @@ class _Forgot_PasswordState extends State<Forgot_Password> {
     }
   }
 
-
   bool isValidEmail(String email) {
     final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
     return emailRegex.hasMatch(email);
@@ -129,7 +144,11 @@ class _Forgot_PasswordState extends State<Forgot_Password> {
                 ),
               SizedBox(height: 30.0),
               isLoading
-                  ? Center(child: CircularProgressIndicator())
+                  ? Center(
+                child: CircularProgressIndicator(
+                  color: Colors.blueAccent, // <-- Blue loading indicator
+                ),
+              )
                   : ElevatedButton(
                 onPressed: () {
                   final email = _emailController.text.trim();
