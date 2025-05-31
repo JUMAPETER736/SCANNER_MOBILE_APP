@@ -376,7 +376,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
   Future<void> _updateTotalStudentsCount(String school, String studentClass) async {
     try {
-      // Get total class students from existing data
       final classInfoDoc = await _firestore
           .collection('Schools/$school/Classes/$studentClass')
           .doc('Class_Info')
@@ -385,17 +384,15 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       if (classInfoDoc.exists) {
         final classData = classInfoDoc.data() as Map<String, dynamic>;
         setState(() {
-          Total_Class_Students_Number = classData['Total_Class_Students_Number'] ?? 0;
+          Total_Class_Students_Number = classData['totalStudents'] ?? 0;
         });
       } else {
-        // If Class_Info doesn't exist, count from Student_Details
         final studentsSnapshot = await _firestore
             .collection('Schools/$school/Classes/$studentClass/Student_Details')
             .get();
 
-        var Total_Class_Students_Number = studentsSnapshot.docs.length;
+        Total_Class_Students_Number = studentsSnapshot.docs.length;
 
-        // Update Class_Info with total students
         await _firestore
             .collection('Schools/$school/Classes/$studentClass')
             .doc('Class_Info')
@@ -405,14 +402,16 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         });
 
         setState(() {
-          Total_Class_Students_Number = Total_Class_Students_Number;
+          // UI will update with correct count
         });
       }
+      print("Total Students: $Total_Class_Students_Number");
     } catch (e) {
       print('Error updating total students count: $e');
     }
   }
 
+  
   Future<void> fetchStudentSubjects(String basePath) async {
     try {
       final snapshot = await _firestore
