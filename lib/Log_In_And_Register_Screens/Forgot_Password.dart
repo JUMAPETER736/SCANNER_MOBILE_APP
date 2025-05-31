@@ -57,7 +57,7 @@ class _Forgot_PasswordState extends State<Forgot_Password> {
 
     try {
       final userDoc = await _firestore
-          .collection('TeachersDetails')
+          .collection('Teachers_Details')
           .where('email', isEqualTo: email)
           .limit(1)
           .get();
@@ -82,6 +82,7 @@ class _Forgot_PasswordState extends State<Forgot_Password> {
       });
     }
   }
+
 
   bool isValidEmail(String email) {
     final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
