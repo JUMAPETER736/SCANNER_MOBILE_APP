@@ -16,13 +16,18 @@ class _Performance_StatisticsState extends State<Performance_Statistics> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  String? schoolName;
+  List<String> teacherClasses = [];
+  String? selectedClass;
+  bool isLoading = true;
+
   @override
   void initState() {
     super.initState();
-    checkAndNavigate();
+    loadTeacherData();
   }
 
-  Future<void> checkAndNavigate() async {
+  Future<void> loadTeacherData() async {
     try {
       final currentUser = _auth.currentUser;
       if (currentUser == null) throw Exception("User not logged in.");
@@ -30,44 +35,29 @@ class _Performance_StatisticsState extends State<Performance_Statistics> {
       final teacherDoc = await _firestore.collection('Teachers_Details').doc(currentUser.email).get();
       if (!teacherDoc.exists) throw Exception("Teacher record not found.");
 
-      final schoolName = (teacherDoc['school'] ?? '').toString().trim();
+      final school = (teacherDoc['school'] ?? '').toString().trim();
       final classes = teacherDoc['classes'] as List?;
-      final className = (classes != null && classes.isNotEmpty) ? classes[0].toString().trim() : '';
 
-      if (schoolName.isEmpty || className.isEmpty) {
-        throw Exception("Missing school or class info.");
+      if (school.isEmpty || classes == null || classes.isEmpty) {
+        throw Exception("Missing school or class information.");
       }
 
-      final formLevel = extractFormLevel(className);
-
-      Widget destinationPage;
-      if (formLevel == 'FORM 1' || formLevel == 'FORM 2') {
-
-        destinationPage = Seniors_Class_Performance(
-            schoolName: schoolName, className: className);
-
-      } else if (formLevel == 'FORM 3' || formLevel == 'FORM 4') {
-
-        destinationPage = Seniors_Class_Performance(
-            schoolName: schoolName, className: className);
-
-      } else {
-        throw Exception("Unrecognized class level.");
-      }
-
-      // Navigate immediately
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => destinationPage),
-        );
+      setState(() {
+        schoolName = school;
+        teacherClasses = classes.map((c) => c.toString().trim()).toList();
+        selectedClass = teacherClasses.first; // Set first class as default
+        isLoading = false;
       });
     } catch (e) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
+      setState(() {
+        isLoading = false;
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -80,16 +70,264 @@ class _Performance_StatisticsState extends State<Performance_Statistics> {
     return 'UNKNOWN';
   }
 
+  void navigateToPerformancePage(String className) {
+    if (schoolName == null) return;
+
+    final formLevel = extractFormLevel(className);
+    Widget destinationPage;
+
+    if (formLevel == 'FORM 1' || formLevel == 'FORM 2') {
+      destinationPage = Juniors_Class_Performance(
+        schoolName: schoolName!,
+        className: className,
+      );
+    } else if (formLevel == 'FORM 3' || formLevel == 'FORM 4') {
+      destinationPage = Seniors_Class_Performance(
+        schoolName: schoolName!,
+        className: className,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unrecognized class level: $className')),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => destinationPage),
+    );
+  }
+
+  Widget buildHorizontalClassSelector() {
+    return Container(
+      height: 60,
+      margin: EdgeInsets.symmetric(vertical: 16),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        itemCount: teacherClasses.length,
+        itemBuilder: (context, index) {
+          String className = teacherClasses[index];
+          bool isSelected = className == selectedClass;
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                selectedClass = className;
+              });
+            },
+            child: AnimatedContainer(
+              duration: Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              margin: EdgeInsets.only(right: 12),
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? LinearGradient(
+                  colors: [Colors.redAccent, Colors.red.shade700],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+                    : LinearGradient(
+                  colors: [Colors.white, Colors.grey.shade50],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: isSelected ? Colors.transparent : Colors.grey.shade300,
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected
+                        ? Colors.redAccent.withOpacity(0.4)
+                        : Colors.grey.withOpacity(0.1),
+                    spreadRadius: isSelected ? 2 : 1,
+                    blurRadius: isSelected ? 8 : 4,
+                    offset: Offset(0, isSelected ? 4 : 2),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  className,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black87,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    fontSize: 15,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
+    if (isLoading) {
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.redAccent.withOpacity(0.1), Colors.white],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.redAccent),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Loading performance data...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Performance Statistics'),
+        backgroundColor: Colors.redAccent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.redAccent.withOpacity(0.1), Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Checking performance data...'),
+            // School name header
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(20),
+              child: Text(
+                schoolName ?? 'School Name',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+            // Class selection label
+            Padding(
+              padding: EdgeInsets.only(left: 20, bottom: 8),
+              child: Text(
+                'Select Class:',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+
+            // Horizontal class selector
+            buildHorizontalClassSelector(),
+
+            // Selected class info and action button
+            Expanded(
+              child: Container(
+                margin: EdgeInsets.all(16),
+                padding: EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.analytics_outlined,
+                      size: 80,
+                      color: Colors.redAccent.withOpacity(0.7),
+                    ),
+                    SizedBox(height: 24),
+                    Text(
+                      'Performance Statistics',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      'Selected Class: ${selectedClass ?? 'None'}',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Form Level: ${selectedClass != null ? extractFormLevel(selectedClass!) : 'Unknown'}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    SizedBox(height: 32),
+                    ElevatedButton(
+                      onPressed: selectedClass != null
+                          ? () => navigateToPerformancePage(selectedClass!)
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 4,
+                      ),
+                      child: Text(
+                        'View Performance Data',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
