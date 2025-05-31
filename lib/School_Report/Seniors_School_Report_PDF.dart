@@ -23,7 +23,10 @@ class Seniors_School_Report_PDF {
   final int Total_Class_Students_Number;
   final int studentTotalMarks;
   final int teacherTotalMarks;
+  final int studentPosition;
   final String? averageGradeLetter;
+  final String? msceStatus;
+  final String? msceMessage;
 
   Seniors_School_Report_PDF({
     required this.schoolName,
@@ -45,7 +48,10 @@ class Seniors_School_Report_PDF {
     required this.Total_Class_Students_Number,
     required this.studentTotalMarks,
     required this.teacherTotalMarks,
+    required this.studentPosition,
     this.averageGradeLetter,
+    this.msceStatus,
+    this.msceMessage,
   });
 
   String _getGrade(int score) {
@@ -88,6 +94,37 @@ class Seniors_School_Report_PDF {
     }
   }
 
+  String _getCurrentTerm() {
+    DateTime now = DateTime.now();
+    int currentMonth = now.month;
+    int currentDay = now.day;
+
+    if ((currentMonth == 9 && currentDay >= 1) || (currentMonth >= 10 && currentMonth <= 12)) {
+      return 'ONE';
+    } else if ((currentMonth == 1 && currentDay >= 2) ||
+        (currentMonth >= 2 && currentMonth <= 3) ||
+        (currentMonth == 4 && currentDay <= 20)) {
+      return 'TWO';
+    } else if ((currentMonth == 4 && currentDay >= 25) ||
+        (currentMonth >= 5 && currentMonth <= 7)) {
+      return 'THREE';
+    } else {
+      return 'ONE';
+    }
+  }
+
+  String _getAcademicYear() {
+    DateTime now = DateTime.now();
+    int currentYear = now.year;
+    int currentMonth = now.month;
+
+    if (currentMonth >= 9) {
+      return '$currentYear/${currentYear + 1}';
+    } else {
+      return '${currentYear - 1}/$currentYear';
+    }
+  }
+
   Future<void> generateAndPrint() async {
     final doc = pw.Document();
 
@@ -99,33 +136,36 @@ class Seniors_School_Report_PDF {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // School Header
+              // School Header (matches the UI exactly)
               pw.Center(
                 child: pw.Column(
                   children: [
                     pw.Text(
-                      schoolName ?? 'UNKNOWN SECONDARY SCHOOL',
+                      (schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase(),
                       style: pw.TextStyle(
                         fontSize: 18,
                         fontWeight: pw.FontWeight.bold,
                       ),
                       textAlign: pw.TextAlign.center,
                     ),
-                    pw.Text(
-                      schoolAddress ?? 'P.O. BOX 47, LILONGWE',
-                      style: pw.TextStyle(fontSize: 14),
-                      textAlign: pw.TextAlign.center,
-                    ),
-                    pw.Text(
-                      'Tel: ${schoolPhone ?? '(+265) # ### ### ### or (+265) # ### ### ###'}',
-                      style: pw.TextStyle(fontSize: 14),
-                      textAlign: pw.TextAlign.center,
-                    ),
-                    pw.Text(
-                      'Email: ${schoolEmail ?? 'secondaryschool@gmail.com'}',
-                      style: pw.TextStyle(fontSize: 14),
-                      textAlign: pw.TextAlign.center,
-                    ),
+                    if (schoolAddress != null)
+                      pw.Text(
+                        schoolAddress!,
+                        style: pw.TextStyle(fontSize: 14),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    if (schoolPhone != null)
+                      pw.Text(
+                        'Tel: $schoolPhone',
+                        style: pw.TextStyle(fontSize: 14),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    if (schoolEmail != null)
+                      pw.Text(
+                        'Email: $schoolEmail',
+                        style: pw.TextStyle(fontSize: 14),
+                        textAlign: pw.TextAlign.center,
+                      ),
                     pw.SizedBox(height: 10),
                     pw.Text(
                       'PROGRESS REPORT',
@@ -137,13 +177,42 @@ class Seniors_School_Report_PDF {
                     ),
                     pw.SizedBox(height: 16),
                     pw.Text(
-                      '${DateFormat('yyyy').format(DateTime.now())}/${DateFormat('yy').format(DateTime.now().add(Duration(days: 365)))} '
-                          '$studentClass END OF TERM ONE STUDENT\'S PROGRESS REPORT',
+                      '${_getAcademicYear()} '
+                          '$studentClass END OF TERM ${_getCurrentTerm()} STUDENT\'S PROGRESS REPORT',
                       style: pw.TextStyle(
                         fontSize: 16,
                         fontWeight: pw.FontWeight.bold,
                       ),
                       textAlign: pw.TextAlign.center,
+                    ),
+                    pw.SizedBox(height: 16),
+                  ],
+                ),
+              ),
+
+              // Student Info (matches the UI exactly)
+              pw.Padding(
+                padding: pw.EdgeInsets.symmetric(horizontal: 16),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Expanded(
+                      flex: 4,
+                      child: pw.Text('NAME OF STUDENT: $studentFullName'),
+                    ),
+                    pw.Expanded(
+                      flex: 3,
+                      child: pw.Row(
+                        children: [
+                          pw.Text('POSITION: ${studentPosition > 0 ? studentPosition : ''}'),
+                          pw.SizedBox(width: 10),
+                          pw.Text('OUT OF: ${Total_Class_Students_Number > 0 ? Total_Class_Students_Number : ''}'),
+                        ],
+                      ),
+                    ),
+                    pw.Expanded(
+                      flex: 2,
+                      child: pw.Text('CLASS: $studentClass'),
                     ),
                   ],
                 ),
@@ -151,33 +220,19 @@ class Seniors_School_Report_PDF {
 
               pw.SizedBox(height: 16),
 
-              // Student Info
+              // Report Table (matches the UI exactly)
               pw.Padding(
-                padding: pw.EdgeInsets.symmetric(horizontal: 16),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text('NAME OF STUDENT: $studentFullName'),
-                    pw.Text('CLASS: $studentClass'),
-                  ],
-                ),
-              ),
-
-              pw.SizedBox(height: 16),
-
-              // Report Table
-              pw.Padding(
-                padding: pw.EdgeInsets.symmetric(horizontal: 16),
+                padding: pw.EdgeInsets.all(16),
                 child: pw.Table(
                   border: pw.TableBorder.all(),
                   columnWidths: {
-                    0: pw.FlexColumnWidth(2.8),  // Subject - reduced slightly
-                    1: pw.FlexColumnWidth(1.0),  // Marks - reduced
-                    2: pw.FlexColumnWidth(1.0),  // Points - increased
-                    3: pw.FlexColumnWidth(1.2),  // Class Average - reduced
-                    4: pw.FlexColumnWidth(1.2),  // Position - increased
-                    5: pw.FlexColumnWidth(1.0),  // Out Of - reduced
-                    6: pw.FlexColumnWidth(2.8),  // Comments
+                    0: pw.FlexColumnWidth(3),   // SUBJECT
+                    1: pw.FlexColumnWidth(1.5), // MARKS %
+                    2: pw.FlexColumnWidth(1),   // POINTS
+                    3: pw.FlexColumnWidth(1.5), // CLASS AVERAGE
+                    4: pw.FlexColumnWidth(1.5), // POSITION
+                    5: pw.FlexColumnWidth(1.5), // OUT OF
+                    6: pw.FlexColumnWidth(3),   // TEACHERS' COMMENTS
                   },
                   children: [
                     pw.TableRow(
@@ -222,9 +277,7 @@ class Seniors_School_Report_PDF {
                 ),
               ),
 
-              pw.SizedBox(height: 16),
-
-              // Aggregate Section
+              // Aggregate Section (matches the UI exactly)
               pw.Padding(
                 padding: pw.EdgeInsets.symmetric(horizontal: 16),
                 child: pw.Column(
@@ -236,33 +289,28 @@ class Seniors_School_Report_PDF {
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
                         pw.Text('AGGREGATE POINTS: $aggregatePoints'),
-                        pw.Text('POSITION: $aggregatePosition'),
-                        pw.Text('OUT OF: $Total_Class_Students_Number'),
                       ],
                     ),
                     pw.SizedBox(height: 8),
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text('END RESULT: MSCE'),
-                        if (averageGradeLetter != null)
-                          pw.Text('AVERAGE GRADE: $averageGradeLetter'),
+                        pw.Text('RESULT: ${msceStatus ?? ''}'),
                       ],
                     ),
+                    pw.SizedBox(height: 16),
                   ],
                 ),
               ),
 
-              pw.SizedBox(height: 16),
-
-              // Grading Key
+              // Grading Key (matches the UI exactly)
               pw.Padding(
                 padding: pw.EdgeInsets.symmetric(horizontal: 16),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      'MSCE GRADING KEY',
+                      'MSCE GRADING KEY FOR ${(schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase()}',
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                     ),
                     pw.SizedBox(height: 8),
@@ -278,6 +326,7 @@ class Seniors_School_Report_PDF {
                         6: pw.FlexColumnWidth(1),
                         7: pw.FlexColumnWidth(1),
                         8: pw.FlexColumnWidth(1),
+                        9: pw.FlexColumnWidth(1),
                       },
                       children: [
                         pw.TableRow(
@@ -325,46 +374,39 @@ class Seniors_School_Report_PDF {
                         ),
                       ],
                     ),
+                    pw.SizedBox(height: 16),
                   ],
                 ),
               ),
 
-              pw.SizedBox(height: 16),
-
-              // Remarks Section
+              // Remarks Section (matches the UI exactly)
               pw.Padding(
                 padding: pw.EdgeInsets.symmetric(horizontal: 16),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text(
-                      'Form Teachers\' Remarks: ${formTeacherRemarks ?? 'She is disciplined and mature, encourage her to continue portraying good behaviour'}',
-                      style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
-                    ),
+                    pw.Text('Form Teachers\' Remarks: ${formTeacherRemarks ?? ''}',
+                        style: pw.TextStyle(fontStyle: pw.FontStyle.italic)),
                     pw.SizedBox(height: 8),
-                    pw.Text(
-                      'Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'Continue working hard and encourage her to maintain scoring above pass mark in all the subjects'}',
-                      style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
-                    ),
+                    pw.Text('Head Teacher\'s Remarks: ${headTeacherRemarks ?? ''}',
+                        style: pw.TextStyle(fontStyle: pw.FontStyle.italic)),
+                    pw.SizedBox(height: 16),
                   ],
                 ),
               ),
 
-              pw.SizedBox(height: 16),
-
-              // Footer
+              // Footer (matches the UI exactly)
               pw.Padding(
                 padding: pw.EdgeInsets.symmetric(horizontal: 16),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text('Fees for next term', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text('School account: ${schoolAccount ?? 'National Bank of Malawi, Old Town Branch, Current Account, Unknown Secondary School, ############'}'),
+                    pw.Text('School account: ${schoolAccount ?? ''}'),
                     pw.SizedBox(height: 8),
-                    pw.Text(
-                      'Next term begins on ${nextTermDate ?? 'Monday, 06th January, 2025'}',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
+                    pw.Text('Next term begins on ${nextTermDate ?? ''}',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.SizedBox(height: 16),
                   ],
                 ),
               ),
