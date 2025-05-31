@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
+import 'Login_Page.dart';
 
 class Forgot_Password extends StatefulWidget {
   static String id = '/ForgotPassword';
@@ -108,6 +109,13 @@ class _Forgot_PasswordState extends State<Forgot_Password> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            // Navigate to LogIn_Page on back press
+            Navigator.pushReplacementNamed(context, Login_Page.id);
+          },
+        ),
         title: Text('Reset Password', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
@@ -146,7 +154,7 @@ class _Forgot_PasswordState extends State<Forgot_Password> {
               isLoading
                   ? Center(
                 child: CircularProgressIndicator(
-                  color: Colors.blueAccent, // <-- Blue loading indicator
+                  color: Colors.blueAccent, // Blue loading indicator
                 ),
               )
                   : ElevatedButton(
@@ -155,7 +163,7 @@ class _Forgot_PasswordState extends State<Forgot_Password> {
                   validateAndResetPassword(email);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.greenAccent,
+                  backgroundColor: Colors.blueAccent,
                   padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
