@@ -249,12 +249,12 @@ class Juniors_School_Report_PDF {
       child: pw.Table(
         border: pw.TableBorder.all(width: 0.5),
         columnWidths: {
-          0: pw.FlexColumnWidth(3.5),  // Subject name
-          1: pw.FlexColumnWidth(1.2),  // Marks - reduced
-          2: pw.FlexColumnWidth(0.8),  // Grade
-          3: pw.FlexColumnWidth(1.0),  // Class average - reduced
-          4: pw.FlexColumnWidth(0.8),  // Position - reduced
-          5: pw.FlexColumnWidth(0.9),  // Out of - reduced
+          0: pw.FlexColumnWidth(3.0),  // Subject name - reduced slightly
+          1: pw.FlexColumnWidth(1.0),  // Marks - reduced
+          2: pw.FlexColumnWidth(1.0),  // Grade - increased
+          3: pw.FlexColumnWidth(1.0),  // Class average
+          4: pw.FlexColumnWidth(1.2),  // Position - increased
+          5: pw.FlexColumnWidth(0.8),  // Out of
           6: pw.FlexColumnWidth(2.5),  // Comments
         },
         children: tableRows.asMap().entries.map((entry) {
