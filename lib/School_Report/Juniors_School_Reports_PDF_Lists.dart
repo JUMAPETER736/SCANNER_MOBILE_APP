@@ -400,16 +400,13 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
       backgroundColor: Colors.blue.shade50,
       appBar: AppBar(
         title: Text(
-          '${widget.className} Reports',
+          '${widget.className} Reports List',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.blue.shade700,
         iconTheme: IconThemeData(color: Colors.white),
         actions: [
-          IconButton(
-            icon: Icon(Icons.refresh, color: Colors.white),
-            onPressed: () => _loadSavedPDFs(),
-          ),
+
           IconButton(
             icon: Icon(Icons.info_outline, color: Colors.white),
             onPressed: () {
@@ -944,44 +941,44 @@ class Juniors_School_Report_PDF {
     ]);
 
     return pw.Padding(
-        padding: pw.EdgeInsets.all(8),
-        child: pw.Table(
+      padding: pw.EdgeInsets.all(8),
+      child: pw.Table(
         border: pw.TableBorder.all(width: 0.5),
-    columnWidths: {
-    0: pw.FlexColumnWidth(3.5),  // Subject name
-    1: pw.FlexColumnWidth(1.2),  // Marks - reduced
-    2: pw.FlexColumnWidth(0.8),  // Grade
-    3: pw.FlexColumnWidth(1.0),  // Class average - reduced
-      4: pw.FlexColumnWidth(1.0),  // Position - reduced
-      5: pw.FlexColumnWidth(0.8),  // Out of - reduced
-      6: pw.FlexColumnWidth(3.0),  // Comments
-    },
-          children: tableRows.asMap().entries.map((entry) {
-            int index = entry.key;
-            List<String> row = entry.value;
-            bool isHeader = index == 0;
-            bool isTotalRow = index == tableRows.length - 1;
+        columnWidths: {
+          0: pw.FlexColumnWidth(3.5),  // Subject name
+          1: pw.FlexColumnWidth(1.2),  // Marks - reduced
+          2: pw.FlexColumnWidth(0.8),  // Grade
+          3: pw.FlexColumnWidth(1.0),  // Class average - reduced
+          4: pw.FlexColumnWidth(1.0),  // Position - reduced
+          5: pw.FlexColumnWidth(0.8),  // Out of - reduced
+          6: pw.FlexColumnWidth(3.0),  // Comments
+        },
+        children: tableRows.asMap().entries.map((entry) {
+          int index = entry.key;
+          List<String> row = entry.value;
+          bool isHeader = index == 0;
+          bool isTotalRow = index == tableRows.length - 1;
 
-            return pw.TableRow(
-              decoration: isHeader
-                  ? pw.BoxDecoration(color: PdfColors.grey300)
-                  : (isTotalRow ? pw.BoxDecoration(color: PdfColors.grey100) : null),
-              children: row.map((cell) {
-                return pw.Container(
-                  padding: pw.EdgeInsets.all(4),
-                  child: pw.Text(
-                    cell,
-                    style: pw.TextStyle(
-                      fontSize: isHeader ? 9 : 8,
-                      fontWeight: isHeader || isTotalRow ? pw.FontWeight.bold : pw.FontWeight.normal,
-                    ),
-                    textAlign: isHeader ? pw.TextAlign.center : pw.TextAlign.left,
+          return pw.TableRow(
+            decoration: isHeader
+                ? pw.BoxDecoration(color: PdfColors.grey300)
+                : (isTotalRow ? pw.BoxDecoration(color: PdfColors.grey100) : null),
+            children: row.map((cell) {
+              return pw.Container(
+                padding: pw.EdgeInsets.all(4),
+                child: pw.Text(
+                  cell,
+                  style: pw.TextStyle(
+                    fontSize: isHeader ? 9 : 8,
+                    fontWeight: isHeader || isTotalRow ? pw.FontWeight.bold : pw.FontWeight.normal,
                   ),
-                );
-              }).toList(),
-            );
-          }).toList(),
-        ),
+                  textAlign: isHeader ? pw.TextAlign.center : pw.TextAlign.left,
+                ),
+              );
+            }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 
