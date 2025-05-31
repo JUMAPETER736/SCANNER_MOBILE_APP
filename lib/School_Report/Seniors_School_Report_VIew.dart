@@ -159,11 +159,13 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   Future<void> _fetchStudentData() async {
     User? user = _auth.currentUser;
     if (user == null) {
-      setState(() {
-        isLoading = false;
-        hasError = true;
-        errorMessage = 'No user is currently logged in.';
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          hasError = true;
+          errorMessage = 'No user is currently logged in.';
+        });
+      }
       return;
     }
 
@@ -179,11 +181,13 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       final userDoc = results[0] as DocumentSnapshot;
 
       if (!userDoc.exists) {
-        setState(() {
-          isLoading = false;
-          hasError = true;
-          errorMessage = 'User details not found.';
-        });
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+            hasError = true;
+            errorMessage = 'User details not found.';
+          });
+        }
         return;
       }
 
@@ -191,11 +195,13 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       final List<dynamic>? teacherClasses = userDoc['classes'];
 
       if (teacherSchool == null || teacherClasses == null || teacherClasses.isEmpty) {
-        setState(() {
-          isLoading = false;
-          hasError = true;
-          errorMessage = 'Please select a School and Classes before accessing reports.';
-        });
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+            hasError = true;
+            errorMessage = 'Please select a School and Classes before accessing reports.';
+          });
+        }
         return;
       }
 
@@ -204,11 +210,13 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       final String studentFullName = widget.studentFullName;
 
       if (studentClass != 'FORM 3' && studentClass != 'FORM 4') {
-        setState(() {
-          isLoading = false;
-          hasError = true;
-          errorMessage = 'Only students in FORM 3 or FORM 4 can access this report.';
-        });
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+            hasError = true;
+            errorMessage = 'Only students in FORM 3 or FORM 4 can access this report.';
+          });
+        }
         return;
       }
 
@@ -229,16 +237,20 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         _calculateAndUpdateAverageGradeLetter(basePath),
       ]);
 
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     } catch (e) {
       print("Error: $e");
-      setState(() {
-        isLoading = false;
-        hasError = true;
-        errorMessage = 'An error occurred while fetching data.';
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          hasError = true;
+          errorMessage = 'An error occurred while fetching data.';
+        });
+      }
     }
   }
 
@@ -258,20 +270,25 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           'lastUpdated': FieldValue.serverTimestamp(),
         });
 
-        setState(() {
-          averageGradeLetter = gradeLetter;
-        });
+        if (mounted) {
+          setState(() {
+            averageGradeLetter = gradeLetter;
+          });
+        }
 
         print("Average Grade Letter calculated: $gradeLetter (${percentage.toStringAsFixed(1)}%)");
       }
     } catch (e) {
       print("Error calculating average grade letter: $e");
       // Set default if calculation fails
-      setState(() {
-        averageGradeLetter = '9';
-      });
+      if (mounted) {
+        setState(() {
+          averageGradeLetter = '9';
+        });
+      }
     }
   }
+
 
   Future<void> calculate_Aggregate_Points_And_Position(
       String school, String studentClass, String studentFullName) async {
@@ -326,11 +343,13 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
       for (int i = 0; i < studentAggregates.length; i++) {
         if (studentAggregates[i]['name'] == studentFullName) {
-          setState(() {
-            aggregatePosition = i + 1;
-            msceStatus = studentAggregates[i]['status'];
-            msceMessage = studentAggregates[i]['message'];
-          });
+          if (mounted) {
+            setState(() {
+              aggregatePosition = i + 1;
+              msceStatus = studentAggregates[i]['status'];
+              msceMessage = studentAggregates[i]['message'];
+            });
+          }
           break;
         }
       }
@@ -345,15 +364,19 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
       Map<String, dynamic> currentMsceResult = calculateMSCEAggregate(currentStudentPoints);
 
-      setState(() {
-        aggregatePoints = currentMsceResult['points'];
-        msceStatus = currentMsceResult['status'];
-        msceMessage = currentMsceResult['message'];
-      });
+      if (mounted) {
+        setState(() {
+          aggregatePoints = currentMsceResult['points'];
+          msceStatus = currentMsceResult['status'];
+          msceMessage = currentMsceResult['message'];
+        });
+      }
     } catch (e) {
       print("Error calculating aggregate points and position: $e");
     }
   }
+
+
 
   Future<void> _fetchSchoolInfo(String school) async {
     try {
@@ -377,33 +400,49 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   Future<void> _updateTotalStudentsCount(String school, String studentClass) async {
     try {
       final classInfoDoc = await _firestore
-          .collection('Schools/$school/Classes/$studentClass')
-          .doc('Class_Info')
+          .collection('Schools')
+          .doc(school)
+          .collection('Classes')
+          .doc(studentClass)
+          .collection('Class_Info')
+          .doc('Info')
           .get();
 
       if (classInfoDoc.exists) {
         final classData = classInfoDoc.data() as Map<String, dynamic>;
-        setState(() {
-          Total_Class_Students_Number = classData['totalStudents'] ?? 0;
-        });
+        if (mounted) {
+          setState(() {
+            Total_Class_Students_Number = classData['totalStudents'] ?? 0;
+          });
+        }
       } else {
         final studentsSnapshot = await _firestore
-            .collection('Schools/$school/Classes/$studentClass/Student_Details')
+            .collection('Schools')
+            .doc(school)
+            .collection('Classes')
+            .doc(studentClass)
+            .collection('Student_Details')
             .get();
 
         Total_Class_Students_Number = studentsSnapshot.docs.length;
 
         await _firestore
-            .collection('Schools/$school/Classes/$studentClass')
-            .doc('Class_Info')
+            .collection('Schools')
+            .doc(school)
+            .collection('Classes')
+            .doc(studentClass)
+            .collection('Class_Info')
+            .doc('Info')
             .set({
           'totalStudents': Total_Class_Students_Number,
           'lastUpdated': FieldValue.serverTimestamp(),
         });
 
-        setState(() {
-          // UI will update with correct count
-        });
+        if (mounted) {
+          setState(() {
+            // UI will update with correct count
+          });
+        }
       }
       print("Total Students: $Total_Class_Students_Number");
     } catch (e) {
