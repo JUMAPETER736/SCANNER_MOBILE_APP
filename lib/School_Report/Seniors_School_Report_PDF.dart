@@ -171,13 +171,13 @@ class Seniors_School_Report_PDF {
                 child: pw.Table(
                   border: pw.TableBorder.all(),
                   columnWidths: {
-                    0: pw.FlexColumnWidth(3),
-                    1: pw.FlexColumnWidth(1.5),
-                    2: pw.FlexColumnWidth(1),
-                    3: pw.FlexColumnWidth(1.5),
-                    4: pw.FlexColumnWidth(1.5),
-                    5: pw.FlexColumnWidth(1.5),
-                    6: pw.FlexColumnWidth(3),
+                    0: pw.FlexColumnWidth(2.8),  // Subject - reduced slightly
+                    1: pw.FlexColumnWidth(1.0),  // Marks - reduced
+                    2: pw.FlexColumnWidth(1.0),  // Points - increased
+                    3: pw.FlexColumnWidth(1.2),  // Class Average - reduced
+                    4: pw.FlexColumnWidth(1.2),  // Position - increased
+                    5: pw.FlexColumnWidth(1.0),  // Out Of - reduced
+                    6: pw.FlexColumnWidth(2.8),  // Comments
                   },
                   children: [
                     pw.TableRow(
