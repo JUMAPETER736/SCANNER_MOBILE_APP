@@ -774,8 +774,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     return Scaffold(
       appBar: AppBar(
         title: Text('Progress Report'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
         actions: [
           if (!isLoading && !hasError)
             IconButton(

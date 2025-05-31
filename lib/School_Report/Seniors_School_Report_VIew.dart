@@ -302,7 +302,8 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       for (var studentDoc in studentsSnapshot.docs) {
         final studentName = studentDoc.id;
         final subjectsSnapshot = await _firestore
-            .collection('Schools/$school/Classes/$studentClass/Student_Details/$studentName/Student_Subjects')
+            .collection(
+            'Schools/$school/Classes/$studentClass/Student_Details/$studentName/Student_Subjects')
             .get();
 
         List<int> points = [];
@@ -339,17 +340,16 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         });
       }
 
-      studentAggregates.sort((a, b) => (a['aggregate'] as int).compareTo(b['aggregate'] as int));
+      studentAggregates.sort((a, b) =>
+          (a['aggregate'] as int).compareTo(b['aggregate'] as int));
 
       for (int i = 0; i < studentAggregates.length; i++) {
         if (studentAggregates[i]['name'] == studentFullName) {
-          if (mounted) {
-            setState(() {
-              aggregatePosition = i + 1;
-              msceStatus = studentAggregates[i]['status'];
-              msceMessage = studentAggregates[i]['message'];
-            });
-          }
+          setState(() {
+            aggregatePosition = i + 1;
+            msceStatus = studentAggregates[i]['status'];
+            msceMessage = studentAggregates[i]['message'];
+          });
           break;
         }
       }
@@ -362,19 +362,19 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         return int.tryParse(getPoints(grade)) ?? 9;
       }).toList();
 
-      Map<String, dynamic> currentMsceResult = calculateMSCEAggregate(currentStudentPoints);
+      Map<String, dynamic> currentMsceResult = calculateMSCEAggregate(
+          currentStudentPoints);
 
-      if (mounted) {
-        setState(() {
-          aggregatePoints = currentMsceResult['points'];
-          msceStatus = currentMsceResult['status'];
-          msceMessage = currentMsceResult['message'];
-        });
-      }
+      setState(() {
+        aggregatePoints = currentMsceResult['points'];
+        msceStatus = currentMsceResult['status'];
+        msceMessage = currentMsceResult['message'];
+      });
     } catch (e) {
       print("Error calculating aggregate points and position: $e");
     }
   }
+  
 
 
 
