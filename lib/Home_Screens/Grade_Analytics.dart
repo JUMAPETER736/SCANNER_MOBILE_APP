@@ -1,62 +1,111 @@
 import 'package:flutter/material.dart';
 
 class Grade_Analytics extends StatelessWidget {
+  final List<Map<String, String>> juniorGradeRanges = [
+    {'range': '85 - 100%', 'grade': 'A', 'interpretation': 'EXCELLENT'},
+    {'range': '75 - 84%', 'grade': 'B', 'interpretation': 'VERY GOOD'},
+    {'range': '65 - 74%', 'grade': 'C', 'interpretation': 'GOOD'},
+    {'range': '50 - 64%', 'grade': 'D', 'interpretation': 'PASS'},
+    {'range': '0 - 49%', 'grade': 'F', 'interpretation': 'FAIL'},
+  ];
 
-      final List<Map<String, String>> juniorGradeRanges = [
-
-        {'range': '80 - 100%', 'grade': 'A'},
-        {'range': '70 - 79%', 'grade': 'B'},
-        {'range': '60 - 69%', 'grade': 'C'},
-        {'range': '50 - 59%', 'grade': 'D'},
-        {'range': '40 - 49%', 'grade': 'E'},
-        {'range': '0 - 39%', 'grade': 'F'},
-
-      ];
-
-      final List<Map<String, String>> seniorGradeRanges = [
-
-        {'range': '80 - 100%', 'grade': '1'},
-        {'range': '75 - 79%', 'grade': '2'},
-        {'range': '70 - 74%', 'grade': '3'},
-        {'range': '65 - 69%', 'grade': '4'},
-        {'range': '60 - 64%', 'grade': '5'},
-        {'range': '55 - 59%', 'grade': '6'},
-        {'range': '50 - 54%', 'grade': '7'},
-        {'range': '40 - 49%', 'grade': '8'},
-        {'range': '0 - 39%', 'grade': '9'},
-
-      ];
+  final List<Map<String, String>> seniorGradeRanges = [
+    {'range': '100 - 90%', 'grade': '1', 'interpretation': 'Distinction'},
+    {'range': '89 - 80%', 'grade': '2', 'interpretation': 'Distinction'},
+    {'range': '79 - 75%', 'grade': '3', 'interpretation': 'Strong Credit'},
+    {'range': '74 - 70%', 'grade': '4', 'interpretation': 'Strong Credit'},
+    {'range': '69 - 65%', 'grade': '5', 'interpretation': 'Credit'},
+    {'range': '64 - 60%', 'grade': '6', 'interpretation': 'Weak Credit'},
+    {'range': '59 - 55%', 'grade': '7', 'interpretation': 'Pass'},
+    {'range': '54 - 50%', 'grade': '8', 'interpretation': 'Weak Pass'},
+    {'range': '0 - 49%', 'grade': '9', 'interpretation': 'Fail'},
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Grade Format',
-            style: TextStyle(fontWeight: FontWeight.bold),
-      ),
-
-        backgroundColor: Colors.blueAccent, // Same color as in ClassSelection
+        title: Text(
+          'Grade Format',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Color(0xFF1976D2),
+        elevation: 1,
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.lightBlueAccent, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1976D2).withOpacity(0.05),
+              Colors.white,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ListView(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Customize your grading scale and display:',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+              // Header
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Color(0xFF1976D2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.analytics,
+                      size: 28,
+                      color: Colors.white,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Grading System Overview',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
+
+              SizedBox(height: 24),
+
+              // Junior Certificate Section
+              _buildGradeSection(
+                'Junior Certificate Education (JCE)',
+                juniorGradeRanges,
+                Color(0xFF1976D2),
+              ),
+
+              SizedBox(height: 20),
+
+              // Senior Certificate Section
+              _buildGradeSection(
+                'Senior Certificate Education (MSCE)',
+                seniorGradeRanges,
+                Color(0xFF1565C0),
+              ),
+
               SizedBox(height: 16),
-              _buildGradeSection('Junior Certificate Education Grading (JCE):', juniorGradeRanges),
-              SizedBox(height: 16),
-              _buildGradeSection('Senior Certificate Education Grading (MSCE):', seniorGradeRanges),
             ],
           ),
         ),
@@ -64,35 +113,105 @@ class Grade_Analytics extends StatelessWidget {
     );
   }
 
-  // Helper method to build each grade section
-  Widget _buildGradeSection(String title, List<Map<String, String>> grades) {
+  Widget _buildGradeSection(
+      String title,
+      List<Map<String, String>> grades,
+      Color primaryColor,
+      ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+        // Section Title
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: primaryColor.withOpacity(0.3)),
+          ),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: primaryColor,
+            ),
+          ),
         ),
+
         SizedBox(height: 8),
-        ...grades.map((grade) {
-          return Card(
-            color: Colors.blueAccent, // Background color of the cards
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10.0), // Rounded corners
-            ),
-            child: ListTile(
-              title: Text(
-                'Marks: ${grade['range']}',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-              subtitle: Text(
-                'Grade: ${grade['grade']}',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-            ),
-          );
-        }).toList(),
+
+        // Grade List
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: Column(
+            children: grades.asMap().entries.map((entry) {
+              Map<String, String> grade = entry.value;
+              bool isLast = entry.key == grades.length - 1;
+
+              return Container(
+                decoration: BoxDecoration(
+                  border: isLast ? null : Border(
+                    bottom: BorderSide(color: Colors.grey[200]!, width: 1),
+                  ),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Row(
+                    children: [
+                      // Mark Range
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          grade['range']!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+
+                      // Grade
+                      Container(
+                        width: 30,
+                        child: Text(
+                          grade['grade']!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: primaryColor,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+
+                      SizedBox(width: 16),
+
+                      // Interpretation
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          grade['interpretation']!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                          textAlign: TextAlign.end,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
       ],
     );
   }
