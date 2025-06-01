@@ -327,19 +327,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     }
   }
 
-  String _getSeniorsPoints(String grade) {
-    switch (grade) {
-      case '1': return '1';
-      case '2': return '2';
-      case '3': return '3';
-      case '4': return '4';
-      case '5': return '5';
-      case '6': return '6';
-      case '7': return '7';
-      case '8': return '8';
-      default: return '9';
-    }
-  }
+  // Removed _getSeniorsPoints function as requested
 
   Future<void> _updateGrade(String subject) async {
     String newGrade = '';
@@ -356,23 +344,61 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   TextField(
-                    decoration: InputDecoration(hintText: "Enter new Grade"),
+                    decoration: InputDecoration(
+                      hintText: "Enter grade (0-100)",
+                      labelText: "Grade",
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
                     onChanged: (value) {
                       setState(() {
                         newGrade = value.trim();
-                        errorMessage = '';
+                        // Real-time validation
+                        if (value.isEmpty) {
+                          errorMessage = '';
+                        } else if (int.tryParse(value) == null) {
+                          errorMessage = 'Please enter a valid numeric grade';
+                        } else {
+                          int grade = int.parse(value);
+                          if (grade < 0) {
+                            errorMessage = 'Grade cannot be less than 0';
+                          } else if (grade > 100) {
+                            errorMessage = 'Grade cannot be greater than 100';
+                          } else {
+                            errorMessage = '';
+                          }
+                        }
                       });
                     },
                   ),
                   if (errorMessage.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Text(
-                        errorMessage,
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    Container(
+                      margin: const EdgeInsets.only(top: 8.0),
+                      padding: const EdgeInsets.all(8.0),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.red[300]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 16,
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              errorMessage,
+                              style: TextStyle(
+                                color: Colors.red[700],
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                 ],
@@ -389,7 +415,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
             TextButton(
               child: Text('Save', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
               onPressed: () async {
-                // Validation for grade input
+                // Final validation before saving
                 if (newGrade.isEmpty || int.tryParse(newGrade) == null) {
                   setState(() {
                     errorMessage = 'Please enter a valid grade (numeric value)';
@@ -473,15 +499,13 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                       };
 
                       if (isSenior) {
-                        // Senior system (FORM 3 & 4)
+                        // Senior system (FORM 3 & 4) - Removed points logic
                         String gradePoint = _getSeniorsGrade(gradeInt);
                         String remark = _getSeniorsRemark(gradePoint);
-                        String points = _getSeniorsPoints(gradePoint);
 
                         dataToSave.addAll({
                           'Grade_Point': int.parse(gradePoint),
                           'Grade_Remark': remark,
-
                         });
 
                       } else if (isJunior) {
