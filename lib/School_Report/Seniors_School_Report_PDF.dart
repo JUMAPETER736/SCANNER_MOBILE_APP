@@ -99,16 +99,24 @@ class Seniors_School_Report_PDF {
     int currentMonth = now.month;
     int currentDay = now.day;
 
-    if ((currentMonth == 9 && currentDay >= 1) || (currentMonth >= 10 && currentMonth <= 12)) {
+    // TERM ONE: 1 Sept - 31 Dec
+    if ((currentMonth == 9 && currentDay >= 1) ||
+        (currentMonth >= 10 && currentMonth <= 12)) {
       return 'ONE';
-    } else if ((currentMonth == 1 && currentDay >= 2) ||
+    }
+    // TERM TWO: 2 Jan - 20 April
+    else if ((currentMonth == 1 && currentDay >= 2) ||
         (currentMonth >= 2 && currentMonth <= 3) ||
         (currentMonth == 4 && currentDay <= 20)) {
       return 'TWO';
-    } else if ((currentMonth == 4 && currentDay >= 25) ||
+    }
+    // TERM THREE: 25 April - 30 July
+    else if ((currentMonth == 4 && currentDay >= 25) ||
         (currentMonth >= 5 && currentMonth <= 7)) {
       return 'THREE';
-    } else {
+    }
+    // Default to ONE if date falls outside defined terms
+    else {
       return 'ONE';
     }
   }
@@ -118,9 +126,12 @@ class Seniors_School_Report_PDF {
     int currentYear = now.year;
     int currentMonth = now.month;
 
+    // Academic year starts in September
     if (currentMonth >= 9) {
+      // If current month is Sept-Dec, academic year is current year to next year
       return '$currentYear/${currentYear + 1}';
     } else {
+      // If current month is Jan-Aug, academic year is previous year to current year
       return '${currentYear - 1}/$currentYear';
     }
   }
@@ -136,7 +147,7 @@ class Seniors_School_Report_PDF {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // School Header (matches the UI exactly)
+              // School Header - matches UI exactly
               pw.Center(
                 child: pw.Column(
                   children: [
@@ -190,7 +201,7 @@ class Seniors_School_Report_PDF {
                 ),
               ),
 
-              // Student Info (matches the UI exactly)
+              // Student Info - matches UI exactly with proper Total_Class_Students_Number handling
               pw.Padding(
                 padding: pw.EdgeInsets.symmetric(horizontal: 16),
                 child: pw.Row(
@@ -204,9 +215,9 @@ class Seniors_School_Report_PDF {
                       flex: 3,
                       child: pw.Row(
                         children: [
-                          pw.Text('POSITION: ${studentPosition > 0 ? studentPosition : ''}'),
+                          pw.Text('POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}'),
                           pw.SizedBox(width: 10),
-                          pw.Text('OUT OF: ${Total_Class_Students_Number > 0 ? Total_Class_Students_Number : ''}'),
+                          pw.Text('OUT OF: ${Total_Class_Students_Number > 0 ? Total_Class_Students_Number : (subjects.isNotEmpty ? subjects.first['totalStudents'] ?? 'N/A' : 'N/A')}'),
                         ],
                       ),
                     ),
@@ -220,19 +231,19 @@ class Seniors_School_Report_PDF {
 
               pw.SizedBox(height: 16),
 
-              // Report Table (matches the UI exactly)
+              // Report Table - matches UI exactly
               pw.Padding(
                 padding: pw.EdgeInsets.all(16),
                 child: pw.Table(
                   border: pw.TableBorder.all(),
                   columnWidths: {
-                    0: pw.FlexColumnWidth(3),   // SUBJECT
-                    1: pw.FlexColumnWidth(1.5), // MARKS %
-                    2: pw.FlexColumnWidth(1),   // POINTS
-                    3: pw.FlexColumnWidth(1.5), // CLASS AVERAGE
-                    4: pw.FlexColumnWidth(1.5), // POSITION
-                    5: pw.FlexColumnWidth(1.5), // OUT OF
-                    6: pw.FlexColumnWidth(3),   // TEACHERS' COMMENTS
+                    0: pw.FlexColumnWidth(3),    // SUBJECT
+                    1: pw.FlexColumnWidth(1.5),  // MARKS %
+                    2: pw.FlexColumnWidth(1),    // POINTS
+                    3: pw.FlexColumnWidth(1.5),  // CLASS AVERAGE
+                    4: pw.FlexColumnWidth(1.5),  // POSITION
+                    5: pw.FlexColumnWidth(1.5),  // OUT OF
+                    6: pw.FlexColumnWidth(3),    // TEACHERS' COMMENTS
                   },
                   children: [
                     pw.TableRow(
@@ -277,7 +288,7 @@ class Seniors_School_Report_PDF {
                 ),
               ),
 
-              // Aggregate Section (matches the UI exactly)
+              // Aggregate Section - matches UI exactly
               pw.Padding(
                 padding: pw.EdgeInsets.symmetric(horizontal: 16),
                 child: pw.Column(
@@ -303,7 +314,7 @@ class Seniors_School_Report_PDF {
                 ),
               ),
 
-              // Grading Key (matches the UI exactly)
+              // Grading Key - matches UI exactly
               pw.Padding(
                 padding: pw.EdgeInsets.symmetric(horizontal: 16),
                 child: pw.Column(
@@ -379,32 +390,32 @@ class Seniors_School_Report_PDF {
                 ),
               ),
 
-              // Remarks Section (matches the UI exactly)
+              // Remarks Section - matches UI exactly
               pw.Padding(
                 padding: pw.EdgeInsets.symmetric(horizontal: 16),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text('Form Teachers\' Remarks: ${formTeacherRemarks ?? ''}',
+                    pw.Text('Form Teachers\' Remarks: ${formTeacherRemarks ?? 'N/A'}',
                         style: pw.TextStyle(fontStyle: pw.FontStyle.italic)),
                     pw.SizedBox(height: 8),
-                    pw.Text('Head Teacher\'s Remarks: ${headTeacherRemarks ?? ''}',
+                    pw.Text('Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
                         style: pw.TextStyle(fontStyle: pw.FontStyle.italic)),
                     pw.SizedBox(height: 16),
                   ],
                 ),
               ),
 
-              // Footer (matches the UI exactly)
+              // Footer - matches UI exactly
               pw.Padding(
                 padding: pw.EdgeInsets.symmetric(horizontal: 16),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text('Fees for next term', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text('School account: ${schoolAccount ?? ''}'),
+                    pw.Text('School account: ${schoolAccount ?? 'N/A'}'),
                     pw.SizedBox(height: 8),
-                    pw.Text('Next term begins on ${nextTermDate ?? ''}',
+                    pw.Text('Next term begins on ${nextTermDate ?? 'N/A'}',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     pw.SizedBox(height: 16),
                   ],
