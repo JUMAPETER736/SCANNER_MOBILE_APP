@@ -155,7 +155,11 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     });
   }
 
-  Future<void> _fetchAllDataInParallel(String teacherSchool, String studentClass, String studentFullName) async {
+  Future<void> _fetchAllDataInParallel(
+      String teacherSchool,
+      String studentClass,
+      String studentFullName) async {
+
     final String basePath = 'Schools/$teacherSchool/Classes/$studentClass/Student_Details/$studentFullName';
 
     // Create batch for reading multiple documents
