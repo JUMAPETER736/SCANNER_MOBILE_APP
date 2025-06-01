@@ -810,9 +810,6 @@ class _Student_SubjectsState extends State<Student_Subjects> {
   }
 
 
-  // Removed _getSeniorsPoints function as requested
-
-  // REPLACE your existing _updateGrade method with this updated version:
   Future<void> _updateGrade(String subject) async {
     String newGrade = '';
     String errorMessage = '';
