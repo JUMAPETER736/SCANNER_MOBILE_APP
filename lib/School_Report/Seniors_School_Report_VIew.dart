@@ -254,6 +254,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
+
   Future<void> _calculateAndUpdateAverageGradeLetter(String basePath) async {
     try {
       if (teacherTotalMarks > 0) {

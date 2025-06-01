@@ -179,6 +179,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
+
   Future<void> _calculateAndUpdateAverageGradeLetter(String basePath) async {
     try {
       if (teacherTotalMarks > 0) {
@@ -274,6 +275,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       });
     }
   }
+
 
   Future<void> fetchStudentSubjects(String basePath) async {
     try {
