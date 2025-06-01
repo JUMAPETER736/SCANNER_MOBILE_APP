@@ -7,15 +7,21 @@ import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 
 class Student_Details extends StatefulWidget {
+  const Student_Details({Key? key}) : super(key: key);
+
   @override
-  _Student_DetailsState createState() => _Student_DetailsState();
+  State<Student_Details> createState() => _Student_DetailsState();
 }
 
 class _Student_DetailsState extends State<Student_Details> {
+  // Constants
+  static const List<String> _classes = ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'];
+  static const List<String> _genders = ['Male', 'Female'];
+
   // Form and Firebase instances
-  final _formKey = GlobalKey<FormState>();
-  final _firestore = FirebaseFirestore.instance;
-  final _auth = FirebaseAuth.instance;
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Text controllers
   final TextEditingController _firstNameController = TextEditingController();
@@ -23,28 +29,42 @@ class _Student_DetailsState extends State<Student_Details> {
   final TextEditingController _dobController = TextEditingController();
 
   // State variables
-  String? studentClass;
-  String? studentGender;
-  String? studentID;
-  String? generatedQRcode;
-  String? studentFullName;
-  User? loggedInUser;
+  String? _selectedClass;
+  String? _selectedGender;
+  String? _studentID;
+  String? _generatedQRCode;
+  String? _studentFullName;
+  User? _loggedInUser;
+  int _totalClassStudentsNumber = 0;
 
   // Default subjects for each form
-  final Map<String, List<String>> defaultSubjects = {
-
-    'FORM 1': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH','GEOGRAPHY', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
-    'FORM 2': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'GEOGRAPHY', 'HISTORY', 'HOME ECONOMICS',  'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
-    'FORM 3': ['ADDITIONAL MATHEMATICS', 'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'GEOGRAPHY', 'HISTORY', 'HOME ECONOMICS',  'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
-    'FORM 4': ['ADDITIONAL MATHEMATICS', 'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'GEOGRAPHY', 'HISTORY', 'HOME ECONOMICS',  'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
-
-
+  static const Map<String, List<String>> _defaultSubjects = {
+    'FORM 1': [
+      'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA',
+      'COMPUTER SCIENCE', 'ENGLISH', 'GEOGRAPHY', 'HISTORY', 'HOME ECONOMICS',
+      'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'
+    ],
+    'FORM 2': [
+      'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA',
+      'COMPUTER SCIENCE', 'ENGLISH', 'GEOGRAPHY', 'HISTORY', 'HOME ECONOMICS',
+      'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'
+    ],
+    'FORM 3': [
+      'ADDITIONAL MATHEMATICS', 'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY',
+      'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'GEOGRAPHY',
+      'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'
+    ],
+    'FORM 4': [
+      'ADDITIONAL MATHEMATICS', 'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY',
+      'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'GEOGRAPHY',
+      'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'
+    ],
   };
 
   @override
   void initState() {
     super.initState();
-    getCurrentUser();
+    _getCurrentUser();
   }
 
   @override
@@ -55,63 +75,84 @@ class _Student_DetailsState extends State<Student_Details> {
     super.dispose();
   }
 
-  // Get current logged-in user
-  void getCurrentUser() {
+  // MARK: - User Management
+  void _getCurrentUser() {
     final user = _auth.currentUser;
     if (user != null) {
-      loggedInUser = user;
+      _loggedInUser = user;
     }
   }
 
-  // Generate a random 6-digit student ID
-  String generateRandomStudentID() {
-    Random random = Random();
-    int id = 100000 + random.nextInt(900000);
+  // MARK: - Utility Methods
+  String _generateRandomStudentID() {
+    final Random random = Random();
+    final int id = 100000 + random.nextInt(900000);
     return id.toString();
   }
 
-  // Calculate age based on DOB in DD-MM-YYYY format
-  int calculateAge(String dob) {
+  int _calculateAge(String dob) {
     try {
-      DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-      DateTime birthDate = dateFormat.parse(dob);
-      DateTime currentDate = DateTime.now();
+      final DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+      final DateTime birthDate = dateFormat.parse(dob);
+      final DateTime currentDate = DateTime.now();
       int age = currentDate.year - birthDate.year;
 
       if (currentDate.month < birthDate.month ||
-          (currentDate.month == birthDate.month && currentDate.day < birthDate.day)) {
+          (currentDate.month == birthDate.month &&
+              currentDate.day < birthDate.day)) {
         age--;
       }
       return age;
     } catch (e) {
-      return 0; // Return 0 if parsing fails
+      return 0;
     }
   }
 
-  // Validate date format and future date
-  String? validateDateOfBirth(String? value) {
+  // MARK: - Validation Methods
+  String? _validateName(String? value, String fieldName) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter the student\'s $fieldName';
+    }
+    if (value.length < 2) {
+      return '$fieldName must be at least 2 characters';
+    }
+    return null;
+  }
+
+  String? _validateClass(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please select the student\'s class';
+    }
+    return null;
+  }
+
+  String? _validateGender(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please select the student\'s gender';
+    }
+    return null;
+  }
+
+  String? _validateDateOfBirth(String? value) {
     if (value == null || value.isEmpty) {
       return 'Please enter the student\'s Date of Birth';
     }
 
-    // Check if the format is correct (DD-MM-YYYY)
     if (!RegExp(r'^\d{2}-\d{2}-\d{4}$').hasMatch(value)) {
       return 'Please enter date in DD-MM-YYYY format';
     }
 
     try {
-      DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-      DateTime dob = dateFormat.parseStrict(value);
+      final DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+      final DateTime dob = dateFormat.parseStrict(value);
 
       if (dob.isAfter(DateTime.now())) {
         return 'Date of Birth cannot be in the future';
       }
 
-      // Check if the date is reasonable (not too old)
       if (DateTime.now().year - dob.year > 100) {
         return 'Please enter a valid Date of Birth';
       }
-
     } catch (e) {
       return 'Please enter a valid Date of Birth (DD-MM-YYYY)';
     }
@@ -119,184 +160,248 @@ class _Student_DetailsState extends State<Student_Details> {
     return null;
   }
 
-  // Save student details to Firestore
-  void saveStudentDetails() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        // Show loading indicator
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return const Center(
-              child: CircularProgressIndicator(
-                color: Colors.white, // Set to white
-              ),
-            );
-          },
-        );
+  // MARK: - Database Operations
+  Future<void> _saveStudentDetails() async {
+    if (!_formKey.currentState!.validate()) return;
 
+    try {
+      _showLoadingDialog();
 
-        // Create student data
-        studentFullName = '${_lastNameController.text.trim().toUpperCase()}'
-            ' ${_firstNameController.text.trim().toUpperCase()}';
-        studentID = generateRandomStudentID();
+      _studentFullName = '${_lastNameController.text.trim().toUpperCase()}'
+          ' ${_firstNameController.text.trim().toUpperCase()}';
+      _studentID = _generateRandomStudentID();
 
-        // Get teacher's school information
-        final teacherEmail = loggedInUser?.email;
-        final teacherDetails = await _firestore
-            .collection('Teachers_Details')
-            .doc(teacherEmail)
-            .get();
+      final String schoolName = await _getSchoolName();
 
-        if (!teacherDetails.exists) {
-          throw Exception('Teacher details not found');
-        }
+      await _saveStudentToFirestore(schoolName);
+      await _updateTotalStudentsCountOnSave(schoolName, _selectedClass!);
 
-        String schoolName = teacherDetails['school'];
+      setState(() {
+        _generatedQRCode = _studentID;
+      });
 
-        // Save main student document
-        await _firestore
-            .collection('Schools')
-            .doc(schoolName)
-            .collection('Classes')
-            .doc(studentClass)
-            .collection('Student_Details')
-            .doc(studentFullName)
-            .set({
-          'timestamp': FieldValue.serverTimestamp(),
-        });
+      _hideLoadingDialog();
+      _showSuccessMessage();
 
-        // Save student personal information (keeping DOB in DD-MM-YYYY format)
-        await _firestore
-            .collection('Schools')
-            .doc(schoolName)
-            .collection('Classes')
-            .doc(studentClass)
-            .collection('Student_Details')
-            .doc(studentFullName)
-            .collection('Personal_Information')
-            .doc('Registered_Information')
-            .set({
-          'firstName': _firstNameController.text.trim().toUpperCase(),
-          'lastName': _lastNameController.text.trim().toUpperCase(),
-          'studentClass': studentClass!,
-          'studentDOB': _dobController.text.trim(), // Saved in DD-MM-YYYY format
-          'studentAge': calculateAge(_dobController.text.trim()).toString(),
-          'studentGender': studentGender!,
-          'studentID': studentID!,
-          'createdBy': loggedInUser?.email ?? '',
-          'timestamp': FieldValue.serverTimestamp(),
-        });
-
-        // Create student subjects with default grades
-        final batch = _firestore.batch();
-        for (String subject in defaultSubjects[studentClass]!) {
-          final subjectRef = _firestore
-              .collection('Schools')
-              .doc(schoolName)
-              .collection('Classes')
-              .doc(studentClass)
-              .collection('Student_Details')
-              .doc(studentFullName)
-              .collection('Student_Subjects')
-              .doc(subject);
-
-          batch.set(subjectRef, {
-            'Subject_Name': subject,
-            'Subject_Grade': 'N/A',
-          });
-        }
-        await batch.commit();
-
-        // Add total marks document
-        await _firestore
-            .collection('Schools')
-            .doc(schoolName)
-            .collection('Classes')
-            .doc(studentClass)
-            .collection('Student_Details')
-            .doc(studentFullName)
-            .collection('TOTAL_MARKS')
-            .doc('Marks')
-            .set({
-          'Aggregate_Grade': 'N/A',
-          'Best_Six_Total_Points': 0,
-          'Student_Total_Marks': '0',
-          'Teacher_Total_Marks': '0',
-        });
-
-        // Generate QR code with student ID
-        setState(() {
-          generatedQRcode = studentID;
-        });
-
-        // Hide loading indicator
-        Navigator.of(context).pop();
-
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Student Details saved successfully!'),
-            backgroundColor: Colors.blueAccent,
-            duration: Duration(seconds: 3),
-          ),
-        );
-
-      } catch (e) {
-        // Hide loading indicator
-        Navigator.of(context).pop();
-
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving Student Details: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 5),
-          ),
-        );
-      }
+    } catch (e) {
+      _hideLoadingDialog();
+      _showErrorMessage(e.toString());
     }
   }
 
+  Future<String> _getSchoolName() async {
+    final teacherEmail = _loggedInUser?.email;
+    final teacherDetails = await _firestore
+        .collection('Teachers_Details')
+        .doc(teacherEmail)
+        .get();
+
+    if (!teacherDetails.exists) {
+      throw Exception('Teacher details not found');
+    }
+
+    return teacherDetails['school'] as String;
+  }
+
+  Future<void> _saveStudentToFirestore(String schoolName) async {
+    final WriteBatch batch = _firestore.batch();
+
+    // Main student document
+    final DocumentReference studentRef = _firestore
+        .collection('Schools')
+        .doc(schoolName)
+        .collection('Classes')
+        .doc(_selectedClass)
+        .collection('Student_Details')
+        .doc(_studentFullName);
+
+    batch.set(studentRef, {
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    // Personal information
+    final DocumentReference personalInfoRef = studentRef
+        .collection('Personal_Information')
+        .doc('Registered_Information');
+
+    batch.set(personalInfoRef, {
+      'firstName': _firstNameController.text.trim().toUpperCase(),
+      'lastName': _lastNameController.text.trim().toUpperCase(),
+      'studentClass': _selectedClass!,
+      'studentDOB': _dobController.text.trim(),
+      'studentAge': _calculateAge(_dobController.text.trim()).toString(),
+      'studentGender': _selectedGender!,
+      'studentID': _studentID!,
+      'createdBy': _loggedInUser?.email ?? '',
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    // Student subjects
+    for (String subject in _defaultSubjects[_selectedClass]!) {
+      final DocumentReference subjectRef = studentRef
+          .collection('Student_Subjects')
+          .doc(subject);
+
+      batch.set(subjectRef, {
+        'Subject_Name': subject,
+        'Subject_Grade': 'N/A',
+      });
+    }
+
+    // Total marks document
+    final DocumentReference totalMarksRef = studentRef
+        .collection('TOTAL_MARKS')
+        .doc('Marks');
+
+    batch.set(totalMarksRef, {
+      'Aggregate_Grade': 'N/A',
+      'Best_Six_Total_Points': 0,
+      'Student_Total_Marks': '0',
+      'Teacher_Total_Marks': '0',
+    });
+
+    await batch.commit();
+  }
+
+  Future<void> _updateTotalStudentsCountOnSave(String school, String studentClass) async {
+    try {
+      final DocumentReference classInfoRef = _firestore
+          .collection('Schools')
+          .doc(school)
+          .collection('Classes')
+          .doc(studentClass)
+          .collection('Class_Info')
+          .doc('Info');
+
+      final DocumentSnapshot classInfoDoc = await classInfoRef.get();
+
+      if (classInfoDoc.exists) {
+        final Map<String, dynamic> classData = classInfoDoc.data() as Map<String, dynamic>;
+        final int currentCount = classData['totalStudents'] ?? 0;
+        final int newCount = currentCount + 1;
+
+        await classInfoRef.update({
+          'totalStudents': newCount,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          setState(() {
+            _totalClassStudentsNumber = newCount;
+          });
+        }
+      } else {
+        final QuerySnapshot studentsSnapshot = await _firestore
+            .collection('Schools')
+            .doc(school)
+            .collection('Classes')
+            .doc(studentClass)
+            .collection('Student_Details')
+            .get();
+
+        final int totalCount = studentsSnapshot.docs.length;
+
+        await classInfoRef.set({
+          'totalStudents': totalCount,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          setState(() {
+            _totalClassStudentsNumber = totalCount;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error updating total students count on save: $e');
+    }
+  }
+
+  // MARK: - UI Helper Methods
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(
+          child: CircularProgressIndicator(
+            color: Colors.white,
+          ),
+        );
+      },
+    );
+  }
+
+  void _hideLoadingDialog() {
+    Navigator.of(context).pop();
+  }
+
+  void _showSuccessMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Student Details saved successfully!'),
+        backgroundColor: Colors.blueAccent,
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showErrorMessage(String error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error saving Student Details: $error'),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 5),
+      ),
+    );
+  }
+
+  // MARK: - Build Methods
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Enter Student Details',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+      appBar: _buildAppBar(),
+      body: _buildBody(),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      title: const Text(
+        'Enter Student Details',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
         ),
-        centerTitle: true,
-        backgroundColor: Colors.blueAccent,
-        elevation: 2,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.lightBlueAccent.shade100, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+      centerTitle: true,
+      backgroundColor: Colors.blueAccent,
+      elevation: 2,
+    );
+  }
+
+  Widget _buildBody() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.lightBlueAccent.shade100, Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              _buildForm(),
-              SizedBox(height: 40),
-              _buildQRCodeSection(),
-            ],
-          ),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            _buildForm(),
+            const SizedBox(height: 40),
+            _buildQRCodeSection(),
+          ],
         ),
       ),
     );
   }
 
-  // Build main form
   Widget _buildForm() {
     return Form(
       key: _formKey,
@@ -305,51 +410,23 @@ class _Student_DetailsState extends State<Student_Details> {
           _buildStyledTextFormField(
             controller: _firstNameController,
             labelText: 'First Name',
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter the student\'s first name';
-              }
-              if (value.length < 2) {
-                return 'First name must be at least 2 characters';
-              }
-              return null;
-            },
+            validator: (value) => _validateName(value, 'first name'),
           ),
-          SizedBox(height: 16),
-
+          const SizedBox(height: 16),
           _buildStyledTextFormField(
             controller: _lastNameController,
             labelText: 'Last Name',
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter the student\'s last name';
-              }
-              if (value.length < 2) {
-                return 'Last name must be at least 2 characters';
-              }
-              return null;
-            },
+            validator: (value) => _validateName(value, 'last name'),
           ),
-          SizedBox(height: 16),
-
+          const SizedBox(height: 16),
           _buildStyledDropdownField(
-            value: studentClass,
+            value: _selectedClass,
             labelText: 'Class',
-            items: ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'],
-            onChanged: (newValue) {
-              setState(() {
-                studentClass = newValue;
-              });
-            },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please select the student\'s class';
-              }
-              return null;
-            },
+            items: _classes,
+            onChanged: (newValue) => setState(() => _selectedClass = newValue),
+            validator: _validateClass,
           ),
-          SizedBox(height: 16),
-
+          const SizedBox(height: 16),
           _buildStyledTextFormField(
             controller: _dobController,
             labelText: 'Date of Birth (DD-MM-YYYY)',
@@ -359,35 +436,23 @@ class _Student_DetailsState extends State<Student_Details> {
               LengthLimitingTextInputFormatter(10),
               _DateInputFormatter(),
             ],
-            validator: validateDateOfBirth,
+            validator: _validateDateOfBirth,
           ),
-          SizedBox(height: 16),
-
+          const SizedBox(height: 16),
           _buildStyledDropdownField(
-            value: studentGender,
+            value: _selectedGender,
             labelText: 'Gender',
-            items: ['Male', 'Female'],
-            onChanged: (newValue) {
-              setState(() {
-                studentGender = newValue;
-              });
-            },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please select the student\'s gender';
-              }
-              return null;
-            },
+            items: _genders,
+            onChanged: (newValue) => setState(() => _selectedGender = newValue),
+            validator: _validateGender,
           ),
-          SizedBox(height: 32),
-
+          const SizedBox(height: 32),
           _buildActionButtons(),
         ],
       ),
     );
   }
 
-  // Build action buttons
   Widget _buildActionButtons() {
     return Row(
       children: [
@@ -396,16 +461,14 @@ class _Student_DetailsState extends State<Student_Details> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 15),
+              padding: const EdgeInsets.symmetric(vertical: 15),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
               elevation: 2,
             ),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: Text(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
               'Cancel',
               style: TextStyle(
                 fontSize: 16,
@@ -414,20 +477,20 @@ class _Student_DetailsState extends State<Student_Details> {
             ),
           ),
         ),
-        SizedBox(width: 20),
+        const SizedBox(width: 20),
         Expanded(
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blueAccent,
               foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 15),
+              padding: const EdgeInsets.symmetric(vertical: 15),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
               elevation: 2,
             ),
-            onPressed: saveStudentDetails,
-            child: Text(
+            onPressed: _saveStudentDetails,
+            child: const Text(
               'Save & Generate QR Code',
               style: TextStyle(
                 fontSize: 16,
@@ -441,13 +504,12 @@ class _Student_DetailsState extends State<Student_Details> {
     );
   }
 
-  // Build QR code section
   Widget _buildQRCodeSection() {
-    if (generatedQRcode == null) return SizedBox.shrink();
+    if (_generatedQRCode == null) return const SizedBox.shrink();
 
     return Column(
       children: [
-        Text(
+        const Text(
           'QR Code Generated Successfully!',
           style: TextStyle(
             fontSize: 18,
@@ -455,13 +517,12 @@ class _Student_DetailsState extends State<Student_Details> {
             color: Colors.blueAccent,
           ),
         ),
-        SizedBox(height: 20),
-
+        const SizedBox(height: 20),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(15),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
                 color: Colors.black26,
                 blurRadius: 8,
@@ -469,26 +530,25 @@ class _Student_DetailsState extends State<Student_Details> {
               ),
             ],
           ),
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           child: Column(
             children: [
               BarcodeWidget(
                 barcode: Barcode.qrCode(),
-                data: generatedQRcode!,
+                data: _generatedQRCode!,
                 width: 200,
                 height: 200,
               ),
-              SizedBox(height: 16),
-
+              const SizedBox(height: 16),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'Student ID: $studentID',
-                  style: TextStyle(
+                  'Student ID: $_studentID',
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
@@ -498,8 +558,7 @@ class _Student_DetailsState extends State<Student_Details> {
             ],
           ),
         ),
-        SizedBox(height: 20),
-
+        const SizedBox(height: 20),
         Text(
           'Save this QR code for student identification',
           style: TextStyle(
@@ -512,7 +571,6 @@ class _Student_DetailsState extends State<Student_Details> {
     );
   }
 
-  // Custom styled text form field
   Widget _buildStyledTextFormField({
     required TextEditingController controller,
     required String labelText,
@@ -524,7 +582,7 @@ class _Student_DetailsState extends State<Student_Details> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 6,
@@ -539,16 +597,16 @@ class _Student_DetailsState extends State<Student_Details> {
         validator: validator,
         decoration: InputDecoration(
           labelText: labelText,
-          labelStyle: TextStyle(color: Colors.blueAccent),
+          labelStyle: const TextStyle(color: Colors.blueAccent),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+            borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
           ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           filled: true,
           fillColor: Colors.white,
         ),
@@ -556,7 +614,6 @@ class _Student_DetailsState extends State<Student_Details> {
     );
   }
 
-  // Custom styled dropdown form field
   Widget _buildStyledDropdownField({
     required String? value,
     required String labelText,
@@ -568,7 +625,7 @@ class _Student_DetailsState extends State<Student_Details> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 6,
@@ -580,16 +637,16 @@ class _Student_DetailsState extends State<Student_Details> {
         value: value,
         decoration: InputDecoration(
           labelText: labelText,
-          labelStyle: TextStyle(color: Colors.blueAccent),
+          labelStyle: const TextStyle(color: Colors.blueAccent),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+            borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
           ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           filled: true,
           fillColor: Colors.white,
         ),
@@ -607,15 +664,15 @@ class _Student_DetailsState extends State<Student_Details> {
   }
 }
 
-// Custom date input formatter for DD-MM-YYYY format
+// MARK: - Custom Input Formatter
 class _DateInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
       TextEditingValue oldValue,
       TextEditingValue newValue,
       ) {
-    var text = newValue.text.replaceAll('-', '');
-    var newText = '';
+    final String text = newValue.text.replaceAll('-', '');
+    String newText = '';
 
     for (int i = 0; i < text.length && i < 8; i++) {
       newText += text[i];
@@ -630,6 +687,3 @@ class _DateInputFormatter extends TextInputFormatter {
     );
   }
 }
-
-
-
