@@ -196,7 +196,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
   // Enhanced comprehensive position calculation for all students in the class
   Future<void> _calculateSubjectStatsAndPosition(String schoolName, String className) async {
     try {
-      print("Starting comprehensive subject stats calculation...");
+      print("Starting Student Subject Positioning calculation...");
 
       final studentsSnapshot = await _firestore
           .collection('Schools/$schoolName/Classes/$className/Student_Details')
@@ -268,17 +268,17 @@ class _Student_SubjectsState extends State<Student_Subjects> {
               'lastUpdated': FieldValue.serverTimestamp(),
             });
 
-            print("Updated position for $currentStudentName in $subjectName: Position $currentPosition of ${studentList.length}");
+            print("Updated Position for $currentStudentName in $subjectName: Position $currentPosition of ${studentList.length}");
           } catch (e) {
-            print("Error updating position for $currentStudentName in $subjectName: $e");
+            print("Error updating Position for $currentStudentName in $subjectName: $e");
           }
         }
       }
 
-      print("Comprehensive subject stats calculation completed successfully!");
+      print("Student Subject Positioning Calculations Completed Successfully!");
 
     } catch (e) {
-      print("Error in comprehensive stats calculation: $e");
+      print("Error in Subject Positioning Calculations: $e");
     }
   }
 
@@ -288,7 +288,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       return {
         'status': 'STATEMENT',
         'points': 0,
-        'message': 'Insufficient subjects (less than 6)'
+        'message': 'Insufficient Subjects (less than 6)'
       };
     }
 
@@ -300,7 +300,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       return {
         'status': 'STATEMENT',
         'points': totalPoints,
-        'message': 'Contains Grade 9 in best six subjects'
+        'message': 'Contains Grade 9 in Best Six Subjects'
       };
     }
 
@@ -308,14 +308,14 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       return {
         'status': 'STATEMENT',
         'points': totalPoints,
-        'message': 'Total points exceed 48'
+        'message': 'Total Points Exceed 48'
       };
     }
 
     return {
       'status': 'PASS',
       'points': totalPoints,
-      'message': 'Qualified aggregate'
+      'message': 'Qualified Aggregate'
     };
   }
 
@@ -344,7 +344,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
         await _processSeniorStudent(schoolName, className, studentName, subjectsSnapshot);
       }
     } catch (e) {
-      print("Error processing student data for $studentName: $e");
+      print("Error Processing Student data for $studentName: $e");
     }
   }
 
@@ -401,14 +401,19 @@ class _Student_SubjectsState extends State<Student_Subjects> {
 
       await marksRef.set(updateData, SetOptions(merge: true));
 
-      print("Junior student $studentName processed: $totalMarks/$totalPossibleMarks - $jceStatus");
+      print("Junior Student $studentName processed: $totalMarks/$totalPossibleMarks - $jceStatus");
     } catch (e) {
-      print("Error processing junior student $studentName: $e");
+      print("Error Processing Junior Student $studentName: $e");
     }
   }
 
 // Process senior student data
-  Future<void> _processSeniorStudent(String schoolName, String className, String studentName, QuerySnapshot subjectsSnapshot) async {
+  Future<void> _processSeniorStudent(
+      String schoolName,
+      String className,
+      String studentName,
+      QuerySnapshot subjectsSnapshot) async {
+
     try {
       List<int> subjectPoints = [];
 
@@ -461,16 +466,16 @@ class _Student_SubjectsState extends State<Student_Subjects> {
 
       await marksRef.set(updateData, SetOptions(merge: true));
 
-      print("Senior student $studentName processed: $bestSixPoints points - $msceStatus");
+      print("Senior Student $studentName processed: $bestSixPoints points - $msceStatus");
     } catch (e) {
-      print("Error processing senior student $studentName: $e");
+      print("Error Processing Senior Student $studentName: $e");
     }
   }
 
 // Method to process all students in the class (for comprehensive calculation)
   Future<void> _processAllStudentsInClass(String schoolName, String className) async {
     try {
-      print("Processing all students in class $className...");
+      print("Processing all Students in Class $className...");
 
       final studentsSnapshot = await _firestore
           .collection('Schools')
@@ -490,9 +495,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       // Wait for all students to be processed
       await Future.wait(processingFutures);
 
-      print("All students in class $className processed successfully!");
+      print("All Students in Class $className Processed Successfully!");
     } catch (e) {
-      print("Error processing all students in class: $e");
+      print("Error Processing all Students in Class: $e");
     }
   }
 
