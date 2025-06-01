@@ -325,7 +325,7 @@ class _Student_DetailsState extends State<Student_Details> {
       builder: (BuildContext context) {
         return const Center(
           child: CircularProgressIndicator(
-            color: Colors.blueAccent,
+            color: Colors.blue,
           ),
         );
       },
