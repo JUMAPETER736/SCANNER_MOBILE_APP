@@ -193,6 +193,154 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     return '';
   }
 
+  // Enhanced comprehensive position calculation for all students in the class
+  Future<void> _calculateSubjectStatsAndPosition(String schoolName, String className) async {
+    try {
+      print("Starting comprehensive subject stats calculation...");
+
+      final studentsSnapshot = await _firestore
+          .collection('Schools/$schoolName/Classes/$className/Student_Details')
+          .get();
+
+      Map<String, List<int>> marksPerSubject = {};
+      Map<String, List<Map<String, dynamic>>> subjectStudentData = {};
+
+      // Collect all students' marks for each subject
+      for (var studentDoc in studentsSnapshot.docs) {
+        final studentName = studentDoc.id;
+
+        final subjectsSnapshot = await _firestore
+            .collection('Schools/$schoolName/Classes/$className/Student_Details/$studentName/Student_Subjects')
+            .get();
+
+        for (var subjectDoc in subjectsSnapshot.docs) {
+          final data = subjectDoc.data();
+          final subjectName = data['Subject_Name'] ?? subjectDoc.id;
+          final gradeStr = data['Subject_Grade']?.toString() ?? 'N/A';
+
+          // Skip students who don't take the subject (N/A grades)
+          if (gradeStr == 'N/A' || gradeStr == null || gradeStr.isEmpty) continue;
+
+          int grade = double.tryParse(gradeStr)?.round() ?? 0;
+
+          if (!marksPerSubject.containsKey(subjectName)) {
+            marksPerSubject[subjectName] = [];
+            subjectStudentData[subjectName] = [];
+          }
+
+          marksPerSubject[subjectName]!.add(grade);
+          subjectStudentData[subjectName]!.add({
+            'studentName': studentName,
+            'grade': grade,
+          });
+        }
+      }
+
+      // Calculate positions and update Firestore for each subject
+      for (String subjectName in subjectStudentData.keys) {
+        var studentList = subjectStudentData[subjectName]!;
+
+        // Sort by grade in descending order
+        studentList.sort((a, b) => b['grade'].compareTo(a['grade']));
+
+        // Calculate positions (handle ties properly)
+        Map<String, int> positions = {};
+        int currentPosition = 1;
+
+        for (int i = 0; i < studentList.length; i++) {
+          String currentStudentName = studentList[i]['studentName'];
+          int currentGrade = studentList[i]['grade'];
+
+          // Handle ties - if previous grade is different, update position
+          if (i > 0 && studentList[i-1]['grade'] != currentGrade) {
+            currentPosition = i + 1;
+          }
+
+          positions[currentStudentName] = currentPosition;
+
+          // Update the position in Firestore for each student
+          try {
+            await _firestore
+                .doc('Schools/$schoolName/Classes/$className/Student_Details/$currentStudentName/Student_Subjects/$subjectName')
+                .update({
+              'Subject_Position': currentPosition,
+              'Total_Students_Subject': studentList.length, // Only count students who actually take the subject
+              'lastUpdated': FieldValue.serverTimestamp(),
+            });
+
+            print("Updated position for $currentStudentName in $subjectName: Position $currentPosition of ${studentList.length}");
+          } catch (e) {
+            print("Error updating position for $currentStudentName in $subjectName: $e");
+          }
+        }
+      }
+
+      print("Comprehensive subject stats calculation completed successfully!");
+
+    } catch (e) {
+      print("Error in comprehensive stats calculation: $e");
+    }
+  }
+
+  // Grading functions for different levels
+  String _getJuniorsGrade(int score) {
+    if (score >= 85) return 'A';
+    if (score >= 75) return 'B';
+    if (score >= 65) return 'C';
+    if (score >= 50) return 'D';
+    return 'F';
+  }
+
+  String _getJuniorsRemark(String grade) {
+    switch (grade) {
+      case 'A': return 'EXCELLENT';
+      case 'B': return 'VERY GOOD';
+      case 'C': return 'GOOD';
+      case 'D': return 'PASS';
+      default: return 'FAIL';
+    }
+  }
+
+  String _getSeniorsGrade(int score) {
+    if (score >= 90) return '1';
+    if (score >= 80) return '2';
+    if (score >= 75) return '3';
+    if (score >= 70) return '4';
+    if (score >= 65) return '5';
+    if (score >= 60) return '6';
+    if (score >= 55) return '7';
+    if (score >= 50) return '8';
+    return '9';
+  }
+
+  String _getSeniorsRemark(String grade) {
+    switch (grade) {
+      case '1': return 'Distinction';
+      case '2': return 'Distinction';
+      case '3': return 'Strong Credit';
+      case '4': return 'Strong Credit';
+      case '5': return 'Credit';
+      case '6': return 'Weak Credit';
+      case '7': return 'Pass';
+      case '8': return 'Weak Pass';
+      default: return 'Fail';
+    }
+  }
+
+  String _getSeniorsPoints(String grade) {
+    switch (grade) {
+      case '1': return '1';
+      case '2': return '2';
+      case '3': return '3';
+      case '4': return '4';
+      case '5': return '5';
+      case '6': return '6';
+      case '7': return '7';
+      case '8': return '8';
+      default: return '9';
+    }
+  }
+
   Future<void> _updateGrade(String subject) async {
     String newGrade = '';
     String errorMessage = '';
@@ -267,6 +415,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                       String className = widget.studentClass.trim();
                       String studentName = widget.studentName.trim();
 
+                      // Handle name variations
                       List<String> nameParts = studentName.split(" ");
                       String reversedName = nameParts.length == 2
                           ? "${nameParts[1]} ${nameParts[0]}"
@@ -292,11 +441,15 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                       final studentSnapshotReversed = await studentRefReversed.get();
 
                       DocumentReference studentRef;
+                      String actualStudentName;
                       if (studentSnapshotNormal.exists) {
                         studentRef = studentRefNormal;
+                        actualStudentName = studentName;
                       } else if (studentSnapshotReversed.exists) {
                         studentRef = studentRefReversed;
+                        actualStudentName = reversedName;
                       } else {
+                        print("Student document not found for either name variation");
                         return;
                       }
 
@@ -310,82 +463,78 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                         existingData = subjectSnapshot.data() as Map<String, dynamic>? ?? {};
                       }
 
-                      // Check if it's FORM 3 or FORM 4 (Seniors)
-                      if (className.toUpperCase() == 'FORM 3' || className.toUpperCase() == 'FORM 4') {
-                        int gradePoint;
+                      // Determine if student is Senior or Junior based on class
+                      bool isSenior = className.toUpperCase() == 'FORM 3' || className.toUpperCase() == 'FORM 4';
+                      bool isJunior = className.toUpperCase() == 'FORM 1' || className.toUpperCase() == 'FORM 2';
 
-                        if (gradeInt >= 90) {
-                          gradePoint = 1;
-                        } else if (gradeInt >= 80) {
-                          gradePoint = 2;
-                        } else if (gradeInt >= 75) {
-                          gradePoint = 3;
-                        } else if (gradeInt >= 70) {
-                          gradePoint = 4;
-                        } else if (gradeInt >= 65) {
-                          gradePoint = 5;
-                        } else if (gradeInt >= 60) {
-                          gradePoint = 6;
-                        } else if (gradeInt >= 55) {
-                          gradePoint = 7;
-                        } else if (gradeInt >= 50) {
-                          gradePoint = 8;
-                        } else {
-                          gradePoint = 9;
-                        }
+                      Map<String, dynamic> dataToSave = {
+                        'Subject_Grade': newGrade,
+                        'Subject_Name': subject, // Ensure subject name is saved
+                      };
 
-                        Map<String, int> positionData = await _calculateSubjectPosition(schoolName, className, subject, gradeInt);
+                      if (isSenior) {
+                        // Senior system (FORM 3 & 4)
+                        String gradePoint = _getSeniorsGrade(gradeInt);
+                        String remark = _getSeniorsRemark(gradePoint);
+                        String points = _getSeniorsPoints(gradePoint);
 
-                        Map<String, dynamic> dataToSave = {
-                          'Subject_Grade': newGrade,
-                          'Grade_Point': gradePoint,
-                          'Subject_Position': positionData['position'],
-                          'Total_Students_Subject': positionData['total'],
-                        };
+                        dataToSave.addAll({
+                          'Grade_Point': int.parse(gradePoint),
+                          'Grade_Remark': remark,
 
-                        existingData.addAll(dataToSave);
-                        await subjectRef.set(existingData, SetOptions(merge: true));
+                        });
 
-                      } else if (className.toUpperCase() == 'FORM 1' || className.toUpperCase() == 'FORM 2') {
-                        String gradeLetter;
+                      } else if (isJunior) {
+                        // Junior system (FORM 1 & 2)
+                        String gradeLetter = _getJuniorsGrade(gradeInt);
+                        String remark = _getJuniorsRemark(gradeLetter);
 
-                        if (gradeInt >= 85) {
-                          gradeLetter = 'A';
-                        } else if (gradeInt >= 75) {
-                          gradeLetter = 'B';
-                        } else if (gradeInt >= 65) {
-                          gradeLetter = 'C';
-                        } else if (gradeInt >= 50) {
-                          gradeLetter = 'D';
-                        } else {
-                          gradeLetter = 'F';
-                        }
-
-                        Map<String, int> positionData = await _calculateSubjectPosition(schoolName, className, subject, gradeInt);
-
-                        Map<String, dynamic> dataToSave = {
-                          'Subject_Grade': newGrade,
+                        dataToSave.addAll({
                           'Grade_Letter': gradeLetter,
-                          'Subject_Position': positionData['position'],
-                          'Total_Students_Subject': positionData['total'],
-                        };
-
-                        existingData.addAll(dataToSave);
-                        await subjectRef.set(existingData, SetOptions(merge: true));
+                          'Grade_Remark': remark,
+                        });
                       }
 
+                      // Merge with existing data and save
+                      existingData.addAll(dataToSave);
+                      await subjectRef.set(existingData, SetOptions(merge: true));
+
+                      print("Grade updated successfully for $actualStudentName in $subject");
+
                       // Update cached grade
-                      setState(() {
+                      this.setState(() {
                         _subjectGrades[subject] = newGrade;
                       });
 
                       Navigator.of(context).pop();
 
+                      // *** CRITICAL: Run comprehensive position calculation for entire class ***
+                      print("Starting comprehensive position calculation...");
+                      await _calculateSubjectStatsAndPosition(schoolName, className);
+                      print("Position calculation completed!");
+
                       // Refresh the main widget state
                       this.setState(() {});
+
+                      // Show success message
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Grade updated successfully! Positions recalculated for all students.'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+
                     }
                   } catch (e) {
-                    print('Error updating Subject Grade and Grade Point: $e');
+                    print('Error updating Subject Grade: $e');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error updating grade. Please try again.'),
+                        backgroundColor: Colors.red,
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
                   }
                 }
               },
@@ -394,63 +543,6 @@ class _Student_SubjectsState extends State<Student_Subjects> {
         );
       },
     );
-  }
-
-  Future<Map<String, int>> _calculateSubjectPosition(
-      String schoolName, String className, String subject, int newGrade) async {
-
-    try {
-      final classRef = _firestore
-          .collection('Schools')
-          .doc(schoolName)
-          .collection('Classes')
-          .doc(className)
-          .collection('Student_Details');
-
-      final studentsSnapshot = await classRef.get();
-
-      List<int> subjectGrades = [];
-      int totalStudentsWithSubject = 0;
-
-      for (var studentDoc in studentsSnapshot.docs) {
-        final subjectRef = studentDoc.reference.collection('Student_Subjects').doc(subject);
-        final subjectSnapshot = await subjectRef.get();
-
-        if (subjectSnapshot.exists) {
-          final gradeData = subjectSnapshot.data();
-          if (gradeData != null && gradeData['Subject_Grade'] != null) {
-            int grade = int.tryParse(gradeData['Subject_Grade'].toString()) ?? 0;
-            subjectGrades.add(grade);
-            totalStudentsWithSubject++;
-          }
-        }
-      }
-
-      subjectGrades.add(newGrade);
-      totalStudentsWithSubject++;
-
-      subjectGrades.sort((a, b) => b.compareTo(a));
-
-      int position = 1;
-      for (int i = 0; i < subjectGrades.length; i++) {
-        if (subjectGrades[i] == newGrade) {
-          position = i + 1;
-          break;
-        }
-      }
-
-      return {
-        'position': position,
-        'total': totalStudentsWithSubject,
-      };
-
-    } catch (e) {
-      print('Error calculating subject position: $e');
-      return {
-        'position': 1,
-        'total': 1,
-      };
-    }
   }
 
   @override
