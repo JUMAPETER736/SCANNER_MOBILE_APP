@@ -282,6 +282,220 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     }
   }
 
+
+  Map<String, dynamic> calculateMSCEAggregate(List<int> subjectPoints) {
+    if (subjectPoints.length < 6) {
+      return {
+        'status': 'STATEMENT',
+        'points': 0,
+        'message': 'Insufficient subjects (less than 6)'
+      };
+    }
+
+    subjectPoints.sort();
+    List<int> bestSix = subjectPoints.take(6).toList();
+    int totalPoints = bestSix.fold(0, (sum, point) => sum + point);
+
+    if (bestSix.contains(9)) {
+      return {
+        'status': 'STATEMENT',
+        'points': totalPoints,
+        'message': 'Contains Grade 9 in best six subjects'
+      };
+    }
+
+    if (totalPoints > 48) {
+      return {
+        'status': 'STATEMENT',
+        'points': totalPoints,
+        'message': 'Total points exceed 48'
+      };
+    }
+
+    return {
+      'status': 'PASS',
+      'points': totalPoints,
+      'message': 'Qualified aggregate'
+    };
+  }
+
+// Method to process student data and calculate totals
+  Future<void> _processStudentData(String schoolName, String className, String studentName) async {
+    try {
+      // Get student's subjects and grades
+      final subjectsSnapshot = await _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Classes')
+          .doc(className)
+          .collection('Student_Details')
+          .doc(studentName)
+          .collection('Student_Subjects')
+          .get();
+
+      bool isSenior = className.toUpperCase() == 'FORM 3' || className.toUpperCase() == 'FORM 4';
+      bool isJunior = className.toUpperCase() == 'FORM 1' || className.toUpperCase() == 'FORM 2';
+
+      if (isJunior) {
+        // Process junior student (Form 1 & 2)
+        await _processJuniorStudent(schoolName, className, studentName, subjectsSnapshot);
+      } else if (isSenior) {
+        // Process senior student (Form 3 & 4)
+        await _processSeniorStudent(schoolName, className, studentName, subjectsSnapshot);
+      }
+    } catch (e) {
+      print("Error processing student data for $studentName: $e");
+    }
+  }
+
+// Process junior student data
+  Future<void> _processJuniorStudent(
+      String schoolName, String className,
+      String studentName, QuerySnapshot subjectsSnapshot) async {
+    try {
+      int totalMarks = 0;
+      int totalPossibleMarks = 0;
+
+      for (var subjectDoc in subjectsSnapshot.docs) {
+        var subjectData = subjectDoc.data() as Map<String, dynamic>? ?? {};
+        if (subjectData.containsKey('Subject_Grade')) {
+          var subjectGradeValue = subjectData['Subject_Grade'];
+
+          if (subjectGradeValue == null ||
+              subjectGradeValue.toString().toUpperCase() == 'N/A') {
+            continue;
+          }
+
+          int subjectGrade = 0;
+          if (subjectGradeValue is int) {
+            subjectGrade = subjectGradeValue;
+          } else if (subjectGradeValue is String) {
+            subjectGrade = int.tryParse(subjectGradeValue) ?? 0;
+          }
+
+          if (subjectGrade > 0) {
+            totalMarks += subjectGrade;
+            totalPossibleMarks += 100;
+          }
+        }
+      }
+
+      String jceStatus = totalMarks >= 550 ? 'PASS' : 'FAIL';
+
+      // Update student's total marks document
+      DocumentReference marksRef = _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Classes')
+          .doc(className)
+          .collection('Student_Details')
+          .doc(studentName)
+          .collection('TOTAL_MARKS')
+          .doc('Marks');
+
+      Map<String, dynamic> updateData = {
+        'Student_Total_Marks': totalMarks,
+        'Teacher_Total_Marks': totalPossibleMarks,
+        'JCE_Status': jceStatus,
+      };
+
+      await marksRef.set(updateData, SetOptions(merge: true));
+
+      print("Junior student $studentName processed: $totalMarks/$totalPossibleMarks - $jceStatus");
+    } catch (e) {
+      print("Error processing junior student $studentName: $e");
+    }
+  }
+
+// Process senior student data
+  Future<void> _processSeniorStudent(String schoolName, String className, String studentName, QuerySnapshot subjectsSnapshot) async {
+    try {
+      List<int> subjectPoints = [];
+
+      for (var subjectDoc in subjectsSnapshot.docs) {
+        var subjectData = subjectDoc.data() as Map<String, dynamic>? ?? {};
+
+        if (subjectData.containsKey('Subject_Grade')) {
+          var subjectGradeValue = subjectData['Subject_Grade'];
+
+          if (subjectGradeValue == null ||
+              subjectGradeValue.toString().toUpperCase() == 'N/A') {
+            continue;
+          }
+
+          int? subjectScore;
+          if (subjectGradeValue is int) {
+            subjectScore = subjectGradeValue;
+          } else if (subjectGradeValue is String) {
+            subjectScore = int.tryParse(subjectGradeValue);
+          }
+
+          if (subjectScore != null && subjectScore >= 0) {
+            int gradePoint = int.parse(_getSeniorsGrade(subjectScore));
+            subjectPoints.add(gradePoint);
+          }
+        }
+      }
+
+      Map<String, dynamic> msceResult = calculateMSCEAggregate(subjectPoints);
+      int bestSixPoints = msceResult['points'];
+      String msceStatus = msceResult['status'];
+      String msceMessage = msceResult['message'];
+
+      // Update student's total marks document
+      DocumentReference marksRef = _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Classes')
+          .doc(className)
+          .collection('Student_Details')
+          .doc(studentName)
+          .collection('TOTAL_MARKS')
+          .doc('Marks');
+
+      Map<String, dynamic> updateData = {
+        'Best_Six_Total_Points': bestSixPoints,
+        'MSCE_Status': msceStatus,
+        'MSCE_Message': msceMessage,
+      };
+
+      await marksRef.set(updateData, SetOptions(merge: true));
+
+      print("Senior student $studentName processed: $bestSixPoints points - $msceStatus");
+    } catch (e) {
+      print("Error processing senior student $studentName: $e");
+    }
+  }
+
+// Method to process all students in the class (for comprehensive calculation)
+  Future<void> _processAllStudentsInClass(String schoolName, String className) async {
+    try {
+      print("Processing all students in class $className...");
+
+      final studentsSnapshot = await _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Classes')
+          .doc(className)
+          .collection('Student_Details')
+          .get();
+
+      // Process each student
+      List<Future<void>> processingFutures = [];
+      for (var studentDoc in studentsSnapshot.docs) {
+        String studentName = studentDoc.id;
+        processingFutures.add(_processStudentData(schoolName, className, studentName));
+      }
+
+      // Wait for all students to be processed
+      await Future.wait(processingFutures);
+
+      print("All students in class $className processed successfully!");
+    } catch (e) {
+      print("Error processing all students in class: $e");
+    }
+  }
+
   // Grading functions for different levels
   String _getJuniorsGrade(int score) {
     if (score >= 85) return 'A';
@@ -329,6 +543,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
 
   // Removed _getSeniorsPoints function as requested
 
+  // REPLACE your existing _updateGrade method with this updated version:
   Future<void> _updateGrade(String subject) async {
     String newGrade = '';
     String errorMessage = '';
@@ -499,7 +714,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                       };
 
                       if (isSenior) {
-                        // Senior system (FORM 3 & 4) - Removed points logic
+                        // Senior system (FORM 3 & 4)
                         String gradePoint = _getSeniorsGrade(gradeInt);
                         String remark = _getSeniorsRemark(gradePoint);
 
@@ -537,13 +752,18 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                       await _calculateSubjectStatsAndPosition(schoolName, className);
                       print("Position calculation completed!");
 
+                      // *** NEW: Process all students for total marks and status calculation ***
+                      print("Starting comprehensive student data processing...");
+                      await _processAllStudentsInClass(schoolName, className);
+                      print("Student data processing completed!");
+
                       // Refresh the main widget state
                       this.setState(() {});
 
                       // Show success message
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Grade updated successfully! Positions recalculated for all students.'),
+                          content: Text('Grade updated successfully! All calculations completed.'),
                           backgroundColor: Colors.green,
                           duration: Duration(seconds: 3),
                         ),
@@ -568,6 +788,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       },
     );
   }
+
 
   @override
   void initState() {
