@@ -148,60 +148,48 @@ class Seniors_School_Report_PDF {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               // School Header - matches UI exactly
-              pw.Center(
-                child: pw.Column(
-                  children: [
+              pw.Column(
+                children: [
+                  pw.Text(
+                    (schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase(),
+                    style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  if (schoolAddress != null)
                     pw.Text(
-                      (schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase(),
-                      style: pw.TextStyle(
-                        fontSize: 18,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
+                      schoolAddress!,
+                      style: pw.TextStyle(fontSize: 14),
                       textAlign: pw.TextAlign.center,
                     ),
-                    if (schoolAddress != null)
-                      pw.Text(
-                        schoolAddress!,
-                        style: pw.TextStyle(fontSize: 14),
-                        textAlign: pw.TextAlign.center,
-                      ),
-                    if (schoolPhone != null)
-                      pw.Text(
-                        'Tel: $schoolPhone',
-                        style: pw.TextStyle(fontSize: 14),
-                        textAlign: pw.TextAlign.center,
-                      ),
-                    if (schoolEmail != null)
-                      pw.Text(
-                        'Email: $schoolEmail',
-                        style: pw.TextStyle(fontSize: 14),
-                        textAlign: pw.TextAlign.center,
-                      ),
-                    pw.SizedBox(height: 10),
+                  if (schoolPhone != null)
                     pw.Text(
-                      'PROGRESS REPORT',
-                      style: pw.TextStyle(
-                        fontSize: 16,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
+                      'Tel: $schoolPhone',
+                      style: pw.TextStyle(fontSize: 14),
                       textAlign: pw.TextAlign.center,
                     ),
-                    pw.SizedBox(height: 16),
+                  if (schoolEmail != null)
                     pw.Text(
-                      '${_getAcademicYear()} '
-                          '$studentClass END OF TERM ${_getCurrentTerm()} STUDENT\'S PROGRESS REPORT',
-                      style: pw.TextStyle(
-                        fontSize: 16,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
+                      'Email: $schoolEmail',
+                      style: pw.TextStyle(fontSize: 14),
                       textAlign: pw.TextAlign.center,
                     ),
-                    pw.SizedBox(height: 16),
-                  ],
-                ),
+                  pw.SizedBox(height: 10),
+                  pw.Text(
+                    'PROGRESS REPORT',
+                    style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 16),
+                  pw.Text(
+                    '${_getAcademicYear()} $studentClass END OF TERM ${_getCurrentTerm()} STUDENT\'S PROGRESS REPORT',
+                    style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 16),
+                ],
               ),
 
-              // Student Info - matches UI exactly with proper Total_Class_Students_Number handling
+              // Student Info - matches UI exactly
               pw.Padding(
                 padding: pw.EdgeInsets.symmetric(horizontal: 16),
                 child: pw.Row(
@@ -229,21 +217,19 @@ class Seniors_School_Report_PDF {
                 ),
               ),
 
-              pw.SizedBox(height: 16),
-
               // Report Table - matches UI exactly
               pw.Padding(
                 padding: pw.EdgeInsets.all(16),
                 child: pw.Table(
                   border: pw.TableBorder.all(),
                   columnWidths: {
-                    0: pw.FlexColumnWidth(3),    // SUBJECT
-                    1: pw.FlexColumnWidth(1.5),  // MARKS %
-                    2: pw.FlexColumnWidth(1),    // POINTS
-                    3: pw.FlexColumnWidth(1.5),  // CLASS AVERAGE
-                    4: pw.FlexColumnWidth(1.5),  // POSITION
-                    5: pw.FlexColumnWidth(1.5),  // OUT OF
-                    6: pw.FlexColumnWidth(3),    // TEACHERS' COMMENTS
+                    0: pw.FlexColumnWidth(3),
+                    1: pw.FlexColumnWidth(1.5),
+                    2: pw.FlexColumnWidth(1),
+                    3: pw.FlexColumnWidth(1.5),
+                    4: pw.FlexColumnWidth(1.5),
+                    5: pw.FlexColumnWidth(1.5),
+                    6: pw.FlexColumnWidth(3),
                   },
                   children: [
                     pw.TableRow(
