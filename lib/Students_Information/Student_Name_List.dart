@@ -476,3 +476,57 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     );
   }
 }
+
+Future<void> _updateTotalStudentsCountOnSave(String school, String studentClass) async {
+  try {
+    final DocumentReference classInfoRef = _firestore
+        .collection('Schools')
+        .doc(school)
+        .collection('Classes')
+        .doc(studentClass)
+        .collection('Class_Info')
+        .doc('Info');
+
+    final DocumentSnapshot classInfoDoc = await classInfoRef.get();
+
+    if (classInfoDoc.exists) {
+      final Map<String, dynamic> classData = classInfoDoc.data() as Map<String, dynamic>;
+      final int currentCount = classData['totalStudents'] ?? 0;
+      final int newCount = currentCount + 1;
+
+      await classInfoRef.update({
+        'totalStudents': newCount,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        setState(() {
+          _totalClassStudentsNumber = newCount;
+        });
+      }
+    } else {
+      final QuerySnapshot studentsSnapshot = await _firestore
+          .collection('Schools')
+          .doc(school)
+          .collection('Classes')
+          .doc(studentClass)
+          .collection('Student_Details')
+          .get();
+
+      final int totalCount = studentsSnapshot.docs.length;
+
+      await classInfoRef.set({
+        'totalStudents': totalCount,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        setState(() {
+          _totalClassStudentsNumber = totalCount;
+        });
+      }
+    }
+  } catch (e) {
+    debugPrint('Error updating total students count on save: $e');
+  }
+}

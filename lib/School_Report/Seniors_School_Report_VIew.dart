@@ -442,11 +442,13 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           });
         }
       }
+
       print("Total Students: $Total_Class_Students_Number");
     } catch (e) {
       print('Error updating total students count: $e');
     }
   }
+
 
 
   Future<void> fetchStudentSubjects(String basePath) async {
