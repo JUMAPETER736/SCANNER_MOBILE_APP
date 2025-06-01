@@ -396,7 +396,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     );
   }
 
-  Future<Map<String, int>> _calculateSubjectPosition(String schoolName, String className, String subject, int newGrade) async {
+  Future<Map<String, int>> _calculateSubjectPosition(
+      String schoolName, String className, String subject, int newGrade) async {
+
     try {
       final classRef = _firestore
           .collection('Schools')
@@ -544,7 +546,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: grade == 'Loading...' ? Colors.orange : Colors.black54,
+                    color: grade == 'Loading...' ? Colors.blue : Colors.black54,
                   ),
                 ),
                 trailing: canEditThisSubject
