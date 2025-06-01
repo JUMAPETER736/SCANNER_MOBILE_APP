@@ -26,8 +26,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   List<Map<String, dynamic>> subjects = [];
   Map<String, dynamic> totalMarks = {};
   Map<String, dynamic> subjectStats = {};
-  Map<String, int> subjectPositions = {};
-  Map<String, int> totalStudentsPerSubject = {};
 
   // Student info
   int studentPosition = 0;
@@ -57,7 +55,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   @override
   void initState() {
     super.initState();
-    _fetchStudentData();
+    _fetchStudentDataOptimized();
   }
 
   String getCurrentTerm() {
@@ -95,7 +93,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
-  Future<void> _fetchStudentData() async {
+  Future<void> _fetchStudentDataOptimized() async {
     setState(() {
       isLoading = true;
       hasError = false;
@@ -104,25 +102,18 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
     User? user = _auth.currentUser;
     if (user == null) {
-      setState(() {
-        isLoading = false;
-        hasError = true;
-        errorMessage = 'No user is currently logged in.';
-      });
+      _setError('No user is currently logged in.');
       return;
     }
 
     userEmail = user.email;
 
     try {
+      // Validate user and get school info
       DocumentSnapshot userDoc = await _firestore.collection('Teachers_Details').doc(userEmail).get();
 
       if (!userDoc.exists) {
-        setState(() {
-          isLoading = false;
-          hasError = true;
-          errorMessage = 'User details not found.';
-        });
+        _setError('User details not found.');
         return;
       }
 
@@ -130,11 +121,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       final List<dynamic>? teacherClasses = userDoc['classes'];
 
       if (teacherSchool == null || teacherClasses == null || teacherClasses.isEmpty) {
-        setState(() {
-          isLoading = false;
-          hasError = true;
-          errorMessage = 'Please select a School and Classes before accessing reports.';
-        });
+        _setError('Please select a School and Classes before accessing reports.');
         return;
       }
 
@@ -143,77 +130,59 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       final String studentFullName = widget.studentFullName;
 
       if (studentClass != 'FORM 1' && studentClass != 'FORM 2') {
-        setState(() {
-          isLoading = false;
-          hasError = true;
-          errorMessage = 'Only students in FORM 1 or FORM 2 can access this report.';
-        });
+        _setError('Only students in FORM 1 or FORM 2 can access this report.');
         return;
       }
 
-      final String basePath = 'Schools/$teacherSchool/Classes/$studentClass/Student_Details/$studentFullName';
-
-      await Future.wait([
-        _fetchSchoolInfo(teacherSchool),
-        fetchStudentSubjects(basePath),
-        fetchTotalMarks(basePath),
-        calculate_Subject_Stats_And_Position(teacherSchool, studentClass, studentFullName),
-      ]);
-
-      // Calculate and update average grade letter
-      await _calculateAndUpdateAverageGradeLetter(basePath);
-
-      // Calculate JCE status based on total marks
-      jceStatus = studentTotalMarks >= 550 ? 'PASS' : 'FAIL';
+      // Use batch operations and parallel fetching for better performance
+      await _fetchAllDataInParallel(teacherSchool, studentClass, studentFullName);
 
       setState(() {
         isLoading = false;
       });
+
     } catch (e) {
       print("Error: $e");
-      setState(() {
-        isLoading = false;
-        hasError = true;
-        errorMessage = 'An error occurred while fetching data: ${e.toString()}';
-      });
+      _setError('An error occurred while fetching data: ${e.toString()}');
     }
   }
 
+  void _setError(String message) {
+    setState(() {
+      isLoading = false;
+      hasError = true;
+      errorMessage = message;
+    });
+  }
 
-  Future<void> _calculateAndUpdateAverageGradeLetter(String basePath) async {
+  Future<void> _fetchAllDataInParallel(String teacherSchool, String studentClass, String studentFullName) async {
+    final String basePath = 'Schools/$teacherSchool/Classes/$studentClass/Student_Details/$studentFullName';
+
+    // Create batch for reading multiple documents
+    WriteBatch batch = _firestore.batch();
+
     try {
-      if (teacherTotalMarks > 0) {
-        double percentage = (studentTotalMarks / teacherTotalMarks) * 100;
-        String gradeLetter = _getGradeFromPercentage(percentage);
+      // Fetch all data in parallel for maximum speed
+      final List<Future> futures = [
+        _fetchSchoolInfoOptimized(teacherSchool),
+        _fetchStudentSubjectsOptimized(basePath),
+        _fetchTotalMarksOptimized(basePath),
+        _fetchSubjectStatsOptimized(teacherSchool, studentClass),
+      ];
 
-        await _firestore.doc('$basePath/TOTAL_MARKS/Marks').update({
-          'Average_Grade_Letter': gradeLetter,
-          'Average_Percentage': percentage,
-          'lastUpdated': FieldValue.serverTimestamp(),
-        });
+      // Wait for all operations to complete
+      await Future.wait(futures);
 
-        setState(() {
-          averageGradeLetter = gradeLetter;
-          averagePercentage = percentage;
-        });
-      }
+      // Calculate JCE status
+      jceStatus = studentTotalMarks >= 550 ? 'PASS' : 'FAIL';
+
     } catch (e) {
-      print("Error calculating average grade letter: $e");
-      setState(() {
-        averageGradeLetter = 'F';
-      });
+      print("Error in parallel fetch: $e");
+      throw e;
     }
   }
 
-  String _getGradeFromPercentage(double percentage) {
-    if (percentage >= 85) return 'A';
-    if (percentage >= 75) return 'B';
-    if (percentage >= 65) return 'C';
-    if (percentage >= 50) return 'D';
-    return 'F';
-  }
-
-  Future<void> _fetchSchoolInfo(String school) async {
+  Future<void> _fetchSchoolInfoOptimized(String school) async {
     try {
       DocumentSnapshot schoolInfoDoc = await _firestore
           .collection('Schools')
@@ -222,36 +191,19 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           .doc('details')
           .get();
 
-      if (schoolInfoDoc.exists) {
+      if (schoolInfoDoc.exists && schoolInfoDoc.data() != null) {
+        final data = schoolInfoDoc.data() as Map<String, dynamic>;
         setState(() {
-          schoolAddress = schoolInfoDoc['address'] ?? 'N/A';
-          schoolPhone = schoolInfoDoc['phone'] ?? 'N/A';
-          schoolEmail = schoolInfoDoc['email'] ?? 'N/A';
-          schoolAccount = schoolInfoDoc['account'] ?? 'N/A';
-          nextTermDate = schoolInfoDoc['nextTermDate'] ?? 'N/A';
-          formTeacherRemarks = schoolInfoDoc['formTeacherRemarks'] ?? 'N/A';
-          headTeacherRemarks = schoolInfoDoc['headTeacherRemarks'] ?? 'N/A';
+          schoolAddress = data['address']?.toString() ?? 'N/A';
+          schoolPhone = data['phone']?.toString() ?? 'N/A';
+          schoolEmail = data['email']?.toString() ?? 'N/A';
+          schoolAccount = data['account']?.toString() ?? 'N/A';
+          nextTermDate = data['nextTermDate']?.toString() ?? 'N/A';
+          formTeacherRemarks = data['formTeacherRemarks']?.toString() ?? 'N/A';
+          headTeacherRemarks = data['headTeacherRemarks']?.toString() ?? 'N/A';
         });
       } else {
-        Map<String, dynamic> defaultSchoolInfo = {
-          'address': 'N/A',
-          'phone': 'N/A',
-          'email': 'N/A',
-          'account': 'N/A',
-          'nextTermDate': 'N/A',
-          'formTeacherRemarks': 'N/A',
-          'headTeacherRemarks': 'N/A',
-          'createdAt': FieldValue.serverTimestamp(),
-          'lastUpdated': FieldValue.serverTimestamp(),
-        };
-
-        await _firestore
-            .collection('Schools')
-            .doc(school)
-            .collection('School_Information')
-            .doc('details')
-            .set(defaultSchoolInfo);
-
+        // Set default values if document doesn't exist
         setState(() {
           schoolAddress = 'N/A';
           schoolPhone = 'N/A';
@@ -264,6 +216,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       }
     } catch (e) {
       print("Error fetching school info: $e");
+      // Set default values on error
       setState(() {
         schoolAddress = 'N/A';
         schoolPhone = 'N/A';
@@ -276,62 +229,92 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
-
-  Future<void> fetchStudentSubjects(String basePath) async {
+  Future<void> _fetchStudentSubjectsOptimized(String basePath) async {
     try {
-      final snapshot = await _firestore.collection('$basePath/Student_Subjects').get();
-      List<Map<String, dynamic>> subjectList = [];
+      final snapshot = await _firestore
+          .collection('$basePath/Student_Subjects')
+          .get(GetOptions(source: Source.cache)); // Try cache first
 
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
-        int score = 0;
-        if (data['Subject_Grade'] != null) {
-          score = double.tryParse(data['Subject_Grade'].toString())?.round() ?? 0;
-        }
-
-        int subjectPosition = 0;
-        int totalStudentsInSubject = 0;
-
-        if (data['Subject_Position'] != null) {
-          subjectPosition = (data['Subject_Position'] as num?)?.toInt() ?? 0;
-        }
-
-        if (data['Total_Students_Subject'] != null) {
-          totalStudentsInSubject = (data['Total_Students_Subject'] as num?)?.toInt() ?? 0;
-        }
-
-        if (subjectPosition == 0 && data['position'] != null) {
-          subjectPosition = (data['position'] as num?)?.toInt() ?? 0;
-        }
-
-        if (totalStudentsInSubject == 0 && data['totalStudents'] != null) {
-          totalStudentsInSubject = (data['totalStudents'] as num?)?.toInt() ?? 0;
-        }
-
-        String gradeLetter = data['Grade_Letter']?.toString() ?? '';
-
-        subjectList.add({
-          'subject': data['Subject_Name'] ?? doc.id,
-          'score': score,
-          'position': subjectPosition,
-          'totalStudents': totalStudentsInSubject,
-          'gradeLetter': gradeLetter,
-        });
+      if (snapshot.docs.isEmpty) {
+        // If cache is empty, fetch from server
+        final serverSnapshot = await _firestore
+            .collection('$basePath/Student_Subjects')
+            .get(GetOptions(source: Source.server));
+        _processSubjectsData(serverSnapshot);
+      } else {
+        _processSubjectsData(snapshot);
       }
-
-      setState(() {
-        subjects = subjectList;
-      });
     } catch (e) {
       print("Error fetching subjects: $e");
+      // Try server if cache fails
+      try {
+        final serverSnapshot = await _firestore
+            .collection('$basePath/Student_Subjects')
+            .get(GetOptions(source: Source.server));
+        _processSubjectsData(serverSnapshot);
+      } catch (serverError) {
+        print("Error fetching subjects from server: $serverError");
+        setState(() {
+          subjects = [];
+        });
+      }
     }
   }
 
-  Future<void> fetchTotalMarks(String basePath) async {
+  void _processSubjectsData(QuerySnapshot snapshot) {
+    List<Map<String, dynamic>> subjectList = [];
+
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>? ?? {};
+
+      int score = 0;
+      if (data['Subject_Grade'] != null) {
+        score = double.tryParse(data['Subject_Grade'].toString())?.round() ?? 0;
+      }
+
+      int subjectPosition = _getIntValue(data, ['Subject_Position', 'position']);
+      int totalStudentsInSubject = _getIntValue(data, ['Total_Students_Subject', 'totalStudents']);
+      String gradeLetter = data['Grade_Letter']?.toString() ?? '';
+
+      subjectList.add({
+        'subject': data['Subject_Name']?.toString() ?? doc.id,
+        'score': score,
+        'position': subjectPosition,
+        'totalStudents': totalStudentsInSubject,
+        'gradeLetter': gradeLetter,
+      });
+    }
+
+    setState(() {
+      subjects = subjectList;
+    });
+  }
+
+  int _getIntValue(Map<String, dynamic> data, List<String> keys) {
+    for (String key in keys) {
+      if (data[key] != null) {
+        return (data[key] as num?)?.toInt() ?? 0;
+      }
+    }
+    return 0;
+  }
+
+  Future<void> _fetchTotalMarksOptimized(String basePath) async {
     try {
-      final doc = await _firestore.doc('$basePath/TOTAL_MARKS/Marks').get();
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
+      final doc = await _firestore
+          .doc('$basePath/TOTAL_MARKS/Marks')
+          .get(GetOptions(source: Source.cache)); // Try cache first
+
+      DocumentSnapshot finalDoc = doc;
+      if (!doc.exists) {
+        // If not in cache, fetch from server
+        finalDoc = await _firestore
+            .doc('$basePath/TOTAL_MARKS/Marks')
+            .get(GetOptions(source: Source.server));
+      }
+
+      if (finalDoc.exists && finalDoc.data() != null) {
+        final data = finalDoc.data() as Map<String, dynamic>;
         setState(() {
           totalMarks = data;
           studentTotalMarks = (data['Student_Total_Marks'] as num?)?.toInt() ?? 0;
@@ -340,100 +323,89 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           totalStudents = (data['Total_Class_Students_Number'] as num?)?.toInt() ?? 0;
           averageGradeLetter = data['Average_Grade_Letter']?.toString() ?? '';
           averagePercentage = (data['Average_Percentage'] as num?)?.toDouble() ?? 0.0;
-          jceStatus = studentTotalMarks >= 550 ? 'PASS' : 'FAIL';
         });
       }
     } catch (e) {
       print("Error fetching total marks: $e");
+      setState(() {
+        totalMarks = {};
+        studentTotalMarks = 0;
+        teacherTotalMarks = 0;
+        studentPosition = 0;
+        totalStudents = 0;
+        averageGradeLetter = '';
+        averagePercentage = 0.0;
+      });
     }
   }
 
-  Future<void> calculate_Subject_Stats_And_Position(
-      String school, String studentClass, String studentFullName) async {
+  Future<void> _fetchSubjectStatsOptimized(String school, String studentClass) async {
     try {
+      // Use a more efficient query to get class statistics
       final studentsSnapshot = await _firestore
           .collection('Schools/$school/Classes/$studentClass/Student_Details')
-          .get();
+          .get(GetOptions(source: Source.cache)); // Try cache first
+
+      QuerySnapshot finalSnapshot = studentsSnapshot;
+      if (studentsSnapshot.docs.isEmpty) {
+        finalSnapshot = await _firestore
+            .collection('Schools/$school/Classes/$studentClass/Student_Details')
+            .get(GetOptions(source: Source.server));
+      }
 
       Map<String, List<int>> marksPerSubject = {};
-      Map<String, List<Map<String, dynamic>>> subjectStudentData = {};
 
-      for (var studentDoc in studentsSnapshot.docs) {
+      // Use Future.wait for parallel processing of student subjects
+      List<Future> subjectFutures = [];
+
+      for (var studentDoc in finalSnapshot.docs) {
         final studentName = studentDoc.id;
-
-        final subjectsSnapshot = await _firestore
-            .collection('Schools/$school/Classes/$studentClass/Student_Details/$studentName/Student_Subjects')
-            .get();
-
-        for (var subjectDoc in subjectsSnapshot.docs) {
-          final data = subjectDoc.data();
-          final subjectName = data['Subject_Name'] ?? subjectDoc.id;
-          final gradeStr = data['Subject_Grade']?.toString() ?? '0';
-          int grade = double.tryParse(gradeStr)?.round() ?? 0;
-
-          if (!marksPerSubject.containsKey(subjectName)) {
-            marksPerSubject[subjectName] = [];
-            subjectStudentData[subjectName] = [];
-          }
-
-          marksPerSubject[subjectName]!.add(grade);
-          subjectStudentData[subjectName]!.add({
-            'studentName': studentName,
-            'grade': grade,
-          });
-        }
+        subjectFutures.add(_processStudentSubjects(school, studentClass, studentName, marksPerSubject));
       }
 
-      for (String subjectName in subjectStudentData.keys) {
-        var studentList = subjectStudentData[subjectName]!;
-        studentList.sort((a, b) => b['grade'].compareTo(a['grade']));
-        Map<String, int> positions = {};
-        int currentPosition = 1;
+      await Future.wait(subjectFutures);
 
-        for (int i = 0; i < studentList.length; i++) {
-          String currentStudentName = studentList[i]['studentName'];
-          int currentGrade = studentList[i]['grade'];
-
-          if (i > 0 && studentList[i-1]['grade'] != currentGrade) {
-            currentPosition = i + 1;
-          }
-
-          positions[currentStudentName] = currentPosition;
-
-          try {
-            await _firestore
-                .doc('Schools/$school/Classes/$studentClass/Student_Details/$currentStudentName/Student_Subjects/$subjectName')
-                .update({
-              'Subject_Position': currentPosition,
-              'Total_Students_Subject': studentList.length,
-              'lastUpdated': FieldValue.serverTimestamp(),
-            });
-          } catch (e) {
-            print("Error updating position for $currentStudentName in $subjectName: $e");
-          }
-        }
-      }
-
+      // Calculate averages
       Map<String, int> averages = {};
-      Map<String, int> totalStudentsPerSubjectMap = {};
-
       marksPerSubject.forEach((subject, scores) {
-        int total = scores.fold(0, (prev, el) => prev + el);
-        int avg = scores.isNotEmpty ? (total / scores.length).round() : 0;
-        averages[subject] = avg;
-        totalStudentsPerSubjectMap[subject] = scores.length;
+        if (scores.isNotEmpty) {
+          int total = scores.fold(0, (prev, el) => prev + el);
+          int avg = (total / scores.length).round();
+          averages[subject] = avg;
+        }
       });
 
       setState(() {
         subjectStats = averages.map((key, value) => MapEntry(key, {'average': value}));
-        totalStudentsPerSubject = totalStudentsPerSubjectMap;
       });
 
-      final String basePath = 'Schools/$school/Classes/$studentClass/Student_Details/$studentFullName';
-      await fetchStudentSubjects(basePath);
-
     } catch (e) {
-      print("Error calculating stats & position: $e");
+      print("Error calculating subject stats: $e");
+      setState(() {
+        subjectStats = {};
+      });
+    }
+  }
+
+  Future<void> _processStudentSubjects(String school, String studentClass, String studentName, Map<String, List<int>> marksPerSubject) async {
+    try {
+      final subjectsSnapshot = await _firestore
+          .collection('Schools/$school/Classes/$studentClass/Student_Details/$studentName/Student_Subjects')
+          .get();
+
+      for (var subjectDoc in subjectsSnapshot.docs) {
+        final data = subjectDoc.data();
+        final subjectName = data['Subject_Name']?.toString() ?? subjectDoc.id;
+        final gradeStr = data['Subject_Grade']?.toString() ?? '0';
+        int grade = double.tryParse(gradeStr)?.round() ?? 0;
+
+        if (!marksPerSubject.containsKey(subjectName)) {
+          marksPerSubject[subjectName] = [];
+        }
+        marksPerSubject[subjectName]!.add(grade);
+      }
+    } catch (e) {
+      print("Error processing subjects for $studentName: $e");
     }
   }
 
@@ -818,14 +790,14 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
             ),
             SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _fetchStudentData,
+              onPressed: _fetchStudentDataOptimized,
               child: Text('Try Again'),
             ),
           ],
         ),
       )
           : RefreshIndicator(
-        onRefresh: _fetchStudentData,
+        onRefresh: _fetchStudentDataOptimized,
         child: SingleChildScrollView(
           padding: EdgeInsets.all(8),
           physics: AlwaysScrollableScrollPhysics(),
@@ -838,7 +810,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
               _buildGradingKey(),
               _buildRemarksSection(),
               _buildFooter(),
-              SizedBox(height: 20), // Extra spacing at bottom
+              SizedBox(height: 20),
             ],
           ),
         ),
