@@ -39,6 +39,60 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     _fetchUserDetails();
   }
 
+  // Helper method to safely convert dynamic value to int, handling N/A cases
+  int _safeToInt(dynamic value) {
+    if (value == null || value == 'N/A' || value == 'n/a' || value == '') {
+      return 0;
+    }
+
+    if (value is int) {
+      return value;
+    }
+
+    if (value is double) {
+      return value.toInt();
+    }
+
+    if (value is String) {
+      // Try to parse string to int
+      try {
+        return int.parse(value);
+      } catch (e) {
+        // If parsing fails, return 0
+        return 0;
+      }
+    }
+
+    return 0;
+  }
+
+  // Helper method to safely convert dynamic value to double, handling N/A cases
+  double _safeToDouble(dynamic value) {
+    if (value == null || value == 'N/A' || value == 'n/a' || value == '') {
+      return 0.0;
+    }
+
+    if (value is double) {
+      return value;
+    }
+
+    if (value is int) {
+      return value.toDouble();
+    }
+
+    if (value is String) {
+      // Try to parse string to double
+      try {
+        return double.parse(value);
+      } catch (e) {
+        // If parsing fails, return 0.0
+        return 0.0;
+      }
+    }
+
+    return 0.0;
+  }
+
   Future<void> _fetchUserDetails() async {
     User? user = _auth.currentUser;
     if (user != null) {
@@ -95,11 +149,11 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     if (classId == 'FORM 1' || classId == 'FORM 2') {
       // For juniors: higher marks first (descending order)
       sortedStudents.sort((a, b) =>
-          (b['Student_Total_Marks'] ?? 0).compareTo(a['Student_Total_Marks'] ?? 0));
+          _safeToInt(b['Student_Total_Marks']).compareTo(_safeToInt(a['Student_Total_Marks'])));
     } else if (classId == 'FORM 3' || classId == 'FORM 4') {
       // For seniors: lower points first (ascending order)
       sortedStudents.sort((a, b) =>
-          (a['Best_Six_Total_Points'] ?? 0).compareTo(b['Best_Six_Total_Points'] ?? 0));
+          _safeToInt(a['Best_Six_Total_Points']).compareTo(_safeToInt(b['Best_Six_Total_Points'])));
     }
 
     return sortedStudents;
@@ -189,30 +243,47 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
       var marksData = totalMarksDoc.data() as Map<String, dynamic>? ?? {};
 
       if (classId == 'FORM 3' || classId == 'FORM 4') {
-        // Fetch existing senior student data
+        // Fetch existing senior student data with safe conversion
+        int bestSixPoints = _safeToInt(marksData['Best_Six_Total_Points']);
+        String msceStatus = (marksData['MSCE_Status'] as String?) ?? 'Unknown';
+
+        // If all subjects have N/A, set status accordingly
+        if (bestSixPoints == 0 && _hasAllNAGrades(marksData)) {
+          msceStatus = 'N/A';
+        }
+
         return {
           'fullName': studentName,
           'studentGender': gender ?? 'Unknown',
           'studentClass': classId,
-          'Best_Six_Total_Points': marksData['Best_Six_Total_Points'] ?? 0,
-          'MSCE_Status': marksData['MSCE_Status'] ?? 'Unknown',
-          'MSCE_Message': marksData['MSCE_Message'] ?? '',
-          'Student_Class_Position': marksData['Student_Class_Position'] ?? 0,
-          'Total_Class_Students_Number': marksData['Total_Class_Students_Number'] ?? 0,
+          'Best_Six_Total_Points': bestSixPoints,
+          'MSCE_Status': msceStatus,
+          'MSCE_Message': (marksData['MSCE_Message'] as String?) ?? '',
+          'Student_Class_Position': _safeToInt(marksData['Student_Class_Position']),
+          'Total_Class_Students_Number': _safeToInt(marksData['Total_Class_Students_Number']),
           'marksRef': totalMarksDoc.reference,
           'studentType': 'senior'
         };
       } else if (classId == 'FORM 1' || classId == 'FORM 2') {
-        // Fetch existing junior student data
+        // Fetch existing junior student data with safe conversion
+        int studentTotalMarks = _safeToInt(marksData['Student_Total_Marks']);
+        int teacherTotalMarks = _safeToInt(marksData['Teacher_Total_Marks']);
+        String jceStatus = (marksData['JCE_Status'] as String?) ?? 'Unknown';
+
+        // If all subjects have N/A, set status accordingly
+        if (studentTotalMarks == 0 && _hasAllNAGrades(marksData)) {
+          jceStatus = 'N/A';
+        }
+
         return {
           'fullName': studentName,
           'studentGender': gender ?? 'Unknown',
           'studentClass': classId,
-          'Student_Total_Marks': marksData['Student_Total_Marks'] ?? 0,
-          'Teacher_Total_Marks': marksData['Teacher_Total_Marks'] ?? 0,
-          'JCE_Status': marksData['JCE_Status'] ?? 'Unknown',
-          'Student_Class_Position': marksData['Student_Class_Position'] ?? 0,
-          'Total_Class_Students_Number': marksData['Total_Class_Students_Number'] ?? 0,
+          'Student_Total_Marks': studentTotalMarks,
+          'Teacher_Total_Marks': teacherTotalMarks,
+          'JCE_Status': jceStatus,
+          'Student_Class_Position': _safeToInt(marksData['Student_Class_Position']),
+          'Total_Class_Students_Number': _safeToInt(marksData['Total_Class_Students_Number']),
           'marksRef': totalMarksDoc.reference,
           'studentType': 'junior'
         };
@@ -222,6 +293,25 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
       return null;
     }
     return null;
+  }
+
+  // Helper method to check if all grades are N/A
+  bool _hasAllNAGrades(Map<String, dynamic> marksData) {
+    // You can customize this logic based on your data structure
+    // Check if important grade fields are N/A or null
+    List<String> gradeFields = [
+      'Student_Total_Marks',
+      'Best_Six_Total_Points',
+      'Teacher_Total_Marks'
+    ];
+
+    for (String field in gradeFields) {
+      var value = marksData[field];
+      if (value != null && value != 'N/A' && value != 'n/a' && value != '' && _safeToInt(value) > 0) {
+        return false;
+      }
+    }
+    return true;
   }
 
   void performSearch(String searchQuery) {
@@ -477,7 +567,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                             children: [
                               if (student['studentClass'] == 'FORM 1' || student['studentClass'] == 'FORM 2') ...[
                                 Text(
-                                  '${student['Student_Total_Marks']} / ${student['Teacher_Total_Marks']}',
+                                  '${_safeToInt(student['Student_Total_Marks'])} / ${_safeToInt(student['Teacher_Total_Marks'])}',
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -494,12 +584,14 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                                         ? Colors.green
                                         : student['JCE_Status'] == 'FAIL'
                                         ? Colors.red
+                                        : student['JCE_Status'] == 'N/A'
+                                        ? Colors.red
                                         : Colors.red,
                                   ),
                                 ),
                               ] else if (student['studentClass'] == 'FORM 3' || student['studentClass'] == 'FORM 4') ...[
                                 Text(
-                                  '${student['Best_Six_Total_Points'] ?? 0} Points',
+                                  '${_safeToInt(student['Best_Six_Total_Points'])} Points',
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -515,6 +607,8 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                                     color: student['MSCE_Status'] == 'PASS'
                                         ? Colors.green
                                         : student['MSCE_Status'] == 'STATEMENT'
+                                        ? Colors.red
+                                        : student['MSCE_Status'] == 'N/A'
                                         ? Colors.red
                                         : Colors.red,
                                   ),
