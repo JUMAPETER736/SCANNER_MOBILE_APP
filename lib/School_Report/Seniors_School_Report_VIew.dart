@@ -376,8 +376,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   }
 
 
-
-
   Future<void> _fetchSchoolInfo(String school) async {
     try {
       DocumentSnapshot schoolDoc = await _firestore.collection('Schools').doc(school).get();

@@ -171,7 +171,6 @@ class _Forgot_PasswordState extends State<Forgot_Password> {
                 'Enter your email to reset your password',
                 style: TextStyle(
                   fontSize: 26.0,
-                  fontWeight: FontWeight.bold,
                   color: Colors.black,
                 ),
               ),
