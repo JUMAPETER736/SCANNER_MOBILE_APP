@@ -276,15 +276,6 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
         }
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Class performance data saved successfully'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
     } catch (e) {
       print("Error saving class performance data: $e");
       if (mounted) {
@@ -800,7 +791,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.refresh, color: Colors.white),
+
               ),
               onPressed: () {
                 setState(() {

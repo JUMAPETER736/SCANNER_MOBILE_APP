@@ -24,6 +24,10 @@ class _Student_SubjectsState extends State<Student_Subjects> {
   Map<String, String> _subjectGrades = {}; // Cache grades
   bool isLoading = true;
 
+  // Class performance data storage
+  Map<String, dynamic> classPerformance = {};
+  Map<String, dynamic> subjectPerformance = {};
+
   Future<void> _fetchSubjects() async {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
@@ -546,6 +550,265 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       default: return 'Fail';
     }
   }
+
+  String _getPoints(String grade) {
+    switch (grade) {
+      case '1': return '1';
+      case '2': return '2';
+      case '3': return '3';
+      case '4': return '4';
+      case '5': return '5';
+      case '6': return '6';
+      case '7': return '7';
+      case '8': return '8';
+      default: return '9';
+    }
+  }
+
+// Method to calculate class performance metrics using existing subject data
+  Future<void> _calculateClassPerformanceMetrics(String schoolName, String className) async {
+    try {
+      print("Starting Class Performance Calculation using existing subject data...");
+
+      final studentsSnapshot = await _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Classes')
+          .doc(className)
+          .collection('Student_Details')
+          .get();
+
+      // Get all unique subjects from all students in the class
+      Set<String> allSubjectsInClass = {};
+
+      // First pass: collect all subjects
+      for (var studentDoc in studentsSnapshot.docs) {
+        final subjectsSnapshot = await _firestore
+            .collection('Schools')
+            .doc(schoolName)
+            .collection('Classes')
+            .doc(className)
+            .collection('Student_Details')
+            .doc(studentDoc.id)
+            .collection('Student_Subjects')
+            .get();
+
+        for (var subjectDoc in subjectsSnapshot.docs) {
+          final subjectName = subjectDoc['Subject_Name'] as String? ?? subjectDoc.id;
+          allSubjectsInClass.add(subjectName);
+        }
+      }
+
+      print("Found subjects in class: ${allSubjectsInClass.toList()}");
+
+      // Initialize subject performance tracking
+      Map<String, dynamic> tempSubjectPerformance = {};
+      for (String subject in allSubjectsInClass) {
+        tempSubjectPerformance[subject] = {
+          'totalStudents': 0,
+          'passRate': 0,
+          'totalPass': 0,
+          'totalFail': 0,
+        };
+      }
+
+      int totalClassFail = 0;
+
+      // Second pass: calculate performance metrics
+      for (var studentDoc in studentsSnapshot.docs) {
+        String studentName = studentDoc.id;
+
+        final subjectsSnapshot = await _firestore
+            .collection('Schools')
+            .doc(schoolName)
+            .collection('Classes')
+            .doc(className)
+            .collection('Student_Details')
+            .doc(studentName)
+            .collection('Student_Subjects')
+            .get();
+
+        List<int> points = [];
+        bool hasGradeNine = false;
+
+        for (var subjectDoc in subjectsSnapshot.docs) {
+          final subjectName = subjectDoc['Subject_Name'] as String? ?? subjectDoc.id;
+
+          if (!subjectDoc.data().containsKey('Subject_Grade')) {
+            continue;
+          }
+
+          final subjectGradeRaw = subjectDoc['Subject_Grade'];
+          if (subjectGradeRaw == "N/A" || subjectGradeRaw == null || subjectGradeRaw.toString().isEmpty) {
+            continue;
+          }
+
+          int score = 0;
+          if (subjectGradeRaw is String) {
+            score = int.tryParse(subjectGradeRaw) ?? 0;
+          } else if (subjectGradeRaw is num) {
+            score = subjectGradeRaw.toInt();
+          }
+
+          // Skip if score is 0 or invalid
+          if (score <= 0) continue;
+
+          int currentGradePoint = int.tryParse(_getPoints(_getSeniorsGrade(score))) ?? 9;
+          if (currentGradePoint == 9) {
+            hasGradeNine = true;
+          }
+
+          // Update subject performance metrics
+          if (tempSubjectPerformance.containsKey(subjectName)) {
+            tempSubjectPerformance[subjectName]['totalStudents']++;
+
+            if (score >= 50) {
+              tempSubjectPerformance[subjectName]['totalPass']++;
+            } else {
+              tempSubjectPerformance[subjectName]['totalFail']++;
+            }
+          }
+
+          points.add(currentGradePoint);
+        }
+
+        // Calculate if student failed overall (for senior classes)
+        if (points.isNotEmpty && points.length >= 6) {
+          points.sort();
+          int bestSixTotal = points.take(6).reduce((a, b) => a + b);
+
+          if (hasGradeNine || bestSixTotal >= 54) {
+            totalClassFail++;
+          }
+        } else if (points.isNotEmpty && points.length < 6) {
+          // If less than 6 subjects, consider it a fail
+          totalClassFail++;
+        }
+      }
+
+      // Calculate pass rates for each subject
+      tempSubjectPerformance.forEach((subject, data) {
+        if (data['totalStudents'] > 0) {
+          data['passRate'] = (data['totalPass'] / data['totalStudents'] * 100).round();
+        }
+      });
+
+      // Update class performance data
+      setState(() {
+        subjectPerformance = tempSubjectPerformance;
+        classPerformance = {
+          'totalStudents': studentsSnapshot.docs.length,
+          'classPassRate': studentsSnapshot.docs.length > 0
+              ? ((studentsSnapshot.docs.length - totalClassFail) / studentsSnapshot.docs.length * 100).round()
+              : 0,
+          'totalClassFail': totalClassFail,
+          'totalClassPassed': studentsSnapshot.docs.length - totalClassFail,
+        };
+      });
+
+      print("Class Performance Calculation Completed!");
+      print("Total Students: ${classPerformance['totalStudents']}");
+      print("Class Pass Rate: ${classPerformance['classPassRate']}%");
+      print("Total Failed: ${classPerformance['totalClassFail']}");
+
+    } catch (e) {
+      print("Error calculating class performance metrics: $e");
+      throw Exception("Failed to calculate class performance metrics: $e");
+    }
+  }
+
+// Method to save class performance data to Firestore
+  Future<void> _saveClassPerformanceData(String schoolName, String className) async {
+    try {
+      print("Saving Class Performance Data...");
+
+      final currentUser = FirebaseAuth.instance.currentUser;
+      String userEmail = currentUser?.email ?? 'unknown';
+
+      final String basePath = 'Schools/$schoolName/Classes/$className';
+
+      // Save Class Summary
+      await _firestore.doc('$basePath/Class_Performance/Class_Summary').set({
+        'Total_Students': classPerformance['totalStudents'],
+        'Class_Pass_Rate': classPerformance['classPassRate'],
+        'Total_Class_Passed': classPerformance['totalClassPassed'],
+        'Total_Class_Failed': classPerformance['totalClassFail'],
+        'lastUpdated': FieldValue.serverTimestamp(),
+        'updatedBy': userEmail,
+      }, SetOptions(merge: true));
+
+      print("Class Summary saved successfully");
+
+      // Save Subject Performance - each subject separately
+      for (String subject in subjectPerformance.keys) {
+        final subjectData = subjectPerformance[subject];
+        if (subjectData != null && subjectData['totalStudents'] > 0) {
+          await _firestore.doc('$basePath/Class_Performance/Subject_Performance/Subject_Perfomance/$subject').set({
+            'Total_Students': subjectData['totalStudents'],
+            'Total_Pass': subjectData['totalPass'],
+            'Total_Fail': subjectData['totalFail'],
+            'Pass_Rate': subjectData['passRate'],
+            'lastUpdated': FieldValue.serverTimestamp(),
+            'updatedBy': userEmail,
+          }, SetOptions(merge: true));
+
+          print("Subject performance saved for: $subject");
+        }
+      }
+
+      print("All Class Performance Data saved successfully!");
+
+    } catch (e) {
+      print("Error saving class performance data: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving performance data: $e'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+// Method to run complete class performance calculation and save
+  Future<void> _runCompleteClassPerformanceCalculation(String schoolName, String className) async {
+    try {
+      print("Starting Complete Class Performance Calculation...");
+
+      // Calculate performance metrics
+      await _calculateClassPerformanceMetrics(schoolName, className);
+
+      // Save the calculated data
+      await _saveClassPerformanceData(schoolName, className);
+
+      print("Complete Class Performance Calculation finished successfully!");
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Class performance statistics updated successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+
+    } catch (e) {
+      print("Error in complete class performance calculation: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error calculating class performance: $e'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
 
   // Removed _getSeniorsPoints function as requested
 
