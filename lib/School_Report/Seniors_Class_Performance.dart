@@ -699,7 +699,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
+                        color: Colors.indigo[800],
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -894,15 +894,15 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                                   child: Container(
                                     padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: Colors.blueAccent,
+                                      color: Colors.blue[100],
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
                                       '${performance['passRate']}%',
                                       style: TextStyle(
-                                        color: Colors.blueAccent,
+                                        color: Colors.blue[800],
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 14,
+                                        fontSize: 15,
                                       ),
                                     ),
                                   ),
@@ -958,7 +958,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
       ),
     ),
     elevation: 0,
-    backgroundColor: Colors.blueAccent,
+    backgroundColor: Colors.indigo[600],
     foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -980,7 +980,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.indigo),
               strokeWidth: 6,
             ),
             SizedBox(height: 20),
