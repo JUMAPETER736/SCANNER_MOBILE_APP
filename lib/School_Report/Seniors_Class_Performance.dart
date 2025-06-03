@@ -530,7 +530,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             gradient: LinearGradient(
-              colors: [Colors.emerald[50]!, Colors.green[100]!],
+              colors: [Colors.green[50]!, Colors.green[100]!],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -592,7 +592,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                         'Passed',
                         totalPassed.toString(),
                         Icons.check_circle_rounded,
-                        Colors.emerald,
+                        Colors.green,
                       ),
                     ),
                     SizedBox(width: 16),
@@ -699,7 +699,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.indigo[800],
+                        color: Colors.blueAccent,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -894,15 +894,15 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                                   child: Container(
                                     padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: Colors.blue[100],
+                                      color: Colors.blueAccent,
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
                                       '${performance['passRate']}%',
                                       style: TextStyle(
-                                        color: Colors.blue[800],
+                                        color: Colors.blueAccent,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 15,
+                                        fontSize: 14,
                                       ),
                                     ),
                                   ),
@@ -958,6 +958,107 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
       ),
     ),
     elevation: 0,
-    backgroundColor: Colors.indigo[600],
+    backgroundColor: Colors.blueAccent,
     foregroundColor: Colors.white,
-    actions:
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh_rounded),
+            onPressed: () {
+              setState(() {
+                isLoading = true;
+                hasError = false;
+              });
+              _fetchClassData();
+            },
+            tooltip: 'Refresh Data',
+          ),
+        ],
+      ),
+      body: isLoading
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+              strokeWidth: 6,
+            ),
+            SizedBox(height: 20),
+            Text(
+              'Loading Performance Data...',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      )
+          : hasError
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              size: 60,
+              color: Colors.red[400],
+            ),
+            SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Text(
+                errorMessage ?? 'An unknown error occurred',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            SizedBox(height: 30),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  isLoading = true;
+                  hasError = false;
+                });
+                _fetchClassData();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 14),
+              ),
+              child: Text(
+                'Retry',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      )
+          : SingleChildScrollView(
+        physics: BouncingScrollPhysics(),
+        child: Column(
+          children: [
+            _buildHeader(),
+            _buildClassSelector(),
+            _buildClassSummary(),
+            _buildSubjectPerformanceTable(),
+            SizedBox(height: 30),
+          ],
+        ),
+      ),
+    );
+  }
+}
