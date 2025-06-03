@@ -192,7 +192,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
       padding: EdgeInsets.fromLTRB(20, 20, 20, 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.indigo[700]!, Colors.blue[600]!, Colors.cyan[500]!],
+          colors: [Colors.blueAccent[700]!, Colors.blue[600]!, Colors.cyan[500]!],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -240,7 +240,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
           ),
           SizedBox(height: 8),
           Container(
-            height: 50,
+            height: 45,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: teacherClasses.length,
@@ -257,9 +257,9 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                       padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        color: isSelected ? Colors.indigo[600] : Colors.grey[200],
+                        color: isSelected ? Colors.blue[600] : Colors.grey[300],
                         border: Border.all(
-                          color: isSelected ? Colors.indigo[600]! : Colors.grey[300]!,
+                          color: isSelected ? Colors.blue[600]! : Colors.grey[300]!,
                           width: 1,
                         ),
                       ),
@@ -377,7 +377,6 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
               Expanded(
                 child: _buildSummaryCard(
                   'Failed',
-
                   classPerformance['totalClassFailed'].toString(),
                   Icons.cancel_rounded,
                   Colors.red,
@@ -396,7 +395,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
+        border: Border.all(color: color[600]!, width: 2.5),
         boxShadow: [
           BoxShadow(
             color: color.withOpacity(0.1),
@@ -422,7 +421,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
             title,
             style: TextStyle(
               fontSize: 11,
-              color: Colors.grey[600],
+              color: title == 'Failed' ? Colors.red[600] : Colors.grey[600],
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
@@ -704,7 +703,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
           ),
         ),
         elevation: 0,
-        backgroundColor: Colors.indigo[600],
+        backgroundColor: Colors.blueAccent[600],
         foregroundColor: Colors.white,
         actions: [
           IconButton(

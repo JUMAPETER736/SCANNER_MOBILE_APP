@@ -240,7 +240,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
           ),
           SizedBox(height: 8),
           Container(
-            height: 50,
+            height: 45,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: teacherClasses.length,
@@ -257,9 +257,9 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                       padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        color: isSelected ? Colors.indigo[600] : Colors.grey[200],
+                        color: isSelected ? Colors.blue[600] : Colors.grey[300],
                         border: Border.all(
-                          color: isSelected ? Colors.indigo[600]! : Colors.grey[300]!,
+                          color: isSelected ? Colors.blue[600]! : Colors.grey[300]!,
                           width: 1,
                         ),
                       ),
@@ -283,6 +283,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
       ),
     );
   }
+  
 
   Widget _buildClassSummary() {
     // Check if data exists
