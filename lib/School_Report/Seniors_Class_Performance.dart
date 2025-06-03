@@ -21,6 +21,8 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   List<String> subjects = [];
+  List<String> teacherClasses = [];
+  String selectedClass = '';
   Map<String, dynamic> subjectPerformance = {};
   Map<String, dynamic> classPerformance = {
     'totalStudents': 0,
@@ -34,10 +36,11 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
   @override
   void initState() {
     super.initState();
-    _fetchClassData();
+    selectedClass = widget.className;
+    _fetchTeacherClasses();
   }
 
-  Future<void> _fetchClassData() async {
+  Future<void> _fetchTeacherClasses() async {
     User? user = _auth.currentUser;
     if (user == null) {
       setState(() {
@@ -52,16 +55,49 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
 
     try {
       DocumentSnapshot userDoc = await _firestore.collection('Teachers_Details').doc(userEmail).get();
-      if (!userDoc.exists || userDoc['school'] != widget.schoolName ||
-          !(userDoc['classes'] as List).contains(widget.className)) {
+      if (!userDoc.exists || userDoc['school'] != widget.schoolName) {
         setState(() {
           isLoading = false;
           hasError = true;
-          errorMessage = 'You do not have access to this class.';
+          errorMessage = 'You do not have access to this school.';
         });
         return;
       }
 
+      List<String> classes = List<String>.from(userDoc['classes'] ?? []);
+      setState(() {
+        teacherClasses = classes;
+      });
+
+      await _fetchClassData();
+    } catch (e) {
+      print("Error: $e");
+      setState(() {
+        isLoading = false;
+        hasError = true;
+        errorMessage = 'An error occurred while fetching data: $e';
+      });
+    }
+  }
+
+  Future<void> _onClassSelected(String className) async {
+    if (className != selectedClass) {
+      setState(() {
+        selectedClass = className;
+        isLoading = true;
+        subjects = [];
+        subjectPerformance = {};
+        classPerformance = {
+          'totalStudents': 0,
+          'classPassRate': 0,
+        };
+      });
+      await _fetchClassData();
+    }
+  }
+
+  Future<void> _fetchClassData() async {
+    try {
       await _fetchSubjects();
       await _fetchStudentData();
       await _calculatePerformanceMetrics();
@@ -86,7 +122,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
           .collection('Schools')
           .doc(widget.schoolName)
           .collection('Classes')
-          .doc(widget.className)
+          .doc(selectedClass)
           .collection('Student_Details')
           .limit(1)
           .get();
@@ -100,7 +136,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
           .collection('Schools')
           .doc(widget.schoolName)
           .collection('Classes')
-          .doc(widget.className)
+          .doc(selectedClass)
           .collection('Student_Details')
           .doc(studentName)
           .collection('Student_Subjects')
@@ -127,7 +163,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
           .collection('Schools')
           .doc(widget.schoolName)
           .collection('Classes')
-          .doc(widget.className)
+          .doc(selectedClass)
           .collection('Student_Details')
           .get();
 
@@ -146,7 +182,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
           .collection('Schools')
           .doc(widget.schoolName)
           .collection('Classes')
-          .doc(widget.className)
+          .doc(selectedClass)
           .collection('Student_Details')
           .get();
 
@@ -169,7 +205,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
             .collection('Schools')
             .doc(widget.schoolName)
             .collection('Classes')
-            .doc(widget.className)
+            .doc(selectedClass)
             .collection('Student_Details')
             .doc(studentName)
             .collection('Student_Subjects')
@@ -249,7 +285,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
 
   Future<void> _saveClassPerformanceData() async {
     try {
-      final String basePath = 'Schools/${widget.schoolName}/Classes/${widget.className}';
+      final String basePath = 'Schools/${widget.schoolName}/Classes/$selectedClass';
 
       // Save Class Summary
       await _firestore.doc('$basePath/Class_Performance/Class_Summary').set({
@@ -261,7 +297,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
         'updatedBy': userEmail,
       }, SetOptions(merge: true));
 
-      // Save Subject Performance - Fixed to save each subject separately
+      // Save Subject Performance
       for (String subject in subjects) {
         final subjectData = subjectPerformance[subject];
         if (subjectData != null) {
@@ -279,8 +315,16 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Class performance data saved successfully'),
-            backgroundColor: Colors.green,
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Class performance data saved successfully'),
+              ],
+            ),
+            backgroundColor: Colors.green[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             duration: Duration(seconds: 2),
           ),
         );
@@ -290,15 +334,22 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error saving performance data: $e'),
-            backgroundColor: Colors.red,
+            content: Row(
+              children: [
+                Icon(Icons.error, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(child: Text('Error saving performance data: $e')),
+              ],
+            ),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             duration: Duration(seconds: 3),
           ),
         );
       }
     }
   }
-
 
   String _seniorsGrade(int score) {
     if (score >= 90) return '1';
@@ -329,54 +380,137 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.fromLTRB(20, 20, 20, 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.blue[600]!, Colors.blue[800]!],
+          colors: [Colors.indigo[700]!, Colors.blue[600]!, Colors.cyan[500]!],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.3),
+            blurRadius: 20,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Text(
-            widget.schoolName,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 12),
-          Text(
-            'RESULTS STATISTICS',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-              letterSpacing: 1.2,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 8),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withOpacity(0.15),
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
             ),
+            child: Column(
+              children: [
+                Text(
+                  widget.schoolName,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'RESULTS STATISTICS',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withOpacity(0.9),
+                    letterSpacing: 2.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClassSelector() {
+    return Container(
+      margin: EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 12),
             child: Text(
-              'CLASS: ${widget.className}',
+              'Select Class',
               style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[800],
               ),
+            ),
+          ),
+          Container(
+            height: 60,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: teacherClasses.length,
+              itemBuilder: (context, index) {
+                final className = teacherClasses[index];
+                final isSelected = className == selectedClass;
+
+                return Container(
+                  margin: EdgeInsets.only(right: 12),
+                  child: Material(
+                    elevation: isSelected ? 8 : 3,
+                    borderRadius: BorderRadius.circular(16),
+                    child: InkWell(
+                      onTap: () => _onClassSelected(className),
+                      borderRadius: BorderRadius.circular(16),
+                      child: AnimatedContainer(
+                        duration: Duration(milliseconds: 200),
+                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: isSelected
+                              ? LinearGradient(
+                            colors: [Colors.indigo[600]!, Colors.blue[500]!],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                              : LinearGradient(
+                            colors: [Colors.white, Colors.grey[50]!],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          border: Border.all(
+                            color: isSelected
+                                ? Colors.transparent
+                                : Colors.grey[300]!,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            className,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.grey[700],
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -390,75 +524,83 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
     return Container(
       margin: EdgeInsets.all(16),
       child: Card(
-        elevation: 8,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 12,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             gradient: LinearGradient(
-              colors: [Colors.green[50]!, Colors.green[100]!],
+              colors: [Colors.emerald[50]!, Colors.green[100]!],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
           child: Padding(
-            padding: EdgeInsets.all(20),
+            padding: EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(Icons.assessment, color: Colors.green[700], size: 24),
-                    SizedBox(width: 8),
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green[600],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.analytics, color: Colors.white, size: 24),
+                    ),
+                    SizedBox(width: 12),
                     Text(
                       'CLASS SUMMARY',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors.green[800],
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 20),
+                SizedBox(height: 24),
                 Row(
                   children: [
                     Expanded(
                       child: _buildSummaryCard(
                         'Total Students',
                         classPerformance['totalStudents'].toString(),
-                        Icons.people,
+                        Icons.people_rounded,
                         Colors.blue,
                       ),
                     ),
-                    SizedBox(width: 12),
+                    SizedBox(width: 16),
                     Expanded(
                       child: _buildSummaryCard(
-                        'Class Pass Rate',
+                        'Pass Rate',
                         '${classPerformance['classPassRate']}%',
-                        Icons.trending_up,
+                        Icons.trending_up_rounded,
                         Colors.green,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(width: 12),
+                SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
                       child: _buildSummaryCard(
                         'Passed',
                         totalPassed.toString(),
-                        Icons.check_circle,
-                        Colors.green,
+                        Icons.check_circle_rounded,
+                        Colors.emerald,
                       ),
                     ),
-                    SizedBox(width: 12),
+                    SizedBox(width: 16),
                     Expanded(
                       child: _buildSummaryCard(
                         'Failed',
                         classPerformance['totalClassFail'].toString(),
-                        Icons.cancel,
+                        Icons.cancel_rounded,
                         Colors.red,
                       ),
                     ),
@@ -472,40 +614,47 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
     );
   }
 
-  Widget _buildSummaryCard(String title, String value, IconData icon, Color color) {
+  Widget _buildSummaryCard(String title, String value, IconData icon, MaterialColor color) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.1),
-            blurRadius: 8,
-            offset: Offset(0, 2),
+            color: color.withOpacity(0.15),
+            blurRadius: 12,
+            offset: Offset(0, 4),
           ),
         ],
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withOpacity(0.2), width: 1.5),
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 28),
-          SizedBox(height: 8),
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color[50],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color[600], size: 28),
+          ),
+          SizedBox(height: 12),
           Text(
             value,
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: color,
+              color: color[700],
             ),
           ),
-          SizedBox(height: 4),
+          SizedBox(height: 6),
           Text(
             title,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 13,
               color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
           ),
@@ -518,47 +667,55 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
     return Container(
       margin: EdgeInsets.all(16),
       child: Card(
-        elevation: 8,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 12,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             gradient: LinearGradient(
-              colors: [Colors.blue[50]!, Colors.blue[100]!],
+              colors: [Colors.blue[50]!, Colors.indigo[100]!],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
           child: Padding(
-            padding: EdgeInsets.all(20),
+            padding: EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(Icons.subject, color: Colors.blue[700], size: 24),
-                    SizedBox(width: 8),
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo[600],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.subject_rounded, color: Colors.white, size: 24),
+                    ),
+                    SizedBox(width: 12),
                     Text(
                       'SUBJECT PERFORMANCE',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue[800],
+                        color: Colors.indigo[800],
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 16),
+                SizedBox(height: 20),
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: Offset(0, 2),
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 15,
+                        offset: Offset(0, 4),
                       ),
                     ],
                   ),
@@ -566,12 +723,16 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                     children: [
                       // Header Row
                       Container(
-                        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                        padding: EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          gradient: LinearGradient(
+                            colors: [Colors.grey[100]!, Colors.grey[50]!],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            topRight: Radius.circular(12),
+                            topLeft: Radius.circular(16),
+                            topRight: Radius.circular(16),
                           ),
                         ),
                         child: Row(
@@ -650,13 +811,13 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                         };
 
                         return Container(
-                          padding: EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                          padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                           decoration: BoxDecoration(
-                            color: index % 2 == 0 ? Colors.white : Colors.grey[50],
+                            color: index % 2 == 0 ? Colors.white : Colors.grey[25],
                             border: Border(
                               bottom: BorderSide(
                                 color: Colors.grey[200]!,
-                                width: 0.5,
+                                width: 0.8,
                               ),
                             ),
                           ),
@@ -667,7 +828,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                                 child: Text(
                                   subject,
                                   style: TextStyle(
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.w600,
                                     fontSize: 15,
                                     color: Colors.grey[800],
                                   ),
@@ -679,7 +840,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                                   performance['totalStudents'].toString(),
                                   style: TextStyle(
                                     fontSize: 15,
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -689,16 +850,16 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                                 child: Container(
                                   alignment: Alignment.center,
                                   child: Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                     decoration: BoxDecoration(
                                       color: Colors.green[100],
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
                                       performance['totalPass'].toString(),
                                       style: TextStyle(
                                         color: Colors.green[800],
-                                        fontWeight: FontWeight.w600,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 15,
                                       ),
                                     ),
@@ -710,16 +871,16 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                                 child: Container(
                                   alignment: Alignment.center,
                                   child: Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                     decoration: BoxDecoration(
                                       color: Colors.red[100],
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
                                       performance['totalFail'].toString(),
                                       style: TextStyle(
                                         color: Colors.red[800],
-                                        fontWeight: FontWeight.w600,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 15,
                                       ),
                                     ),
@@ -731,16 +892,16 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                                 child: Container(
                                   alignment: Alignment.center,
                                   child: Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                     decoration: BoxDecoration(
                                       color: Colors.blue[100],
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
                                       '${performance['passRate']}%',
                                       style: TextStyle(
                                         color: Colors.blue[800],
-                                        fontWeight: FontWeight.w600,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 15,
                                       ),
                                     ),
@@ -768,8 +929,16 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorMessage!),
-            backgroundColor: Colors.red,
+            content: Row(
+              children: [
+                Icon(Icons.error, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(child: Text(errorMessage!)),
+              ],
+            ),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             duration: Duration(seconds: 3),
           ),
         );
@@ -780,111 +949,15 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text(
-          'END OF TERM PERFORMANCE',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        elevation: 0,
-        backgroundColor: Colors.blue[600],
-        foregroundColor: Colors.white,
-        actions: [
-          Container(
-            margin: EdgeInsets.only(right: 8),
-            child: IconButton(
-              icon: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.refresh, color: Colors.white),
-              ),
-              onPressed: () {
-                setState(() {
-                  isLoading = true;
-                });
-                _fetchClassData();
-              },
-              tooltip: 'Refresh Performance Data',
-            ),
-          ),
-        ],
+      title: Text(
+      'PERFORMANCE ANALYTICS',
+      style: TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 18,
+        letterSpacing: 0.5,
       ),
-      body: isLoading
-          ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[600]!),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Loading performance data...',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-      )
-          : hasError
-          ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red[400],
-            ),
-            SizedBox(height: 16),
-            Text(
-              errorMessage ?? 'An error occurred',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.red[700],
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  isLoading = true;
-                  hasError = false;
-                });
-                _fetchClassData();
-              },
-              child: Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue[600],
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      )
-          : RefreshIndicator(
-        onRefresh: _fetchClassData,
-        color: Colors.blue[600],
-        child: SingleChildScrollView(
-          physics: AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              _buildHeader(),
-              SizedBox(height: 8),
-              _buildClassSummary(),
-              _buildSubjectPerformanceTable(),
-              SizedBox(height: 32),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+    ),
+    elevation: 0,
+    backgroundColor: Colors.indigo[600],
+    foregroundColor: Colors.white,
+    actions:
