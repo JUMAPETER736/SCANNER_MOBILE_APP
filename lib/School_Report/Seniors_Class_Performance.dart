@@ -283,7 +283,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
       ),
     );
   }
-  
+
 
   Widget _buildClassSummary() {
     // Check if data exists
@@ -706,7 +706,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
         ),
         elevation: 0,
         backgroundColor: Colors.indigo[600],
-        foregroundColor: Colors.white,
+        foregroundColor: Colors.blueAccent,
         actions: [
           IconButton(
             icon: Icon(Icons.refresh_rounded),
