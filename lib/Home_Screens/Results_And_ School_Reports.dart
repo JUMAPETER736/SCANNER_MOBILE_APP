@@ -142,7 +142,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     }
   }
 
-  // Helper method to sort students based on their class
+  // Helper method to sort students based on their class with proper ranking logic
   List<Map<String, dynamic>> _sortStudents(List<Map<String, dynamic>> students, String classId) {
     List<Map<String, dynamic>> sortedStudents = List.from(students);
 
@@ -151,12 +151,78 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
       sortedStudents.sort((a, b) =>
           _safeToInt(b['Student_Total_Marks']).compareTo(_safeToInt(a['Student_Total_Marks'])));
     } else if (classId == 'FORM 3' || classId == 'FORM 4') {
-      // For seniors: lower points first (ascending order)
-      sortedStudents.sort((a, b) =>
-          _safeToInt(a['Best_Six_Total_Points']).compareTo(_safeToInt(b['Best_Six_Total_Points'])));
+      // For seniors: Custom sorting logic
+      sortedStudents.sort((a, b) {
+        String statusA = (a['MSCE_Status'] as String?) ?? 'Unknown';
+        String statusB = (b['MSCE_Status'] as String?) ?? 'Unknown';
+        int pointsA = _safeToInt(a['Best_Six_Total_Points']);
+        int pointsB = _safeToInt(b['Best_Six_Total_Points']);
+
+        // First priority: PASS status students come first
+        if (statusA == 'PASS' && statusB != 'PASS') {
+          return -1; // A comes before B
+        } else if (statusA != 'PASS' && statusB == 'PASS') {
+          return 1; // B comes before A
+        }
+
+        // If both have PASS status, sort by points (lower is better)
+        if (statusA == 'PASS' && statusB == 'PASS') {
+          return pointsA.compareTo(pointsB);
+        }
+
+        // If both have STATEMENT or other status, sort by points (lower is still better)
+        if (statusA != 'PASS' && statusB != 'PASS') {
+          return pointsA.compareTo(pointsB);
+        }
+
+        return 0;
+      });
     }
 
     return sortedStudents;
+  }
+
+  // Method to calculate and assign class positions
+  List<Map<String, dynamic>> _assignClassPositions(List<Map<String, dynamic>> students, String classId) {
+    if (students.isEmpty) return students;
+
+    List<Map<String, dynamic>> studentsWithPositions = List.from(students);
+
+    if (classId == 'FORM 1' || classId == 'FORM 2') {
+      // For juniors: assign positions based on total marks
+      for (int i = 0; i < studentsWithPositions.length; i++) {
+        studentsWithPositions[i]['calculated_position'] = i + 1;
+      }
+    } else if (classId == 'FORM 3' || classId == 'FORM 4') {
+      // For seniors: assign positions with special logic
+      int currentPosition = 1;
+      int passStudentCount = 0;
+
+      // First pass: count PASS students and assign their positions
+      for (int i = 0; i < studentsWithPositions.length; i++) {
+        String status = (studentsWithPositions[i]['MSCE_Status'] as String?) ?? 'Unknown';
+
+        if (status == 'PASS') {
+          studentsWithPositions[i]['calculated_position'] = currentPosition;
+          currentPosition++;
+          passStudentCount++;
+        }
+      }
+
+      // Second pass: assign positions to non-PASS students
+      currentPosition = passStudentCount + 1; // Continue from where PASS students ended
+
+      for (int i = 0; i < studentsWithPositions.length; i++) {
+        String status = (studentsWithPositions[i]['MSCE_Status'] as String?) ?? 'Unknown';
+
+        if (status != 'PASS') {
+          studentsWithPositions[i]['calculated_position'] = currentPosition;
+          currentPosition++;
+        }
+      }
+    }
+
+    return studentsWithPositions;
   }
 
   Future<void> _fetchStudentDetailsForClass(DocumentSnapshot userDoc, String classId) async {
@@ -192,9 +258,15 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
       // Sort students based on class type
       List<Map<String, dynamic>> sortedStudents = _sortStudents(tempStudentDetails, classId);
 
+      // Assign proper class positions
+      List<Map<String, dynamic>> studentsWithPositions = _assignClassPositions(sortedStudents, classId);
+
+      // Update positions in Firebase (optional - if you want to save calculated positions)
+      await _updateStudentPositionsInFirebase(studentsWithPositions, userDoc, classId);
+
       setState(() {
-        studentDetails = sortedStudents;
-        allStudentDetails = sortedStudents;
+        studentDetails = studentsWithPositions;
+        allStudentDetails = studentsWithPositions;
         isLoading = false;
       });
     } catch (e) {
@@ -204,6 +276,30 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
         hasError = true;
         errorMessage = 'An error occurred while fetching student details.';
       });
+    }
+  }
+
+  // Method to update calculated positions back to Firebase
+  Future<void> _updateStudentPositionsInFirebase(
+      List<Map<String, dynamic>> students,
+      DocumentSnapshot userDoc,
+      String classId) async {
+    try {
+      WriteBatch batch = _firestore.batch();
+
+      for (var student in students) {
+        if (student['marksRef'] != null) {
+          batch.update(student['marksRef'], {
+            'Student_Class_Position': student['calculated_position'],
+            'Total_Class_Students_Number': students.length,
+          });
+        }
+      }
+
+      await batch.commit();
+      print("Updated ${students.length} student positions in Firebase");
+    } catch (e) {
+      print("Error updating student positions in Firebase: $e");
     }
   }
 
@@ -520,6 +616,8 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                 separatorBuilder: (context, index) => SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   var student = studentDetails[index];
+                  // Use calculated position if available, otherwise use display index
+                  int displayPosition = student['calculated_position'] ?? (index + 1);
 
                   return Card(
                     elevation: 6,
@@ -529,7 +627,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                     child: ListTile(
                       contentPadding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
                       leading: Text(
-                        '${index + 1}.',
+                        '$displayPosition.',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
