@@ -312,23 +312,6 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
         }
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8),
-                Text('Class performance data saved successfully'),
-              ],
-            ),
-            backgroundColor: Colors.green[600],
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
     } catch (e) {
       print("Error saving class performance data: $e");
       if (mounted) {
@@ -980,8 +963,8 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.indigo),
-              strokeWidth: 6,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+              strokeWidth: 4,
             ),
             SizedBox(height: 20),
             Text(
