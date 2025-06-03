@@ -704,7 +704,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
         ),
         elevation: 0,
         backgroundColor: Colors.blueAccent[600],
-        foregroundColor: Colors.white,
+        foregroundColor: Colors.blueAccent,
         actions: [
           IconButton(
             icon: Icon(Icons.refresh_rounded),
