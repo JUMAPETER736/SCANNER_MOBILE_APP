@@ -27,6 +27,8 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
   Map<String, dynamic> classPerformance = {
     'totalStudents': 0,
     'classPassRate': 0,
+    'totalClassPassed': 0,
+    'totalClassFailed': 0,
   };
   bool isLoading = true;
   bool hasError = false;
@@ -90,6 +92,8 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
         classPerformance = {
           'totalStudents': 0,
           'classPassRate': 0,
+          'totalClassPassed': 0,
+          'totalClassFailed': 0,
         };
       });
       await _fetchClassData();
@@ -98,10 +102,11 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
 
   Future<void> _fetchClassData() async {
     try {
-      await _fetchSubjects();
-      await _fetchStudentData();
-      await _calculatePerformanceMetrics();
-      await _saveClassPerformanceData();
+      // Fetch data concurrently for better performance
+      await Future.wait([
+        _fetchClassSummary(),
+        _fetchSubjectPerformance(),
+      ]);
 
       setState(() {
         isLoading = false;
@@ -116,247 +121,68 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
     }
   }
 
-  Future<void> _fetchSubjects() async {
+  Future<void> _fetchClassSummary() async {
     try {
-      final studentsSnapshot = await _firestore
-          .collection('Schools')
-          .doc(widget.schoolName)
-          .collection('Classes')
-          .doc(selectedClass)
-          .collection('Student_Details')
-          .limit(1)
-          .get();
+      final String classPath = 'Schools/${widget.schoolName}/Classes/$selectedClass/Class_Performance/Class_Summary';
 
-      if (studentsSnapshot.docs.isEmpty) {
-        throw Exception('No students found in this class');
+      DocumentSnapshot classSummaryDoc = await _firestore.doc(classPath).get();
+
+      if (classSummaryDoc.exists) {
+        final data = classSummaryDoc.data() as Map<String, dynamic>;
+        setState(() {
+          classPerformance = {
+            'totalStudents': data['Total_Students'] ?? 0,
+            'classPassRate': data['Class_Pass_Rate'] ?? 0,
+            'totalClassPassed': data['Total_Class_Passed'] ?? 0,
+            'totalClassFailed': data['Total_Class_Failed'] ?? 0,
+          };
+        });
+      } else {
+        // If no performance data exists, show empty state
+        setState(() {
+          classPerformance = {
+            'totalStudents': 0,
+            'classPassRate': 0,
+            'totalClassPassed': 0,
+            'totalClassFailed': 0,
+          };
+        });
       }
+    } catch (e) {
+      print("Error fetching class summary: $e");
+      throw Exception("Failed to fetch class summary: $e");
+    }
+  }
 
-      final studentName = studentsSnapshot.docs.first.id;
-      final subjectsSnapshot = await _firestore
-          .collection('Schools')
-          .doc(widget.schoolName)
-          .collection('Classes')
-          .doc(selectedClass)
-          .collection('Student_Details')
-          .doc(studentName)
-          .collection('Student_Subjects')
-          .get();
+  Future<void> _fetchSubjectPerformance() async {
+    try {
+      final String subjectPerformancePath = 'Schools/${widget.schoolName}/Classes/$selectedClass/Class_Performance/Subject_Performance/Subject_Perfomance';
 
+      QuerySnapshot subjectPerformanceSnapshot = await _firestore.collection(subjectPerformancePath).get();
+
+      Map<String, dynamic> tempSubjectPerformance = {};
       List<String> fetchedSubjects = [];
-      for (var doc in subjectsSnapshot.docs) {
-        String subjectName = doc['Subject_Name'] as String;
+
+      for (var doc in subjectPerformanceSnapshot.docs) {
+        String subjectName = doc.id;
+        final data = doc.data() as Map<String, dynamic>;
+
         fetchedSubjects.add(subjectName);
+        tempSubjectPerformance[subjectName] = {
+          'totalStudents': data['Total_Students'] ?? 0,
+          'totalPass': data['Total_Pass'] ?? 0,
+          'totalFail': data['Total_Fail'] ?? 0,
+          'passRate': data['Pass_Rate'] ?? 0,
+        };
       }
 
       setState(() {
         subjects = fetchedSubjects;
-      });
-    } catch (e) {
-      print("Error fetching subjects: $e");
-      throw Exception("Failed to fetch subjects: $e");
-    }
-  }
-
-  Future<void> _fetchStudentData() async {
-    try {
-      final studentsSnapshot = await _firestore
-          .collection('Schools')
-          .doc(widget.schoolName)
-          .collection('Classes')
-          .doc(selectedClass)
-          .collection('Student_Details')
-          .get();
-
-      setState(() {
-        classPerformance['totalStudents'] = studentsSnapshot.docs.length;
-      });
-    } catch (e) {
-      print("Error fetching student data: $e");
-      throw Exception("Failed to fetch student data: $e");
-    }
-  }
-
-  Future<void> _calculatePerformanceMetrics() async {
-    try {
-      final studentsSnapshot = await _firestore
-          .collection('Schools')
-          .doc(widget.schoolName)
-          .collection('Classes')
-          .doc(selectedClass)
-          .collection('Student_Details')
-          .get();
-
-      Map<String, dynamic> tempSubjectPerformance = {};
-      for (String subject in subjects) {
-        tempSubjectPerformance[subject] = {
-          'totalStudents': 0,
-          'passRate': 0,
-          'totalPass': 0,
-          'totalFail': 0,
-        };
-      }
-
-      int totalClassFail = 0;
-
-      for (var studentDoc in studentsSnapshot.docs) {
-        String studentName = studentDoc.id;
-
-        final subjectsSnapshot = await _firestore
-            .collection('Schools')
-            .doc(widget.schoolName)
-            .collection('Classes')
-            .doc(selectedClass)
-            .collection('Student_Details')
-            .doc(studentName)
-            .collection('Student_Subjects')
-            .get();
-
-        List<int> points = [];
-        bool hasGradeNine = false;
-
-        for (var subjectDoc in subjectsSnapshot.docs) {
-          final subjectName = subjectDoc['Subject_Name'] as String;
-
-          if (!subjectDoc.data().containsKey('Subject_Grade')) {
-            continue;
-          }
-
-          final subjectGradeRaw = subjectDoc['Subject_Grade'];
-          if (subjectGradeRaw == "N/A" || subjectGradeRaw == null) {
-            continue;
-          }
-
-          int score = 0;
-          if (subjectGradeRaw is String) {
-            score = int.tryParse(subjectGradeRaw) ?? 0;
-          } else if (subjectGradeRaw is num) {
-            score = subjectGradeRaw.toInt();
-          }
-
-          int currentGradePoint = int.tryParse(_getPoints(_seniorsGrade(score))) ?? 9;
-          if (currentGradePoint == 9) {
-            hasGradeNine = true;
-          }
-
-          if (tempSubjectPerformance.containsKey(subjectName)) {
-            tempSubjectPerformance[subjectName]['totalStudents']++;
-
-            if (score >= 50) {
-              tempSubjectPerformance[subjectName]['totalPass']++;
-            } else {
-              tempSubjectPerformance[subjectName]['totalFail']++;
-            }
-          }
-
-          points.add(currentGradePoint);
-        }
-
-        if (points.isNotEmpty) {
-          points.sort();
-          int bestSixTotal = points.take(6).reduce((a, b) => a + b);
-
-          if (hasGradeNine || bestSixTotal >= 54) {
-            totalClassFail++;
-          }
-        }
-      }
-
-      tempSubjectPerformance.forEach((subject, data) {
-        if (data['totalStudents'] > 0) {
-          data['passRate'] = (data['totalPass'] / data['totalStudents'] * 100).round();
-        }
-      });
-
-      setState(() {
         subjectPerformance = tempSubjectPerformance;
-        classPerformance = {
-          'totalStudents': studentsSnapshot.docs.length,
-          'classPassRate': studentsSnapshot.docs.length > 0
-              ? ((studentsSnapshot.docs.length - totalClassFail) / studentsSnapshot.docs.length * 100).round()
-              : 0,
-          'totalClassFail': totalClassFail,
-        };
       });
     } catch (e) {
-      print("Error calculating performance metrics: $e");
-      throw Exception("Failed to calculate performance metrics: $e");
-    }
-  }
-
-  Future<void> _saveClassPerformanceData() async {
-    try {
-      final String basePath = 'Schools/${widget.schoolName}/Classes/$selectedClass';
-
-      // Save Class Summary
-      await _firestore.doc('$basePath/Class_Performance/Class_Summary').set({
-        'Total_Students': classPerformance['totalStudents'],
-        'Class_Pass_Rate': classPerformance['classPassRate'],
-        'Total_Class_Passed': classPerformance['totalStudents'] - classPerformance['totalClassFail'],
-        'Total_Class_Failed': classPerformance['totalClassFail'],
-        'lastUpdated': FieldValue.serverTimestamp(),
-        'updatedBy': userEmail,
-      }, SetOptions(merge: true));
-
-      // Save Subject Performance
-      for (String subject in subjects) {
-        final subjectData = subjectPerformance[subject];
-        if (subjectData != null) {
-          await _firestore.doc('$basePath/Class_Performance/Subject_Performance/Subject_Perfomance/$subject').set({
-            'Total_Students': subjectData['totalStudents'],
-            'Total_Pass': subjectData['totalPass'],
-            'Total_Fail': subjectData['totalFail'],
-            'Pass_Rate': subjectData['passRate'],
-            'lastUpdated': FieldValue.serverTimestamp(),
-            'updatedBy': userEmail,
-          }, SetOptions(merge: true));
-        }
-      }
-
-    } catch (e) {
-      print("Error saving class performance data: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error, color: Colors.white),
-                SizedBox(width: 8),
-                Expanded(child: Text('Error saving performance data: $e')),
-              ],
-            ),
-            backgroundColor: Colors.red[600],
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-    }
-  }
-
-  String _seniorsGrade(int score) {
-    if (score >= 90) return '1';
-    if (score >= 80) return '2';
-    if (score >= 75) return '3';
-    if (score >= 70) return '4';
-    if (score >= 65) return '5';
-    if (score >= 60) return '6';
-    if (score >= 55) return '7';
-    if (score >= 50) return '8';
-    return '9';
-  }
-
-  String _getPoints(String grade) {
-    switch (grade) {
-      case '1': return '1';
-      case '2': return '2';
-      case '3': return '3';
-      case '4': return '4';
-      case '5': return '5';
-      case '6': return '6';
-      case '7': return '7';
-      case '8': return '8';
-      default: return '9';
+      print("Error fetching subject performance: $e");
+      throw Exception("Failed to fetch subject performance: $e");
     }
   }
 
@@ -502,7 +328,59 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
   }
 
   Widget _buildClassSummary() {
-    final totalPassed = classPerformance['totalStudents'] - classPerformance['totalClassFail'];
+    // Check if data exists
+    final bool hasData = classPerformance['totalStudents'] > 0;
+
+    if (!hasData) {
+      return Container(
+        margin: EdgeInsets.all(16),
+        child: Card(
+          elevation: 12,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                colors: [Colors.orange[50]!, Colors.orange[100]!],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 48,
+                    color: Colors.orange[600],
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'No Performance Data Available',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange[800],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Performance data for this class has not been calculated yet.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.orange[700],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Container(
       margin: EdgeInsets.all(16),
@@ -573,7 +451,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                     Expanded(
                       child: _buildSummaryCard(
                         'Passed',
-                        totalPassed.toString(),
+                        classPerformance['totalClassPassed'].toString(),
                         Icons.check_circle_rounded,
                         Colors.green,
                       ),
@@ -582,7 +460,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                     Expanded(
                       child: _buildSummaryCard(
                         'Failed',
-                        classPerformance['totalClassFail'].toString(),
+                        classPerformance['totalClassFailed'].toString(),
                         Icons.cancel_rounded,
                         Colors.red,
                       ),
@@ -647,6 +525,58 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
   }
 
   Widget _buildSubjectPerformanceTable() {
+    // Check if subject data exists
+    if (subjects.isEmpty) {
+      return Container(
+        margin: EdgeInsets.all(16),
+        child: Card(
+          elevation: 12,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                colors: [Colors.orange[50]!, Colors.orange[100]!],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.subject_outlined,
+                    size: 48,
+                    color: Colors.orange[600],
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'No Subject Performance Data',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange[800],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Subject performance data for this class has not been calculated yet.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.orange[700],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       margin: EdgeInsets.all(16),
       child: Card(
@@ -932,17 +862,17 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-      title: Text(
-      'PERFORMANCE ANALYTICS',
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 18,
-        letterSpacing: 0.5,
-      ),
-    ),
-    elevation: 0,
-    backgroundColor: Colors.indigo[600],
-    foregroundColor: Colors.white,
+        title: Text(
+          'PERFORMANCE ANALYTICS',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            letterSpacing: 0.5,
+          ),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.indigo[600],
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: Icon(Icons.refresh_rounded),
@@ -1015,8 +945,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: EdgeInsets.symmetric(
-                    horizontal: 24, vertical: 14),
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               ),
               child: Text(
                 'Retry',
