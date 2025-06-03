@@ -377,6 +377,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
               Expanded(
                 child: _buildSummaryCard(
                   'Failed',
+
                   classPerformance['totalClassFailed'].toString(),
                   Icons.cancel_rounded,
                   Colors.red,
@@ -608,7 +609,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                           child: Text(
                             performance['totalStudents'].toString(),
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
                             textAlign: TextAlign.center,
@@ -623,7 +624,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                               style: TextStyle(
                                 color: Colors.green[700],
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                                fontSize: 14,
                               ),
                             ),
                           ),
@@ -637,7 +638,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                               style: TextStyle(
                                 color: Colors.red[700],
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                                fontSize: 14,
                               ),
                             ),
                           ),
@@ -651,7 +652,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                               style: TextStyle(
                                 color: Colors.blue[700],
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                                fontSize: 14,
                               ),
                             ),
                           ),
