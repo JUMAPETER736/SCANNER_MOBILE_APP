@@ -965,128 +965,6 @@ class _Student_SubjectsState extends State<Student_Subjects> {
 
                       print("Grade updated successfully for $actualStudentName in $subject");
 
-                      // *** IMMEDIATE INDIVIDUAL STUDENT RECALCULATION ***
-                      print("Starting individual student recalculation...");
-
-                      // Get all updated subjects for this student
-                      final subjectsSnapshot = await _firestore
-                          .collection('Schools')
-                          .doc(schoolName)
-                          .collection('Classes')
-                          .doc(className)
-                          .collection('Student_Details')
-                          .doc(actualStudentName)
-                          .collection('Student_Subjects')
-                          .get();
-
-                      if (isJunior) {
-                        // Recalculate junior student total marks
-                        int totalMarks = 0;
-                        int totalPossibleMarks = 0;
-
-                        for (var subjectDoc in subjectsSnapshot.docs) {
-                          var subjectData = subjectDoc.data() as Map<String, dynamic>? ?? {};
-                          if (subjectData.containsKey('Subject_Grade')) {
-                            var subjectGradeValue = subjectData['Subject_Grade'];
-
-                            if (subjectGradeValue == null ||
-                                subjectGradeValue.toString().toUpperCase() == 'N/A') {
-                              continue;
-                            }
-
-                            int subjectGrade = 0;
-                            if (subjectGradeValue is int) {
-                              subjectGrade = subjectGradeValue;
-                            } else if (subjectGradeValue is String) {
-                              subjectGrade = int.tryParse(subjectGradeValue) ?? 0;
-                            }
-
-                            if (subjectGrade > 0) {
-                              totalMarks += subjectGrade;
-                              totalPossibleMarks += 100;
-                            }
-                          }
-                        }
-
-                        String jceStatus = totalMarks >= 550 ? 'PASS' : 'FAIL';
-
-                        // Update student's total marks document
-                        DocumentReference marksRef = _firestore
-                            .collection('Schools')
-                            .doc(schoolName)
-                            .collection('Classes')
-                            .doc(className)
-                            .collection('Student_Details')
-                            .doc(actualStudentName)
-                            .collection('TOTAL_MARKS')
-                            .doc('Marks');
-
-                        Map<String, dynamic> updateData = {
-                          'Student_Total_Marks': totalMarks,
-                          'Teacher_Total_Marks': totalPossibleMarks,
-                          'JCE_Status': jceStatus,
-                        };
-
-                        await marksRef.set(updateData, SetOptions(merge: true));
-                        print("Junior Student $actualStudentName recalculated: $totalMarks/$totalPossibleMarks - $jceStatus");
-
-                      } else if (isSenior) {
-                        // Recalculate senior student best six
-                        List<int> subjectPoints = [];
-
-                        for (var subjectDoc in subjectsSnapshot.docs) {
-                          var subjectData = subjectDoc.data() as Map<String, dynamic>? ?? {};
-
-                          if (subjectData.containsKey('Subject_Grade')) {
-                            var subjectGradeValue = subjectData['Subject_Grade'];
-
-                            if (subjectGradeValue == null ||
-                                subjectGradeValue.toString().toUpperCase() == 'N/A') {
-                              continue;
-                            }
-
-                            int? subjectScore;
-                            if (subjectGradeValue is int) {
-                              subjectScore = subjectGradeValue;
-                            } else if (subjectGradeValue is String) {
-                              subjectScore = int.tryParse(subjectGradeValue);
-                            }
-
-                            if (subjectScore != null && subjectScore >= 0) {
-                              int gradePoint = int.parse(_getSeniorsGrade(subjectScore));
-                              subjectPoints.add(gradePoint);
-                            }
-                          }
-                        }
-
-                        Map<String, dynamic> msceResult = calculateMSCEAggregate(subjectPoints);
-                        int bestSixPoints = msceResult['points'];
-                        String msceStatus = msceResult['status'];
-                        String msceMessage = msceResult['message'];
-
-                        // Update student's total marks document
-                        DocumentReference marksRef = _firestore
-                            .collection('Schools')
-                            .doc(schoolName)
-                            .collection('Classes')
-                            .doc(className)
-                            .collection('Student_Details')
-                            .doc(actualStudentName)
-                            .collection('TOTAL_MARKS')
-                            .doc('Marks');
-
-                        Map<String, dynamic> updateData = {
-                          'Best_Six_Total_Points': bestSixPoints,
-                          'MSCE_Status': msceStatus,
-                          'MSCE_Message': msceMessage,
-                        };
-
-                        await marksRef.set(updateData, SetOptions(merge: true));
-                        print("Senior Student $actualStudentName recalculated: $bestSixPoints points - $msceStatus");
-                      }
-
-                      print("Individual student recalculation completed!");
-
                       // Update cached grade
                       this.setState(() {
                         _subjectGrades[subject] = newGrade;
@@ -1094,7 +972,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
 
                       Navigator.of(context).pop();
 
-                      // *** COMPREHENSIVE CLASS CALCULATIONS ***
+                      // *** CRITICAL: Run comprehensive calculations ***
                       print("Starting comprehensive calculations...");
 
                       // 1. Calculate subject positions
