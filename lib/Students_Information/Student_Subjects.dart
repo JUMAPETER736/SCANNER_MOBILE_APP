@@ -769,7 +769,6 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     }
   }
 
-// Replace your existing _updateGrade method with this enhanced version
   Future<void> _updateGrade(String subject) async {
     String newGrade = '';
     String errorMessage = '';
@@ -861,29 +860,157 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                   setState(() {
                     errorMessage = 'Please enter a valid grade (numeric value)';
                   });
-                  return;
                 } else if (int.parse(newGrade) < 0) {
                   setState(() {
                     errorMessage = 'Grade cannot be less than 0';
                   });
-                  return;
                 } else if (int.parse(newGrade) > 100) {
                   setState(() {
                     errorMessage = 'Grade cannot be greater than 100';
                   });
-                  return;
+                } else {
+                  try {
+                    final currentUser = FirebaseAuth.instance.currentUser;
+                    if (currentUser == null) return;
+
+                    final userRef = _firestore.collection('Teachers_Details').doc(currentUser.email);
+                    final docSnapshot = await userRef.get();
+
+                    if (docSnapshot.exists) {
+                      String schoolName = (docSnapshot['school'] ?? '').trim();
+                      String className = widget.studentClass.trim();
+                      String studentName = widget.studentName.trim();
+
+                      // Handle name variations
+                      List<String> nameParts = studentName.split(" ");
+                      String reversedName = nameParts.length == 2
+                          ? "${nameParts[1]} ${nameParts[0]}"
+                          : studentName;
+
+                      final studentRefNormal = _firestore
+                          .collection('Schools')
+                          .doc(schoolName)
+                          .collection('Classes')
+                          .doc(className)
+                          .collection('Student_Details')
+                          .doc(studentName);
+
+                      final studentRefReversed = _firestore
+                          .collection('Schools')
+                          .doc(schoolName)
+                          .collection('Classes')
+                          .doc(className)
+                          .collection('Student_Details')
+                          .doc(reversedName);
+
+                      final studentSnapshotNormal = await studentRefNormal.get();
+                      final studentSnapshotReversed = await studentRefReversed.get();
+
+                      DocumentReference studentRef;
+                      String actualStudentName;
+                      if (studentSnapshotNormal.exists) {
+                        studentRef = studentRefNormal;
+                        actualStudentName = studentName;
+                      } else if (studentSnapshotReversed.exists) {
+                        studentRef = studentRefReversed;
+                        actualStudentName = reversedName;
+                      } else {
+                        print("Student document not found for either name variation");
+                        return;
+                      }
+
+                      final subjectRef = studentRef.collection('Student_Subjects').doc(subject);
+                      int gradeInt = int.parse(newGrade);
+
+                      final subjectSnapshot = await subjectRef.get();
+                      Map<String, dynamic> existingData = {};
+
+                      if (subjectSnapshot.exists) {
+                        existingData = subjectSnapshot.data() as Map<String, dynamic>? ?? {};
+                      }
+
+                      // Determine if student is Senior or Junior based on class
+                      bool isSenior = className.toUpperCase() == 'FORM 3' || className.toUpperCase() == 'FORM 4';
+                      bool isJunior = className.toUpperCase() == 'FORM 1' || className.toUpperCase() == 'FORM 2';
+
+                      Map<String, dynamic> dataToSave = {
+                        'Subject_Grade': newGrade,
+                        'Subject_Name': subject, // Ensure subject name is saved
+                      };
+
+                      if (isSenior) {
+                        // Senior system (FORM 3 & 4)
+                        String gradePoint = _getSeniorsGrade(gradeInt);
+                        String remark = _getSeniorsRemark(gradePoint);
+
+                        dataToSave.addAll({
+                          'Grade_Point': int.parse(gradePoint),
+                          'Grade_Remark': remark,
+                        });
+
+                      } else if (isJunior) {
+                        // Junior system (FORM 1 & 2)
+                        String gradeLetter = _getJuniorsGrade(gradeInt);
+                        String remark = _getJuniorsRemark(gradeLetter);
+
+                        dataToSave.addAll({
+                          'Grade_Letter': gradeLetter,
+                          'Grade_Remark': remark,
+                        });
+                      }
+
+                      // Merge with existing data and save
+                      existingData.addAll(dataToSave);
+                      await subjectRef.set(existingData, SetOptions(merge: true));
+
+                      print("Grade updated successfully for $actualStudentName in $subject");
+
+                      // Update cached grade
+                      this.setState(() {
+                        _subjectGrades[subject] = newGrade;
+                      });
+
+                      Navigator.of(context).pop();
+
+                      // *** CRITICAL: Run comprehensive calculations ***
+                      print("Starting comprehensive calculations...");
+
+                      // 1. Calculate subject positions
+                      await _calculateSubjectStatsAndPosition(schoolName, className);
+                      print("Position calculation completed!");
+
+                      // 2. Process all students for total marks and status
+                      await _processAllStudentsInClass(schoolName, className);
+                      print("Student data processing completed!");
+
+                      // 3. Calculate and save class performance (NEW)
+                      await _runCompleteClassPerformanceCalculation(schoolName, className);
+                      print("Class performance calculation completed!");
+
+                      // Refresh the main widget state
+                      this.setState(() {});
+
+                      // Show success message
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Grade updated successfully! All calculations and class performance analysis completed.'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 4),
+                        ),
+                      );
+
+                    }
+                  } catch (e) {
+                    print('Error updating Subject Grade: $e');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error updating grade. Please try again.'),
+                        backgroundColor: Colors.red,
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                  }
                 }
-
-                // Close the dialog immediately after validation
-                Navigator.of(context).pop();
-
-                // Update cached grade immediately for instant UI feedback
-                setState(() {
-                  _subjectGrades[subject] = newGrade;
-                });
-
-                // Perform all calculations in the background silently
-                _performBackgroundCalculations(subject, newGrade);
               },
             ),
           ],
@@ -892,239 +1019,14 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     );
   }
 
-// Separate method to handle all background calculations
-  Future<void> _performBackgroundCalculations(String subject, String newGrade) async {
-    try {
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) return;
 
-      final userRef = _firestore.collection('Teachers_Details').doc(currentUser.email);
-      final docSnapshot = await userRef.get();
-
-      if (docSnapshot.exists) {
-        String schoolName = (docSnapshot['school'] ?? '').trim();
-        String className = widget.studentClass.trim();
-        String studentName = widget.studentName.trim();
-
-        // Handle name variations
-        List<String> nameParts = studentName.split(" ");
-        String reversedName = nameParts.length == 2
-            ? "${nameParts[1]} ${nameParts[0]}"
-            : studentName;
-
-        final studentRefNormal = _firestore
-            .collection('Schools')
-            .doc(schoolName)
-            .collection('Classes')
-            .doc(className)
-            .collection('Student_Details')
-            .doc(studentName);
-
-        final studentRefReversed = _firestore
-            .collection('Schools')
-            .doc(schoolName)
-            .collection('Classes')
-            .doc(className)
-            .collection('Student_Details')
-            .doc(reversedName);
-
-        final studentSnapshotNormal = await studentRefNormal.get();
-        final studentSnapshotReversed = await studentRefReversed.get();
-
-        DocumentReference studentRef;
-        String actualStudentName;
-        if (studentSnapshotNormal.exists) {
-          studentRef = studentRefNormal;
-          actualStudentName = studentName;
-        } else if (studentSnapshotReversed.exists) {
-          studentRef = studentRefReversed;
-          actualStudentName = reversedName;
-        } else {
-          print("Student document not found for either name variation");
-          return;
-        }
-
-        final subjectRef = studentRef.collection('Student_Subjects').doc(subject);
-        int gradeInt = int.parse(newGrade);
-
-        final subjectSnapshot = await subjectRef.get();
-        Map<String, dynamic> existingData = {};
-
-        if (subjectSnapshot.exists) {
-          existingData = subjectSnapshot.data() as Map<String, dynamic>? ?? {};
-        }
-
-        // Determine if student is Senior or Junior based on class
-        bool isSenior = className.toUpperCase() == 'FORM 3' || className.toUpperCase() == 'FORM 4';
-        bool isJunior = className.toUpperCase() == 'FORM 1' || className.toUpperCase() == 'FORM 2';
-
-        Map<String, dynamic> dataToSave = {
-          'Subject_Grade': newGrade,
-          'Subject_Name': subject,
-          'lastUpdated': FieldValue.serverTimestamp(),
-        };
-
-        if (isSenior) {
-          // Senior system (FORM 3 & 4)
-          String gradePoint = _getSeniorsGrade(gradeInt);
-          String remark = _getSeniorsRemark(gradePoint);
-
-          dataToSave.addAll({
-            'Grade_Point': int.parse(gradePoint),
-            'Grade_Remark': remark,
-          });
-
-        } else if (isJunior) {
-          // Junior system (FORM 1 & 2)
-          String gradeLetter = _getJuniorsGrade(gradeInt);
-          String remark = _getJuniorsRemark(gradeLetter);
-
-          dataToSave.addAll({
-            'Grade_Letter': gradeLetter,
-            'Grade_Remark': remark,
-          });
-        }
-
-        // Merge with existing data and save
-        existingData.addAll(dataToSave);
-        await subjectRef.set(existingData, SetOptions(merge: true));
-
-        print("Grade updated successfully for $actualStudentName in $subject");
-
-        // *** COMPREHENSIVE SYSTEM UPDATE (All in background) ***
-        print("Starting comprehensive system updates in background...");
-
-        // 1. Update individual student's totals and aggregates
-        await _processStudentData(schoolName, className, actualStudentName);
-        print("✓ Student individual calculations completed");
-
-        // 2. Calculate subject positions for all students
-        await _calculateSubjectStatsAndPosition(schoolName, className);
-        print("✓ Subject positioning completed");
-
-        // 3. Process all students in class for comprehensive totals
-        await _processAllStudentsInClass(schoolName, className);
-        print("✓ All students processing completed");
-
-        // 4. Calculate and update class performance metrics
-        await _runCompleteClassPerformanceCalculation(schoolName, className);
-        print("✓ Class performance analysis completed");
-
-        // 5. Update class ranking/positioning
-        await _updateClassRankings(schoolName, className);
-        print("✓ Class rankings updated");
-
-        print("All system updates completed successfully in background!");
-      }
-    } catch (e) {
-      print('Error updating Subject Grade in background: $e');
-      // Optionally, you could show a subtle notification or update some UI state
-      // to indicate there was an error, but without interrupting the user experience
-    }
-  }
-
-
-// Add this new method for updating class rankings
-  Future<void> _updateClassRankings(String schoolName, String className) async {
-    try {
-      print("Updating class rankings...");
-
-      bool isSenior = className.toUpperCase() == 'FORM 3' || className.toUpperCase() == 'FORM 4';
-      bool isJunior = className.toUpperCase() == 'FORM 1' || className.toUpperCase() == 'FORM 2';
-
-      // Get all students with their total marks
-      final studentsSnapshot = await _firestore
-          .collection('Schools')
-          .doc(schoolName)
-          .collection('Classes')
-          .doc(className)
-          .collection('Student_Details')
-          .get();
-
-      List<Map<String, dynamic>> studentRankingData = [];
-
-      for (var studentDoc in studentsSnapshot.docs) {
-        String studentName = studentDoc.id;
-
-        final marksDoc = await _firestore
-            .collection('Schools')
-            .doc(schoolName)
-            .collection('Classes')
-            .doc(className)
-            .collection('Student_Details')
-            .doc(studentName)
-            .collection('TOTAL_MARKS')
-            .doc('Marks')
-            .get();
-
-        if (marksDoc.exists) {
-          var marksData = marksDoc.data() as Map<String, dynamic>;
-
-          if (isSenior) {
-            int bestSixPoints = marksData['Best_Six_Total_Points'] ?? 999;
-            studentRankingData.add({
-              'studentName': studentName,
-              'totalScore': bestSixPoints,
-              'ref': marksDoc.reference,
-            });
-          } else if (isJunior) {
-            int totalMarks = marksData['Student_Total_Marks'] ?? 0;
-            studentRankingData.add({
-              'studentName': studentName,
-              'totalScore': totalMarks,
-              'ref': marksDoc.reference,
-            });
-          }
-        }
-      }
-
-      // Sort students by score
-      if (isSenior) {
-        // For seniors, lower points = better rank
-        studentRankingData.sort((a, b) => a['totalScore'].compareTo(b['totalScore']));
-      } else {
-        // For juniors, higher marks = better rank
-        studentRankingData.sort((a, b) => b['totalScore'].compareTo(a['totalScore']));
-      }
-
-      // Update rankings
-      for (int i = 0; i < studentRankingData.length; i++) {
-        int position = i + 1;
-
-        // Handle ties
-        if (i > 0 && studentRankingData[i]['totalScore'] == studentRankingData[i-1]['totalScore']) {
-          // Find the position of the previous non-tie
-          int j = i - 1;
-          while (j >= 0 && studentRankingData[j]['totalScore'] == studentRankingData[i]['totalScore']) {
-            j--;
-          }
-          position = j + 2; // Position after the last different score
-        }
-
-        // Update student's ranking
-        await studentRankingData[i]['ref'].update({
-          'Class_Position': position,
-          'Total_Students_in_Class': studentRankingData.length,
-          'lastRankingUpdate': FieldValue.serverTimestamp(),
-        });
-      }
-
-      print("Class rankings updated successfully!");
-    } catch (e) {
-      print("Error updating class rankings: $e");
-    }
-  }
-
-
-
-
-  @override
   @override
   void initState() {
     super.initState();
     _fetchSubjects();
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
