@@ -773,12 +773,15 @@ class _Student_SubjectsState extends State<Student_Subjects> {
         'updatedBy': userEmail,
       }, SetOptions(merge: true));
 
-      // Save each subject's performance - FIXED: Use sanitized subject names as document IDs
+      // FIXED: Save each subject's performance with correct path structure
       for (String subject in subjectPerformance.keys) {
         var subjectData = subjectPerformance[subject];
-        String sanitizedSubjectName = _sanitizeDocumentId(subject);
 
-        await _firestore.doc('$basePath/Class_Performance/Subject_Performance/$sanitizedSubjectName').set({
+        // FIXED: Use original subject name (with spaces) for the document path
+        // This matches your desired path: /Subject_Performance/Subject_Perfomance/BIBLE KNOWLEDGE
+        await _firestore
+            .doc('$basePath/Class_Performance/Subject_Performance/Subject_Perfomance/$subject')
+            .set({
           'Subject_Name': subject, // Keep original name for display
           'Total_Students': subjectData['totalStudents'],
           'Total_Pass': subjectData['totalPass'],
@@ -788,6 +791,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
           'lastUpdated': FieldValue.serverTimestamp(),
           'updatedBy': userEmail,
         }, SetOptions(merge: true));
+
+        print("Saved performance for subject: $subject");
+        print("Path: $basePath/Class_Performance/Subject_Performance/Subject_Perfomance/$subject");
       }
 
       print("Class Performance saved to Firestore successfully!");
