@@ -156,7 +156,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
 
   Future<void> _fetchSubjectPerformance() async {
     try {
-      final String subjectPerformancePath = 'Schools/${widget.schoolName}/Classes/$selectedClass/Class_Performance/Subject_Performance/Subject_Perfomance';
+      final String subjectPerformancePath = 'Schools/${widget.schoolName}/Classes/$selectedClass/Class_Performance/Subject_Performance/Subject_Performance';
 
       QuerySnapshot subjectPerformanceSnapshot = await _firestore.collection(subjectPerformancePath).get();
 
