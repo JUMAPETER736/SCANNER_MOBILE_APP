@@ -147,21 +147,61 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
     List<Map<String, dynamic>> sortedStudents = List.from(students);
 
     if (classId == 'FORM 1' || classId == 'FORM 2') {
-      // For juniors: higher marks first (descending order)
-      sortedStudents.sort((a, b) =>
-          _safeToInt(b['Student_Total_Marks']).compareTo(_safeToInt(a['Student_Total_Marks'])));
+      // For juniors: higher marks first (descending order), but put 0 marks at the bottom
+      sortedStudents.sort((a, b) {
+        int marksA = _safeToInt(a['Student_Total_Marks']);
+        int marksB = _safeToInt(b['Student_Total_Marks']);
+        String statusA = (a['JCE_Status'] as String?) ?? 'Unknown';
+        String statusB = (b['JCE_Status'] as String?) ?? 'Unknown';
+
+        // Put N/A status students at the bottom
+        if (statusA == 'N/A' && statusB != 'N/A') {
+          return 1; // A goes after B
+        } else if (statusA != 'N/A' && statusB == 'N/A') {
+          return -1; // B goes after A
+        }
+
+        // Put 0 marks students at the bottom (but above N/A if both are not N/A)
+        if (marksA == 0 && marksB > 0 && statusA != 'N/A' && statusB != 'N/A') {
+          return 1; // A goes after B
+        } else if (marksA > 0 && marksB == 0 && statusA != 'N/A' && statusB != 'N/A') {
+          return -1; // B goes after A
+        }
+
+        // For students with actual marks, sort by marks (descending)
+        return marksB.compareTo(marksA);
+      });
     } else if (classId == 'FORM 3' || classId == 'FORM 4') {
-      // For seniors: Custom sorting logic
+      // For seniors: Custom sorting logic with N/A and 0 points at bottom
       sortedStudents.sort((a, b) {
         String statusA = (a['MSCE_Status'] as String?) ?? 'Unknown';
         String statusB = (b['MSCE_Status'] as String?) ?? 'Unknown';
         int pointsA = _safeToInt(a['Best_Six_Total_Points']);
         int pointsB = _safeToInt(b['Best_Six_Total_Points']);
 
-        // First priority: PASS status students come first
-        if (statusA == 'PASS' && statusB != 'PASS') {
+        // First, handle N/A status - put them at the very bottom
+        if (statusA == 'N/A' && statusB != 'N/A') {
+          return 1; // A goes after B
+        } else if (statusA != 'N/A' && statusB == 'N/A') {
+          return -1; // B goes after A
+        }
+
+        // If both are N/A, sort by points (lower points still better among N/A)
+        if (statusA == 'N/A' && statusB == 'N/A') {
+          return pointsA.compareTo(pointsB);
+        }
+
+        // Handle 0 points students (but not N/A) - put them after regular students but before N/A
+        if (pointsA == 0 && pointsB > 0 && statusA != 'N/A' && statusB != 'N/A') {
+          return 1; // A goes after B
+        } else if (pointsA > 0 && pointsB == 0 && statusA != 'N/A' && statusB != 'N/A') {
+          return -1; // B goes after A
+        }
+
+        // PASS status students come first (among non-zero, non-N/A students)
+        if (statusA == 'PASS' && statusB != 'PASS' && pointsA > 0 && pointsB > 0) {
           return -1; // A comes before B
-        } else if (statusA != 'PASS' && statusB == 'PASS') {
+        } else if (statusA != 'PASS' && statusB == 'PASS' && pointsA > 0 && pointsB > 0) {
           return 1; // B comes before A
         }
 
@@ -170,8 +210,8 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
           return pointsA.compareTo(pointsB);
         }
 
-        // If both have STATEMENT or other status, sort by points (lower is still better)
-        if (statusA != 'PASS' && statusB != 'PASS') {
+        // If both have STATEMENT or other status (but not N/A), sort by points (lower is still better)
+        if (statusA != 'PASS' && statusB != 'PASS' && statusA != 'N/A' && statusB != 'N/A') {
           return pointsA.compareTo(pointsB);
         }
 
@@ -181,7 +221,6 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
 
     return sortedStudents;
   }
-
   // Method to calculate and assign class positions
   List<Map<String, dynamic>> _assignClassPositions(List<Map<String, dynamic>> students, String classId) {
     if (students.isEmpty) return students;
