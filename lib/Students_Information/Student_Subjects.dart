@@ -12,26 +12,11 @@ class Student_Subjects extends StatefulWidget {
     required this.studentClass,
   }) : super(key: key);
 
-
-
-
   @override
   _Student_SubjectsState createState() => _Student_SubjectsState();
 }
 
 class _Student_SubjectsState extends State<Student_Subjects> {
-
-  // Helper method to sanitize document IDs
-  String _sanitizeDocumentId(String input) {
-    // Keep capital letters but replace spaces and special characters with underscores
-    return input
-        .trim()
-        .replaceAll(RegExp(r'\s+'), '_')  // Replace spaces with underscores
-        .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_')  // Replace special chars with underscores
-        .replaceAll(RegExp(r'_+'), '_')  // Replace multiple underscores with single
-        .replaceAll(RegExp(r'^_|_$'), '');  // Remove leading/trailing underscores
-  }
-
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<String> _subjects = [];
   List<String> _userSubjects = [];
@@ -277,43 +262,19 @@ class _Student_SubjectsState extends State<Student_Subjects> {
 
           positions[currentStudentName] = currentPosition;
 
-          // FIXED: Sanitize the subject name for use as document ID
-          String sanitizedSubjectName = _sanitizeDocumentId(subjectName);
-
           // Update the position in Firestore for each student
           try {
             await _firestore
-                .doc('Schools/$schoolName/Classes/$className/Student_Details/$currentStudentName/Student_Subjects/$sanitizedSubjectName')
+                .doc('Schools/$schoolName/Classes/$className/Student_Details/$currentStudentName/Student_Subjects/$subjectName')
                 .update({
               'Subject_Position': currentPosition,
-              'Total_Students_Subject': studentList.length,
-              'Subject_Name': subjectName, // Keep original name for display
+              'Total_Students_Subject': studentList.length, // Only count students who actually take the subject
               'lastUpdated': FieldValue.serverTimestamp(),
             });
 
             print("Updated Position for $currentStudentName in $subjectName: Position $currentPosition of ${studentList.length}");
           } catch (e) {
             print("Error updating Position for $currentStudentName in $subjectName: $e");
-
-            // Fallback: Try to find existing document with different ID format
-            try {
-              final subjectDocsSnapshot = await _firestore
-                  .collection('Schools/$schoolName/Classes/$className/Student_Details/$currentStudentName/Student_Subjects')
-                  .where('Subject_Name', isEqualTo: subjectName)
-                  .get();
-
-              if (subjectDocsSnapshot.docs.isNotEmpty) {
-                // Update the existing document
-                await subjectDocsSnapshot.docs.first.reference.update({
-                  'Subject_Position': currentPosition,
-                  'Total_Students_Subject': studentList.length,
-                  'lastUpdated': FieldValue.serverTimestamp(),
-                });
-                print("Updated Position using fallback method for $currentStudentName in $subjectName");
-              }
-            } catch (fallbackError) {
-              print("Fallback update also failed for $currentStudentName in $subjectName: $fallbackError");
-            }
           }
         }
       }
@@ -688,8 +649,6 @@ class _Student_SubjectsState extends State<Student_Subjects> {
               'totalPass': 0,
               'totalFail': 0,
               'passRate': 0.0,
-              'totalMarks': 0,        // ADD THIS
-              'subjectAverage': 0,    // ADD THIS
             };
           }
 
@@ -706,7 +665,6 @@ class _Student_SubjectsState extends State<Student_Subjects> {
           }
 
           subjectPerformanceData[subjectName]!['totalStudents']++;
-          subjectPerformanceData[subjectName]!['totalMarks'] += grade;
 
           if (subjectPassed) {
             subjectPerformanceData[subjectName]!['totalPass']++;
@@ -720,11 +678,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       subjectPerformanceData.forEach((subject, data) {
         int totalStudentsInSubject = data['totalStudents'];
         int totalPassInSubject = data['totalPass'];
-        int totalMarksInSubject = data['totalMarks'];
 
         if (totalStudentsInSubject > 0) {
           data['passRate'] = (totalPassInSubject / totalStudentsInSubject * 100).round();
-          data['subjectAverage'] = (totalMarksInSubject / totalStudentsInSubject).round();
         }
       });
 
@@ -773,27 +729,19 @@ class _Student_SubjectsState extends State<Student_Subjects> {
         'updatedBy': userEmail,
       }, SetOptions(merge: true));
 
-      // FIXED: Save each subject's performance with correct path structure
+      // Save each subject's performance
       for (String subject in subjectPerformance.keys) {
         var subjectData = subjectPerformance[subject];
 
-        // FIXED: Use original subject name (with spaces) for the document path
-        // This matches your desired path: /Subject_Performance/Subject_Perfomance/BIBLE KNOWLEDGE
-        await _firestore
-            .doc('$basePath/Class_Performance/Subject_Performance/Subject_Perfomance/$subject')
-            .set({
-          'Subject_Name': subject, // Keep original name for display
+        await _firestore.doc('$basePath/Class_Performance/Subject_Performance/$subject').set({
+          'Subject_Name': subject,
           'Total_Students': subjectData['totalStudents'],
           'Total_Pass': subjectData['totalPass'],
           'Total_Fail': subjectData['totalFail'],
           'Pass_Rate': subjectData['passRate'],
-          'Class_Subject_Average': subjectData['subjectAverage'],
           'lastUpdated': FieldValue.serverTimestamp(),
           'updatedBy': userEmail,
         }, SetOptions(merge: true));
-
-        print("Saved performance for subject: $subject");
-        print("Path: $basePath/Class_Performance/Subject_Performance/Subject_Perfomance/$subject");
       }
 
       print("Class Performance saved to Firestore successfully!");
@@ -971,8 +919,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                         return;
                       }
 
-                      final subjectRef = studentRef.collection('Student_Subjects').doc(_sanitizeDocumentId(subject));
-
+                      final subjectRef = studentRef.collection('Student_Subjects').doc(subject);
                       int gradeInt = int.parse(newGrade);
 
                       final subjectSnapshot = await subjectRef.get();
