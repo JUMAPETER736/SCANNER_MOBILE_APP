@@ -12,11 +12,26 @@ class Student_Subjects extends StatefulWidget {
     required this.studentClass,
   }) : super(key: key);
 
+
+
+
   @override
   _Student_SubjectsState createState() => _Student_SubjectsState();
 }
 
 class _Student_SubjectsState extends State<Student_Subjects> {
+
+  // Helper method to sanitize document IDs
+  String _sanitizeDocumentId(String input) {
+    // Keep capital letters but replace spaces and special characters with underscores
+    return input
+        .trim()
+        .replaceAll(RegExp(r'\s+'), '_')  // Replace spaces with underscores
+        .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_')  // Replace special chars with underscores
+        .replaceAll(RegExp(r'_+'), '_')  // Replace multiple underscores with single
+        .replaceAll(RegExp(r'^_|_$'), '');  // Remove leading/trailing underscores
+  }
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<String> _subjects = [];
   List<String> _userSubjects = [];
@@ -262,19 +277,43 @@ class _Student_SubjectsState extends State<Student_Subjects> {
 
           positions[currentStudentName] = currentPosition;
 
+          // FIXED: Sanitize the subject name for use as document ID
+          String sanitizedSubjectName = _sanitizeDocumentId(subjectName);
+
           // Update the position in Firestore for each student
           try {
             await _firestore
-                .doc('Schools/$schoolName/Classes/$className/Student_Details/$currentStudentName/Student_Subjects/$subjectName')
+                .doc('Schools/$schoolName/Classes/$className/Student_Details/$currentStudentName/Student_Subjects/$sanitizedSubjectName')
                 .update({
               'Subject_Position': currentPosition,
-              'Total_Students_Subject': studentList.length, // Only count students who actually take the subject
+              'Total_Students_Subject': studentList.length,
+              'Subject_Name': subjectName, // Keep original name for display
               'lastUpdated': FieldValue.serverTimestamp(),
             });
 
             print("Updated Position for $currentStudentName in $subjectName: Position $currentPosition of ${studentList.length}");
           } catch (e) {
             print("Error updating Position for $currentStudentName in $subjectName: $e");
+
+            // Fallback: Try to find existing document with different ID format
+            try {
+              final subjectDocsSnapshot = await _firestore
+                  .collection('Schools/$schoolName/Classes/$className/Student_Details/$currentStudentName/Student_Subjects')
+                  .where('Subject_Name', isEqualTo: subjectName)
+                  .get();
+
+              if (subjectDocsSnapshot.docs.isNotEmpty) {
+                // Update the existing document
+                await subjectDocsSnapshot.docs.first.reference.update({
+                  'Subject_Position': currentPosition,
+                  'Total_Students_Subject': studentList.length,
+                  'lastUpdated': FieldValue.serverTimestamp(),
+                });
+                print("Updated Position using fallback method for $currentStudentName in $subjectName");
+              }
+            } catch (fallbackError) {
+              print("Fallback update also failed for $currentStudentName in $subjectName: $fallbackError");
+            }
           }
         }
       }
@@ -734,17 +773,18 @@ class _Student_SubjectsState extends State<Student_Subjects> {
         'updatedBy': userEmail,
       }, SetOptions(merge: true));
 
-      // Save each subject's performance
+      // Save each subject's performance - FIXED: Use sanitized subject names as document IDs
       for (String subject in subjectPerformance.keys) {
         var subjectData = subjectPerformance[subject];
+        String sanitizedSubjectName = _sanitizeDocumentId(subject);
 
-        await _firestore.doc('$basePath/Class_Performance/Subject_Performance/$subject').set({
-          'Subject_Name': subject,
+        await _firestore.doc('$basePath/Class_Performance/Subject_Performance/$sanitizedSubjectName').set({
+          'Subject_Name': subject, // Keep original name for display
           'Total_Students': subjectData['totalStudents'],
           'Total_Pass': subjectData['totalPass'],
           'Total_Fail': subjectData['totalFail'],
           'Pass_Rate': subjectData['passRate'],
-          'Class_Subject_Average': subjectData['subjectAverage'], // ADD THIS LINE
+          'Class_Subject_Average': subjectData['subjectAverage'],
           'lastUpdated': FieldValue.serverTimestamp(),
           'updatedBy': userEmail,
         }, SetOptions(merge: true));
@@ -925,7 +965,8 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                         return;
                       }
 
-                      final subjectRef = studentRef.collection('Student_Subjects').doc(subject);
+                      final subjectRef = studentRef.collection('Student_Subjects').doc(_sanitizeDocumentId(subject));
+
                       int gradeInt = int.parse(newGrade);
 
                       final subjectSnapshot = await subjectRef.get();
