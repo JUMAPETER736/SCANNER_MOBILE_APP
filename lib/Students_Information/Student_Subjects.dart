@@ -649,6 +649,8 @@ class _Student_SubjectsState extends State<Student_Subjects> {
               'totalPass': 0,
               'totalFail': 0,
               'passRate': 0.0,
+              'totalMarks': 0,        // ADD THIS
+              'subjectAverage': 0,    // ADD THIS
             };
           }
 
@@ -665,6 +667,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
           }
 
           subjectPerformanceData[subjectName]!['totalStudents']++;
+          subjectPerformanceData[subjectName]!['totalMarks'] += grade;
 
           if (subjectPassed) {
             subjectPerformanceData[subjectName]!['totalPass']++;
@@ -678,9 +681,11 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       subjectPerformanceData.forEach((subject, data) {
         int totalStudentsInSubject = data['totalStudents'];
         int totalPassInSubject = data['totalPass'];
+        int totalMarksInSubject = data['totalMarks'];
 
         if (totalStudentsInSubject > 0) {
           data['passRate'] = (totalPassInSubject / totalStudentsInSubject * 100).round();
+          data['subjectAverage'] = (totalMarksInSubject / totalStudentsInSubject).round();
         }
       });
 
@@ -739,6 +744,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
           'Total_Pass': subjectData['totalPass'],
           'Total_Fail': subjectData['totalFail'],
           'Pass_Rate': subjectData['passRate'],
+          'Class_Subject_Average': subjectData['subjectAverage'], // ADD THIS LINE
           'lastUpdated': FieldValue.serverTimestamp(),
           'updatedBy': userEmail,
         }, SetOptions(merge: true));
