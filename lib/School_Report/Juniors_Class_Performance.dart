@@ -693,7 +693,6 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-
       appBar: AppBar(
         title: Text(
           'PERFORMANCE ANALYTICS',
@@ -701,23 +700,14 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
             fontWeight: FontWeight.bold,
             fontSize: 18,
             letterSpacing: 0.5,
-            color: Colors.white,  // Add explicit color
           ),
         ),
         elevation: 0,
         backgroundColor: Colors.blueAccent[600],
-        foregroundColor: Colors.white,  // Change this line
-        leading: IconButton(  // Add custom back button with safety check
-          icon: Icon(Icons.arrow_back),
-          onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            }
-          },
-        ),
+        foregroundColor: Colors.blueAccent,
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh_rounded, color: Colors.white),  // Add explicit color
+            icon: Icon(Icons.refresh_rounded),
             onPressed: () {
               setState(() {
                 isLoading = true;
@@ -729,7 +719,6 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
           ),
         ],
       ),
-
       body: isLoading
           ? Center(
         child: Column(

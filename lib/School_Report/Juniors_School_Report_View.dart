@@ -672,24 +672,14 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     // Handle error messages
     if (errorMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {  // Add this safety check
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.error, color: Colors.white),
-                  SizedBox(width: 8),
-                  Expanded(child: Text(errorMessage!)),
-                ],
-              ),
-              backgroundColor: Colors.red[600],
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              duration: Duration(seconds: 3),
-            ),
-          );
-          setState(() => errorMessage = null);
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage!),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        setState(() => errorMessage = null);
       });
     }
 
