@@ -290,7 +290,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
   Map<String, dynamic> calculateMSCEAggregate(List<int> subjectPoints) {
     if (subjectPoints.length < 6) {
       return {
-        'status': 'Subjects < 6',
+        'status': 'STATEMENT',
         'points': 0,
         'message': 'Insufficient Subjects (less than 6)'
       };
