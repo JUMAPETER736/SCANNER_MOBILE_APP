@@ -26,8 +26,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   List<Map<String, dynamic>> subjects = [];
   Map<String, dynamic> totalMarks = {};
   Map<String, dynamic> subjectStats = {};
-  Map<String, dynamic> classSubjectAverages = {};
-
 
   // Student info
   int studentPosition = 0;
@@ -295,40 +293,16 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
 
   Future<void> _fetchSubjectStats(String school, String studentClass) async {
     try {
-      // Fetch from the new path for Class_Subject_Average
-      final basePath = 'Schools/$school/Classes/$studentClass/Student_Details/${widget.studentFullName}';
+      final statsDoc = await _firestore
+          .doc('Schools/$school/Classes/$studentClass/Class_Statistics/subject_averages')
+          .get();
 
-      // Get all subjects for this student
-      final subjectsSnapshot = await _firestore.collection('$basePath/Student_Subjects').get();
-
-      Map<String, dynamic> subjectAverages = {};
-
-      // For each subject, fetch its Class_Subject_Average
-      for (var subjectDoc in subjectsSnapshot.docs) {
-        final subjectName = subjectDoc.data()['Subject_Name'] ?? subjectDoc.id;
-
-        try {
-          final subjectPerfDoc = await _firestore
-              .doc('$basePath/Class_Performance/Subject_Performance/$subjectName')
-              .get();
-
-          if (subjectPerfDoc.exists) {
-            final data = subjectPerfDoc.data() as Map<String, dynamic>;
-            subjectAverages[subjectName] = {
-              'average': (data['Class_Subject_Average'] as num?)?.toDouble() ?? 0.0,
-            };
-          }
-        } catch (e) {
-          print("Error fetching subject performance for $subjectName: $e");
-          // Set default if there's an error
-          subjectAverages[subjectName] = {'average': 0.0};
-        }
+      if (statsDoc.exists) {
+        final data = statsDoc.data() as Map<String, dynamic>;
+        setState(() {
+          subjectStats = data;
+        });
       }
-
-      setState(() {
-        subjectStats = subjectAverages;
-        classSubjectAverages = subjectAverages;
-      });
     } catch (e) {
       print("Error fetching subject statistics: $e");
     }
@@ -500,13 +474,8 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 ? subj['gradeLetter']
                 : Juniors_Grade(score);
             final remark = getRemark(grade);
-
-            // Updated to use Class_Subject_Average
-            final subjectStat = classSubjectAverages[subjectName];
-            final avg = subjectStat != null
-                ? (subjectStat['average'] as num?)?.toStringAsFixed(1) ?? '0.0'
-                : '0.0';
-
+            final subjectStat = subjectStats[subjectName];
+            final avg = subjectStat != null ? (subjectStat['average'] as num?)?.toInt() ?? 0 : 0;
             final subjectPosition = subj['position'] as int? ?? 0;
             final totalStudentsForSubject = subj['totalStudents'] as int? ?? 0;
 
@@ -515,15 +484,13 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 _tableCell(subjectName),
                 _tableCell(score.toString()),
                 _tableCell(grade),
-                _tableCell(avg), // This will now show the Class_Subject_Average
+                _tableCell(avg.toString()),
                 _tableCell(subjectPosition > 0 ? subjectPosition.toString() : '-'),
                 _tableCell(totalStudentsForSubject > 0 ? totalStudentsForSubject.toString() : '-'),
                 _tableCell(remark),
               ],
             );
           }).toList(),
-
-
           TableRow(
             decoration: BoxDecoration(color: Colors.grey[300]),
             children: [
