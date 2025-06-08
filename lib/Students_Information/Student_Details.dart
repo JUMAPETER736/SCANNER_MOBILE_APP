@@ -28,6 +28,8 @@ class _Student_DetailsState extends State<Student_Details> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
 
+
+
   // State variables
   String? _selectedClass;
   String? _selectedGender;
