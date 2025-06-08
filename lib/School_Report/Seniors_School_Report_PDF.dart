@@ -308,7 +308,7 @@ class Seniors_School_Report_PDF {
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text('RESULT: ${_getMsceStatus()}', style: pw.TextStyle(fontSize: 10)),
+                        pw.Text('RESULT: $msceStatus', style: pw.TextStyle(fontSize: 10)), /s
                       ],
                     ),
                     pw.SizedBox(height: 10), // Reduced from 16
