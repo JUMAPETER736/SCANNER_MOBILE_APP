@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'Seniors_School_Report_PDF.dart';
 
+
 class Seniors_School_Report_View extends StatefulWidget {
   final String studentClass;
   final String studentFullName;
@@ -829,6 +830,8 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       studentPosition: studentPosition,
       boxNumber: boxNumber,
       schoolLocation: schoolLocation,
+
+
 
     );
 
