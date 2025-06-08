@@ -51,7 +51,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   String? schoolBankAccount;
   String? nextTermOpeningDate;
 
-
   @override
   void initState() {
     super.initState();
@@ -122,7 +121,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
-  // Update your _fetchStudentData method to include the subject stats fetching
+  // Updated _fetchStudentData method with the missing call to _fetchSeniorStudentRemarks
   Future<void> _fetchStudentData() async {
     User? user = _auth.currentUser;
     if (user == null) {
@@ -184,13 +183,14 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
       final String basePath = 'Schools/$teacherSchool/Classes/$studentClass/Student_Details/$studentFullName';
 
-      // Execute all data fetching operations in parallel - ADD _fetchSubjectStats here
+      // Execute all data fetching operations in parallel - ADDED _fetchSeniorStudentRemarks here
       await Future.wait([
         _fetchSchoolInfo(teacherSchool),
         fetchStudentSubjects(basePath),
         fetchTotalMarks(basePath),
         _updateTotalStudentsCount(teacherSchool, studentClass),
-        _fetchSubjectStats(teacherSchool, studentClass), // ADD THIS LINE
+        _fetchSubjectStats(teacherSchool, studentClass),
+        _fetchSeniorStudentRemarks(basePath), // ADD THIS LINE - This was missing!
       ]);
 
       if (mounted) {
@@ -447,9 +447,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
-
-
-// Helper method to fetch student remarks
+// Helper method to fetch student remarks - This method was defined but never called!
   Future<void> _fetchSeniorStudentRemarks(String basePath) async {
     try {
       final remarksDoc = await _firestore
@@ -463,7 +461,12 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           formTeacherRemarks = remarksData['Form_Teacher_Remark']?.toString() ?? 'N/A';
           headTeacherRemarks = remarksData['Head_Teacher_Remark']?.toString() ?? 'N/A';
         });
+
+        // Add debug prints to verify data is being fetched
+        print("Form Teacher Remarks fetched: $formTeacherRemarks");
+        print("Head Teacher Remarks fetched: $headTeacherRemarks");
       } else {
+        print("Remarks document does not exist at path: $basePath/TOTAL_MARKS/Results_Remarks");
         setState(() {
           formTeacherRemarks = 'N/A';
           headTeacherRemarks = 'N/A';
@@ -817,13 +820,14 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       totalStudentsPerSubject: totalStudentsPerSubject,
       aggregatePoints: aggregatePoints,
       aggregatePosition: aggregatePosition,
+      schoolFees: schoolFees,
+      schoolBankAccount: schoolBankAccount,
+      nextTermOpeningDate: nextTermOpeningDate,
       Total_Class_Students_Number: Total_Class_Students_Number,
       studentTotalMarks: studentTotalMarks,
       teacherTotalMarks: teacherTotalMarks,
       studentPosition: studentPosition,
-      schoolFees: schoolFees,
-      schoolBankAccount: schoolBankAccount,
-      nextTermOpeningDate: nextTermOpeningDate,
+
     );
 
     await pdfGenerator.generateAndPrint();
