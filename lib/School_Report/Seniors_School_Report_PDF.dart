@@ -146,75 +146,77 @@ class Seniors_School_Report_PDF {
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
-        margin: pw.EdgeInsets.all(20),
+        margin: pw.EdgeInsets.all(15), // Reduced margin
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // School Header - matches UI exactly
+              // School Header - reduced font sizes
               pw.Column(
                 children: [
                   pw.Text(
                     (schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase(),
-                    style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+                    style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold), // Reduced from 18
                     textAlign: pw.TextAlign.center,
                   ),
                   pw.Text(
                     'Tel: ${schoolPhone ?? 'N/A'}',
-                    style: pw.TextStyle(fontSize: 14),
+                    style: pw.TextStyle(fontSize: 10), // Reduced from 14
                     textAlign: pw.TextAlign.center,
                   ),
                   pw.Text(
                     'Email: ${schoolEmail ?? 'N/A'}',
-                    style: pw.TextStyle(fontSize: 14),
+                    style: pw.TextStyle(fontSize: 10), // Reduced from 14
                     textAlign: pw.TextAlign.center,
                   ),
-                  pw.SizedBox(height: 10),
+                  pw.SizedBox(height: 6), // Reduced from 10
                   pw.Text(
                     'P.O. BOX ${boxNumber ?? 0}, ${schoolLocation?.toUpperCase() ?? 'N/A'}',
-                    style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                    style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold), // Reduced from 16
                     textAlign: pw.TextAlign.center,
                   ),
-                  pw.SizedBox(height: 16),
+                  pw.SizedBox(height: 8), // Reduced from 16
                   pw.Text(
                     '${_getAcademicYear()} $studentClass END OF TERM ${_getCurrentTerm()} STUDENT\'S PROGRESS REPORT',
-                    style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                    style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold), // Reduced from 16
                     textAlign: pw.TextAlign.center,
                   ),
-                  pw.SizedBox(height: 16),
+                  pw.SizedBox(height: 10), // Reduced from 16
                 ],
               ),
-              // Student Info - matches UI exactly
+              // Student Info - reduced font sizes
               pw.Padding(
-                padding: pw.EdgeInsets.symmetric(horizontal: 16),
+                padding: pw.EdgeInsets.symmetric(horizontal: 12), // Reduced from 16
                 child: pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
                     pw.Expanded(
                       flex: 4,
-                      child: pw.Text('NAME OF STUDENT: $studentFullName'),
+                      child: pw.Text('NAME OF STUDENT: $studentFullName', style: pw.TextStyle(fontSize: 10)), // Added explicit font size
                     ),
                     pw.Expanded(
                       flex: 3,
                       child: pw.Row(
                         children: [
-                          pw.Text('POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}'),
-                          pw.SizedBox(width: 10),
-                          pw.Text('OUT OF: ${Total_Class_Students_Number > 0 ? Total_Class_Students_Number : (subjects.isNotEmpty ? subjects.first['totalStudents'] ?? 'N/A' : 'N/A')}'),
+                          pw.Text('POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}', style: pw.TextStyle(fontSize: 10)),
+                          pw.SizedBox(width: 8), // Reduced from 10
+                          pw.Text('OUT OF: ${Total_Class_Students_Number > 0 ? Total_Class_Students_Number : (subjects.isNotEmpty ? subjects.first['totalStudents'] ?? 'N/A' : 'N/A')}', style: pw.TextStyle(fontSize: 10)),
                         ],
                       ),
                     ),
                     pw.Expanded(
                       flex: 2,
-                      child: pw.Text('CLASS: $studentClass'),
+                      child: pw.Text('CLASS: $studentClass', style: pw.TextStyle(fontSize: 10)),
                     ),
                   ],
                 ),
               ),
 
-              // Report Table - matches UI exactly
+              pw.SizedBox(height: 8), // Added spacing
+
+              // Report Table - reduced padding
               pw.Padding(
-                padding: pw.EdgeInsets.all(16),
+                padding: pw.EdgeInsets.all(12), // Reduced from 16
                 child: pw.Table(
                   border: pw.TableBorder.all(),
                   columnWidths: {
@@ -271,43 +273,43 @@ class Seniors_School_Report_PDF {
                 ),
               ),
 
-              // Aggregate Section - matches UI exactly
+              // Aggregate Section - reduced font sizes
               pw.Padding(
-                padding: pw.EdgeInsets.symmetric(horizontal: 16),
+                padding: pw.EdgeInsets.symmetric(horizontal: 12), // Reduced from 16
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text('(Best 6 subjects)', style: pw.TextStyle(fontStyle: pw.FontStyle.italic)),
-                    pw.SizedBox(height: 8),
+                    pw.Text('(Best 6 subjects)', style: pw.TextStyle(fontStyle: pw.FontStyle.italic, fontSize: 9)), // Reduced font size
+                    pw.SizedBox(height: 6), // Reduced from 8
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text('AGGREGATE POINTS: $aggregatePoints'),
+                        pw.Text('AGGREGATE POINTS: $aggregatePoints', style: pw.TextStyle(fontSize: 10)),
                       ],
                     ),
-                    pw.SizedBox(height: 8),
+                    pw.SizedBox(height: 6), // Reduced from 8
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text('RESULT: ${msceStatus ?? ''}'),
+                        pw.Text('RESULT: ${msceStatus ?? ''}', style: pw.TextStyle(fontSize: 10)),
                       ],
                     ),
-                    pw.SizedBox(height: 16),
+                    pw.SizedBox(height: 10), // Reduced from 16
                   ],
                 ),
               ),
 
-              // Grading Key - matches UI exactly
+              // Grading Key - reduced font sizes
               pw.Padding(
-                padding: pw.EdgeInsets.symmetric(horizontal: 16),
+                padding: pw.EdgeInsets.symmetric(horizontal: 12), // Reduced from 16
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
                       'MSCE GRADING KEY FOR ${(schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase()}',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), // Reduced font size
                     ),
-                    pw.SizedBox(height: 8),
+                    pw.SizedBox(height: 6), // Reduced from 8
                     pw.Table(
                       border: pw.TableBorder.all(),
                       columnWidths: {
@@ -326,84 +328,83 @@ class Seniors_School_Report_PDF {
                         pw.TableRow(
                           decoration: pw.BoxDecoration(color: PdfColors.grey300),
                           children: [
-                            _buildPdfTableCell('Mark Range', isHeader: true),
-                            _buildPdfTableCell('100-90', isHeader: true),
-                            _buildPdfTableCell('89-80', isHeader: true),
-                            _buildPdfTableCell('79-75', isHeader: true),
-                            _buildPdfTableCell('74-70', isHeader: true),
-                            _buildPdfTableCell('69-65', isHeader: true),
-                            _buildPdfTableCell('64-60', isHeader: true),
-                            _buildPdfTableCell('59-55', isHeader: true),
-                            _buildPdfTableCell('54-50', isHeader: true),
-                            _buildPdfTableCell('0-49', isHeader: true),
+                            _buildPdfTableCell('Mark Range', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('100-90', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('89-80', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('79-75', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('74-70', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('69-65', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('64-60', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('59-55', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('54-50', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('0-49', isHeader: true, isGradingTable: true),
                           ],
                         ),
                         pw.TableRow(
                           children: [
-                            _buildPdfTableCell('Points', isHeader: true),
-                            _buildPdfTableCell('1', isHeader: true),
-                            _buildPdfTableCell('2', isHeader: true),
-                            _buildPdfTableCell('3', isHeader: true),
-                            _buildPdfTableCell('4', isHeader: true),
-                            _buildPdfTableCell('5', isHeader: true),
-                            _buildPdfTableCell('6', isHeader: true),
-                            _buildPdfTableCell('7', isHeader: true),
-                            _buildPdfTableCell('8', isHeader: true),
-                            _buildPdfTableCell('9', isHeader: true),
+                            _buildPdfTableCell('Points', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('1', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('2', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('3', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('4', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('5', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('6', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('7', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('8', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('9', isHeader: true, isGradingTable: true),
                           ],
                         ),
                         pw.TableRow(
                           children: [
-                            _buildPdfTableCell('Interpretation', isHeader: true),
-                            _buildPdfTableCell('Distinction', isHeader: true),
-                            _buildPdfTableCell('Distinction', isHeader: true),
-                            _buildPdfTableCell('Strong Credit', isHeader: true),
-                            _buildPdfTableCell('Strong Credit', isHeader: true),
-                            _buildPdfTableCell('Credit', isHeader: true),
-                            _buildPdfTableCell('Weak Credit', isHeader: true),
-                            _buildPdfTableCell('Pass', isHeader: true),
-                            _buildPdfTableCell('Weak Pass', isHeader: true),
-                            _buildPdfTableCell('Fail', isHeader: true),
+                            _buildPdfTableCell('Interpretation', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('Distinction', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('Distinction', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('Strong Credit', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('Strong Credit', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('Credit', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('Weak Credit', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('Pass', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('Weak Pass', isHeader: true, isGradingTable: true),
+                            _buildPdfTableCell('Fail', isHeader: true, isGradingTable: true),
                           ],
                         ),
                       ],
                     ),
-                    pw.SizedBox(height: 16),
+                    pw.SizedBox(height: 10), // Reduced from 16
                   ],
                 ),
               ),
 
-// Remarks Section - matches UI exactly
+              // Remarks Section - reduced font sizes
               pw.Padding(
-                padding: pw.EdgeInsets.symmetric(horizontal: 16),
+                padding: pw.EdgeInsets.symmetric(horizontal: 12), // Reduced from 16
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
                       'Form Teacher\'s Remarks: ${formTeacherRemarks ?? 'N/A'}',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9), // Reduced font size
                     ),
-                    pw.SizedBox(height: 8),
+                    pw.SizedBox(height: 4), // Reduced from 8
                     pw.Text(
                       'Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9), // Reduced font size
                     ),
-                    pw.SizedBox(height: 8),
+                    pw.SizedBox(height: 4), // Reduced from 8
                     pw.Text(
                       'School Fees: ${schoolFees ?? 'N/A'}',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9), // Reduced font size
                     ),
-                    pw.SizedBox(height: 8),
+                    pw.SizedBox(height: 4), // Reduced from 8
                     pw.Text(
                       'School Bank Account: ${schoolBankAccount ?? 'N/A'}',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9), // Reduced font size
                     ),
-                    pw.SizedBox(height: 8),
+                    pw.SizedBox(height: 4), // Reduced from 8
                     pw.Text(
                       'Next Term Opening Date: ${nextTermOpeningDate ?? 'N/A'}',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9), // Reduced font size
                     ),
-                    pw.SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -417,14 +418,14 @@ class Seniors_School_Report_PDF {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => doc.save());
   }
 
-  pw.Padding _buildPdfTableCell(String text, {bool isHeader = false}) {
+  pw.Padding _buildPdfTableCell(String text, {bool isHeader = false, bool isGradingTable = false}) {
     return pw.Padding(
-      padding: pw.EdgeInsets.all(4),
+      padding: pw.EdgeInsets.all(2), // Reduced from 4
       child: pw.Text(
         text,
         style: pw.TextStyle(
           fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
-          fontSize: isHeader ? 14 : 12,
+          fontSize: isGradingTable ? 8 : (isHeader ? 10 : 9), // Smaller fonts for grading table, reduced overall
         ),
         textAlign: pw.TextAlign.center,
       ),
