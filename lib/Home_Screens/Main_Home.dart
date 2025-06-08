@@ -62,150 +62,168 @@ class _Main_HomeState extends State<Main_Home> {
   Widget _buildHome(BuildContext context, User? loggedInUser) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Calculate responsive dimensions
+        // Get screen orientation
+        final orientation = MediaQuery.of(context).orientation;
         final screenWidth = constraints.maxWidth;
         final screenHeight = constraints.maxHeight;
 
-        // Calculate padding based on screen size
-        final horizontalPadding = screenWidth * 0.04; // 4% of screen width
-        final verticalPadding = screenHeight * 0.02; // 2% of screen height
+        // Determine grid layout based on orientation
+        int crossAxisCount;
+        double childAspectRatio;
 
-        // Calculate grid dimensions
-        final cardSpacing = screenWidth * 0.025; // 2.5% of screen width
-        final availableWidth = screenWidth - (2 * horizontalPadding);
-        final availableHeight = screenHeight - (2 * verticalPadding);
+        if (orientation == Orientation.portrait) {
+          // Portrait: 2 columns with adjusted aspect ratio to fit all cards
+          crossAxisCount = 2;
+          // Calculate aspect ratio to fit all 8 cards (4 rows) on screen with buffer
+          final availableHeight = screenHeight - (screenHeight * 0.08); // Account for padding and buffer
+          final cardHeight = availableHeight / 4.2; // 4 rows with extra spacing
+          final cardWidth = (screenWidth - (screenWidth * 0.08) - (screenWidth * 0.025)) / 2; // Account for padding and spacing
+          childAspectRatio = cardWidth / cardHeight;
+        } else {
+          // Landscape: 4 columns for better space utilization
+          crossAxisCount = 4;
+          childAspectRatio = 0.8; // Slightly taller cards
+        }
 
-        // Calculate card dimensions for 2x4 grid
-        final cardWidth = (availableWidth - cardSpacing) / 2;
-        final cardHeight = (availableHeight - (3 * cardSpacing)) / 4;
-        final aspectRatio = cardWidth / cardHeight;
+        // Calculate responsive dimensions
+        final horizontalPadding = screenWidth * 0.03; // Reduced horizontal padding
+        final verticalPadding = screenHeight * 0.015; // Reduced vertical padding
+        final cardSpacing = screenWidth * 0.02; // Reduced card spacing
 
-        // Calculate responsive icon and text sizes
-        final iconSize = (cardHeight * 0.35).clamp(24.0, 60.0);
-        final textSize = (cardHeight * 0.12).clamp(10.0, 16.0);
+        // Calculate responsive sizes - smaller for portrait to fit everything
+        final iconSize = orientation == Orientation.portrait
+            ? (screenWidth * 0.055).clamp(18.0, 32.0) // Further reduced icon size
+            : (screenWidth * 0.05).clamp(25.0, 40.0);
+        final textSize = orientation == Orientation.portrait
+            ? (screenWidth * 0.026).clamp(9.0, 12.0) // Further reduced text size
+            : (screenWidth * 0.025).clamp(10.0, 14.0);
 
+        // Build the grid widget
+        Widget gridWidget = GridView.count(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: cardSpacing,
+          mainAxisSpacing: cardSpacing,
+          childAspectRatio: childAspectRatio,
+          shrinkWrap: false, // Don't shrink in either orientation
+          physics: const NeverScrollableScrollPhysics(), // No scrolling in both orientations
+          children: [
+            _buildHomeCard(
+              icon: Icons.class_,
+              text: 'Select School & Class',
+              color: Colors.blueAccent,
+              iconSize: iconSize,
+              textSize: textSize,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => Class_Selection()),
+                );
+              },
+            ),
+            _buildHomeCard(
+              icon: Icons.analytics,
+              text: 'Grade Analytics',
+              color: Colors.greenAccent,
+              iconSize: iconSize,
+              textSize: textSize,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => Grade_Analytics()),
+                );
+              },
+            ),
+            _buildHomeCard(
+              icon: Icons.person_add,
+              text: 'Add Student',
+              color: Colors.orangeAccent,
+              iconSize: iconSize,
+              textSize: textSize,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => Student_Details()),
+                );
+              },
+            ),
+            _buildHomeCard(
+              icon: Icons.qr_code_scanner,
+              text: 'QR Scan',
+              color: const Color.fromARGB(255, 59, 61, 60),
+              iconSize: iconSize,
+              textSize: textSize,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => QR_Code_Scan()),
+                );
+              },
+            ),
+            _buildHomeCard(
+              icon: Icons.school,
+              text: 'Results',
+              color: Colors.redAccent,
+              iconSize: iconSize,
+              textSize: textSize,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => Results_And_School_Reports()),
+                );
+              },
+            ),
+            _buildHomeCard(
+              icon: Icons.list,
+              text: 'Students Names',
+              color: Colors.purpleAccent,
+              iconSize: iconSize,
+              textSize: textSize,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Student_Name_List(loggedInUser: loggedInUser),
+                  ),
+                );
+              },
+            ),
+            _buildHomeCard(
+              icon: Icons.bar_chart,
+              text: 'Statistics',
+              color: Colors.tealAccent,
+              iconSize: iconSize,
+              textSize: textSize,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => Performance_Statistics()),
+                );
+              },
+            ),
+            _buildHomeCard(
+              icon: Icons.picture_as_pdf,
+              text: 'School Reports PDFs',
+              color: Colors.deepOrangeAccent,
+              iconSize: iconSize,
+              textSize: textSize,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => School_Reports_PDF_List()),
+                );
+              },
+            ),
+          ],
+        );
+
+        // Return the grid with proper padding
         return Container(
           color: Colors.white,
           padding: EdgeInsets.symmetric(
             horizontal: horizontalPadding,
             vertical: verticalPadding,
           ),
-          child: GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: cardSpacing,
-            mainAxisSpacing: cardSpacing,
-            padding: EdgeInsets.zero,
-            childAspectRatio: aspectRatio,
-            physics: const NeverScrollableScrollPhysics(), // Disable scrolling
-            children: [
-              _buildHomeCard(
-                icon: Icons.class_,
-                text: 'Select School & Class',
-                color: Colors.blueAccent,
-                iconSize: iconSize,
-                textSize: textSize,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Class_Selection()),
-                  );
-                },
-              ),
-              _buildHomeCard(
-                icon: Icons.analytics,
-                text: 'Grade Analytics',
-                color: Colors.greenAccent,
-                iconSize: iconSize,
-                textSize: textSize,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Grade_Analytics()),
-                  );
-                },
-              ),
-              _buildHomeCard(
-                icon: Icons.person_add,
-                text: 'Add Student',
-                color: Colors.orangeAccent,
-                iconSize: iconSize,
-                textSize: textSize,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Student_Details()),
-                  );
-                },
-              ),
-              _buildHomeCard(
-                icon: Icons.qr_code_scanner,
-                text: 'QR Scan',
-                color: const Color.fromARGB(255, 59, 61, 60),
-                iconSize: iconSize,
-                textSize: textSize,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => QR_Code_Scan()),
-                  );
-                },
-              ),
-              _buildHomeCard(
-                icon: Icons.school,
-                text: 'Results',
-                color: Colors.redAccent,
-                iconSize: iconSize,
-                textSize: textSize,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Results_And_School_Reports()),
-                  );
-                },
-              ),
-              _buildHomeCard(
-                icon: Icons.list,
-                text: 'Students Names',
-                color: Colors.purpleAccent,
-                iconSize: iconSize,
-                textSize: textSize,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => Student_Name_List(loggedInUser: loggedInUser),
-                    ),
-                  );
-                },
-              ),
-              _buildHomeCard(
-                icon: Icons.bar_chart,
-                text: 'Statistics',
-                color: Colors.tealAccent,
-                iconSize: iconSize,
-                textSize: textSize,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Performance_Statistics()),
-                  );
-                },
-              ),
-              _buildHomeCard(
-                icon: Icons.picture_as_pdf,
-                text: 'School Reports PDFs',
-                color: Colors.deepOrangeAccent,
-                iconSize: iconSize,
-                textSize: textSize,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => School_Reports_PDF_List()),
-                  );
-                },
-              ),
-            ],
-          ),
+          child: gridWidget,
         );
       },
     );
@@ -228,7 +246,7 @@ class _Main_HomeState extends State<Main_Home> {
         ),
         elevation: 4.0,
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.all(4.0), // Further reduced padding
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -240,10 +258,11 @@ class _Main_HomeState extends State<Main_Home> {
                   color: Colors.white,
                 ),
               ),
+              const SizedBox(height: 1), // Minimal spacing
               Flexible(
                 flex: 2,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 1.0), // Minimal padding
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
