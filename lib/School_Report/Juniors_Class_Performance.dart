@@ -349,6 +349,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                   classPerformance['totalStudents'].toString(),
                   Icons.people_rounded,
                   Colors.blue,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               SizedBox(width: 12),
@@ -358,6 +359,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                   '${classPerformance['classPassRate']}%',
                   Icons.trending_up_rounded,
                   Colors.green,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
@@ -371,6 +373,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                   classPerformance['totalClassPassed'].toString(),
                   Icons.check_circle_rounded,
                   Colors.green,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               SizedBox(width: 12),
@@ -380,6 +383,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                   classPerformance['totalClassFailed'].toString(),
                   Icons.cancel_rounded,
                   Colors.red,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
@@ -387,9 +391,12 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
         ],
       ),
     );
+
+
   }
 
-  Widget _buildSummaryCard(String title, String value, IconData icon, MaterialColor color) {
+  Widget _buildSummaryCard(
+      String title, String value, IconData icon, MaterialColor color, {required FontWeight fontWeight}) {
     return Container(
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -420,9 +427,9 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
           Text(
             title,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 14,
               color: title == 'Failed' ? Colors.red[600] : Colors.grey[600],
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,
           ),
