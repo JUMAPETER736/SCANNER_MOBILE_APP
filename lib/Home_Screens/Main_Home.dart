@@ -286,27 +286,36 @@ class _Main_HomeState extends State<Main_Home> {
     );
   }
 
-  Widget _buildHelp() => Help();
+  Widget _buildHelp() {
+    return Help();
+  }
 
-  Widget _buildSettings() => Main_Settings(user: loggedInUser!);
+  Widget _buildSettings() {
+    return Main_Settings(user: loggedInUser!);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      // Only show AppBar when on Home tab (index 1)
+      appBar: _selectedIndex == 1 ? AppBar(
         title: const Text(
           'Scanna',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
         ),
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.blueAccent,
+        centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
+            icon: const Icon(Icons.logout, color: Colors.black),
             onPressed: _logout,
           ),
         ],
-      ),
+      ) : null,
       body: SizedBox.expand(
         child: _selectedIndex == 0
             ? _buildHelp()
