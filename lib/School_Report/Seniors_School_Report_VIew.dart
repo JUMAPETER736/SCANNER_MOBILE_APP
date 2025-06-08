@@ -34,11 +34,8 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   String? errorMessage;
   String? userEmail;
   String? schoolName;
-  String? schoolAddress;
   String? schoolPhone;
   String? schoolEmail;
-  String? schoolAccount;
-  String? nextTermDate;
   int studentTotalMarks = 0;
   int teacherTotalMarks = 0;
   int aggregatePoints = 0;
@@ -282,8 +279,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       setState(() {
         schoolPhone = schoolInfoDoc['Telephone'] ?? 'N/A';
         schoolEmail = schoolInfoDoc['Email'] ?? 'N/A';
-        schoolAccount = schoolInfoDoc['account'] ?? 'N/A';
-        nextTermDate = schoolInfoDoc['nextTermDate'] ?? 'N/A';
         boxNumber = schoolInfoDoc['boxNumber'] ?? 0;
         schoolLocation = schoolInfoDoc['schoolLocation'] ?? 'N/A';
         schoolFees = schoolInfoDoc['School_Fees'] ?? 'N/A';
@@ -295,8 +290,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       setState(() {
         schoolPhone = 'N/A';
         schoolEmail = 'N/A';
-        schoolAccount = 'N/A';
-        nextTermDate = 'N/A';
         boxNumber = 0;
         schoolLocation = 'N/A';
         schoolFees = 'N/A';
@@ -774,31 +767,12 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     );
   }
 
-  Widget _buildFooter() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Fees for next term', style: TextStyle(fontWeight: FontWeight.bold)),
-          Text('School account: ${schoolAccount ?? 'N/A'}'),
-          SizedBox(height: 8),
-          Text('Next term begins on ${nextTermDate ?? 'N/A'}',
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
 
   Future<void> _printDocument() async {
     final pdfGenerator = Seniors_School_Report_PDF(
       schoolName: schoolName,
-      schoolAddress: schoolAddress,
       schoolPhone: schoolPhone,
       schoolEmail: schoolEmail,
-      schoolAccount: schoolAccount,
-      nextTermDate: nextTermDate,
       formTeacherRemarks: formTeacherRemarks,
       headTeacherRemarks: headTeacherRemarks,
       studentFullName: widget.studentFullName,
@@ -813,6 +787,9 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       studentTotalMarks: studentTotalMarks,
       teacherTotalMarks: teacherTotalMarks,
       studentPosition: studentPosition,
+      schoolFees: schoolFees,
+      schoolBankAccount: schoolBankAccount,
+      nextTermOpeningDate: nextTermOpeningDate,
     );
 
     await pdfGenerator.generateAndPrint();
@@ -853,7 +830,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
               _buildAggregateSection(),
               _buildGradingKey(),
               _buildRemarksSection(),
-              _buildFooter(),
             ],
           ),
         ),
