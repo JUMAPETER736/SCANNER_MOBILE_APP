@@ -23,159 +23,220 @@ class _Main_SettingsState extends State<Main_Settings> {
   final List<String> languages = ['English', 'Spanish', 'French', 'German', 'Chinese', 'Chichewa'];
   String defaultLanguage = 'English';
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: Text('Settings', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('Settings', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
-
+        elevation: 1,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back), // Back arrow icon
+          icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.pushNamedAndRemoveUntil(context, Main_Home.id, (route) => false);
-
           },
         ),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.lightBlueAccent, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      body: ListView(
+        children: [
+          // Account Section
+          Container(
+            color: Colors.white,
+            margin: EdgeInsets.only(top: 12),
+            child: Column(
+              children: [
+                _buildSettingsItem(
+                  title: 'User Details',
+                  subtitle: 'Profile, Email, and more',
+                  icon: Icons.person_outline,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => User_Details(user: widget.user),
+                      ),
+                    );
+                  },
+                ),
+                _buildDivider(),
+                _buildSettingsItem(
+                  title: 'Security Settings',
+                  subtitle: 'Manage Security options',
+                  icon: Icons.security_outlined,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => Security_Settings(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-        child: ListView(
-          padding: const EdgeInsets.all(16.0),
-          children: [
-            _buildSettingsItem(
-              title: 'User Details',
-              subtitle: 'Profile, Email, and more',
-              icon: Icons.person,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => User_Details(user: widget.user),
-                  ),
-                );
-              },
+
+          // App Features Section
+          Container(
+            color: Colors.white,
+            margin: EdgeInsets.only(top: 12),
+            child: Column(
+              children: [
+                _buildSettingsItem(
+                  title: 'QR Code Settings',
+                  subtitle: 'Scan mode, camera settings, and more',
+                  icon: Icons.qr_code_outlined,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => QR_Code_Settings(),
+                      ),
+                    );
+                  },
+                ),
+                _buildDivider(),
+                _buildSettingsItem(
+                  title: 'Grade Settings',
+                  subtitle: 'Customize grading scale and display',
+                  icon: Icons.grade_outlined,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => Grade_Settings(),
+                      ),
+                    );
+                  },
+                ),
+                _buildDivider(),
+                _buildSettingsItem(
+                  title: 'Notifications',
+                  subtitle: 'Message, group & call tones',
+                  icon: Icons.notifications_outlined,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => Notification_Settings(),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-            _buildSettingsItem(
-              title: 'QR Code Settings',
-              subtitle: 'Scan mode, camera settings, and more',
-              icon: Icons.qr_code,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => QR_Code_Settings(),
-                  ),
-                );
-              },
+          ),
+
+          // Data and Storage Section
+          Container(
+            color: Colors.white,
+            margin: EdgeInsets.only(top: 12),
+            child: Column(
+              children: [
+                _buildSettingsItem(
+                  title: 'Backup & Sync',
+                  subtitle: 'Cloud backup and data synchronization',
+                  icon: Icons.backup_outlined,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => Backup_Sync(),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-            _buildSettingsItem(
-              title: 'Grade Settings',
-              subtitle: 'Customize grading scale and display',
-              icon: Icons.grade,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => Grade_Settings(),
-                  ),
-                );
-              },
+          ),
+
+          // Appearance Section
+          Container(
+            color: Colors.white,
+            margin: EdgeInsets.only(top: 12),
+            child: Column(
+              children: [
+                _buildSettingsItem(
+                  title: 'Theme & Display',
+                  subtitle: 'App theme, font size, and layout',
+                  icon: Icons.palette_outlined,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => Theme_Display_Settings(),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-   
-            _buildSettingsItem(
-              title: 'Backup & Sync',
-              subtitle: 'Cloud Backup and Data Synchronization',
-              icon: Icons.backup,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => Backup_Sync(),
-                  ),
-                );
-              },
+          ),
+
+          // About Section
+          Container(
+            color: Colors.white,
+            margin: EdgeInsets.only(top: 12, bottom: 20),
+            child: Column(
+              children: [
+                _buildSettingsItem(
+                  title: 'App Information',
+                  subtitle: 'Version, licenses, and support',
+                  icon: Icons.info_outline,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => AppI_nfo(),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-            _buildSettingsItem(
-              title: 'Theme & Display',
-              subtitle: 'App Theme, font size, and layout',
-              icon: Icons.color_lens,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => Theme_Display_Settings(),
-                  ),
-                );
-              },
-            ),
-            _buildSettingsItem(
-              title: 'Notification Settings',
-              subtitle: 'Manage Notifications preferences',
-              icon: Icons.notifications,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => Notification_Settings(),
-                  ),
-                );
-              },
-            ),
-            _buildSettingsItem(
-              title: 'Security Settings',
-              subtitle: 'Manage Security options',
-              icon: Icons.security,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => Security_Settings(),
-                  ),
-                );
-              },
-            ),
-            _buildSettingsItem(
-              title: 'App Information',
-              subtitle: 'Version, licenses, and support',
-              icon: Icons.info,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => AppI_nfo(),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSettingsItem({required String title, required String subtitle, required IconData icon, required VoidCallback onTap}) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 4,
-            offset: Offset(2, 2),
-          ),
-        ],
+  Widget _buildSettingsItem({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required VoidCallback onTap
+  }) {
+    return ListTile(
+      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: Icon(
+          icon,
+          color: Colors.grey[600],
+          size: 24
       ),
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: ListTile(
-        title: Text(title, style: TextStyle(color: Colors.blueAccent, fontSize: 20, fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle, style: TextStyle(color: Colors.black, fontSize: 16)),
-        leading: Icon(icon, color: Colors.blueAccent, size: 28),
-        onTap: onTap,
+      title: Text(
+          title,
+          style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87
+          )
       ),
+      subtitle: Text(
+          subtitle,
+          style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600]
+          )
+      ),
+      trailing: Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Colors.grey[400]
+      ),
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildDivider() {
+    return Divider(
+      height: 1,
+      thickness: 0.5,
+      color: Colors.grey[300],
+      indent: 56, // Aligns with the text, accounting for icon width
     );
   }
 }
