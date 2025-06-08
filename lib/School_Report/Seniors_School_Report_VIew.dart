@@ -119,6 +119,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
+  // Update your _fetchStudentData method to include the subject stats fetching
   Future<void> _fetchStudentData() async {
     User? user = _auth.currentUser;
     if (user == null) {
@@ -180,12 +181,13 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
       final String basePath = 'Schools/$teacherSchool/Classes/$studentClass/Student_Details/$studentFullName';
 
-      // Execute all data fetching operations in parallel
+      // Execute all data fetching operations in parallel - ADD _fetchSubjectStats here
       await Future.wait([
         _fetchSchoolInfo(teacherSchool),
         fetchStudentSubjects(basePath),
         fetchTotalMarks(basePath),
-        _updateTotalStudentsCount(teacherSchool, studentClass), // Only this one calculates/updates
+        _updateTotalStudentsCount(teacherSchool, studentClass),
+        _fetchSubjectStats(teacherSchool, studentClass), // ADD THIS LINE
       ]);
 
       if (mounted) {
@@ -202,6 +204,62 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           errorMessage = 'An error occurred while fetching data.';
         });
       }
+    }
+  }
+
+  // Add this method to your _Seniors_School_Report_ViewState class
+  Future<void> _fetchSubjectStats(String school, String studentClass) async {
+    try {
+      // Fetch subject averages from the new Class_Performance structure
+      final subjectStatsSnapshot = await _firestore
+          .collection('Schools/$school/Classes/$studentClass/Class_Performance/Subject_Performance/Subjects')
+          .get();
+
+      Map<String, dynamic> stats = {};
+
+      for (var doc in subjectStatsSnapshot.docs) {
+        final data = doc.data();
+        final subjectName = data['Subject_Name'] ?? doc.id;
+
+        stats[subjectName] = {
+          'average': (data['Subject_Average'] as num?)?.toDouble() ?? 0.0,
+          'totalStudents': (data['Total_Students'] as num?)?.toInt() ?? 0,
+          'totalPass': (data['Total_Pass'] as num?)?.toInt() ?? 0,
+          'totalFail': (data['Total_Fail'] as num?)?.toInt() ?? 0,
+          'passRate': (data['Pass_Rate'] as num?)?.toDouble() ?? 0.0,
+        };
+      }
+
+      // If no data found in new structure, try the old structure as fallback
+      if (stats.isEmpty) {
+        final oldStatsDoc = await _firestore
+            .doc('Schools/$school/Classes/$studentClass/Class_Statistics/subject_averages')
+            .get();
+
+        if (oldStatsDoc.exists) {
+          final data = oldStatsDoc.data() as Map<String, dynamic>;
+          // Transform old structure to match new structure if needed
+          for (var entry in data.entries) {
+            if (entry.value is Map<String, dynamic>) {
+              stats[entry.key] = {
+                'average': (entry.value['average'] as num?)?.toDouble() ?? 0.0,
+                'totalStudents': (entry.value['totalStudents'] as num?)?.toInt() ?? 0,
+                'totalPass': (entry.value['totalPass'] as num?)?.toInt() ?? 0,
+                'totalFail': (entry.value['totalFail'] as num?)?.toInt() ?? 0,
+                'passRate': (entry.value['passRate'] as num?)?.toDouble() ?? 0.0,
+              };
+            }
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          subjectStats = stats;
+        });
+      }
+    } catch (e) {
+      print("Error fetching subject statistics: $e");
     }
   }
 
@@ -482,6 +540,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     );
   }
 
+  // Update your _buildReportTable method to display the class averages
   Widget _buildReportTable() {
     return Padding(
       padding: EdgeInsets.all(16),
@@ -518,8 +577,12 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                 : Seniors_Grade(score)) : '';
             final remark = hasGrade ? getRemark(grade) : 'Doesn\'t take';
             final points = hasGrade ? getPoints(grade) : '';
+
+            // Get class average from subjectStats - UPDATED THIS PART
             final subjectStat = subjectStats[subjectName];
-            final avg = subjectStat != null ? subjectStat['average'] as int : 0;
+            final avg = subjectStat != null ?
+            (subjectStat['average'] as double).round() : 0;
+
             final subjectPosition = subj['position'] as int? ?? 0;
             final totalStudentsForSubject = subj['totalStudents'] as int? ?? 0;
 
@@ -528,7 +591,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
                 _tableCell(subjectName),
                 _tableCell(hasGrade ? score.toString() : ''),
                 _tableCell(points),
-                _tableCell(hasGrade ? avg.toString() : ''),
+                _tableCell(hasGrade && avg > 0 ? avg.toString() : ''), // UPDATED THIS LINE
                 _tableCell(hasGrade && subjectPosition > 0 ? subjectPosition.toString() : ''),
                 _tableCell(hasGrade && totalStudentsForSubject > 0 ? totalStudentsForSubject.toString() : ''),
                 _tableCell(remark),
