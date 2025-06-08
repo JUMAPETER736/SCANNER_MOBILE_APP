@@ -1064,6 +1064,251 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     );
   }
 
+// Add these methods to your Student_Subjects class
+
+// Method to generate performance-based remarks
+  Map<String, String> _generatePerformanceRemarks(
+      String className,
+      Map<String, String> subjectGrades,
+      {int? totalMarks,
+        int? bestSixPoints,
+        String? academicStatus}) {
+
+    bool isSenior = className.toUpperCase() == 'FORM 3' || className.toUpperCase() == 'FORM 4';
+    bool isJunior = className.toUpperCase() == 'FORM 1' || className.toUpperCase() == 'FORM 2';
+
+    List<String> failedSubjects = [];
+    List<String> weakSubjects = [];
+    List<String> strongSubjects = [];
+
+    // Analyze subject performance
+    subjectGrades.forEach((subject, grade) {
+      if (grade == 'N/A' || grade.isEmpty) return;
+
+      int gradeInt = int.tryParse(grade) ?? 0;
+      if (gradeInt == 0) return;
+
+      if (isSenior) {
+        String gradePoint = _getSeniorsGrade(gradeInt);
+        if (gradePoint == '9') {
+          failedSubjects.add(subject);
+        } else if (gradePoint == '8' || gradePoint == '7') {
+          weakSubjects.add(subject);
+        } else if (gradePoint == '1' || gradePoint == '2') {
+          strongSubjects.add(subject);
+        }
+      } else if (isJunior) {
+        if (gradeInt < 50) {
+          failedSubjects.add(subject);
+        } else if (gradeInt < 65) {
+          weakSubjects.add(subject);
+        } else if (gradeInt >= 85) {
+          strongSubjects.add(subject);
+        }
+      }
+    });
+
+    // Generate Form Teacher Remark (more encouraging, specific guidance)
+    String formTeacherRemark = '';
+    if (failedSubjects.isNotEmpty) {
+      if (failedSubjects.length == 1) {
+        formTeacherRemark = 'Good effort overall. Focus more attention on ${failedSubjects.first} to improve your understanding. ';
+      } else if (failedSubjects.length <= 3) {
+        formTeacherRemark = 'You show potential. Give extra attention to ${failedSubjects.join(', ')} through additional practice and study. ';
+      } else {
+        formTeacherRemark = 'You need to put in more consistent effort across subjects. Focus especially on ${failedSubjects.take(3).join(', ')} and others. ';
+      }
+    }
+
+    if (weakSubjects.isNotEmpty && failedSubjects.length <= 2) {
+      formTeacherRemark += 'Work harder in ${weakSubjects.take(2).join(' and ')} to reach your full potential. ';
+    }
+
+    if (strongSubjects.isNotEmpty) {
+      formTeacherRemark += 'Well done in ${strongSubjects.take(2).join(' and ')}. ';
+    }
+
+    // Add academic status comment for Form Teacher
+    if (isSenior && academicStatus != null) {
+      if (academicStatus == 'STATEMENT') {
+        formTeacherRemark += 'Work harder to achieve university entry requirements.';
+      } else {
+        formTeacherRemark += 'Keep up the good work for university preparation.';
+      }
+    } else if (isJunior && totalMarks != null) {
+      if (totalMarks < 550) {
+        formTeacherRemark += 'Aim for higher scores to prepare for senior classes.';
+      } else {
+        formTeacherRemark += 'Good preparation for senior level studies.';
+      }
+    }
+
+    if (formTeacherRemark.isEmpty) {
+      formTeacherRemark = 'Continue working hard and stay focused on your studies.';
+    }
+
+    // Generate Head Teacher Remark (more formal, overall assessment)
+    String headTeacherRemark = '';
+
+    if (failedSubjects.length >= 4) {
+      headTeacherRemark = 'Serious improvement needed across multiple subjects. Parent conference recommended to discuss support strategies.';
+    } else if (failedSubjects.length >= 2) {
+      headTeacherRemark = 'Significant improvement required in ${failedSubjects.take(3).join(', ')}. Additional academic support recommended.';
+    } else if (failedSubjects.length == 1) {
+      if (isSenior && academicStatus == 'STATEMENT') {
+        headTeacherRemark = 'Address weakness in ${failedSubjects.first} to improve university prospects. Consider remedial classes.';
+      } else {
+        headTeacherRemark = 'Generally satisfactory performance. Focus on improving ${failedSubjects.first} for better overall results.';
+      }
+    } else {
+      // No failed subjects
+      if (weakSubjects.length >= 3) {
+        headTeacherRemark = 'Moderate performance. Consistent effort needed to reach higher academic standards.';
+      } else if (strongSubjects.length >= 3) {
+        headTeacherRemark = 'Commendable academic performance. Continue to maintain high standards across all subjects.';
+      } else {
+        headTeacherRemark = 'Satisfactory academic progress. Encourage continued effort and improvement.';
+      }
+    }
+
+    // Add overall academic status comment for Head Teacher
+    if (isSenior && bestSixPoints != null) {
+      if (bestSixPoints > 48) {
+        headTeacherRemark += ' Current performance may limit higher education opportunities.';
+      } else if (bestSixPoints <= 18) {
+        headTeacherRemark += ' Excellent preparation for tertiary education.';
+      }
+    } else if (isJunior && totalMarks != null) {
+      if (totalMarks >= 700) {
+        headTeacherRemark += ' Outstanding foundation for senior secondary education.';
+      } else if (totalMarks < 450) {
+        headTeacherRemark += ' Additional support needed to meet academic expectations.';
+      }
+    }
+
+    return {
+      'Form_Teacher_Remark': formTeacherRemark.trim(),
+      'Head_Teacher_Remark': headTeacherRemark.trim(),
+    };
+  }
+
+// Method to update student remarks based on current performance
+  Future<void> _updateStudentRemarks(String schoolName, String className, String studentName) async {
+    try {
+      print("Updating remarks for student: $studentName");
+
+      // Get student's current grades
+      final subjectsSnapshot = await _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Classes')
+          .doc(className)
+          .collection('Student_Details')
+          .doc(studentName)
+          .collection('Student_Subjects')
+          .get();
+
+      // Get student's total marks/status
+      final marksDoc = await _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Classes')
+          .doc(className)
+          .collection('Student_Details')
+          .doc(studentName)
+          .collection('TOTAL_MARKS')
+          .doc('Marks')
+          .get();
+
+      Map<String, String> subjectGrades = {};
+      int? totalMarks;
+      int? bestSixPoints;
+      String? academicStatus;
+
+      // Collect subject grades
+      for (var doc in subjectsSnapshot.docs) {
+        String subject = doc['Subject_Name'] ?? doc.id;
+        String grade = doc['Subject_Grade']?.toString() ?? 'N/A';
+        if (grade != 'N/A' && grade.isNotEmpty) {
+          subjectGrades[subject] = grade;
+        }
+      }
+
+      // Get academic performance data
+      if (marksDoc.exists) {
+        var marksData = marksDoc.data() as Map<String, dynamic>;
+
+        bool isSenior = className.toUpperCase() == 'FORM 3' || className.toUpperCase() == 'FORM 4';
+
+        if (isSenior) {
+          bestSixPoints = marksData['Best_Six_Total_Points'];
+          academicStatus = marksData['MSCE_Status'];
+        } else {
+          var studentMarks = marksData['Student_Total_Marks'];
+          totalMarks = studentMarks is String ? int.tryParse(studentMarks) : studentMarks;
+        }
+      }
+
+      // Generate remarks based on performance
+      Map<String, String> remarks = _generatePerformanceRemarks(
+        className,
+        subjectGrades,
+        totalMarks: totalMarks,
+        bestSixPoints: bestSixPoints,
+        academicStatus: academicStatus,
+      );
+
+      // Update remarks in Firestore
+      final remarksRef = _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Classes')
+          .doc(className)
+          .collection('Student_Details')
+          .doc(studentName)
+          .collection('TOTAL_MARKS')
+          .doc('Results_Remarks');
+
+      await remarksRef.set({
+        'Form_Teacher_Remark': remarks['Form_Teacher_Remark'],
+        'Head_Teacher_Remark': remarks['Head_Teacher_Remark'],
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      print("Remarks updated successfully for $studentName");
+
+    } catch (e) {
+      print("Error updating remarks for $studentName: $e");
+    }
+  }
+
+// Method to update remarks for all students in class
+  Future<void> _updateRemarksForAllStudents(String schoolName, String className) async {
+    try {
+      print("Updating remarks for all students in $className...");
+
+      final studentsSnapshot = await _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Classes')
+          .doc(className)
+          .collection('Student_Details')
+          .get();
+
+      List<Future<void>> remarkUpdates = [];
+
+      for (var studentDoc in studentsSnapshot.docs) {
+        String studentName = studentDoc.id;
+        remarkUpdates.add(_updateStudentRemarks(schoolName, className, studentName));
+      }
+
+      await Future.wait(remarkUpdates);
+      print("All student remarks updated successfully!");
+
+    } catch (e) {
+      print("Error updating remarks for all students: $e");
+    }
+  }
 
   @override
   void initState() {
