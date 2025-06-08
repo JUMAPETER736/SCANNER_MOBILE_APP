@@ -291,18 +291,44 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
+// Replace the existing _fetchSubjectStats method with this updated version
   Future<void> _fetchSubjectStats(String school, String studentClass) async {
     try {
-      final statsDoc = await _firestore
-          .doc('Schools/$school/Classes/$studentClass/Class_Statistics/subject_averages')
+      // Fetch subject averages from the new Class_Performance structure
+      final subjectStatsSnapshot = await _firestore
+          .collection('Schools/$school/Classes/$studentClass/Class_Performance/Subject_Performance/Subjects')
           .get();
 
-      if (statsDoc.exists) {
-        final data = statsDoc.data() as Map<String, dynamic>;
-        setState(() {
-          subjectStats = data;
-        });
+      Map<String, dynamic> stats = {};
+
+      for (var doc in subjectStatsSnapshot.docs) {
+        final data = doc.data();
+        final subjectName = data['Subject_Name'] ?? doc.id;
+
+        stats[subjectName] = {
+          'average': (data['Subject_Average'] as num?)?.toDouble() ?? 0.0,
+          'totalStudents': (data['Total_Students'] as num?)?.toInt() ?? 0,
+          'totalPass': (data['Total_Pass'] as num?)?.toInt() ?? 0,
+          'totalFail': (data['Total_Fail'] as num?)?.toInt() ?? 0,
+          'passRate': (data['Pass_Rate'] as num?)?.toDouble() ?? 0.0,
+        };
       }
+
+      // If no data found in new structure, try the old structure as fallback
+      if (stats.isEmpty) {
+        final oldStatsDoc = await _firestore
+            .doc('Schools/$school/Classes/$studentClass/Class_Statistics/subject_averages')
+            .get();
+
+        if (oldStatsDoc.exists) {
+          final data = oldStatsDoc.data() as Map<String, dynamic>;
+          stats = data;
+        }
+      }
+
+      setState(() {
+        subjectStats = stats;
+      });
     } catch (e) {
       print("Error fetching subject statistics: $e");
     }
@@ -440,6 +466,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     );
   }
 
+  // Also update the _buildReportTable method to properly use the subject average
   Widget _buildReportTable() {
     return Padding(
       padding: EdgeInsets.all(16),
@@ -474,8 +501,13 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 ? subj['gradeLetter']
                 : Juniors_Grade(score);
             final remark = getRemark(grade);
+
+            // Updated to fetch from the new structure
             final subjectStat = subjectStats[subjectName];
-            final avg = subjectStat != null ? (subjectStat['average'] as num?)?.toInt() ?? 0 : 0;
+            final avg = subjectStat != null
+                ? (subjectStat['average'] as num?)?.round() ?? 0
+                : 0;
+
             final subjectPosition = subj['position'] as int? ?? 0;
             final totalStudentsForSubject = subj['totalStudents'] as int? ?? 0;
 
@@ -484,7 +516,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                 _tableCell(subjectName),
                 _tableCell(score.toString()),
                 _tableCell(grade),
-                _tableCell(avg.toString()),
+                _tableCell(avg.toString()), // This now uses Subject_Average from Firestore
                 _tableCell(subjectPosition > 0 ? subjectPosition.toString() : '-'),
                 _tableCell(totalStudentsForSubject > 0 ? totalStudentsForSubject.toString() : '-'),
                 _tableCell(remark),
