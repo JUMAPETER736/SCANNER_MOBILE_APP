@@ -827,6 +827,8 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       studentTotalMarks: studentTotalMarks,
       teacherTotalMarks: teacherTotalMarks,
       studentPosition: studentPosition,
+      boxNumber: boxNumber,
+      schoolLocation: schoolLocation,
 
     );
 

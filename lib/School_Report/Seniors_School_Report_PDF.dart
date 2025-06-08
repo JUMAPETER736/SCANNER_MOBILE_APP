@@ -27,6 +27,8 @@ class Seniors_School_Report_PDF {
   final int studentPosition;
   final String? msceStatus;
   final String? msceMessage;
+  final int boxNumber;
+  final String schoolLocation;
 
   Seniors_School_Report_PDF({
     required this.schoolName,
@@ -51,7 +53,8 @@ class Seniors_School_Report_PDF {
     this.schoolFees,
     this.schoolBankAccount,
     this.nextTermOpeningDate,
-
+    required this.boxNumber,
+    required this.schoolLocation,
 
   });
 
@@ -156,22 +159,19 @@ class Seniors_School_Report_PDF {
                     style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
                     textAlign: pw.TextAlign.center,
                   ),
-
-                  if (schoolPhone != null)
-                    pw.Text(
-                      'Tel: $schoolPhone',
-                      style: pw.TextStyle(fontSize: 14),
-                      textAlign: pw.TextAlign.center,
-                    ),
-                  if (schoolEmail != null)
-                    pw.Text(
-                      'Email: $schoolEmail',
-                      style: pw.TextStyle(fontSize: 14),
-                      textAlign: pw.TextAlign.center,
-                    ),
+                  pw.Text(
+                    'Tel: ${schoolPhone ?? 'N/A'}',
+                    style: pw.TextStyle(fontSize: 14),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.Text(
+                    'Email: ${schoolEmail ?? 'N/A'}',
+                    style: pw.TextStyle(fontSize: 14),
+                    textAlign: pw.TextAlign.center,
+                  ),
                   pw.SizedBox(height: 10),
                   pw.Text(
-                    'PROGRESS REPORT',
+                    'P.O. BOX ${boxNumber ?? 0}, ${schoolLocation?.toUpperCase() ?? 'N/A'}',
                     style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
                     textAlign: pw.TextAlign.center,
                   ),
@@ -184,7 +184,6 @@ class Seniors_School_Report_PDF {
                   pw.SizedBox(height: 16),
                 ],
               ),
-
               // Student Info - matches UI exactly
               pw.Padding(
                 padding: pw.EdgeInsets.symmetric(horizontal: 16),
@@ -250,9 +249,11 @@ class Seniors_School_Report_PDF {
                       final remark = hasGrade ? _getRemark(grade) : 'Doesn\'t take';
                       final points = hasGrade ? _getPoints(grade) : '';
                       final subjectStat = subjectStats[subjectName];
-                      final avg = subjectStat != null ? subjectStat['average'] as int : 0;
+
                       final subjectPosition = subj['position'] as int? ?? 0;
                       final totalStudentsForSubject = subj['totalStudents'] as int? ?? 0;
+                      final avg = subjectStat != null ?
+                      (subjectStat['average'] as double).round() : 0;
 
                       return pw.TableRow(
                         children: [
@@ -372,17 +373,36 @@ class Seniors_School_Report_PDF {
                 ),
               ),
 
-              // Remarks Section - matches UI exactly
+// Remarks Section - matches UI exactly
               pw.Padding(
                 padding: pw.EdgeInsets.symmetric(horizontal: 16),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text('Form Teachers\' Remarks: ${formTeacherRemarks ?? 'N/A'}',
-                        style: pw.TextStyle(fontStyle: pw.FontStyle.italic)),
+                    pw.Text(
+                      'Form Teacher\'s Remarks: ${formTeacherRemarks ?? 'N/A'}',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
                     pw.SizedBox(height: 8),
-                    pw.Text('Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
-                        style: pw.TextStyle(fontStyle: pw.FontStyle.italic)),
+                    pw.Text(
+                      'Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.Text(
+                      'School Fees: ${schoolFees ?? 'N/A'}',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.Text(
+                      'School Bank Account: ${schoolBankAccount ?? 'N/A'}',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.Text(
+                      'Next Term Opening Date: ${nextTermOpeningDate ?? 'N/A'}',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
                     pw.SizedBox(height: 16),
                   ],
                 ),
