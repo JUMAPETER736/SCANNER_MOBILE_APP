@@ -39,8 +39,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   String? schoolEmail;
   String? schoolAccount;
   String? nextTermDate;
-  String? formTeacherRemarks;
-  String? headTeacherRemarks;
   int studentTotalMarks = 0;
   int teacherTotalMarks = 0;
   int aggregatePoints = 0;
@@ -48,6 +46,10 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   String averageGradeLetter = '';
   String msceStatus = '';
   String msceMessage = '';
+  int boxNumber = 0;
+  String schoolLocation = 'N/A';
+  String? formTeacherRemarks;
+  String? headTeacherRemarks;
 
   @override
   void initState() {
@@ -266,21 +268,23 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   Future<void> _fetchSchoolInfo(String school) async {
     try {
       DocumentSnapshot schoolDoc = await _firestore.collection('Schools').doc(school).get();
+
       if (schoolDoc.exists) {
         setState(() {
-          schoolAddress = schoolDoc['address'];
-          schoolPhone = schoolDoc['phone'];
-          schoolEmail = schoolDoc['email'];
-          schoolAccount = schoolDoc['account'];
-          nextTermDate = schoolDoc['nextTermDate'];
-          formTeacherRemarks = schoolDoc['formTeacherRemarks'];
-          headTeacherRemarks = schoolDoc['headTeacherRemarks'];
+          schoolAddress = schoolDoc['address'] ?? 'N/A';
+          schoolPhone = schoolDoc['phone'] ?? 'N/A';
+          schoolEmail = schoolDoc['email'] ?? 'N/A';
+          schoolAccount = schoolDoc['account'] ?? 'N/A';
+          nextTermDate = schoolDoc['nextTermDate'] ?? 'N/A';
+          boxNumber = schoolDoc['boxNumber'] ?? 0;
+          schoolLocation = schoolDoc['schoolLocation'] ?? 'N/A';
         });
       }
     } catch (e) {
       print("Error fetching school info: $e");
     }
   }
+
 
   Future<void> _updateTotalStudentsCount(String school, String studentClass) async {
     try {
@@ -493,11 +497,13 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
             textAlign: TextAlign.center,
           ),
         SizedBox(height: 10),
-        Text(
-          'P.O. BOX', Box_Number, School_Location
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
+        // P.O. BOX [number], [location] line
+        if (boxNumber != null && schoolLocation != null)
+          Text(
+            'P.O. BOX $boxNumber, ${schoolLocation!.toUpperCase()}',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
         SizedBox(height: 16),
         Text(
           '${getAcademicYear()} '
@@ -509,6 +515,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       ],
     );
   }
+
 
   Widget _buildStudentInfo() {
     return Padding(

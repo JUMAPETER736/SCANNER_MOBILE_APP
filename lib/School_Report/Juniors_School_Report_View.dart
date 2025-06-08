@@ -46,6 +46,8 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   String? nextTermDate;
   String? formTeacherRemarks;
   String? headTeacherRemarks;
+  int boxNumber = 0;
+  String schoolLocation = 'N/A';
 
   // State variables
   bool isLoading = true;
@@ -179,50 +181,18 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           .collection('Schools')
           .doc(school)
           .collection('School_Information')
-          .doc('details')
+          .doc('Details')
           .get();
 
-      if (schoolInfoDoc.exists) {
-        setState(() {
-          schoolAddress = schoolInfoDoc['address'] ?? 'N/A';
-          schoolPhone = schoolInfoDoc['phone'] ?? 'N/A';
-          schoolEmail = schoolInfoDoc['email'] ?? 'N/A';
-          schoolAccount = schoolInfoDoc['account'] ?? 'N/A';
-          nextTermDate = schoolInfoDoc['nextTermDate'] ?? 'N/A';
-          formTeacherRemarks = schoolInfoDoc['formTeacherRemarks'] ?? 'N/A';
-          headTeacherRemarks = schoolInfoDoc['headTeacherRemarks'] ?? 'N/A';
-        });
-      } else {
-        // Create default school info if it doesn't exist
-        Map<String, dynamic> defaultSchoolInfo = {
-          'address': 'N/A',
-          'phone': 'N/A',
-          'email': 'N/A',
-          'account': 'N/A',
-          'nextTermDate': 'N/A',
-          'formTeacherRemarks': 'N/A',
-          'headTeacherRemarks': 'N/A',
-          'createdAt': FieldValue.serverTimestamp(),
-          'lastUpdated': FieldValue.serverTimestamp(),
-        };
-
-        await _firestore
-            .collection('Schools')
-            .doc(school)
-            .collection('School_Information')
-            .doc('details')
-            .set(defaultSchoolInfo);
-
-        setState(() {
-          schoolAddress = 'N/A';
-          schoolPhone = 'N/A';
-          schoolEmail = 'N/A';
-          schoolAccount = 'N/A';
-          nextTermDate = 'N/A';
-          formTeacherRemarks = 'N/A';
-          headTeacherRemarks = 'N/A';
-        });
-      }
+      setState(() {
+        schoolAddress = schoolInfoDoc['address'] ?? 'N/A';
+        schoolPhone = schoolInfoDoc['phone'] ?? 'N/A';
+        schoolEmail = schoolInfoDoc['email'] ?? 'N/A';
+        schoolAccount = schoolInfoDoc['account'] ?? 'N/A';
+        nextTermDate = schoolInfoDoc['nextTermDate'] ?? 'N/A';
+        boxNumber = schoolInfoDoc['boxNumber'] ?? 0;
+        schoolLocation = schoolInfoDoc['schoolLocation'] ?? 'N/A';
+      });
     } catch (e) {
       print("Error fetching school info: $e");
       setState(() {
@@ -231,11 +201,13 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         schoolEmail = 'N/A';
         schoolAccount = 'N/A';
         nextTermDate = 'N/A';
-        formTeacherRemarks = 'N/A';
-        headTeacherRemarks = 'N/A';
+        boxNumber = 0;
+        schoolLocation = 'N/A';
       });
     }
   }
+
+
 
   Future<void> _fetchStudentSubjects(String basePath) async {
     try {
@@ -416,7 +388,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         ),
         SizedBox(height: 10),
         Text(
-          'PROGRESS REPORT',
+          'P.O. BOX ${boxNumber ?? 0}, ${schoolLocation?.toUpperCase() ?? 'N/A'}',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
@@ -431,6 +403,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       ],
     );
   }
+
 
   Widget _buildStudentInfo() {
     return Padding(
