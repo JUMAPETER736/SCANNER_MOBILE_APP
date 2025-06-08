@@ -22,6 +22,9 @@ class Juniors_School_Report_PDF {
   final String? headTeacherRemarks;
   final String? averageGradeLetter;
   final String? jceStatus;
+  final String? schoolFees;
+  final String? schoolBankAccount;
+  final String? nextTermOpeningDate;
 
   Juniors_School_Report_PDF({
     required this.studentClass,
@@ -42,6 +45,10 @@ class Juniors_School_Report_PDF {
     this.headTeacherRemarks,
     this.averageGradeLetter,
     this.jceStatus,
+    this.schoolFees,
+    this.schoolBankAccount,
+    this.nextTermOpeningDate,
+
   });
 
   // Method to determine current term based on date (matching main app logic)

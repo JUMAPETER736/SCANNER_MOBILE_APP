@@ -37,6 +37,10 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   double averagePercentage = 0.0;
 
   // School info
+  // School Information
+  String? schoolFees;
+  String? schoolBankAccount;
+  String? nextTermOpeningDate;
   String? userEmail;
   String? schoolName;
   String? schoolAddress;
@@ -175,23 +179,27 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
+  // _fetchSchoolInfo method to use the new path and fetch new fields
   Future<void> _fetchSchoolInfo(String school) async {
     try {
       DocumentSnapshot schoolInfoDoc = await _firestore
           .collection('Schools')
           .doc(school)
-          .collection('School_Information')
-          .doc('Details')
+          .collection('Classes')
+          .doc('School_Information')
           .get();
 
       setState(() {
         schoolAddress = schoolInfoDoc['address'] ?? 'N/A';
-        schoolPhone = schoolInfoDoc['phone'] ?? 'N/A';
-        schoolEmail = schoolInfoDoc['email'] ?? 'N/A';
+        schoolPhone = schoolInfoDoc['Telephone'] ?? 'N/A';
+        schoolEmail = schoolInfoDoc['Email'] ?? 'N/A';
         schoolAccount = schoolInfoDoc['account'] ?? 'N/A';
         nextTermDate = schoolInfoDoc['nextTermDate'] ?? 'N/A';
         boxNumber = schoolInfoDoc['boxNumber'] ?? 0;
         schoolLocation = schoolInfoDoc['schoolLocation'] ?? 'N/A';
+        schoolFees = schoolInfoDoc['School_Fees'] ?? 'N/A';
+        schoolBankAccount = schoolInfoDoc['School_Bank_Account'] ?? 'N/A';
+        nextTermOpeningDate = schoolInfoDoc['Next_Term_Opening_Date'] ?? 'N/A';
       });
     } catch (e) {
       print("Error fetching school info: $e");
@@ -203,11 +211,12 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         nextTermDate = 'N/A';
         boxNumber = 0;
         schoolLocation = 'N/A';
+        schoolFees = 'N/A';
+        schoolBankAccount = 'N/A';
+        nextTermOpeningDate = 'N/A';
       });
     }
   }
-
-
 
   Future<void> _fetchStudentSubjects(String basePath) async {
     try {
@@ -256,6 +265,16 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           averageGradeLetter = data['Average_Grade_Letter']?.toString() ?? '';
           averagePercentage = (data['Average_Percentage'] as num?)?.toDouble() ?? 0.0;
           jceStatus = data['JCE_Status']?.toString() ?? (studentTotalMarks >= 550 ? 'PASS' : 'FAIL');
+        });
+      }
+
+      // Fetch remarks from the correct path
+      final remarksDoc = await _firestore.doc('$basePath/TOTAL_MARKS/Results_Remarks').get();
+      if (remarksDoc.exists) {
+        final remarksData = remarksDoc.data() as Map<String, dynamic>;
+        setState(() {
+          formTeacherRemarks = remarksData['Form_Teacher_Remark']?.toString() ?? 'N/A';
+          headTeacherRemarks = remarksData['Head_Teacher_Remark']?.toString() ?? 'N/A';
         });
       }
     } catch (e) {
@@ -618,22 +637,14 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           SizedBox(height: 8),
           Text('Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
               style: TextStyle(fontStyle: FontStyle.italic)),
-          SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFooter() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Fees for next term', style: TextStyle(fontWeight: FontWeight.bold)),
-          Text('School account: ${schoolAccount ?? 'N/A'}'),
           SizedBox(height: 8),
-          Text('Next term begins on ${nextTermDate ?? 'N/A'}',
+          Text('School Fees: ${schoolFees ?? 'N/A'}',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          SizedBox(height: 8),
+          Text('School Bank Account: ${schoolBankAccount ?? 'N/A'}',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          SizedBox(height: 8),
+          Text('Next Term Opening Date: ${nextTermOpeningDate ?? 'N/A'}',
               style: TextStyle(fontWeight: FontWeight.bold)),
           SizedBox(height: 16),
         ],
@@ -641,6 +652,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     );
   }
 
+// 5. Update the _printDocument method to pass the new fields
   Future<void> _printDocument() async {
     try {
       final pdfGenerator = Juniors_School_Report_PDF(
@@ -662,6 +674,9 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         headTeacherRemarks: headTeacherRemarks,
         averageGradeLetter: averageGradeLetter,
         jceStatus: jceStatus,
+        schoolFees: schoolFees,
+        schoolBankAccount: schoolBankAccount,
+        nextTermOpeningDate: nextTermOpeningDate,
       );
 
       await pdfGenerator.generateAndPrintPDF();
@@ -671,6 +686,25 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       );
     }
   }
+
+  Widget _buildFooter() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Fees for next term', style: TextStyle(fontWeight: FontWeight.bold)),
+          Text('School account: ${schoolAccount ?? 'N/A'}'),
+          SizedBox(height: 8),
+          Text('Next term begins on ${nextTermDate ?? 'N/A'}',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
