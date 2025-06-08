@@ -28,7 +28,18 @@ class _Student_DetailsState extends State<Student_Details> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
 
-
+  // School Information
+  String? schoolFees;
+  String? schoolBankAccount;
+  String? nextTermOpeningDate;
+  String? userEmail;
+  String? schoolName;
+  String? schoolPhone;
+  String? schoolEmail;
+  String? formTeacherRemarks;
+  String? headTeacherRemarks;
+  int boxNumber = 0;
+  String schoolLocation = 'N/A';
 
   // State variables
   String? _selectedClass;
@@ -208,6 +219,27 @@ class _Student_DetailsState extends State<Student_Details> {
   Future<void> _saveStudentToFirestore(String schoolName) async {
     final WriteBatch batch = _firestore.batch();
 
+    // Create School Information document (if it doesn't exist)
+    final DocumentReference schoolInfoRef = _firestore
+        .collection('Schools')
+        .doc(schoolName)
+        .collection('School_Information')
+        .doc('School_Details');
+
+    batch.set(schoolInfoRef, {
+      'Telephone': '',
+      'Email': '',
+      'account': '',
+      'nextTermDate': '',
+      'boxNumber': 0,
+      'schoolLocation': '',
+      'School_Fees': '',
+      'School_Bank_Account': '',
+      'Next_Term_Opening_Date': '',
+      'createdAt': FieldValue.serverTimestamp(),
+      'lastUpdated': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true)); // merge: true prevents overwriting existing data
+
     // Main student document
     final DocumentReference studentRef = _firestore
         .collection('Schools')
@@ -272,8 +304,61 @@ class _Student_DetailsState extends State<Student_Details> {
       'Head_Teacher_Remark': 'N/A',
     });
 
-    await batch.commit();
+    try {
+      await batch.commit();
+      print("Student and school information saved successfully!");
+    } catch (e) {
+      print("Error saving data: $e");
+      throw e;
+    }
   }
+
+// Updated _fetchSchoolInfo method for the new path
+  Future<void> _fetchSchoolInfo(String school) async {
+    try {
+      DocumentSnapshot schoolInfoDoc = await _firestore
+          .collection('Schools')
+          .doc(school)
+          .collection('School_Information')
+          .doc('School_Details')
+          .get();
+
+      if (schoolInfoDoc.exists) {
+        setState(() {
+          schoolPhone = schoolInfoDoc['Telephone'] ?? 'N/A';
+          schoolEmail = schoolInfoDoc['Email'] ?? 'N/A';
+          boxNumber = schoolInfoDoc['boxNumber'] ?? 0;
+          schoolLocation = schoolInfoDoc['schoolLocation'] ?? 'N/A';
+          schoolFees = schoolInfoDoc['School_Fees'] ?? 'N/A';
+          schoolBankAccount = schoolInfoDoc['School_Bank_Account'] ?? 'N/A';
+          nextTermOpeningDate = schoolInfoDoc['Next_Term_Opening_Date'] ?? 'N/A';
+        });
+      } else {
+        // If document doesn't exist, set default values
+        setState(() {
+          schoolPhone = 'N/A';
+          schoolEmail = 'N/A';
+          boxNumber = 0;
+          schoolLocation = 'N/A';
+          schoolFees = 'N/A';
+          schoolBankAccount = 'N/A';
+          nextTermOpeningDate = 'N/A';
+        });
+      }
+    } catch (e) {
+      print("Error fetching school info: $e");
+      setState(() {
+        schoolPhone = 'N/A';
+        schoolEmail = 'N/A';
+        boxNumber = 0;
+        schoolLocation = 'N/A';
+        schoolFees = 'N/A';
+        schoolBankAccount = 'N/A';
+        nextTermOpeningDate = 'N/A';
+      });
+    }
+  }
+
 
   Future<void> _updateTotalStudentsCountOnSave(String school, String studentClass) async {
     try {
