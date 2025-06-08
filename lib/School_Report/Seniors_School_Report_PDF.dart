@@ -4,14 +4,15 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
 
 class Seniors_School_Report_PDF {
-  final String? schoolName;
-  final String? schoolAddress;
+
   final String? schoolPhone;
   final String? schoolEmail;
-  final String? schoolAccount;
-  final String? nextTermDate;
   final String? formTeacherRemarks;
   final String? headTeacherRemarks;
+  final String? schoolFees;
+  final String? schoolBankAccount;
+  final String? nextTermOpeningDate;
+  final String? schoolName;
   final String studentFullName;
   final String studentClass;
   final List<Map<String, dynamic>> subjects;
@@ -24,17 +25,13 @@ class Seniors_School_Report_PDF {
   final int studentTotalMarks;
   final int teacherTotalMarks;
   final int studentPosition;
-  final String? averageGradeLetter;
   final String? msceStatus;
   final String? msceMessage;
 
   Seniors_School_Report_PDF({
     required this.schoolName,
-    required this.schoolAddress,
     required this.schoolPhone,
     required this.schoolEmail,
-    required this.schoolAccount,
-    required this.nextTermDate,
     required this.formTeacherRemarks,
     required this.headTeacherRemarks,
     required this.studentFullName,
@@ -49,9 +46,13 @@ class Seniors_School_Report_PDF {
     required this.studentTotalMarks,
     required this.teacherTotalMarks,
     required this.studentPosition,
-    this.averageGradeLetter,
     this.msceStatus,
     this.msceMessage,
+    this.schoolFees,
+    this.schoolBankAccount,
+    this.nextTermOpeningDate,
+
+
   });
 
   String _getGrade(int score) {
@@ -155,12 +156,7 @@ class Seniors_School_Report_PDF {
                     style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
                     textAlign: pw.TextAlign.center,
                   ),
-                  if (schoolAddress != null)
-                    pw.Text(
-                      schoolAddress!,
-                      style: pw.TextStyle(fontSize: 14),
-                      textAlign: pw.TextAlign.center,
-                    ),
+
                   if (schoolPhone != null)
                     pw.Text(
                       'Tel: $schoolPhone',
@@ -392,21 +388,6 @@ class Seniors_School_Report_PDF {
                 ),
               ),
 
-              // Footer - matches UI exactly
-              pw.Padding(
-                padding: pw.EdgeInsets.symmetric(horizontal: 16),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text('Fees for next term', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text('School account: ${schoolAccount ?? 'N/A'}'),
-                    pw.SizedBox(height: 8),
-                    pw.Text('Next term begins on ${nextTermDate ?? 'N/A'}',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.SizedBox(height: 16),
-                  ],
-                ),
-              ),
             ],
           );
         },
