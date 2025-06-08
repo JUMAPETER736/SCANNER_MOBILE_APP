@@ -36,14 +36,13 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   String jceStatus = 'FAIL';
   double averagePercentage = 0.0;
 
-  // School info
+
   // School Information
   String? schoolFees;
   String? schoolBankAccount;
   String? nextTermOpeningDate;
   String? userEmail;
   String? schoolName;
-  String? schoolAddress;
   String? schoolPhone;
   String? schoolEmail;
   String? schoolAccount;
@@ -179,18 +178,17 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
-  // _fetchSchoolInfo method to use the new path and fetch new fields
+// _fetchSchoolInfo method to fetch from the new path structure
   Future<void> _fetchSchoolInfo(String school) async {
     try {
       DocumentSnapshot schoolInfoDoc = await _firestore
           .collection('Schools')
           .doc(school)
-          .collection('Classes')
-          .doc('School_Information')
+          .collection('School_Information')
+          .doc('School_Details')
           .get();
 
       setState(() {
-        schoolAddress = schoolInfoDoc['address'] ?? 'N/A';
         schoolPhone = schoolInfoDoc['Telephone'] ?? 'N/A';
         schoolEmail = schoolInfoDoc['Email'] ?? 'N/A';
         schoolAccount = schoolInfoDoc['account'] ?? 'N/A';
@@ -204,7 +202,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     } catch (e) {
       print("Error fetching school info: $e");
       setState(() {
-        schoolAddress = 'N/A';
         schoolPhone = 'N/A';
         schoolEmail = 'N/A';
         schoolAccount = 'N/A';
@@ -390,11 +387,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
-        Text(
-          schoolAddress ?? 'N/A',
-          style: TextStyle(fontSize: 14),
-          textAlign: TextAlign.center,
-        ),
+
         Text(
           'Tel: ${schoolPhone ?? 'N/A'}',
           style: TextStyle(fontSize: 14),
@@ -632,25 +625,36 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Form Teachers\' Remarks: ${formTeacherRemarks ?? 'N/A'}',
-              style: TextStyle(fontStyle: FontStyle.italic)),
+          Text(
+            'Form Teacher\'s Remarks: ${formTeacherRemarks ?? 'N/A'}',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           SizedBox(height: 8),
-          Text('Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
-              style: TextStyle(fontStyle: FontStyle.italic)),
+          Text(
+            'Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           SizedBox(height: 8),
-          Text('School Fees: ${schoolFees ?? 'N/A'}',
-              style: TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            'School Fees: ${schoolFees ?? 'N/A'}',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           SizedBox(height: 8),
-          Text('School Bank Account: ${schoolBankAccount ?? 'N/A'}',
-              style: TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            'School Bank Account: ${schoolBankAccount ?? 'N/A'}',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           SizedBox(height: 8),
-          Text('Next Term Opening Date: ${nextTermOpeningDate ?? 'N/A'}',
-              style: TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            'Next Term Opening Date: ${nextTermOpeningDate ?? 'N/A'}',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           SizedBox(height: 16),
         ],
       ),
     );
   }
+
 
 // 5. Update the _printDocument method to pass the new fields
   Future<void> _printDocument() async {
@@ -665,7 +669,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         studentPosition: studentPosition,
         totalStudents: totalStudents,
         schoolName: schoolName,
-        schoolAddress: schoolAddress,
         schoolPhone: schoolPhone,
         schoolEmail: schoolEmail,
         schoolAccount: schoolAccount,
@@ -687,22 +690,22 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     }
   }
 
-  Widget _buildFooter() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Fees for next term', style: TextStyle(fontWeight: FontWeight.bold)),
-          Text('School account: ${schoolAccount ?? 'N/A'}'),
-          SizedBox(height: 8),
-          Text('Next term begins on ${nextTermDate ?? 'N/A'}',
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
+  // Widget _buildFooter() {
+  //   return Padding(
+  //     padding: EdgeInsets.symmetric(horizontal: 16),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         Text('Fees for next term', style: TextStyle(fontWeight: FontWeight.bold)),
+  //         Text('School account: ${schoolAccount ?? 'N/A'}'),
+  //         SizedBox(height: 8),
+  //         Text('Next term begins on ${nextTermDate ?? 'N/A'}',
+  //             style: TextStyle(fontWeight: FontWeight.bold)),
+  //         SizedBox(height: 16),
+  //       ],
+  //     ),
+  //   );
+  // }
 
 
 
@@ -786,7 +789,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
               _buildResultSection(),
               _buildGradingKey(),
               _buildRemarksSection(),
-              _buildFooter(),
               SizedBox(height: 20),
             ],
           ),

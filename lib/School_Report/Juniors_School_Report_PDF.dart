@@ -13,7 +13,6 @@ class Juniors_School_Report_PDF {
   final int studentPosition;
   final int totalStudents;
   final String? schoolName;
-  final String? schoolAddress;
   final String? schoolPhone;
   final String? schoolEmail;
   final String? schoolAccount;
@@ -36,7 +35,6 @@ class Juniors_School_Report_PDF {
     required this.studentPosition,
     required this.totalStudents,
     this.schoolName,
-    this.schoolAddress,
     this.schoolPhone,
     this.schoolEmail,
     this.schoolAccount,
@@ -124,11 +122,7 @@ class Juniors_School_Report_PDF {
           textAlign: pw.TextAlign.center,
         ),
         pw.SizedBox(height: 4),
-        pw.Text(
-          schoolAddress ?? 'N/A',
-          style: pw.TextStyle(fontSize: 12),
-          textAlign: pw.TextAlign.center,
-        ),
+
         pw.Text(
           'Tel: ${schoolPhone ?? 'N/A'}',
           style: pw.TextStyle(fontSize: 11),
