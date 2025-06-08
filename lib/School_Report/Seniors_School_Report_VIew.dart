@@ -847,8 +847,12 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     return Scaffold(
       appBar: AppBar(
         title: Text('Progress Report'),
+        backgroundColor: Colors.grey[300], // Light gray color
         actions: [
-          IconButton(icon: Icon(Icons.print), onPressed: _printDocument),
+          IconButton(
+            icon: Icon(Icons.print),
+            onPressed: _printDocument,
+          ),
         ],
       ),
       body: isLoading

@@ -98,6 +98,23 @@ class Seniors_School_Report_PDF {
     }
   }
 
+  String _getMsceStatus() {
+    if (msceStatus != null && msceStatus!.isNotEmpty) {
+      return msceStatus!;
+    }
+
+    // Calculate MSCE status based on aggregate points if not provided
+    if (aggregatePoints <= 6) {
+      return 'SELECTED';
+    } else if (aggregatePoints <= 18) {
+      return 'CREDIT';
+    } else if (aggregatePoints <= 30) {
+      return 'PASS';
+    } else {
+      return 'FAIL';
+    }
+  }
+
   String _getCurrentTerm() {
     DateTime now = DateTime.now();
     int currentMonth = now.month;
@@ -291,7 +308,7 @@ class Seniors_School_Report_PDF {
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text('RESULT: ${msceStatus ?? ''}', style: pw.TextStyle(fontSize: 10)),
+                        pw.Text('RESULT: ${_getMsceStatus()}', style: pw.TextStyle(fontSize: 10)),
                       ],
                     ),
                     pw.SizedBox(height: 10), // Reduced from 16
