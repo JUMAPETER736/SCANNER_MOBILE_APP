@@ -223,39 +223,41 @@ class Seniors_School_Report_PDF {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => doc.save());
   }
 
-  // PDF Section Builders
-  pw.Column _buildSchoolHeader() {
-    return pw.Column(
-      children: [
-        pw.Text(
-          (schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase(),
-          style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
-          textAlign: pw.TextAlign.center,
-        ),
-        pw.Text(
-          'Tel: ${schoolPhone ?? 'N/A'}',
-          style: pw.TextStyle(fontSize: 10),
-          textAlign: pw.TextAlign.center,
-        ),
-        pw.Text(
-          'Email: ${schoolEmail ?? 'N/A'}',
-          style: pw.TextStyle(fontSize: 10),
-          textAlign: pw.TextAlign.center,
-        ),
-        pw.SizedBox(height: 6),
-        pw.Text(
-          'P.O. BOX $boxNumber, ${schoolLocation.toUpperCase()}',
-          style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
-          textAlign: pw.TextAlign.center,
-        ),
-        pw.SizedBox(height: 8),
-        pw.Text(
-          '${_getAcademicYear()} $studentClass END OF TERM ${_getCurrentTerm()} STUDENT\'S PROGRESS REPORT',
-          style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
-          textAlign: pw.TextAlign.center,
-        ),
-        pw.SizedBox(height: 10),
-      ],
+// PDF Section Builders
+  pw.Widget _buildSchoolHeader() {
+    return pw.Center(
+      child: pw.Column(
+        children: [
+          pw.Text(
+            (schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase(),
+            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.Text(
+            'Tel: ${schoolPhone ?? 'N/A'}',
+            style: pw.TextStyle(fontSize: 10),
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.Text(
+            'Email: ${schoolEmail ?? 'N/A'}',
+            style: pw.TextStyle(fontSize: 10),
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            'P.O. BOX $boxNumber, ${schoolLocation.toUpperCase()}',
+            style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            '${_getAcademicYear()} $studentClass END OF TERM ${_getCurrentTerm()} STUDENT\'S PROGRESS REPORT',
+            style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.SizedBox(height: 10),
+        ],
+      ),
     );
   }
 
