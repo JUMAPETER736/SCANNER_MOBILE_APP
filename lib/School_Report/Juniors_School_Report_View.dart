@@ -656,7 +656,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   }
 
 
-// 5. Update the _printDocument method to pass the new fields
+// Update the _printDocument method to pass the new fields
   Future<void> _printDocument() async {
     try {
       final pdfGenerator = Juniors_School_Report_PDF(
@@ -689,24 +689,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       );
     }
   }
-
-  // Widget _buildFooter() {
-  //   return Padding(
-  //     padding: EdgeInsets.symmetric(horizontal: 16),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         Text('Fees for next term', style: TextStyle(fontWeight: FontWeight.bold)),
-  //         Text('School account: ${schoolAccount ?? 'N/A'}'),
-  //         SizedBox(height: 8),
-  //         Text('Next term begins on ${nextTermDate ?? 'N/A'}',
-  //             style: TextStyle(fontWeight: FontWeight.bold)),
-  //         SizedBox(height: 16),
-  //       ],
-  //     ),
-  //   );
-  // }
-
 
 
   @override
