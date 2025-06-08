@@ -802,7 +802,8 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     }
   }
 
-  // _updateGrade method to handle widget lifecycle properly
+  // Replace your existing _updateGrade method with this updated version
+
   Future<void> _updateGrade(String subject) async {
     String newGrade = '';
     String errorMessage = '';
@@ -907,7 +908,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                   return;
                 }
 
-                // FIXED: Close dialog first to avoid widget lifecycle issues
+                // Close dialog first to avoid widget lifecycle issues
                 Navigator.of(context).pop();
 
                 try {
@@ -1007,13 +1008,13 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                     print("Grade updated successfully for $actualStudentName in $subject");
 
                     // Update cached grade
-                    if (mounted) { // FIXED: Check if widget is still mounted
+                    if (mounted) {
                       setState(() {
                         _subjectGrades[subject] = newGrade;
                       });
                     }
 
-                    // *** CRITICAL: Run comprehensive calculations ***
+                    // *** COMPREHENSIVE CALCULATIONS ***
                     print("Starting comprehensive calculations...");
 
                     // 1. Calculate subject positions
@@ -1024,20 +1025,24 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                     await _processAllStudentsInClass(schoolName, className);
                     print("Student data processing completed!");
 
-                    // 3. Calculate and save class performance (FIXED)
+                    // 3. Calculate and save class performance
                     await _runCompleteClassPerformanceCalculation(schoolName, className);
                     print("Class performance calculation completed!");
 
+                    // 4. *** NEW: Update student remarks based on performance ***
+                    await _updateRemarksForAllStudents(schoolName, className);
+                    print("Student remarks updated successfully!");
+
                     // Refresh the main widget state
-                    if (mounted) { // FIXED: Check if widget is still mounted
+                    if (mounted) {
                       setState(() {});
                     }
 
                     // Show success message
-                    if (mounted) { // FIXED: Check if widget is still mounted
+                    if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Grade updated successfully! All calculations and class performance analysis completed.'),
+                          content: Text('Grade updated successfully! All calculations, performance analysis, and student remarks completed.'),
                           backgroundColor: Colors.green,
                           duration: Duration(seconds: 4),
                         ),
@@ -1046,7 +1051,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                   }
                 } catch (e) {
                   print('Error updating Subject Grade: $e');
-                  if (mounted) { // FIXED: Check if widget is still mounted
+                  if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Error updating grade. Please try again.'),
