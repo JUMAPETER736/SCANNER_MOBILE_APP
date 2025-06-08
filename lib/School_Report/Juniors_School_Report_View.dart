@@ -678,6 +678,8 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         averageGradeLetter: averageGradeLetter,
         jceStatus: jceStatus,
         schoolFees: schoolFees,
+        boxNumber: boxNumber,               
+        schoolLocation: schoolLocation,
         schoolBankAccount: schoolBankAccount,
         nextTermOpeningDate: nextTermOpeningDate,
       );

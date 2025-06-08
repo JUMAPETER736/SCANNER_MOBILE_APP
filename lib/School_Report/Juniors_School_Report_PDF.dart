@@ -24,6 +24,8 @@ class Juniors_School_Report_PDF {
   final String? schoolFees;
   final String? schoolBankAccount;
   final String? nextTermOpeningDate;
+  final int boxNumber;
+  final String schoolLocation;
 
   Juniors_School_Report_PDF({
     required this.studentClass,
@@ -46,6 +48,8 @@ class Juniors_School_Report_PDF {
     this.schoolFees,
     this.schoolBankAccount,
     this.nextTermOpeningDate,
+    required this.boxNumber,
+    required this.schoolLocation,
 
   });
 
@@ -122,7 +126,6 @@ class Juniors_School_Report_PDF {
           textAlign: pw.TextAlign.center,
         ),
         pw.SizedBox(height: 4),
-
         pw.Text(
           'Tel: ${schoolPhone ?? 'N/A'}',
           style: pw.TextStyle(fontSize: 11),
@@ -135,15 +138,15 @@ class Juniors_School_Report_PDF {
         ),
         pw.SizedBox(height: 8),
         pw.Text(
-          'PROGRESS REPORT',
+          'P.O. BOX ${boxNumber ?? 0}, ${schoolLocation?.toUpperCase() ?? 'N/A'}',
           style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
           textAlign: pw.TextAlign.center,
         ),
-        pw.SizedBox(height: 8),
+        pw.SizedBox(height: 12),
         pw.Text(
           '${getAcademicYear()} '
               '$studentClass END OF TERM ${getCurrentTerm()} STUDENT\'S PROGRESS REPORT',
-          style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
+          style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
           textAlign: pw.TextAlign.center,
         ),
         pw.SizedBox(height: 12),
@@ -151,13 +154,14 @@ class Juniors_School_Report_PDF {
     );
   }
 
-  // Build student info section with smaller font
+// 3. Replace the _buildStudentInfo method with this updated version
   pw.Widget _buildStudentInfo() {
     return pw.Padding(
-      padding: pw.EdgeInsets.symmetric(horizontal: 8),
+      padding: pw.EdgeInsets.symmetric(horizontal: 12),
       child: pw.Column(
         children: [
           pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Expanded(
                 flex: 4,
@@ -167,17 +171,19 @@ class Juniors_School_Report_PDF {
                 ),
               ),
               pw.Expanded(
-                flex: 3,
-                child: pw.Text(
-                  'POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}',
-                  style: pw.TextStyle(fontSize: 11),
-                ),
-              ),
-              pw.Expanded(
-                flex: 2,
-                child: pw.Text(
-                  'OUT OF: ${totalStudents > 0 ? totalStudents : 'N/A'}',
-                  style: pw.TextStyle(fontSize: 11),
+                flex: 4,
+                child: pw.Row(
+                  children: [
+                    pw.Text(
+                      'POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}',
+                      style: pw.TextStyle(fontSize: 11),
+                    ),
+                    pw.SizedBox(width: 10),
+                    pw.Text(
+                      'OUT OF: ${totalStudents > 0 ? totalStudents : 'N/A'}',
+                      style: pw.TextStyle(fontSize: 11),
+                    ),
+                  ],
                 ),
               ),
               pw.Expanded(
@@ -189,11 +195,12 @@ class Juniors_School_Report_PDF {
               ),
             ],
           ),
-          pw.SizedBox(height: 10),
+          pw.SizedBox(height: 12),
         ],
       ),
     );
   }
+
 
   // Build report table with optimized column widths and smaller fonts
   pw.Widget _buildReportTable() {
@@ -204,7 +211,7 @@ class Juniors_School_Report_PDF {
       'SUBJECT',
       'MARKS %',
       'GRADE',
-      'CLASS AVG',
+      'CLASS AVERAGE',
       'POSITION',
       'OUT OF',
       'TEACHERS\' COMMENTS',
@@ -218,8 +225,13 @@ class Juniors_School_Report_PDF {
           ? subj['gradeLetter']
           : Juniors_Grade(score);
       final remark = getRemark(grade);
+
+      // Updated to match the UI structure
       final subjectStat = subjectStats[subjectName];
-      final avg = subjectStat != null ? subjectStat['average'] as int : 0;
+      final avg = subjectStat != null
+          ? (subjectStat['average'] as num?)?.round() ?? 0
+          : 0;
+
       final subjectPosition = subj['position'] as int? ?? 0;
       final totalStudentsForSubject = subj['totalStudents'] as int? ?? 0;
 
@@ -227,7 +239,7 @@ class Juniors_School_Report_PDF {
         subjectName,
         score.toString(),
         grade,
-        avg.toString(),
+        avg.toString(), // This now matches the UI logic
         subjectPosition > 0 ? subjectPosition.toString() : '-',
         totalStudentsForSubject > 0 ? totalStudentsForSubject.toString() : '-',
         remark,
@@ -246,17 +258,17 @@ class Juniors_School_Report_PDF {
     ]);
 
     return pw.Padding(
-      padding: pw.EdgeInsets.all(8),
+      padding: pw.EdgeInsets.all(12),
       child: pw.Table(
         border: pw.TableBorder.all(width: 0.5),
         columnWidths: {
-          0: pw.FlexColumnWidth(3.0),  // Subject name - reduced slightly
-          1: pw.FlexColumnWidth(1.0),  // Marks - reduced
-          2: pw.FlexColumnWidth(1.0),  // Grade - increased
-          3: pw.FlexColumnWidth(1.0),  // Class average
-          4: pw.FlexColumnWidth(1.2),  // Position - increased
-          5: pw.FlexColumnWidth(0.8),  // Out of
-          6: pw.FlexColumnWidth(2.5),  // Comments
+          0: pw.FlexColumnWidth(3),
+          1: pw.FlexColumnWidth(1.5),
+          2: pw.FlexColumnWidth(1),
+          3: pw.FlexColumnWidth(1.5),
+          4: pw.FlexColumnWidth(1.5),
+          5: pw.FlexColumnWidth(1.5),
+          6: pw.FlexColumnWidth(3),
         },
         children: tableRows.asMap().entries.map((entry) {
           int index = entry.key;
@@ -384,23 +396,37 @@ class Juniors_School_Report_PDF {
     );
   }
 
-  // Build remarks section with smaller font
   pw.Widget _buildRemarksSection() {
     return pw.Padding(
-      padding: pw.EdgeInsets.symmetric(horizontal: 8),
+      padding: pw.EdgeInsets.symmetric(horizontal: 12),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text(
-            'Form Teachers\' Remarks: ${formTeacherRemarks ?? 'N/A'}',
-            style: pw.TextStyle(fontStyle: pw.FontStyle.italic, fontSize: 10),
+            'Form Teacher\'s Remarks: ${formTeacherRemarks ?? 'N/A'}',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
           ),
-          pw.SizedBox(height: 4),
+          pw.SizedBox(height: 6),
           pw.Text(
             'Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
-            style: pw.TextStyle(fontStyle: pw.FontStyle.italic, fontSize: 10),
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
           ),
-          pw.SizedBox(height: 10),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            'School Fees: ${schoolFees ?? 'N/A'}',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            'School Bank Account: ${schoolBankAccount ?? 'N/A'}',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            'Next Term Opening Date: ${nextTermOpeningDate ?? 'N/A'}',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+          ),
+          pw.SizedBox(height: 12),
         ],
       ),
     );
@@ -437,23 +463,24 @@ class Juniors_School_Report_PDF {
       final doc = pw.Document();
 
       doc.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          margin: pw.EdgeInsets.all(12), // Reduced margin for more space
-          build: (pw.Context context) {
-            return pw.Column(
-              children: [
-                _buildSchoolHeader(),
-                _buildStudentInfo(),
-                _buildReportTable(),
-                _buildResultSection(),
-                _buildGradingKey(),
-                _buildRemarksSection(),
-                _buildFooter(),
-              ],
-            );
-          },
-        ),
+
+          pw.Page(
+            pageFormat: PdfPageFormat.a4,
+            margin: pw.EdgeInsets.all(12),
+            build: (pw.Context context) {
+              return pw.Column(
+                children: [
+                  _buildSchoolHeader(),
+                  _buildStudentInfo(),
+                  _buildReportTable(),
+                  _buildResultSection(),
+                  _buildGradingKey(),
+                  _buildRemarksSection(),
+                  // Remove _buildFooter() from here
+                ],
+              );
+            },
+          )
       );
 
       await Printing.layoutPdf(
