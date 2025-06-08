@@ -28,12 +28,12 @@ class _Main_SettingsState extends State<Main_Settings> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: Text('Settings', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
+        title: Text('Settings', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black)),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
         elevation: 1,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
             Navigator.pushNamedAndRemoveUntil(context, Main_Home.id, (route) => false);
           },
