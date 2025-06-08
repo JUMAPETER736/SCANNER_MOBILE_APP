@@ -1069,7 +1069,6 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     );
   }
 
-// Add these methods to your Student_Subjects class
 
 // Method to generate performance-based remarks
   Map<String, String> _generatePerformanceRemarks(
