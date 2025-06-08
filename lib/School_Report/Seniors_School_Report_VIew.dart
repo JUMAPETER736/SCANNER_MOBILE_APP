@@ -428,9 +428,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           msceMessage = data['MSCE_Message']?.toString() ?? '';
         });
 
-        // Fetch remarks for seniors (students with grade points system like 1-9)
-        // Check if this student uses the senior grading system
-        await _fetchStudentRemarksIfSenior(basePath);
       }
     } catch (e) {
       print("Error fetching total marks: $e");
@@ -450,60 +447,33 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
-// Helper method to check if student is senior and fetch remarks
-  Future<void> _fetchStudentRemarksIfSenior(String basePath) async {
-    try {
-      // Use the subjects data that's already loaded instead of fetching again
-      bool isSenior = false;
 
-      // Check if any subject has grade points (1-9 system)
-      for (var subject in subjects) {
-        if (subject['hasGrade'] == true && subject['score'] != null) {
-          int gradeInt = subject['score'] as int;
-          // If grade is between 1-9, it's senior grading system
-          if (gradeInt >= 1 && gradeInt <= 9) {
-            isSenior = true;
-            break;
-          }
-        }
-      }
-
-      // Only fetch remarks if student is using senior grading system
-      if (isSenior) {
-        await _fetchStudentRemarks(basePath);
-      }
-
-    } catch (e) {
-      print("Error checking senior status: $e");
-    }
-  }
 
 // Helper method to fetch student remarks
-  Future<void> _fetchStudentRemarks(String basePath) async {
+  Future<void> _fetchSeniorStudentRemarks(String basePath) async {
     try {
       final remarksDoc = await _firestore
           .doc('$basePath/TOTAL_MARKS/Results_Remarks')
-          .get(GetOptions(source: Source.serverAndCache));
+          .get();
 
       if (remarksDoc.exists) {
         final remarksData = remarksDoc.data() as Map<String, dynamic>;
 
         setState(() {
-          formTeacherRemarks = remarksData['Form_Teacher_Remark']?.toString() ?? '';
-          headTeacherRemarks = remarksData['Head_Teacher_Remark']?.toString() ?? '';
+          formTeacherRemarks = remarksData['Form_Teacher_Remark']?.toString() ?? 'N/A';
+          headTeacherRemarks = remarksData['Head_Teacher_Remark']?.toString() ?? 'N/A';
         });
       } else {
-        // If no remarks document exists, set empty values
         setState(() {
-          formTeacherRemarks = '';
-          headTeacherRemarks = '';
+          formTeacherRemarks = 'N/A';
+          headTeacherRemarks = 'N/A';
         });
       }
     } catch (e) {
       print("Error fetching student remarks: $e");
       setState(() {
-        formTeacherRemarks = '';
-        headTeacherRemarks = '';
+        formTeacherRemarks = 'N/A';
+        headTeacherRemarks = 'N/A';
       });
     }
   }
@@ -831,7 +801,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       ),
     );
   }
-
 
   Future<void> _printDocument() async {
     final pdfGenerator = Seniors_School_Report_PDF(
