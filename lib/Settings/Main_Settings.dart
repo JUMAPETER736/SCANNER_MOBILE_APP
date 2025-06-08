@@ -28,7 +28,10 @@ class _Main_SettingsState extends State<Main_Settings> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: Text('Settings', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black)),
+        title: Text(
+          'Settings',
+          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black),
+        ),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
         elevation: 1,
@@ -198,34 +201,34 @@ class _Main_SettingsState extends State<Main_Settings> {
     required String title,
     required String subtitle,
     required IconData icon,
-    required VoidCallback onTap
+    required VoidCallback onTap,
   }) {
     return ListTile(
       contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: Icon(
-          icon,
-          color: Colors.grey[600],
-          size: 24
+        icon,
+        color: Colors.blueAccent,
+        size: 24,
       ),
       title: Text(
-          title,
-          style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87
-          )
+        title,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: Colors.blueAccent,
+        ),
       ),
       subtitle: Text(
-          subtitle,
-          style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600]
-          )
+        subtitle,
+        style: TextStyle(
+          fontSize: 14,
+          color: Colors.blueAccent,
+        ),
       ),
       trailing: Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: Colors.grey[400]
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: Colors.blueAccent,
       ),
       onTap: onTap,
     );
@@ -236,7 +239,7 @@ class _Main_SettingsState extends State<Main_Settings> {
       height: 1,
       thickness: 0.5,
       color: Colors.grey[300],
-      indent: 56, // Aligns with the text, accounting for icon width
+      indent: 56,
     );
   }
 }
