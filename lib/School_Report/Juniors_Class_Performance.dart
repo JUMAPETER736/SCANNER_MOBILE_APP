@@ -516,10 +516,10 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                       Expanded(
                         flex: 3,
                         child: Text(
-                          'Subject',
+                          'SUBJECTS',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                            fontSize: 16,
                             color: Colors.grey[800],
                           ),
                         ),
@@ -527,10 +527,10 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                       Expanded(
                         flex: 1,
                         child: Text(
-                          'Total',
+                          'TOTAL',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                            fontSize: 16,
                             color: Colors.grey[800],
                           ),
                           textAlign: TextAlign.center,
@@ -539,10 +539,10 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                       Expanded(
                         flex: 1,
                         child: Text(
-                          'Pass',
+                          'PASS',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                            fontSize: 16,
                             color: Colors.green[700],
                           ),
                           textAlign: TextAlign.center,
@@ -551,10 +551,10 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                       Expanded(
                         flex: 1,
                         child: Text(
-                          'Fail',
+                          'FAIL',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                            fontSize: 16,
                             color: Colors.red[700],
                           ),
                           textAlign: TextAlign.center,
@@ -563,7 +563,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                       Expanded(
                         flex: 1,
                         child: Text(
-                          'Pass %',
+                          'PASS %',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
