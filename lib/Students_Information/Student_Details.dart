@@ -266,8 +266,8 @@ class _Student_DetailsState extends State<Student_Details> {
         .doc('Results_Remarks');
 
     batch.set(resultsRemarksRef, {
-      'Form_Teacher_Remark': '',
-      'Head_Teacher_Remark': '',
+      'Form_Teacher_Remark': 'N/A',
+      'Head_Teacher_Remark': 'N/A',
     });
 
     await batch.commit();
