@@ -494,7 +494,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           ),
         SizedBox(height: 10),
         Text(
-          'PROGRESS REPORT',
+          'P.O. BOX', Box_Number, School_Location
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),

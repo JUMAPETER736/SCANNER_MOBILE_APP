@@ -260,6 +260,16 @@ class _Student_DetailsState extends State<Student_Details> {
       'Teacher_Total_Marks': '0',
     });
 
+    // Results remarks document
+    final DocumentReference resultsRemarksRef = studentRef
+        .collection('TOTAL_MARKS')
+        .doc('Results_Remarks');
+
+    batch.set(resultsRemarksRef, {
+      'Form_Teacher_Remark': '',
+      'Head_Teacher_Remark': '',
+    });
+
     await batch.commit();
   }
 
