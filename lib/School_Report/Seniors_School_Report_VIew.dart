@@ -50,6 +50,10 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
   String schoolLocation = 'N/A';
   String? formTeacherRemarks;
   String? headTeacherRemarks;
+  String? schoolFees;
+  String? schoolBankAccount;
+  String? nextTermOpeningDate;
+
 
   @override
   void initState() {
@@ -265,26 +269,42 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
+// _fetchSchoolInfo method to fetch from the new path structure
   Future<void> _fetchSchoolInfo(String school) async {
     try {
-      DocumentSnapshot schoolDoc = await _firestore.collection('Schools').doc(school).get();
+      DocumentSnapshot schoolInfoDoc = await _firestore
+          .collection('Schools')
+          .doc(school)
+          .collection('School_Information')
+          .doc('School_Details')
+          .get();
 
-      if (schoolDoc.exists) {
-        setState(() {
-          schoolAddress = schoolDoc['address'] ?? 'N/A';
-          schoolPhone = schoolDoc['phone'] ?? 'N/A';
-          schoolEmail = schoolDoc['email'] ?? 'N/A';
-          schoolAccount = schoolDoc['account'] ?? 'N/A';
-          nextTermDate = schoolDoc['nextTermDate'] ?? 'N/A';
-          boxNumber = schoolDoc['boxNumber'] ?? 0;
-          schoolLocation = schoolDoc['schoolLocation'] ?? 'N/A';
-        });
-      }
+      setState(() {
+        schoolPhone = schoolInfoDoc['Telephone'] ?? 'N/A';
+        schoolEmail = schoolInfoDoc['Email'] ?? 'N/A';
+        schoolAccount = schoolInfoDoc['account'] ?? 'N/A';
+        nextTermDate = schoolInfoDoc['nextTermDate'] ?? 'N/A';
+        boxNumber = schoolInfoDoc['boxNumber'] ?? 0;
+        schoolLocation = schoolInfoDoc['schoolLocation'] ?? 'N/A';
+        schoolFees = schoolInfoDoc['School_Fees'] ?? 'N/A';
+        schoolBankAccount = schoolInfoDoc['School_Bank_Account'] ?? 'N/A';
+        nextTermOpeningDate = schoolInfoDoc['Next_Term_Opening_Date'] ?? 'N/A';
+      });
     } catch (e) {
       print("Error fetching school info: $e");
+      setState(() {
+        schoolPhone = 'N/A';
+        schoolEmail = 'N/A';
+        schoolAccount = 'N/A';
+        nextTermDate = 'N/A';
+        boxNumber = 0;
+        schoolLocation = 'N/A';
+        schoolFees = 'N/A';
+        schoolBankAccount = 'N/A';
+        nextTermOpeningDate = 'N/A';
+      });
     }
   }
-
 
   Future<void> _updateTotalStudentsCount(String school, String studentClass) async {
     try {
@@ -478,32 +498,23 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
-        if (schoolAddress != null)
-          Text(
-            schoolAddress!,
-            style: TextStyle(fontSize: 14),
-            textAlign: TextAlign.center,
-          ),
-        if (schoolPhone != null)
-          Text(
-            'Tel: $schoolPhone',
-            style: TextStyle(fontSize: 14),
-            textAlign: TextAlign.center,
-          ),
-        if (schoolEmail != null)
-          Text(
-            'Email: $schoolEmail',
-            style: TextStyle(fontSize: 14),
-            textAlign: TextAlign.center,
-          ),
+
+        Text(
+          'Tel: ${schoolPhone ?? 'N/A'}',
+          style: TextStyle(fontSize: 14),
+          textAlign: TextAlign.center,
+        ),
+        Text(
+          'Email: ${schoolEmail ?? 'N/A'}',
+          style: TextStyle(fontSize: 14),
+          textAlign: TextAlign.center,
+        ),
         SizedBox(height: 10),
-        // P.O. BOX [number], [location] line
-        if (boxNumber != null && schoolLocation != null)
-          Text(
-            'P.O. BOX $boxNumber, ${schoolLocation!.toUpperCase()}',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
+        Text(
+          'P.O. BOX ${boxNumber ?? 0}, ${schoolLocation?.toUpperCase() ?? 'N/A'}',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
         SizedBox(height: 16),
         Text(
           '${getAcademicYear()} '
@@ -515,7 +526,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       ],
     );
   }
-
 
   Widget _buildStudentInfo() {
     return Padding(
@@ -734,11 +744,30 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Form Teachers\' Remarks: ${formTeacherRemarks ?? 'N/A'}',
-              style: TextStyle(fontStyle: FontStyle.italic)),
+          Text(
+            'Form Teacher\'s Remarks: ${formTeacherRemarks ?? 'N/A'}',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           SizedBox(height: 8),
-          Text('Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
-              style: TextStyle(fontStyle: FontStyle.italic)),
+          Text(
+            'Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'School Fees: ${schoolFees ?? 'N/A'}',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'School Bank Account: ${schoolBankAccount ?? 'N/A'}',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Next Term Opening Date: ${nextTermOpeningDate ?? 'N/A'}',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           SizedBox(height: 16),
         ],
       ),
