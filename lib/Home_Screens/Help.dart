@@ -91,8 +91,14 @@ class Help extends StatelessWidget {
                       ),
                       SizedBox(height: 20.0),
                       _buildHelpText(
-                        '5. Need Further Assistance? Contact us at jumapeter736@gmail.com for additional help or any other queries.',
+                          '''
+5. Need Further Assistance or any Question for additional help or any other queries.
+You can contact us on:
+  Email: jumapeter736@gmail.com
+  Phone: +265 880 409 468 / +265 994 459 714
+'''
                       ),
+
                     ],
                   ),
                 ),
