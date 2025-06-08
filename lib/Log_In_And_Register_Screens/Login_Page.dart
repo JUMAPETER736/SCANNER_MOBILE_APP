@@ -38,12 +38,7 @@ class _Login_PageState extends State<Login_Page> {
   bool _emailNotRegistered = false;
   String _errorMessage = '';
 
-  // Error message constants
-  static const String _emailText = 'Please use a valid Email';
-  static const String _emptyEmailFieldText = 'Please fill in the Email field';
-  static const String _emptyPasswordFieldText = 'Please fill in the Password field';
-  static const String _wrongPasswordFieldText = 'Wrong Password';
-  static const String _emailNotRegisteredText = 'Email not registered';
+
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +72,40 @@ class _Login_PageState extends State<Login_Page> {
                         SizedBox(height: _getResponsiveSpacing(context, 16.0)),
                         _buildPasswordField(context),
                         _buildForgotPasswordLink(context),
+                        // Error Message Display
+                        if (_errorMessage.isNotEmpty)
+                          Padding(
+                            padding: EdgeInsets.only(top: _getResponsiveSpacing(context, 8.0)),
+                            child: Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.all(12.0),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.1),
+                                border: Border.all(color: Colors.red.withOpacity(0.3)),
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: Colors.red,
+                                    size: _getResponsiveFontSize(context, 18.0),
+                                  ),
+                                  SizedBox(width: 8.0),
+                                  Expanded(
+                                    child: Text(
+                                      _errorMessage,
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: _getResponsiveFontSize(context, 14.0),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         SizedBox(height: _getResponsiveSpacing(context, 24.0)),
                         _buildLoginButton(context),
                         SizedBox(height: _getResponsiveSpacing(context, 20.0)),
@@ -167,16 +196,10 @@ class _Login_PageState extends State<Login_Page> {
           _wrongEmail = false;
           _emailNotRegistered = false;
           _emptyEmailField = email.isEmpty;
+          _errorMessage = ''; // Clear error message when user types
         });
       },
-      showError: _emptyEmailField || _wrongEmail || _emailNotRegistered,
-      errorText: _emptyEmailField
-          ? _emptyEmailFieldText
-          : _emailNotRegistered
-          ? _emailNotRegisteredText
-          : _wrongEmail
-          ? _emailText
-          : null,
+
     );
   }
 
@@ -191,14 +214,11 @@ class _Login_PageState extends State<Login_Page> {
         setState(() {
           _wrongPassword = false;
           _emptyPasswordField = password.isEmpty;
+          _errorMessage = ''; // Clear error message when user types
         });
       },
-      showError: _emptyPasswordField || _wrongPassword,
-      errorText: _emptyPasswordField
-          ? _emptyPasswordFieldText
-          : _wrongPassword
-          ? _wrongPasswordFieldText
-          : null,
+
+
       suffixIcon: IconButton(
         icon: Icon(
           _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
@@ -543,24 +563,31 @@ class _Login_PageState extends State<Login_Page> {
       switch (e.code) {
         case 'wrong-password':
           _wrongPassword = true;
-          _errorMessage = "Incorrect Password";
+          _errorMessage = "Incorrect Password. Please try again.";
           break;
         case 'user-not-found':
           _emailNotRegistered = true;
-          _errorMessage = "Email not Registered";
+          _errorMessage = "No account found with this email address.";
           break;
         case 'invalid-email':
           _wrongEmail = true;
-          _errorMessage = "Please enter a valid email address";
+          _errorMessage = "Please enter a valid email address.";
           break;
         case 'too-many-requests':
           _errorMessage = "Too many failed attempts. Please try again later.";
           break;
         case 'user-disabled':
-          _errorMessage = "This account has been disabled.";
+          _errorMessage = "This account has been disabled. Contact support.";
+          break;
+        case 'invalid-credential':
+          _errorMessage = "Invalid email or password. Please check your credentials.";
+          break;
+        case 'network-request-failed':
+          _errorMessage = "Network error. Please check your internet connection.";
           break;
         default:
-          _errorMessage = "Email or password incorrect.";
+          _errorMessage = "Login failed. Please check your email and password.";
+          print('Firebase Auth Error: ${e.code} - ${e.message}');
       }
     });
   }
