@@ -274,14 +274,32 @@ class _Login_PageState extends State<Login_Page> {
           _emailNotRegistered = true;
         } else if (e.code == 'invalid-email') {
           _wrongEmail = true;
+        } else if (e.code == 'too-many-requests') {
+          // Handle too many failed attempts
+          _showToast("Too many failed attempts. Please try again later.");
+        } else if (e.code == 'user-disabled') {
+          // Handle disabled user account
+          _showToast("This account has been disabled.");
+        } else {
+          // Handle any other authentication errors
+          _showToast("Authentication failed. Please try again.");
         }
       });
 
+      // Show specific toast messages for different error types
       if (e.code == 'wrong-password') {
         _showToast("Incorrect Password");
       } else if (e.code == 'user-not-found') {
         _showToast("Email not Registered");
+      } else if (e.code == 'invalid-email') {
+        _showToast("Please enter a valid email address");
       }
+    } catch (e) {
+      // Handle any other non-Firebase exceptions
+      setState(() {
+        _showSpinner = false;
+      });
+      _showToast("An error occurred. Please try again.");
     } finally {
       setState(() {
         _showSpinner = false;
@@ -292,7 +310,6 @@ class _Login_PageState extends State<Login_Page> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       body: ModalProgressHUD(
         inAsyncCall: _showSpinner,
         color: Colors.blueAccent,
@@ -312,308 +329,320 @@ class _Login_PageState extends State<Login_Page> {
             ),
           ),
           child: SafeArea(
-            child: Padding(
-              padding: _getResponsivePadding(context),
-              child: Column(
-                children: [
-                  // Top spacing
-                  SizedBox(height: _getResponsiveSpacing(context, 20.0)),
-
-                  // Header Section
-                  Container(
-                    alignment: Alignment.center,
+            child: SingleChildScrollView(
+              physics: AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top -
+                      MediaQuery.of(context).padding.bottom,
+                ),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: _getResponsivePadding(context),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        // Top spacing
+                        SizedBox(height: _getResponsiveSpacing(context, 20.0)),
+
+                        // Header Section
                         Container(
-                          width: _getResponsiveFontSize(context, 50.0),
-                          height: _getResponsiveFontSize(context, 50.0),
+                          alignment: Alignment.center,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: _getResponsiveFontSize(context, 50.0),
+                                height: _getResponsiveFontSize(context, 50.0),
+                                decoration: BoxDecoration(
+                                  color: Colors.blueAccent,
+                                  borderRadius: BorderRadius.circular(15.0),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.blueAccent.withOpacity(0.3),
+                                      spreadRadius: 2,
+                                      blurRadius: 8,
+                                      offset: Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.login,
+                                  size: _getResponsiveFontSize(context, 26.0),
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(height: _getResponsiveSpacing(context, 8.0)),
+                              Text(
+                                'Login',
+                                style: TextStyle(
+                                  fontSize: _getResponsiveFontSize(context, 30.0),
+                                  color: Colors.blueAccent,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        SizedBox(height: _getResponsiveSpacing(context, 24.0)),
+
+                        // Email Field
+                        _buildStyledTextField(
+                          label: 'Email Address',
+                          icon: Icons.email,
+                          obscureText: false,
+                          keyboardType: TextInputType.emailAddress,
+                          onChanged: (value) {
+                            email = value;
+                            setState(() {
+                              _wrongEmail = false;
+                              _emailNotRegistered = false;
+                              _emptyEmailField = email.isEmpty;
+                            });
+                          },
+                          showError: _emptyEmailField || _wrongEmail || _emailNotRegistered,
+                          errorText: _emptyEmailField
+                              ? _emptyEmailFieldText
+                              : _emailNotRegistered
+                              ? _emailNotRegisteredText
+                              : _wrongEmail
+                              ? _emailText
+                              : null,
+                        ),
+
+                        SizedBox(height: _getResponsiveSpacing(context, 16.0)),
+
+                        // Password Field
+                        _buildStyledTextField(
+                          label: 'Password',
+                          icon: Icons.lock,
+                          obscureText: !_isPasswordVisible,
+                          keyboardType: TextInputType.visiblePassword,
+                          onChanged: (value) {
+                            password = value;
+                            setState(() {
+                              _wrongPassword = false;
+                              _emptyPasswordField = password.isEmpty;
+                            });
+                          },
+                          showError: _emptyPasswordField || _wrongPassword,
+                          errorText: _emptyPasswordField
+                              ? _emptyPasswordFieldText
+                              : _wrongPassword
+                              ? _wrongPasswordFieldText
+                              : null,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isPasswordVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: Colors.blueAccent,
+                              size: _getResponsiveFontSize(context, 20.0),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isPasswordVisible = !_isPasswordVisible;
+                              });
+                            },
+                          ),
+                        ),
+
+                        // Forgot Password Link - moved closer to password field
+                        Padding(
+                          padding: EdgeInsets.only(top: _getResponsiveSpacing(context, 8.0)),
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.pushNamed(context, Forgot_Password.id);
+                              },
+                              child: Text(
+                                'Forgot Password',
+                                style: TextStyle(
+                                  fontSize: _getResponsiveFontSize(context, 22.0),
+                                  color: Colors.blueAccent,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: _getResponsiveSpacing(context, 24.0)),
+
+                        // Login Button
+                        Container(
+                          height: _getResponsiveFontSize(context, 48.0),
+                          width: double.infinity,
                           decoration: BoxDecoration(
-                            color: Colors.blueAccent,
                             borderRadius: BorderRadius.circular(15.0),
+                            gradient: LinearGradient(
+                              colors: [Colors.blueAccent, Colors.blue],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.blueAccent.withOpacity(0.3),
                                 spreadRadius: 2,
                                 blurRadius: 8,
-                                offset: Offset(0, 3),
+                                offset: Offset(0, 4),
                               ),
                             ],
                           ),
-                          child: Icon(
-                            Icons.login,
-                            size: _getResponsiveFontSize(context, 26.0),
-                            color: Colors.white,
-                          ),
-                        ),
-                        SizedBox(height: _getResponsiveSpacing(context, 8.0)),
-                        Text(
-                          'Login',
-                          style: TextStyle(
-                            fontSize: _getResponsiveFontSize(context, 30.0),
-                            color: Colors.blueAccent,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(height: _getResponsiveSpacing(context, 24.0)),
-
-                  // Email Field
-                  _buildStyledTextField(
-                    label: 'Email Address',
-                    icon: Icons.email,
-                    obscureText: false,
-                    keyboardType: TextInputType.emailAddress,
-                    onChanged: (value) {
-                      email = value;
-                      setState(() {
-                        _wrongEmail = false;
-                        _emailNotRegistered = false;
-                        _emptyEmailField = email.isEmpty;
-                      });
-                    },
-                    showError: _emptyEmailField || _wrongEmail || _emailNotRegistered,
-                    errorText: _emptyEmailField
-                        ? _emptyEmailFieldText
-                        : _emailNotRegistered
-                        ? _emailNotRegisteredText
-                        : _wrongEmail
-                        ? _emailText
-                        : null,
-                  ),
-
-                  SizedBox(height: _getResponsiveSpacing(context, 16.0)),
-
-                  // Password Field
-                  _buildStyledTextField(
-                    label: 'Password',
-                    icon: Icons.lock,
-                    obscureText: !_isPasswordVisible,
-                    keyboardType: TextInputType.visiblePassword,
-                    onChanged: (value) {
-                      password = value;
-                      setState(() {
-                        _wrongPassword = false;
-                        _emptyPasswordField = password.isEmpty;
-                      });
-                    },
-                    showError: _emptyPasswordField || _wrongPassword,
-                    errorText: _emptyPasswordField
-                        ? _emptyPasswordFieldText
-                        : _wrongPassword
-                        ? _wrongPasswordFieldText
-                        : null,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isPasswordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                        color: Colors.blueAccent,
-                        size: _getResponsiveFontSize(context, 20.0),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _isPasswordVisible = !_isPasswordVisible;
-                        });
-                      },
-                    ),
-                  ),
-
-                  // Forgot Password Link - moved closer to password field
-                  Padding(
-                    padding: EdgeInsets.only(top: _getResponsiveSpacing(context, 8.0)),
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, Forgot_Password.id);
-                        },
-                        child: Text(
-                          'Forgot Password',
-                          style: TextStyle(
-                            fontSize: _getResponsiveFontSize(context, 22.0),
-                            color: Colors.blueAccent,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: _getResponsiveSpacing(context, 24.0)),
-
-                  // Login Button
-                  Container(
-                    height: _getResponsiveFontSize(context, 48.0),
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15.0),
-                      gradient: LinearGradient(
-                        colors: [Colors.blueAccent, Colors.blue],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.blueAccent.withOpacity(0.3),
-                          spreadRadius: 2,
-                          blurRadius: 8,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: _login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15.0),
-                        ),
-                      ),
-                      child: Text(
-                        'Log In',
-                        style: TextStyle(
-                          fontSize: _getResponsiveFontSize(context, 22.0),
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: _getResponsiveSpacing(context, 20.0)),
-
-                  // Divider
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 1,
-                          color: Colors.grey.withOpacity(0.3),
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12.0),
-                        child: Text(
-                          'OR',
-                          style: TextStyle(
-                            fontSize: _getResponsiveFontSize(context, 22.0),
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Container(
-                          height: 1,
-                          color: Colors.grey.withOpacity(0.3),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(height: _getResponsiveSpacing(context, 20.0)),
-
-                  // Social Media Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: _getResponsiveFontSize(context, 44.0),
-                          child: ElevatedButton.icon(
-                            onPressed: () => _signInWithSocialMedia('google'),
-                            icon: Image.asset('assets/images/google.png', width: _getResponsiveFontSize(context, 18.0)),
-                            label: Text(
-                              'Google',
+                          child: ElevatedButton(
+                            onPressed: _login,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15.0),
+                              ),
+                            ),
+                            child: Text(
+                              'Log In',
                               style: TextStyle(
                                 fontSize: _getResponsiveFontSize(context, 22.0),
-                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
                               ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.grey[700],
-                              side: BorderSide(color: Colors.grey.withOpacity(0.3)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              elevation: 2,
                             ),
                           ),
                         ),
-                      ),
-                      SizedBox(width: _getResponsiveSpacing(context, 4.0)),
-                      Expanded(
-                        child: Container(
-                          height: _getResponsiveFontSize(context, 44.0),
-                          child: ElevatedButton.icon(
-                            onPressed: () => _signInWithSocialMedia('facebook'),
-                            icon: Image.asset('assets/images/facebook.png', width: _getResponsiveFontSize(context, 18.0)),
-                            label: Text(
-                              'Facebook',
-                              style: TextStyle(
-                                fontSize: _getResponsiveFontSize(context, 22.0),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.grey[700],
-                              side: BorderSide(color: Colors.grey.withOpacity(0.3)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              elevation: 2,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
 
-                  // Flexible spacer to push sign up link to bottom
-                  Expanded(child: Container()),
+                        SizedBox(height: _getResponsiveSpacing(context, 20.0)),
 
-                  // Sign Up Link
-                  Padding(
-                    padding: EdgeInsets.only(bottom: _getResponsiveSpacing(context, 2.0)),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Don't have an account? ",
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: _getResponsiveFontSize(context, 20.0),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, Register_Page.id);
-                          },
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.symmetric(horizontal: 4.0),
-                            minimumSize: Size(0, 0),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text(
-                            'Sign Up',
-                            style: TextStyle(
-                              color: Colors.blueAccent,
-                              fontWeight: FontWeight.bold,
-                              fontSize: _getResponsiveFontSize(context, 20.0),
+                        // Divider
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                height: 1,
+                                color: Colors.grey.withOpacity(0.3),
+                              ),
                             ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 12.0),
+                              child: Text(
+                                'OR',
+                                style: TextStyle(
+                                  fontSize: _getResponsiveFontSize(context, 22.0),
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Container(
+                                height: 1,
+                                color: Colors.grey.withOpacity(0.3),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: _getResponsiveSpacing(context, 20.0)),
+
+                        // Social Media Buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                height: _getResponsiveFontSize(context, 44.0),
+                                child: ElevatedButton.icon(
+                                  onPressed: () => _signInWithSocialMedia('google'),
+                                  icon: Image.asset('assets/images/google.png', width: _getResponsiveFontSize(context, 18.0)),
+                                  label: Text(
+                                    'Google',
+                                    style: TextStyle(
+                                      fontSize: _getResponsiveFontSize(context, 22.0),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.grey[700],
+                                    side: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12.0),
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: _getResponsiveSpacing(context, 4.0)),
+                            Expanded(
+                              child: Container(
+                                height: _getResponsiveFontSize(context, 44.0),
+                                child: ElevatedButton.icon(
+                                  onPressed: () => _signInWithSocialMedia('facebook'),
+                                  icon: Image.asset('assets/images/facebook.png', width: _getResponsiveFontSize(context, 18.0)),
+                                  label: Text(
+                                    'Facebook',
+                                    style: TextStyle(
+                                      fontSize: _getResponsiveFontSize(context, 22.0),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.grey[700],
+                                    side: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12.0),
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // Flexible spacer to push sign up link to bottom
+                        Expanded(child: Container()),
+
+                        // Sign Up Link
+                        Padding(
+                          padding: EdgeInsets.only(bottom: _getResponsiveSpacing(context, 2.0)),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "Don't have an account? ",
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: _getResponsiveFontSize(context, 20.0),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pushNamed(context, Register_Page.id);
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.symmetric(horizontal: 4.0),
+                                  minimumSize: Size(0, 0),
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  'Sign Up',
+                                  style: TextStyle(
+                                    color: Colors.blueAccent,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: _getResponsiveFontSize(context, 20.0),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),
