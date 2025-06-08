@@ -65,6 +65,11 @@ class _Register_PageState extends State<Register_Page> {
     return (baseSpacing * scale).clamp(baseSpacing * 0.5, baseSpacing * 1.5);
   }
 
+  // Helper method to check if device is in landscape mode
+  bool _isLandscape(BuildContext context) {
+    return MediaQuery.of(context).orientation == Orientation.landscape;
+  }
+
   bool isValidEmail(String email) {
     final regex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     return regex.hasMatch(email);
@@ -174,6 +179,7 @@ class _Register_PageState extends State<Register_Page> {
     Widget? suffixIcon,
   }) {
     return Container(
+      margin: EdgeInsets.only(bottom: _getResponsiveSpacing(context, 16.0)),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15.0),
         boxShadow: [
@@ -232,7 +238,7 @@ class _Register_PageState extends State<Register_Page> {
             borderRadius: BorderRadius.circular(15.0),
             borderSide: BorderSide(color: Colors.red, width: 2),
           ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
         ),
       ),
     );
@@ -266,11 +272,15 @@ class _Register_PageState extends State<Register_Page> {
 
   @override
   Widget build(BuildContext context) {
+    bool isLandscape = _isLandscape(context);
+    double screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       body: ModalProgressHUD(
         inAsyncCall: _showSpinner,
         color: Colors.white,
         child: Container(
+          height: screenHeight,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
@@ -283,61 +293,61 @@ class _Register_PageState extends State<Register_Page> {
             ),
           ),
           child: SafeArea(
-            child: Padding(
+            child: SingleChildScrollView(
+              physics: BouncingScrollPhysics(),
               padding: _getResponsivePadding(context),
-              child: Column(
-                children: [
-                  // Header Section - More Compact
-                  Expanded(
-                    flex: 15,
-                    child: Container(
-                      alignment: Alignment.center,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: _getResponsiveFontSize(context, 50.0),
-                            height: _getResponsiveFontSize(context, 50.0),
-                            decoration: BoxDecoration(
-                              color: Colors.blueAccent,
-                              borderRadius: BorderRadius.circular(15.0),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.blueAccent.withOpacity(0.3),
-                                  spreadRadius: 2,
-                                  blurRadius: 8,
-                                  offset: Offset(0, 3),
-                                ),
-                              ],
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: screenHeight - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom - 24,
+                ),
+                child: IntrinsicHeight(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Header Section - Adjusted for landscape
+                      Container(
+                        padding: EdgeInsets.symmetric(vertical: isLandscape ? 20.0 : 40.0),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: _getResponsiveFontSize(context, 50.0),
+                              height: _getResponsiveFontSize(context, 50.0),
+                              decoration: BoxDecoration(
+                                color: Colors.blueAccent,
+                                borderRadius: BorderRadius.circular(15.0),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.blueAccent.withOpacity(0.3),
+                                    spreadRadius: 2,
+                                    blurRadius: 8,
+                                    offset: Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                Icons.person_add,
+                                size: _getResponsiveFontSize(context, 26.0),
+                                color: Colors.white,
+                              ),
                             ),
-                            child: Icon(
-                              Icons.person_add,
-                              size: _getResponsiveFontSize(context, 26.0),
-                              color: Colors.white,
+                            SizedBox(height: _getResponsiveSpacing(context, 12.0)),
+                            Text(
+                              'Create Account',
+                              style: TextStyle(
+                                fontSize: _getResponsiveFontSize(context, 24.0),
+                                color: Colors.blueAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                          ),
-                          SizedBox(height: _getResponsiveSpacing(context, 8.0)),
-                          Text(
-                            'Create Account',
-                            style: TextStyle(
-                              fontSize: _getResponsiveFontSize(context, 24.0),
-                              color: Colors.blueAccent,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
 
-                  // Form Fields Section
-                  Expanded(
-                    flex: 45,
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: _buildStyledTextField(
+                      // Form Fields Section
+                      Column(
+                        children: [
+                          _buildStyledTextField(
                             label: 'Full Name',
                             icon: Icons.person,
                             obscureText: false,
@@ -345,12 +355,8 @@ class _Register_PageState extends State<Register_Page> {
                             showError: _emptyNameField,
                             errorText: 'Please fill in the Name field',
                           ),
-                        ),
 
-                        SizedBox(height: _getResponsiveSpacing(context, 8.0)),
-
-                        Expanded(
-                          child: _buildStyledTextField(
+                          _buildStyledTextField(
                             label: 'Email Address',
                             icon: Icons.email,
                             obscureText: false,
@@ -360,13 +366,9 @@ class _Register_PageState extends State<Register_Page> {
                             _wrongEmail ? 'Email is already in use' :
                             'Please use a valid Email',
                           ),
-                        ),
 
-                        SizedBox(height: _getResponsiveSpacing(context, 8.0)),
-
-                        // Password Field
-                        Expanded(
-                          child: _buildStyledTextField(
+                          // Password Field
+                          _buildStyledTextField(
                             label: 'Password',
                             icon: Icons.lock,
                             obscureText: !_isPasswordVisible,
@@ -390,13 +392,9 @@ class _Register_PageState extends State<Register_Page> {
                               },
                             ),
                           ),
-                        ),
 
-                        SizedBox(height: _getResponsiveSpacing(context, 8.0)),
-
-                        // Confirm Password Field
-                        Expanded(
-                          child: _buildStyledTextField(
+                          // Confirm Password Field
+                          _buildStyledTextField(
                             label: 'Confirm Password',
                             icon: Icons.lock,
                             obscureText: !_isConfirmPasswordVisible,
@@ -418,188 +416,186 @@ class _Register_PageState extends State<Register_Page> {
                               },
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
+                        ],
+                      ),
 
-                  // Bottom Section - Buttons and Links
-                  Expanded(
-                    flex: 35,
-                    child: Column(
-                      children: [
-                        SizedBox(height: _getResponsiveSpacing(context, 8.0)),
+                      // Spacer to push buttons to bottom
+                      SizedBox(height: _getResponsiveSpacing(context, 24.0)),
 
-                        // Register Button
-                        Container(
-                          height: _getResponsiveFontSize(context, 48.0),
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(15.0),
-                            gradient: LinearGradient(
-                              colors: [Colors.blueAccent, Colors.blue],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                      // Bottom Section - Buttons and Links
+                      Column(
+                        children: [
+                          // Register Button
+                          Container(
+                            height: _getResponsiveFontSize(context, 48.0),
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(15.0),
+                              gradient: LinearGradient(
+                                colors: [Colors.blueAccent, Colors.blue],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.blueAccent.withOpacity(0.3),
+                                  spreadRadius: 2,
+                                  blurRadius: 8,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.blueAccent.withOpacity(0.3),
-                                spreadRadius: 2,
-                                blurRadius: 8,
-                                offset: Offset(0, 4),
+                            child: ElevatedButton(
+                              onPressed: _register,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15.0),
+                                ),
+                              ),
+                              child: Text(
+                                'Create Account',
+                                style: TextStyle(
+                                  fontSize: _getResponsiveFontSize(context, 22.0),
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(height: _getResponsiveSpacing(context, 20.0)),
+
+                          // Divider
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  height: 1,
+                                  color: Colors.grey.withOpacity(0.3),
+                                ),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 12.0),
+                                child: Text(
+                                  'OR',
+                                  style: TextStyle(
+                                    fontSize: _getResponsiveFontSize(context, 22.0),
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Container(
+                                  height: 1,
+                                  color: Colors.grey.withOpacity(0.3),
+                                ),
                               ),
                             ],
                           ),
-                          child: ElevatedButton(
-                            onPressed: _register,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15.0),
-                              ),
-                            ),
-                            child: Text(
-                              'Create Account',
-                              style: TextStyle(
-                                fontSize: _getResponsiveFontSize(context, 22.0),
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
 
-                        SizedBox(height: _getResponsiveSpacing(context, 12.0)),
+                          SizedBox(height: _getResponsiveSpacing(context, 20.0)),
 
-                        // Divider
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                height: 1,
-                                color: Colors.grey.withOpacity(0.3),
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12.0),
-                              child: Text(
-                                'OR',
-                                style: TextStyle(
-                                  fontSize: _getResponsiveFontSize(context, 22.0),
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Container(
-                                height: 1,
-                                color: Colors.grey.withOpacity(0.3),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        SizedBox(height: _getResponsiveSpacing(context, 12.0)),
-
-                        // Social Media Buttons
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                height: _getResponsiveFontSize(context, 44.0),
-                                child: ElevatedButton.icon(
-                                  onPressed: () => _signInWithSocialMedia('google'),
-                                  icon: Image.asset('assets/images/google.png', width: _getResponsiveFontSize(context, 18.0)),
-                                  label: Text(
-                                    'Google',
-                                    style: TextStyle(
-                                      fontSize: _getResponsiveFontSize(context, 22.0),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: Colors.grey[700],
-                                    side: BorderSide(color: Colors.grey.withOpacity(0.3)),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12.0),
-                                    ),
-                                    elevation: 2,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: _getResponsiveSpacing(context, 12.0)),
-                            Expanded(
-                              child: Container(
-                                height: _getResponsiveFontSize(context, 44.0),
-                                child: ElevatedButton.icon(
-                                  onPressed: () => _signInWithSocialMedia('facebook'),
-                                  icon: Image.asset('assets/images/facebook.png', width: _getResponsiveFontSize(context, 18.0)),
-                                  label: Text(
-                                    'Facebook',
-                                    style: TextStyle(
-                                      fontSize: _getResponsiveFontSize(context, 22.0),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: Colors.grey[700],
-                                    side: BorderSide(color: Colors.grey.withOpacity(0.3)),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12.0),
-                                    ),
-                                    elevation: 2,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        Spacer(),
-
-                        // Login Link
-                        Padding(
-                          padding: EdgeInsets.only(bottom: _getResponsiveSpacing(context, 22.0)),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+// Social Media Buttons
+                          Row(
                             children: [
-                              Text(
-                                'Already have an account? ',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: _getResponsiveFontSize(context, 20.0),
+                              Expanded(
+                                child: Container(
+                                  height: _getResponsiveFontSize(context, 44.0),
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _signInWithSocialMedia('google'),
+                                    icon: Image.asset('assets/images/google.png', width: _getResponsiveFontSize(context, 18.0)),
+                                    label: Text(
+                                      'Google',
+                                      style: TextStyle(
+                                        fontSize: _getResponsiveFontSize(context, 22.0),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Colors.grey[700],
+                                      side: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12.0),
+                                      ),
+                                      elevation: 2,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pushNamed(context, Login_Page.id);
-                                },
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.symmetric(horizontal: 4.0),
-                                  minimumSize: Size(0, 0),
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              SizedBox(width: _getResponsiveSpacing(context, 12.0)),
+                              Expanded(
+                                child: Container(
+                                  height: _getResponsiveFontSize(context, 44.0),
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _signInWithSocialMedia('facebook'),
+                                    icon: Image.asset('assets/images/facebook.png', width: _getResponsiveFontSize(context, 18.0)),
+                                    label: Text(
+                                      'Facebook',
+                                      style: TextStyle(
+                                        fontSize: _getResponsiveFontSize(context, 22.0),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Colors.grey[700],
+                                      side: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12.0),
+                                      ),
+                                      elevation: 2,
+                                    ),
+                                  ),
                                 ),
-                                child: Text(
-                                  'Log In',
+                              ),
+                            ],
+                          ),
+
+                          SizedBox(height: _getResponsiveSpacing(context, 24.0)),
+
+                          // Login Link
+                          Padding(
+                            padding: EdgeInsets.only(bottom: _getResponsiveSpacing(context, 16.0)),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Already have an account? ',
                                   style: TextStyle(
-                                    color: Colors.blueAccent,
-                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[600],
                                     fontSize: _getResponsiveFontSize(context, 20.0),
                                   ),
                                 ),
-                              ),
-                            ],
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pushNamed(context, Login_Page.id);
+                                  },
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(horizontal: 4.0),
+                                    minimumSize: Size(0, 0),
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    'Log In',
+                                    style: TextStyle(
+                                      color: Colors.blueAccent,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: _getResponsiveFontSize(context, 20.0),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
