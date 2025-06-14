@@ -70,33 +70,32 @@ class _Main_HomeState extends State<Main_Home> {
         // Determine grid layout based on orientation
         int crossAxisCount;
         double childAspectRatio;
+        bool enableScrolling;
 
         if (orientation == Orientation.portrait) {
-          // Portrait: 2 columns with adjusted aspect ratio to fit all cards
+          // Portrait: 2 columns
           crossAxisCount = 2;
-          // Calculate aspect ratio to fit all 8 cards (4 rows) on screen with buffer
-          final availableHeight = screenHeight - (screenHeight * 0.08); // Account for padding and buffer
-          final cardHeight = availableHeight / 4.2; // 4 rows with extra spacing
-          final cardWidth = (screenWidth - (screenWidth * 0.08) - (screenWidth * 0.025)) / 2; // Account for padding and spacing
-          childAspectRatio = cardWidth / cardHeight;
+          childAspectRatio = 1.1; // Slightly wider than square
+          enableScrolling = false; // Disable scrolling in portrait if content fits
         } else {
-          // Landscape: 4 columns for better space utilization
+          // Landscape: 4 columns
           crossAxisCount = 4;
-          childAspectRatio = 0.8; // Slightly taller cards
+          childAspectRatio = 0.9; // Slightly taller than square
+          enableScrolling = true; // Enable scrolling in landscape
         }
 
         // Calculate responsive dimensions
-        final horizontalPadding = screenWidth * 0.03; // Reduced horizontal padding
-        final verticalPadding = screenHeight * 0.015; // Reduced vertical padding
-        final cardSpacing = screenWidth * 0.02; // Reduced card spacing
+        final horizontalPadding = screenWidth * 0.03;
+        final verticalPadding = screenHeight * 0.015;
+        final cardSpacing = screenWidth * 0.02;
 
-        // Calculate responsive sizes - smaller for portrait to fit everything
+        // Calculate responsive sizes
         final iconSize = orientation == Orientation.portrait
-            ? (screenWidth * 0.055).clamp(18.0, 32.0) // Further reduced icon size
-            : (screenWidth * 0.05).clamp(25.0, 40.0);
+            ? (screenWidth * 0.06).clamp(20.0, 35.0)
+            : (screenWidth * 0.045).clamp(25.0, 35.0);
         final textSize = orientation == Orientation.portrait
-            ? (screenWidth * 0.026).clamp(9.0, 12.0) // Further reduced text size
-            : (screenWidth * 0.025).clamp(10.0, 14.0);
+            ? (screenWidth * 0.028).clamp(10.0, 14.0)
+            : (screenWidth * 0.022).clamp(10.0, 13.0);
 
         // Build the grid widget
         Widget gridWidget = GridView.count(
@@ -104,8 +103,10 @@ class _Main_HomeState extends State<Main_Home> {
           crossAxisSpacing: cardSpacing,
           mainAxisSpacing: cardSpacing,
           childAspectRatio: childAspectRatio,
-          shrinkWrap: false, // Don't shrink in either orientation
-          physics: const NeverScrollableScrollPhysics(), // No scrolling in both orientations
+          shrinkWrap: !enableScrolling, // Shrink when scrolling is disabled
+          physics: enableScrolling
+              ? const AlwaysScrollableScrollPhysics() // Enable scrolling
+              : const NeverScrollableScrollPhysics(), // Disable scrolling
           children: [
             _buildHomeCard(
               icon: Icons.class_,
@@ -223,7 +224,9 @@ class _Main_HomeState extends State<Main_Home> {
             horizontal: horizontalPadding,
             vertical: verticalPadding,
           ),
-          child: gridWidget,
+          child: enableScrolling
+              ? SingleChildScrollView(child: gridWidget) // Wrap with ScrollView when needed
+              : gridWidget,
         );
       },
     );
@@ -246,7 +249,7 @@ class _Main_HomeState extends State<Main_Home> {
         ),
         elevation: 4.0,
         child: Padding(
-          padding: const EdgeInsets.all(4.0), // Further reduced padding
+          padding: const EdgeInsets.all(8.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -258,11 +261,11 @@ class _Main_HomeState extends State<Main_Home> {
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 1), // Minimal spacing
+              const SizedBox(height: 4),
               Flexible(
                 flex: 2,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 1.0), // Minimal padding
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
