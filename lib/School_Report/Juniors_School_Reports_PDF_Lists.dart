@@ -224,27 +224,42 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
       );
       return;
     }
-
     // Show confirmation dialog
     bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Generate All Reports'),
-          content: Text('This will generate PDF reports for ${studentsList.length} students. This process may take several minutes. Continue?'),
+          content: Text(
+            'This will generate PDF reports for ${studentsList.length} students. '
+                'This process may take several minutes. Continue?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: Text('Cancel'),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
-            ElevatedButton(
+            TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: Text('Generate'),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.blue,
+              ),
+              child: Text(
+                'Generate',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );
       },
     );
+
 
     if (confirmed != true) return;
 
@@ -336,6 +351,16 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
       // Fetch all required data
       final studentData = await _fetchStudentReportData(basePath);
 
+      // Create a unique identifier for the PDF file using student's full name
+      // Clean the student name to make it file-system safe
+      String cleanStudentName = studentName
+          .replaceAll(RegExp(r'[^\w\s-]'), '') // Remove special characters except spaces and hyphens
+          .replaceAll(RegExp(r'\s+'), '_') // Replace spaces with underscores
+          .trim();
+
+      // Create unique filename with additional identifiers to ensure uniqueness
+      String uniqueFileName = '${cleanStudentName}_${widget.studentClass}_${term}_${academicYear}';
+
       // Generate PDF
       final pdfGenerator = Juniors_School_Report_PDF(
         studentClass: widget.studentClass,
@@ -362,15 +387,17 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
         nextTermOpeningDate: studentData['nextTermOpeningDate'],
       );
 
-      // Generate PDF with student name as parameter
-      await pdfGenerator.generateAndSavePDF(studentName);
+      // Generate PDF with unique filename as parameter
+      await pdfGenerator.generateAndSavePDF(uniqueFileName);
 
-      // Save PDF report metadata to Firestore (without pdfUrl since method returns void)
+      // Save PDF report metadata to Firestore using student name as document ID
       await _firestore
           .collection('Schools/$schoolName/Classes/${widget.studentClass}/STUDENT_SCHOOL_REPORT_PDF_LIST')
-          .add({
+          .doc(studentName) // Use studentName as document ID instead of auto-generating
+          .set({
         'studentName': studentName,
         'studentClass': widget.studentClass,
+        'pdfFileName': uniqueFileName, // Store the unique filename
         'pdfUrl': '', // Set to empty string since generateAndSavePDF returns void
         'generatedAt': FieldValue.serverTimestamp(),
         'term': term,
@@ -379,17 +406,27 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
         'fileSize': 0, // You can calculate this if needed
         'generatedBy': userEmail,
         'className': widget.className, // Additional field for tracking
+        'uniqueId': uniqueFileName, // Store as unique identifier
       });
 
     } catch (e) {
       print("Error generating single report for $studentName: $e");
 
-      // Save error status to Firestore
+      // Create unique filename for error case as well
+      String cleanStudentName = studentName
+          .replaceAll(RegExp(r'[^\w\s-]'), '')
+          .replaceAll(RegExp(r'\s+'), '_')
+          .trim();
+      String uniqueFileName = '${cleanStudentName}_${widget.studentClass}_${term}_${academicYear}';
+
+      // Save error status to Firestore using student name as document ID
       await _firestore
           .collection('Schools/$schoolName/Classes/${widget.studentClass}/STUDENT_SCHOOL_REPORT_PDF_LIST')
-          .add({
+          .doc(studentName) // Use studentName as document ID for error case too
+          .set({
         'studentName': studentName,
         'studentClass': widget.studentClass,
+        'pdfFileName': uniqueFileName,
         'pdfUrl': '',
         'generatedAt': FieldValue.serverTimestamp(),
         'term': term,
@@ -398,6 +435,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
         'errorMessage': e.toString(),
         'generatedBy': userEmail,
         'className': widget.className,
+        'uniqueId': uniqueFileName,
       });
 
       throw e;
@@ -706,7 +744,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
             children: [
               _buildStatCard('Total Students', totalStudents.toString(), Colors.blue),
               _buildStatCard('Generated Reports', generatedReports.toString(), Colors.green),
-              _buildStatCard('Pending', (totalStudents - generatedReports).toString(), Colors.orange),
+              _buildStatCard('Pending', (totalStudents - generatedReports).toString(), Colors.red),
             ],
           ),
           SizedBox(height: 12),

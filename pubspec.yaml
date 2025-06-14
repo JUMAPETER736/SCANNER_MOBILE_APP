@@ -1,8 +1,6 @@
 name: scanna
 description: "A new Flutter project."
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: 'none'
 
 version: 1.0.0+1
 
@@ -21,12 +19,13 @@ dependencies:
   awesome_dialog: ^3.2.1
   modal_progress_hud_nsn: ^0.5.1
 
-  # Firebase
+  # Firebase (Updated for compatibility with firebase_core ^3.6.0)
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
   firebase_auth_web: ^5.13.2
   cloud_firestore: ^5.4.4
   firebase_database: ^11.1.4
+  firebase_storage: ^12.4.5
 
   # Authentication & Social Login
   flutter_facebook_auth: ^7.1.2
@@ -57,12 +56,13 @@ dependencies:
   pdf: ^3.11.1
   printing: ^5.13.4
   open_file: ^3.5.7
+  http: ^1.4.0
 
   # Permissions & Lifecycle
   permission_handler: ^11.3.1
   flutter_plugin_android_lifecycle: ^2.0.22
 
-  # Cross-platform compatibility (NEW)
+  # Cross-platform compatibility
   universal_io: ^2.2.2
 
 dev_dependencies:
