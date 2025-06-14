@@ -684,7 +684,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
       child: Column(
         children: [
           Text(
-            '${widget.studentClass} SCHOOL REPORTS PDF',
+            '${widget.studentClass} PDF REPORTS',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
