@@ -37,8 +37,8 @@ class _Login_PageState extends State<Login_Page> {
   bool _emptyPasswordField = false;
   bool _emailNotRegistered = false;
   String _errorMessage = '';
-
-
+  String _emailErrorMessage = '';
+  String _passwordErrorMessage = '';
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +72,7 @@ class _Login_PageState extends State<Login_Page> {
                         SizedBox(height: _getResponsiveSpacing(context, 16.0)),
                         _buildPasswordField(context),
                         _buildForgotPasswordLink(context),
-                        // Error Message Display
+                        // General Error Message Display
                         if (_errorMessage.isNotEmpty)
                           Padding(
                             padding: EdgeInsets.only(top: _getResponsiveSpacing(context, 8.0)),
@@ -190,16 +190,18 @@ class _Login_PageState extends State<Login_Page> {
       icon: Icons.email,
       obscureText: false,
       keyboardType: TextInputType.emailAddress,
+      showError: _emptyEmailField || _wrongEmail || _emailNotRegistered,
+      errorText: _emailErrorMessage,
       onChanged: (value) {
         email = value;
         setState(() {
           _wrongEmail = false;
           _emailNotRegistered = false;
-          _emptyEmailField = email.isEmpty;
-          _errorMessage = ''; // Clear error message when user types
+          _emptyEmailField = false;
+          _emailErrorMessage = '';
+          _errorMessage = ''; // Clear general error message when user types
         });
       },
-
     );
   }
 
@@ -209,16 +211,17 @@ class _Login_PageState extends State<Login_Page> {
       icon: Icons.lock,
       obscureText: !_isPasswordVisible,
       keyboardType: TextInputType.visiblePassword,
+      showError: _emptyPasswordField || _wrongPassword,
+      errorText: _passwordErrorMessage,
       onChanged: (value) {
         password = value;
         setState(() {
           _wrongPassword = false;
-          _emptyPasswordField = password.isEmpty;
-          _errorMessage = ''; // Clear error message when user types
+          _emptyPasswordField = false;
+          _passwordErrorMessage = '';
+          _errorMessage = ''; // Clear general error message when user types
         });
       },
-
-
       suffixIcon: IconButton(
         icon: Icon(
           _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
@@ -521,27 +524,58 @@ class _Login_PageState extends State<Login_Page> {
   // ==================== AUTHENTICATION METHODS ====================
 
   Future<void> _login() async {
+    // Clear all previous errors
     setState(() {
-      _showSpinner = true;
-      _emptyEmailField = email.isEmpty;
-      _emptyPasswordField = password.isEmpty;
       _wrongEmail = false;
       _wrongPassword = false;
+      _emptyEmailField = false;
+      _emptyPasswordField = false;
       _emailNotRegistered = false;
       _errorMessage = '';
+      _emailErrorMessage = '';
+      _passwordErrorMessage = '';
     });
 
-    if (_emptyEmailField || _emptyPasswordField) {
+    // Validate inputs
+    bool hasErrors = false;
+
+    if (email.trim().isEmpty) {
       setState(() {
-        _showSpinner = false;
+        _emptyEmailField = true;
+        _emailErrorMessage = 'Email address is required';
       });
+      hasErrors = true;
+    }
+
+    if (password.trim().isEmpty) {
+      setState(() {
+        _emptyPasswordField = true;
+        _passwordErrorMessage = 'Password is required';
+      });
+      hasErrors = true;
+    }
+
+    // If both fields are empty, show a general error message
+    if (email.trim().isEmpty && password.trim().isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter both email and password to continue';
+      });
+    }
+
+    // If there are validation errors, don't proceed with login
+    if (hasErrors) {
       return;
     }
 
+    // Start loading
+    setState(() {
+      _showSpinner = true;
+    });
+
     try {
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
+        email: email.trim(),
+        password: password.trim(),
       );
 
       if (userCredential.user != null) {
@@ -563,14 +597,17 @@ class _Login_PageState extends State<Login_Page> {
       switch (e.code) {
         case 'wrong-password':
           _wrongPassword = true;
-          _errorMessage = "Incorrect Password. Please try again.";
+          _passwordErrorMessage = "Incorrect password";
+          _errorMessage = "Incorrect password. Please try again.";
           break;
         case 'user-not-found':
           _emailNotRegistered = true;
+          _emailErrorMessage = "Email not registered";
           _errorMessage = "No account found with this email address.";
           break;
         case 'invalid-email':
           _wrongEmail = true;
+          _emailErrorMessage = "Invalid email format";
           _errorMessage = "Please enter a valid email address.";
           break;
         case 'too-many-requests':
@@ -580,6 +617,10 @@ class _Login_PageState extends State<Login_Page> {
           _errorMessage = "This account has been disabled. Contact support.";
           break;
         case 'invalid-credential':
+          _wrongEmail = true;
+          _wrongPassword = true;
+          _emailErrorMessage = "Invalid credentials";
+          _passwordErrorMessage = "Invalid credentials";
           _errorMessage = "Invalid email or password. Please check your credentials.";
           break;
         case 'network-request-failed':
