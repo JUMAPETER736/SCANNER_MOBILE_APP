@@ -684,7 +684,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
       child: Column(
         children: [
           Text(
-            '${widget.studentClass} - PDF Reports',
+            '${widget.studentClass} SCHOOL REPORTS PDF',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -775,7 +775,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
             children: [
               CircularProgressIndicator(
                 strokeWidth: 3,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
               ),
               SizedBox(width: 16),
               Expanded(
@@ -966,7 +966,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('PDF Reports Manager'),
+        title: Text('JUNIORS PDF LIST'),
         backgroundColor: Colors.blue[600],
         foregroundColor: Colors.white,
         actions: [
