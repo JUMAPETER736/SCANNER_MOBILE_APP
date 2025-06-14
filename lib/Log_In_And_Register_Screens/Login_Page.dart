@@ -558,7 +558,6 @@ class _Login_PageState extends State<Login_Page> {
     // If both fields are empty, show a general error message
     if (email.trim().isEmpty && password.trim().isEmpty) {
       setState(() {
-        _errorMessage = 'Please enter both email and password to continue';
       });
     }
 
@@ -619,9 +618,9 @@ class _Login_PageState extends State<Login_Page> {
         case 'invalid-credential':
           _wrongEmail = true;
           _wrongPassword = true;
-          _emailErrorMessage = "Invalid credentials";
-          _passwordErrorMessage = "Invalid credentials";
-          _errorMessage = "Invalid email or password. Please check your credentials.";
+          _emailErrorMessage = "Incorrect Email";
+          _passwordErrorMessage = "Incorrect Password";
+
           break;
         case 'network-request-failed':
           _errorMessage = "Network error. Please check your internet connection.";
