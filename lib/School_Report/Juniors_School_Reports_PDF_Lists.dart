@@ -30,6 +30,9 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  List<String> teacherClasses = [];
+  String currentClass = '';
+
   // State variables
   bool isLoading = true;
   bool isGenerating = false;
@@ -125,11 +128,15 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
     }
 
     final String? teacherSchool = userDoc['school'];
-    final List<dynamic>? teacherClasses = userDoc['classes'];
+    final List<dynamic>? teacherClassesList = userDoc['classes'];
 
-    if (teacherSchool == null || teacherClasses == null || teacherClasses.isEmpty) {
+    if (teacherSchool == null || teacherClassesList == null || teacherClassesList.isEmpty) {
       throw Exception('Please select a School and Classes before accessing reports.');
     }
+
+    // Store teacher's classes and set current class
+    teacherClasses = teacherClassesList.map((e) => e.toString().trim().toUpperCase()).toList();
+    currentClass = widget.studentClass.trim().toUpperCase();
 
     // Use the schoolName passed from constructor
     schoolName = widget.schoolName;
@@ -146,8 +153,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
     }
 
     // Validate that teacher has access to this class
-    final List<String> teacherClassesStr = teacherClasses.map((e) => e.toString().trim().toUpperCase()).toList();
-    if (!teacherClassesStr.contains(studentClass)) {
+    if (!teacherClasses.contains(studentClass)) {
       throw Exception('Access denied: You are not authorized to access ${widget.studentClass} reports.');
     }
   }
@@ -495,6 +501,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
         'schoolName': schoolName,
         'schoolPhone': 'N/A',
         'schoolEmail': 'N/A',
+        'schoolAccount': 'N/A',
         'boxNumber': 0,
         'schoolLocation': 'N/A',
         'schoolFees': 'N/A',
@@ -1009,6 +1016,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
           ),
         ],
       ),
+
       body: isLoading
           ? Center(
         child: Column(
