@@ -229,8 +229,6 @@ class _Student_DetailsState extends State<Student_Details> {
     batch.set(schoolInfoRef, {
       'Telephone': '',
       'Email': '',
-      'account': '',
-      'nextTermDate': '',
       'boxNumber': 0,
       'schoolLocation': '',
       'School_Fees': '',
