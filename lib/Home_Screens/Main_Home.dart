@@ -179,7 +179,7 @@ class _Main_HomeState extends State<Main_Home> {
             ),
             _buildHomeCard(
               icon: Icons.list,
-              text: 'Students Names',
+              text: 'Class List',
               color: Colors.purpleAccent,
               iconSize: iconSize,
               textSize: textSize,
