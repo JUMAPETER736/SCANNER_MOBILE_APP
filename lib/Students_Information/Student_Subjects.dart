@@ -1064,7 +1064,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       Map<String, String> subjectGrades,
       {int? totalMarks,
         int? bestSixPoints,
-        String? academicStatus}) {
+        String? academicStatus})
+
+  {
 
     bool isSenior = className.toUpperCase() == 'FORM 3' || className.toUpperCase() == 'FORM 4';
     bool isJunior = className.toUpperCase() == 'FORM 1' || className.toUpperCase() == 'FORM 2';
