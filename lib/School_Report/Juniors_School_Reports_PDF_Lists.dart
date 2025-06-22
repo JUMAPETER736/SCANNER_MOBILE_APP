@@ -39,9 +39,6 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
   String? schoolName;
 
   // Data variables
-  List<String> teacherClasses = [];
-  bool showAllClasses = false;
-  String selectedClassForGeneration = '';
   List<Map<String, dynamic>> studentsList = [];
   List<Map<String, dynamic>> pdfReportsList = [];
   int totalStudents = 0;
@@ -128,9 +125,9 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
     }
 
     final String? teacherSchool = userDoc['school'];
-    final List<dynamic>? teacherClassesList = userDoc['classes'];
+    final List<dynamic>? teacherClasses = userDoc['classes'];
 
-    if (teacherSchool == null || teacherClassesList == null || teacherClassesList.isEmpty) {
+    if (teacherSchool == null || teacherClasses == null || teacherClasses.isEmpty) {
       throw Exception('Please select a School and Classes before accessing reports.');
     }
 
@@ -142,188 +139,32 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
       throw Exception('Access denied: You are not authorized for this school.');
     }
 
-    // Store all teacher's classes and filter for junior classes (FORM 1, FORM 2, FORM 3)
-    List<String> allTeacherClasses = teacherClassesList.map((e) => e.toString().trim().toUpperCase()).toList();
-    teacherClasses = allTeacherClasses.where((className) =>
-    className == 'FORM 1' || className == 'FORM 2' || className == 'FORM 3'
-    ).toList();
-
-    if (teacherClasses.isEmpty) {
-      throw Exception('No junior classes (FORM 1, FORM 2, FORM 3) assigned to this teacher.');
-    }
-
     final String studentClass = widget.studentClass.trim().toUpperCase();
 
-    if (!teacherClasses.contains(studentClass)) {
+    if (studentClass != 'FORM 1' && studentClass != 'FORM 2') {
+      throw Exception('Only students in FORM 1 or FORM 2 can access this report.');
+    }
+
+    // Validate that teacher has access to this class
+    final List<String> teacherClassesStr = teacherClasses.map((e) => e.toString().trim().toUpperCase()).toList();
+    if (!teacherClassesStr.contains(studentClass)) {
       throw Exception('Access denied: You are not authorized to access ${widget.studentClass} reports.');
-    }
-
-    // Set initial selected class
-    selectedClassForGeneration = widget.studentClass;
-  }
-
-  Widget _buildClassToggle() {
-    if (teacherClasses.length <= 1) return SizedBox.shrink();
-
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'Show All Classes: ',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Switch(
-                value: showAllClasses,
-                onChanged: (value) {
-                  setState(() {
-                    showAllClasses = value;
-                    if (!value) {
-                      selectedClassForGeneration = widget.studentClass;
-                    }
-                  });
-                },
-              ),
-            ],
-          ),
-          if (showAllClasses) ...[
-            SizedBox(height: 8),
-            Container(
-              height: 50,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: teacherClasses.length,
-                itemBuilder: (context, index) {
-                  final className = teacherClasses[index];
-                  final isSelected = selectedClassForGeneration == className;
-
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedClassForGeneration = className;
-                      });
-                      _fetchStudentsListForClass(className);
-                      _fetchExistingPDFReportsForClass(className);
-                    },
-                    child: Container(
-                      margin: EdgeInsets.only(right: 8),
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? Colors.blue : Colors.grey[200],
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isSelected ? Colors.blue : Colors.grey[400]!,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          className,
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.black,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Future<void> _fetchStudentsListForClass(String className) async {
-    try {
-      final studentsSnapshot = await _firestore
-          .collection('Schools/$schoolName/Classes/$className/Student_Details')
-          .get();
-
-      List<Map<String, dynamic>> students = [];
-      for (var doc in studentsSnapshot.docs) {
-        students.add({
-          'studentName': doc.id,
-          'studentClass': className,
-          'docId': doc.id,
-        });
-      }
-
-      setState(() {
-        studentsList = students;
-        totalStudents = students.length;
-      });
-    } catch (e) {
-      print("Error fetching students list for $className: $e");
-      setState(() {
-        studentsList = [];
-        totalStudents = 0;
-      });
-    }
-  }
-
-  Future<void> _fetchExistingPDFReportsForClass(String className) async {
-    try {
-      final currentTerm = getCurrentTerm();
-      final academicYear = getAcademicYear();
-
-      final pdfReportsSnapshot = await _firestore
-          .collection('Schools/$schoolName/Classes/$className/STUDENT_SCHOOL_REPORT_PDF_LIST')
-          .where('term', isEqualTo: currentTerm)
-          .where('academicYear', isEqualTo: academicYear)
-          .orderBy('generatedAt', descending: true)
-          .get();
-
-      List<Map<String, dynamic>> reports = [];
-      for (var doc in pdfReportsSnapshot.docs) {
-        final data = doc.data();
-        reports.add({
-          'docId': doc.id,
-          'studentName': data['studentName'] ?? 'Unknown',
-          'pdfUrl': data['pdfUrl'] ?? '',
-          'generatedAt': data['generatedAt'],
-          'status': data['status'] ?? 'completed',
-          'fileSize': data['fileSize'] ?? 0,
-          'term': data['term'] ?? currentTerm,
-          'academicYear': data['academicYear'] ?? academicYear,
-          'errorMessage': data['errorMessage'] ?? '',
-        });
-      }
-
-      setState(() {
-        pdfReportsList = reports;
-        generatedReports = reports.where((r) => r['status'] == 'completed').length;
-      });
-    } catch (e) {
-      print("Error fetching PDF reports for $className: $e");
-      setState(() {
-        pdfReportsList = [];
-        generatedReports = 0;
-      });
     }
   }
 
   Future<void> _fetchStudentsList() async {
     try {
-
-      String classToUse = showAllClasses ? selectedClassForGeneration : widget.studentClass;
       final studentsSnapshot = await _firestore
-          .collection('Schools/$schoolName/Classes/$classToUse/Student_Details')
+          .collection('Schools/$schoolName/Classes/${widget.studentClass}/Student_Details')
           .get();
 
       List<Map<String, dynamic>> students = [];
       for (var doc in studentsSnapshot.docs) {
-
         students.add({
           'studentName': doc.id,
-          'studentClass': classToUse,
+          'studentClass': widget.studentClass,
           'docId': doc.id,
         });
-        
       }
 
       setState(() {
@@ -866,8 +707,6 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
   }
 
   Widget _buildHeaderStats() {
-    String displayClass = showAllClasses ? selectedClassForGeneration : widget.studentClass;
-
     return Container(
       padding: EdgeInsets.all(16),
       margin: EdgeInsets.all(16),
@@ -883,7 +722,7 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
       child: Column(
         children: [
           Text(
-            '$displayClass PDF REPORTS',
+            '${widget.studentClass} PDF REPORTS',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -1214,7 +1053,6 @@ class _Juniors_School_Reports_PDF_ListState extends State<Juniors_School_Reports
           : Column(
         children: [
           _buildHeaderStats(),
-          _buildClassToggle(),
           _buildProgressIndicator(),
           _buildPDFReportsList(),
         ],
