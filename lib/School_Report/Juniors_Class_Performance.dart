@@ -192,7 +192,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
       padding: EdgeInsets.fromLTRB(20, 20, 20, 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.blueAccent[700]!, Colors.blue[600]!, Colors.cyan[500]!],
+          colors: [Colors.white, Colors.white],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -204,7 +204,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Colors.black,
             ),
             textAlign: TextAlign.center,
           ),
@@ -214,7 +214,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.black.withOpacity(0.9),
               letterSpacing: 1.5,
             ),
             textAlign: TextAlign.center,

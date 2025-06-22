@@ -513,7 +513,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
             children: [
               _tableCell('TOTAL MARKS', isHeader: true),
               _tableCell(studentTotalMarks.toString(), isHeader: true),
-              _tableCell(averageGradeLetter.isNotEmpty ? averageGradeLetter : 'F', isHeader: true),
+              _tableCell(averageGradeLetter.isNotEmpty ? averageGradeLetter : ' ', isHeader: true),
               _tableCell('', isHeader: true),
               _tableCell('', isHeader: true),
               _tableCell('', isHeader: true),
