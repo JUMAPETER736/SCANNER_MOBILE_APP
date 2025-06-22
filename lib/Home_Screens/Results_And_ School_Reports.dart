@@ -511,7 +511,8 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
             end: Alignment.bottomRight,
           ),
         ),
-        padding: const EdgeInsets.all(16.0),
+
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         child: _hasSelectedCriteria
             ? Column(
           children: [

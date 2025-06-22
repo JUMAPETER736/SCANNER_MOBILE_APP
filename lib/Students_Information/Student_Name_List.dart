@@ -358,7 +358,8 @@ class _Student_Name_ListState extends State<Student_Name_List> {
   Widget _buildClassSelector() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+
       child: Row(
         children: (teacherClasses ?? []).map((classItem) {
           final isSelected = classItem == selectedClass;
