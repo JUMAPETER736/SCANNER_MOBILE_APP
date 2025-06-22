@@ -355,26 +355,34 @@ class _Student_Name_ListState extends State<Student_Name_List> {
   }
 
   /// Build class selector buttons
+  /// Build class selector buttons
   Widget _buildClassSelector() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-
+      padding: const EdgeInsets.only(left: 10, right: 10, top: 0, bottom: 0),
       child: Row(
         children: (teacherClasses ?? []).map((classItem) {
           final isSelected = classItem == selectedClass;
+
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
             child: ElevatedButton(
               onPressed: () => _onClassSelected(classItem),
               style: ElevatedButton.styleFrom(
                 backgroundColor: isSelected ? Colors.blue : Colors.grey[300],
                 foregroundColor: isSelected ? Colors.white : Colors.black,
                 elevation: isSelected ? 4 : 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
               child: Text(
                 classItem,
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
             ),
           );
