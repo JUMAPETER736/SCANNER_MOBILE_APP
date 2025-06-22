@@ -30,6 +30,9 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  List<String> teacherClasses = [];
+  String currentClass = '';
+
   // State variables
   bool isLoading = true;
   bool isGenerating = false;
@@ -125,11 +128,15 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
     }
 
     final String? teacherSchool = userDoc['school'];
-    final List<dynamic>? teacherClasses = userDoc['classes'];
+    final List<dynamic>? teacherClassesList = userDoc['classes'];
 
-    if (teacherSchool == null || teacherClasses == null || teacherClasses.isEmpty) {
+    if (teacherSchool == null || teacherClassesList == null || teacherClassesList.isEmpty) {
       throw Exception('Please select a School and Classes before accessing reports.');
     }
+
+    // Store teacher's classes and set current class
+    teacherClasses = teacherClassesList.map((e) => e.toString().trim().toUpperCase()).toList();
+    currentClass = widget.studentClass.trim().toUpperCase();
 
     // Use the schoolName passed from constructor
     schoolName = widget.schoolName;
@@ -142,14 +149,119 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
     final String studentClass = widget.studentClass.trim().toUpperCase();
 
     if (studentClass != 'FORM 3' && studentClass != 'FORM 4') {
-      throw Exception('Only students in FORM 3 or FORM 4 can access this report.');
+      throw Exception('Only students in FORM 1 or FORM 2 can access this report.');
     }
 
     // Validate that teacher has access to this class
-    final List<String> teacherClassesStr = teacherClasses.map((e) => e.toString().trim().toUpperCase()).toList();
-    if (!teacherClassesStr.contains(studentClass)) {
+    if (!teacherClasses.contains(studentClass)) {
       throw Exception('Access denied: You are not authorized to access ${widget.studentClass} reports.');
     }
+  }
+
+  void _switchClass(String newClass) {
+    // Determine if we need to switch to Seniors or stay in Juniors
+    if (newClass == 'FORM 3' || newClass == 'FORM 4') {
+      // Navigate to Seniors class
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Seniors_School_Reports_PDF_List(
+            schoolName: widget.schoolName,
+            className: widget.className,
+            studentClass: newClass,
+            studentFullName: widget.studentFullName,
+          ),
+        ),
+      );
+    } else if (newClass != currentClass) {
+      // Stay in Juniors but switch class
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Seniors_School_Reports_PDF_List(
+            schoolName: widget.schoolName,
+            className: widget.className,
+            studentClass: newClass,
+            studentFullName: widget.studentFullName,
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildClassSwitcherButton() {
+    // Filter classes that the teacher has access to
+    List<String> availableClasses = teacherClasses.where((className) {
+      return ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'].contains(className);
+    }).toList();
+
+    // If teacher has only one class, don't show the switcher
+    if (availableClasses.length <= 1) {
+      return SizedBox.shrink();
+    }
+
+    return Positioned(
+      bottom: 16,
+      left: 16,
+      child: FloatingActionButton.extended(
+        onPressed: () {
+          _showClassSwitcherDialog(availableClasses);
+        },
+        icon: Icon(Icons.class_),
+        label: Text(currentClass),
+        backgroundColor: Colors.orange,
+        heroTag: "classSwitcher", // Add unique hero tag to avoid conflicts
+      ),
+    );
+  }
+
+// 5. Add this method to show the class switcher dialog
+
+  void _showClassSwitcherDialog(List<String> availableClasses) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Switch Class'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Select a class to switch to:'),
+              SizedBox(height: 16),
+              ...availableClasses.map((className) {
+                bool isCurrentClass = className == currentClass;
+                return ListTile(
+                  leading: Icon(
+                    Icons.class_,
+                    color: isCurrentClass ? Colors.blue : Colors.grey,
+                  ),
+                  title: Text(
+                    className,
+                    style: TextStyle(
+                      fontWeight: isCurrentClass ? FontWeight.bold : FontWeight.normal,
+                      color: isCurrentClass ? Colors.blue : Colors.black,
+                    ),
+                  ),
+                  trailing: isCurrentClass
+                      ? Icon(Icons.check_circle, color: Colors.blue)
+                      : null,
+                  onTap: isCurrentClass ? null : () {
+                    Navigator.of(context).pop();
+                    _switchClass(className);
+                  },
+                );
+              }).toList(),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _fetchStudentsList() async {
