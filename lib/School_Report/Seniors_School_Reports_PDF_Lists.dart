@@ -18,7 +18,7 @@ class Seniors_School_Reports_PDF_List extends StatefulWidget {
   final String? schoolPhone;
   final String? schoolEmail;
   final String? schoolAccount;
-  final String? nextTermDate;
+  final String? nextTermOpeningDate;
   final List<Map<String, dynamic>>? studentsData; // List of student data for PDF generation
 
   const Seniors_School_Reports_PDF_List({
@@ -29,7 +29,7 @@ class Seniors_School_Reports_PDF_List extends StatefulWidget {
     this.schoolPhone,
     this.schoolEmail,
     this.schoolAccount,
-    this.nextTermDate,
+    this.nextTermOpeningDate,
     this.studentsData,
     required String studentFullName,
     required String studentClass,
@@ -110,7 +110,7 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
         schoolPhone: widget.schoolPhone,
         schoolEmail: widget.schoolEmail,
         schoolAccount: widget.schoolAccount,
-        nextTermDate: widget.nextTermDate,
+        nextTermOpeningDate: widget.nextTermOpeningDate,
         formTeacherRemarks: studentData['formTeacherRemarks'],
         headTeacherRemarks: studentData['headTeacherRemarks'],
         averageGradeLetter: studentData['averageGradeLetter'],
@@ -712,8 +712,8 @@ class Seniors_School_Report_PDF {
   final String? schoolAddress;
   final String? schoolPhone;
   final String? schoolEmail;
+  final String? nextTermOpeningDate;
   final String? schoolAccount;
-  final String? nextTermDate;
   final String? formTeacherRemarks;
   final String? headTeacherRemarks;
   final String? averageGradeLetter;
@@ -733,7 +733,7 @@ class Seniors_School_Report_PDF {
     this.schoolPhone,
     this.schoolEmail,
     this.schoolAccount,
-    this.nextTermDate,
+    this.nextTermOpeningDate,
     this.formTeacherRemarks,
     this.headTeacherRemarks,
     this.averageGradeLetter,
@@ -1108,9 +1108,9 @@ class Seniors_School_Report_PDF {
       child: pw.Column(
         children: [
           pw.SizedBox(height: 12),
-          if (nextTermDate != null && nextTermDate!.isNotEmpty)
+          if (nextTermOpeningDate != null && nextTermOpeningDate!.isNotEmpty)
             pw.Text(
-              'NEXT TERM BEGINS: $nextTermDate',
+              'NEXT TERM BEGINS: $nextTermOpeningDate',
               style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
               textAlign: pw.TextAlign.center,
             ),

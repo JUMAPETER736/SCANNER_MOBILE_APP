@@ -16,7 +16,6 @@ class Juniors_School_Report_PDF {
   final String? schoolPhone;
   final String? schoolEmail;
   final String? schoolAccount;
-  final String? nextTermDate;
   final String? formTeacherRemarks;
   final String? headTeacherRemarks;
   final String? averageGradeLetter;
@@ -40,7 +39,6 @@ class Juniors_School_Report_PDF {
     this.schoolPhone,
     this.schoolEmail,
     this.schoolAccount,
-    this.nextTermDate,
     this.formTeacherRemarks,
     this.headTeacherRemarks,
     this.averageGradeLetter,
@@ -449,7 +447,7 @@ class Juniors_School_Report_PDF {
           ),
           pw.SizedBox(height: 4),
           pw.Text(
-            'Next term begins on ${nextTermDate ?? 'N/A'}',
+            'Next term begins on ${nextTermOpeningDate ?? 'N/A'}',
             style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
           ),
           pw.SizedBox(height: 8),

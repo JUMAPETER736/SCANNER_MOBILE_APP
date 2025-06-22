@@ -46,7 +46,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
   String? schoolPhone;
   String? schoolEmail;
   String? schoolAccount;
-  String? nextTermDate;
   String? formTeacherRemarks;
   String? headTeacherRemarks;
   int boxNumber = 0;
@@ -191,8 +190,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       setState(() {
         schoolPhone = schoolInfoDoc['Telephone'] ?? 'N/A';
         schoolEmail = schoolInfoDoc['Email'] ?? 'N/A';
-        schoolAccount = schoolInfoDoc['account'] ?? 'N/A';
-        nextTermDate = schoolInfoDoc['nextTermDate'] ?? 'N/A';
         boxNumber = schoolInfoDoc['boxNumber'] ?? 0;
         schoolLocation = schoolInfoDoc['schoolLocation'] ?? 'N/A';
         schoolFees = schoolInfoDoc['School_Fees'] ?? 'N/A';
@@ -205,7 +202,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         schoolPhone = 'N/A';
         schoolEmail = 'N/A';
         schoolAccount = 'N/A';
-        nextTermDate = 'N/A';
         boxNumber = 0;
         schoolLocation = 'N/A';
         schoolFees = 'N/A';
@@ -672,7 +668,6 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
         schoolPhone: schoolPhone,
         schoolEmail: schoolEmail,
         schoolAccount: schoolAccount,
-        nextTermDate: nextTermDate,
         formTeacherRemarks: formTeacherRemarks,
         headTeacherRemarks: headTeacherRemarks,
         averageGradeLetter: averageGradeLetter,
