@@ -512,19 +512,19 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
           ),
         ),
 
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
         child: _hasSelectedCriteria
             ? Column(
           children: [
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.only(left: 10, right: 10, top: 0, bottom: 0),
               child: Row(
                 children: (teacherClasses ?? []).map((classItem) {
                   final isSelected = classItem == selectedClass;
 
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     child: ElevatedButton(
                       onPressed: () async {
                         setState(() {
@@ -591,7 +591,7 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
                 ),
               ),
 
-            SizedBox(height: 16),
+           // SizedBox(height: 16),
 
             Expanded(
               child: isLoading
