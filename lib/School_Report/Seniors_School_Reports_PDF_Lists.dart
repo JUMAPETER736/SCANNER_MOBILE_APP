@@ -1125,11 +1125,7 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
           ? Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Loading data...'),
-          ],
+
         ),
       )
           : hasError
