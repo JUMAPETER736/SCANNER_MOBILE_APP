@@ -128,9 +128,9 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => Available_School_Event(
-                      schoolName: 'Your School Name',
-                      selectedClass: 'Your Class Name',
+                    builder: (context) => Available_School_Events(
+                      schoolName: 'schoolName',
+                      selectedClass: 'className',
                     ),
                   ),
                 );
@@ -143,10 +143,10 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> {
               iconSize: iconSize,
               textSize: textSize,
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Student_Results(loggedInUser: loggedInUser)),
-                );
+                // Navigator.push(
+                //   context,
+                //   MaterialPageRoute(builder: (context) => Student_Results(loggedInUser: loggedInUser)),
+                // );
               },
             ),
             _buildHomeCard(
@@ -156,10 +156,10 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> {
               iconSize: iconSize,
               textSize: textSize,
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => School_Fees_Structure_And_Balance()),
-                );
+                // Navigator.push(
+                //   context,
+                //   MaterialPageRoute(builder: (context) => School_Fees_Structure_And_Balance()),
+                // );
               },
             ),
           ],
