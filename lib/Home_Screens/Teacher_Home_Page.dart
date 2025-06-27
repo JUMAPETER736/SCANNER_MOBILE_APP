@@ -14,14 +14,14 @@ import 'package:scanna/Home_Screens/School_Reports_PDF_List.dart';
 
 User? loggedInUser;
 
-class Main_Home extends StatefulWidget {
+class Teacher_Home_Page extends StatefulWidget {
   static String id = '/Main';
 
   @override
-  _Main_HomeState createState() => _Main_HomeState();
+  _Teacher_Home_PageState createState() => _Teacher_Home_PageState();
 }
 
-class _Main_HomeState extends State<Main_Home> {
+class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
   final _auth = FirebaseAuth.instance;
   int _selectedIndex = 1;
 

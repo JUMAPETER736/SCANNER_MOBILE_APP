@@ -3,7 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Forgot_Password.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Login_Page.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Register_Page.dart';
-import 'package:scanna/Home_Screens/Main_Home.dart';
+import 'package:scanna/Home_Screens/Teacher_Home_Page.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
         Register_Page.id: (context) => Register_Page(),
         Login_Page.id: (context) => Login_Page(),
         Forgot_Password.id: (context) => Forgot_Password(),
-        Main_Home.id: (context) => Main_Home(),
+        Teacher_Home_Page.id: (context) => Teacher_Home_Page(),
       },
       onUnknownRoute: (settings) {
         return MaterialPageRoute(builder: (context) => NotFoundPage());
