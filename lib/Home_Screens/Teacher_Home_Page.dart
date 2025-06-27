@@ -152,15 +152,17 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
               },
             ),
             _buildHomeCard(
-              icon: Icons.qr_code_scanner,
-              text: 'QR Scan',
+              icon: Icons.event,
+              text: 'School Events',
               color: const Color.fromARGB(255, 59, 61, 60),
               iconSize: iconSize,
               textSize: textSize,
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => Upcoming_School_Event()),
+                  MaterialPageRoute(builder: (context) => Upcoming_School_Event(
+                    schoolName: 'schoolName',
+                    selectedClass: 'selectedClass')),
                 );
               },
             ),
