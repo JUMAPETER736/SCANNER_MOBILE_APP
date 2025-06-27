@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:scanna/Home_Screens/Main_Home.dart';
+import 'package:scanna/Home_Screens/Teacher_Home_Page.dart';
 
 class Help extends StatelessWidget {
   @override
@@ -40,7 +40,7 @@ class Help extends StatelessWidget {
                         size: 28,
                       ),
                       onPressed: () {
-                        Navigator.pushReplacementNamed(context, Main_Home.id);
+                        Navigator.pushReplacementNamed(context, Teacher_Home_Page.id);
                       },
                     ),
                     Expanded(

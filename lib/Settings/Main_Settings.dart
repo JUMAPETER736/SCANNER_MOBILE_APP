@@ -8,7 +8,7 @@ import 'package:scanna/Settings/Grade_Settings.dart';
 import 'package:scanna/Settings/Notification_Settings.dart';
 import 'package:scanna/Settings/QR_Code_Settings.dart';
 import 'package:scanna/Settings/Security_Settings.dart';
-import 'package:scanna/Home_Screens/Main_Home.dart';
+import 'package:scanna/Home_Screens/Teacher_Home_Page.dart';
 
 class Main_Settings extends StatefulWidget {
   final User? user;
@@ -38,7 +38,7 @@ class _Main_SettingsState extends State<Main_Settings> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
-            Navigator.pushNamedAndRemoveUntil(context, Main_Home.id, (route) => false);
+            Navigator.pushNamedAndRemoveUntil(context, Teacher_Home_Page.id, (route) => false);
           },
         ),
       ),

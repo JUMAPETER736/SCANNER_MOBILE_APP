@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -7,7 +9,8 @@ import 'package:fluttertoast/fluttertoast.dart';
 
 import 'package:scanna/Log_In_And_Register_Screens/Google_Done.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Forgot_Password.dart';
-import 'package:scanna/Home_Screens/Main_Home.dart';
+import 'package:scanna/Home_Screens/Teacher_Home_Page.dart';
+import 'package:scanna/Home_Screens/Parent_Home_Page.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Register_Page.dart';
 
 class Login_Page extends StatefulWidget {
@@ -729,7 +732,12 @@ class _Login_PageState extends State<Login_Page> {
       );
 
       if (userCredential.user != null) {
-        Navigator.pushNamed(context, Main_Home.id);
+        // Navigate to Teacher Home Page
+        Navigator.pushNamedAndRemoveUntil(
+            context,
+            Teacher_Home_Page.id,
+                (route) => false
+        );
       }
     } on FirebaseAuthException catch (e) {
       _handleFirebaseAuthException(e);
@@ -781,13 +789,23 @@ class _Login_PageState extends State<Login_Page> {
     });
 
     // Simulate parent login process
-    // You can implement your parent authentication logic here
     try {
-      // Add your parent login logic here
-      await Future.delayed(Duration(seconds: 1)); // Simulate network call
+      // Add your parent authentication logic here
+      // For now, we'll simulate a network call
+      await Future.delayed(Duration(seconds: 1));
 
-      // For now, just navigate to home screen
-      Navigator.pushNamed(context, Main_Home.id);
+      // Stop loading
+      setState(() {
+        _showSpinner = false;
+      });
+
+      // Navigate to Parent Home Page
+      Navigator.pushNamedAndRemoveUntil(
+          context,
+          Parent_Home_Page.id,
+              (route) => false
+      );
+
     } catch (e) {
       setState(() {
         _showSpinner = false;
@@ -880,6 +898,8 @@ class _Login_PageState extends State<Login_Page> {
     });
 
     if (user != null) {
+      // For social media login, we assume it's a teacher login
+      // You can modify this logic based on your needs
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -906,7 +926,7 @@ class _Login_PageState extends State<Login_Page> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => Main_Home(),
+          builder: (context) => Teacher_Home_Page(),
         ),
       );
     } else {

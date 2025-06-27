@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
-import 'package:scanna/Home_Screens/Main_Home.dart';
+import 'package:scanna/Home_Screens/Teacher_Home_Page.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Login_Page.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -251,13 +251,13 @@ class _Register_PageState extends State<Register_Page> {
         final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
         if (googleUser != null) {
-          Navigator.pushNamed(context, Main_Home.id);
+          Navigator.pushNamed(context, Teacher_Home_Page.id);
         }
       } else if (provider == 'facebook') {
         final LoginResult loginResult = await FacebookAuth.instance.login();
 
         if (loginResult.status == LoginStatus.success) {
-          Navigator.pushNamed(context, Main_Home.id);
+          Navigator.pushNamed(context, Teacher_Home_Page.id);
         }
       }
     } catch (e) {
