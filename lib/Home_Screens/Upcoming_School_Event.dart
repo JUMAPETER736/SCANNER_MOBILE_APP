@@ -2,12 +2,12 @@ import 'dart:convert'; // For JSON decoding
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 
-class QR_Code_Scan extends StatefulWidget {
+class Upcoming_School_Event extends StatefulWidget {
   @override
-  _QR_Code_ScanState createState() => _QR_Code_ScanState();
+  _Upcoming_School_EventState createState() => _Upcoming_School_EventState();
 }
 
-class _QR_Code_ScanState extends State<QR_Code_Scan> {
+class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   QRViewController? controller;
   bool isScanned = false; // To prevent multiple scans

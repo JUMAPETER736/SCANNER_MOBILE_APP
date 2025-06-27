@@ -25,20 +25,27 @@ class _Login_PageState extends State<Login_Page> {
   // Form data
   String email = '';
   String password = '';
+  String studentName = '';
+  String studentClass = '';
 
   // UI state variables
   bool _showSpinner = false;
   bool _isPasswordVisible = false;
+  bool _isTeacherMode = true; // Default to teacher mode
 
   // Error state variables
   bool _wrongEmail = false;
   bool _wrongPassword = false;
   bool _emptyEmailField = false;
   bool _emptyPasswordField = false;
+  bool _emptyStudentNameField = false;
+  bool _emptyStudentClassField = false;
   bool _emailNotRegistered = false;
   String _errorMessage = '';
   String _emailErrorMessage = '';
   String _passwordErrorMessage = '';
+  String _studentNameErrorMessage = '';
+  String _studentClassErrorMessage = '';
 
   @override
   Widget build(BuildContext context) {
@@ -68,10 +75,18 @@ class _Login_PageState extends State<Login_Page> {
                         SizedBox(height: _getResponsiveSpacing(context, 20.0)),
                         _buildHeader(context),
                         SizedBox(height: _getResponsiveSpacing(context, 24.0)),
-                        _buildEmailField(context),
-                        SizedBox(height: _getResponsiveSpacing(context, 16.0)),
-                        _buildPasswordField(context),
-                        _buildForgotPasswordLink(context),
+                        _buildToggleButtons(context),
+                        SizedBox(height: _getResponsiveSpacing(context, 24.0)),
+                        if (_isTeacherMode) ...[
+                          _buildEmailField(context),
+                          SizedBox(height: _getResponsiveSpacing(context, 16.0)),
+                          _buildPasswordField(context),
+                          _buildForgotPasswordLink(context),
+                        ] else ...[
+                          _buildStudentNameField(context),
+                          SizedBox(height: _getResponsiveSpacing(context, 16.0)),
+                          _buildStudentClassField(context),
+                        ],
                         // General Error Message Display
                         if (_errorMessage.isNotEmpty)
                           Padding(
@@ -108,10 +123,12 @@ class _Login_PageState extends State<Login_Page> {
                           ),
                         SizedBox(height: _getResponsiveSpacing(context, 24.0)),
                         _buildLoginButton(context),
-                        SizedBox(height: _getResponsiveSpacing(context, 20.0)),
-                        _buildDivider(context),
-                        SizedBox(height: _getResponsiveSpacing(context, 20.0)),
-                        _buildSocialMediaButtons(context),
+                        if (_isTeacherMode) ...[
+                          SizedBox(height: _getResponsiveSpacing(context, 20.0)),
+                          _buildDivider(context),
+                          SizedBox(height: _getResponsiveSpacing(context, 20.0)),
+                          _buildSocialMediaButtons(context),
+                        ],
                         Expanded(child: Container()),
                         _buildSignUpLink(context),
                       ],
@@ -184,6 +201,108 @@ class _Login_PageState extends State<Login_Page> {
     );
   }
 
+  Widget _buildToggleButtons(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15.0),
+        color: Colors.grey.withOpacity(0.1),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isTeacherMode = true;
+                  _clearAllErrors();
+                });
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 12.0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15.0),
+                  color: _isTeacherMode ? Colors.blueAccent : Colors.transparent,
+                  boxShadow: _isTeacherMode ? [
+                    BoxShadow(
+                      color: Colors.blueAccent.withOpacity(0.3),
+                      spreadRadius: 1,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ] : [],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.school,
+                      color: _isTeacherMode ? Colors.white : Colors.blueAccent,
+                      size: _getResponsiveFontSize(context, 20.0),
+                    ),
+                    SizedBox(width: 8.0),
+                    Text(
+                      'Teacher',
+                      style: TextStyle(
+                        fontSize: _getResponsiveFontSize(context, 16.0),
+                        color: _isTeacherMode ? Colors.white : Colors.blueAccent,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isTeacherMode = false;
+                  _clearAllErrors();
+                });
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 12.0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15.0),
+                  color: !_isTeacherMode ? Colors.blueAccent : Colors.transparent,
+                  boxShadow: !_isTeacherMode ? [
+                    BoxShadow(
+                      color: Colors.blueAccent.withOpacity(0.3),
+                      spreadRadius: 1,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ] : [],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.people,
+                      color: !_isTeacherMode ? Colors.white : Colors.blueAccent,
+                      size: _getResponsiveFontSize(context, 20.0),
+                    ),
+                    SizedBox(width: 8.0),
+                    Text(
+                      'Parent',
+                      style: TextStyle(
+                        fontSize: _getResponsiveFontSize(context, 16.0),
+                        color: !_isTeacherMode ? Colors.white : Colors.blueAccent,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildEmailField(BuildContext context) {
     return _buildStyledTextField(
       label: 'Email Address',
@@ -199,7 +318,7 @@ class _Login_PageState extends State<Login_Page> {
           _emailNotRegistered = false;
           _emptyEmailField = false;
           _emailErrorMessage = '';
-          _errorMessage = ''; // Clear general error message when user types
+          _errorMessage = '';
         });
       },
     );
@@ -219,7 +338,7 @@ class _Login_PageState extends State<Login_Page> {
           _wrongPassword = false;
           _emptyPasswordField = false;
           _passwordErrorMessage = '';
-          _errorMessage = ''; // Clear general error message when user types
+          _errorMessage = '';
         });
       },
       suffixIcon: IconButton(
@@ -234,6 +353,44 @@ class _Login_PageState extends State<Login_Page> {
           });
         },
       ),
+    );
+  }
+
+  Widget _buildStudentNameField(BuildContext context) {
+    return _buildStyledTextField(
+      label: 'Student Name',
+      icon: Icons.person,
+      obscureText: false,
+      keyboardType: TextInputType.name,
+      showError: _emptyStudentNameField,
+      errorText: _studentNameErrorMessage,
+      onChanged: (value) {
+        studentName = value;
+        setState(() {
+          _emptyStudentNameField = false;
+          _studentNameErrorMessage = '';
+          _errorMessage = '';
+        });
+      },
+    );
+  }
+
+  Widget _buildStudentClassField(BuildContext context) {
+    return _buildStyledTextField(
+      label: 'Class',
+      icon: Icons.class_,
+      obscureText: false,
+      keyboardType: TextInputType.text,
+      showError: _emptyStudentClassField,
+      errorText: _studentClassErrorMessage,
+      onChanged: (value) {
+        studentClass = value;
+        setState(() {
+          _emptyStudentClassField = false;
+          _studentClassErrorMessage = '';
+          _errorMessage = '';
+        });
+      },
     );
   }
 
@@ -280,7 +437,7 @@ class _Login_PageState extends State<Login_Page> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: _login,
+        onPressed: _isTeacherMode ? _login : _parentLogin,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -289,7 +446,7 @@ class _Login_PageState extends State<Login_Page> {
           ),
         ),
         child: Text(
-          'Log In',
+          _isTeacherMode ? 'Log In' : 'Continue as Parent',
           style: TextStyle(
             fontSize: _getResponsiveFontSize(context, 22.0),
             color: Colors.white,
@@ -555,12 +712,6 @@ class _Login_PageState extends State<Login_Page> {
       hasErrors = true;
     }
 
-    // If both fields are empty, show a general error message
-    if (email.trim().isEmpty && password.trim().isEmpty) {
-      setState(() {
-      });
-    }
-
     // If there are validation errors, don't proceed with login
     if (hasErrors) {
       return;
@@ -588,6 +739,84 @@ class _Login_PageState extends State<Login_Page> {
         _errorMessage = "An error occurred. Please try again.";
       });
     }
+  }
+
+  Future<void> _parentLogin() async {
+    // Clear all previous errors
+    setState(() {
+      _emptyStudentNameField = false;
+      _emptyStudentClassField = false;
+      _errorMessage = '';
+      _studentNameErrorMessage = '';
+      _studentClassErrorMessage = '';
+    });
+
+    // Validate inputs
+    bool hasErrors = false;
+
+    if (studentName.trim().isEmpty) {
+      setState(() {
+        _emptyStudentNameField = true;
+        _studentNameErrorMessage = 'Student name is required';
+      });
+      hasErrors = true;
+    }
+
+    if (studentClass.trim().isEmpty) {
+      setState(() {
+        _emptyStudentClassField = true;
+        _studentClassErrorMessage = 'Class is required';
+      });
+      hasErrors = true;
+    }
+
+    // If there are validation errors, don't proceed
+    if (hasErrors) {
+      return;
+    }
+
+    // Start loading
+    setState(() {
+      _showSpinner = true;
+    });
+
+    // Simulate parent login process
+    // You can implement your parent authentication logic here
+    try {
+      // Add your parent login logic here
+      await Future.delayed(Duration(seconds: 1)); // Simulate network call
+
+      // For now, just navigate to home screen
+      Navigator.pushNamed(context, Main_Home.id);
+    } catch (e) {
+      setState(() {
+        _showSpinner = false;
+        _errorMessage = "Parent login failed. Please try again.";
+      });
+    }
+  }
+
+  void _clearAllErrors() {
+    setState(() {
+      _wrongEmail = false;
+      _wrongPassword = false;
+      _emptyEmailField = false;
+      _emptyPasswordField = false;
+      _emptyStudentNameField = false;
+      _emptyStudentClassField = false;
+      _emailNotRegistered = false;
+      _errorMessage = '';
+      _emailErrorMessage = '';
+      _passwordErrorMessage = '';
+      _studentNameErrorMessage = '';
+      _studentClassErrorMessage = '';
+
+      // Clear form data when switching modes
+      email = '';
+      password = '';
+      studentName = '';
+      studentClass = '';
+    });
   }
 
   void _handleFirebaseAuthException(FirebaseAuthException e) {
@@ -620,7 +849,6 @@ class _Login_PageState extends State<Login_Page> {
           _wrongPassword = true;
           _emailErrorMessage = "Incorrect Email";
           _passwordErrorMessage = "Incorrect Password";
-
           break;
         case 'network-request-failed':
           _errorMessage = "Network error. Please check your internet connection.";
@@ -691,17 +919,18 @@ class _Login_PageState extends State<Login_Page> {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser != null) {
         final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
         final AuthCredential credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
-        UserCredential userCredential = await _auth.signInWithCredential(credential);
+        final UserCredential userCredential = await _auth.signInWithCredential(credential);
         return userCredential.user;
       }
     } catch (e) {
       print('Google sign-in error: $e');
+      return null;
     }
-    return null;
   }
 
   Future<User?> _performFacebookSignIn() async {
@@ -710,16 +939,15 @@ class _Login_PageState extends State<Login_Page> {
       if (result.status == LoginStatus.success) {
         final AccessToken accessToken = result.accessToken!;
         final AuthCredential credential = FacebookAuthProvider.credential(accessToken.tokenString);
-        UserCredential userCredential = await _auth.signInWithCredential(credential);
+        final UserCredential userCredential = await _auth.signInWithCredential(credential);
         return userCredential.user;
       }
     } catch (e) {
       print('Facebook sign-in error: $e');
+      return null;
     }
     return null;
   }
-
-  // ==================== UTILITY METHODS ====================
 
   void _showToast(String message) {
     Fluttertoast.showToast(
@@ -727,9 +955,9 @@ class _Login_PageState extends State<Login_Page> {
       toastLength: Toast.LENGTH_SHORT,
       gravity: ToastGravity.BOTTOM,
       timeInSecForIosWeb: 1,
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.grey[800],
       textColor: Colors.white,
-      fontSize: _getResponsiveFontSize(context, 18.0),
+      fontSize: 16.0,
     );
   }
 }

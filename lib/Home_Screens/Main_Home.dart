@@ -6,7 +6,7 @@ import 'package:scanna/Home_Screens/Class_Selection.dart';
 import 'package:scanna/Students_Information/Student_Details.dart';
 import 'package:scanna/Home_Screens/Help.dart';
 import 'package:scanna/Students_Information/Student_Name_List.dart';
-import 'package:scanna/Home_Screens/QR_Code_Scan.dart';
+import 'package:scanna/Home_Screens/Upcoming_School_Event.dart';
 import 'package:scanna/Home_Screens/Results_And_%20School_Reports.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Login_Page.dart';
 import 'package:scanna/Home_Screens/Performance_Statistics.dart';
@@ -160,7 +160,7 @@ class _Main_HomeState extends State<Main_Home> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => QR_Code_Scan()),
+                  MaterialPageRoute(builder: (context) => Upcoming_School_Event()),
                 );
               },
             ),
