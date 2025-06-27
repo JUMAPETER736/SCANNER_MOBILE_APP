@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Login_Page.dart';
 import 'package:scanna/Parent_Screens/Student_Details_View.dart';
-import 'package:scanna/Parent_Screens/School_Events.dart';
+import 'package:scanna/Parent_Screens/Available_School_Events.dart';
 import 'package:scanna/Parent_Screens/Student_Results.dart';
 import 'package:scanna/Parent_Screens/School_Fees_Structure_And_Balance.dart';
 
@@ -108,8 +108,13 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => Student_Details_View(
-                      loggedInUser: loggedInUser)),
+                  MaterialPageRoute(
+                    builder: (context) => Student_Details_View(
+                      schoolName: "School Name Here",
+                      studentClass: "Class Name Here",
+                      studentFullName: "Student Full Name Here",
+                    ),
+                  ),
                 );
               },
             ),
@@ -122,7 +127,12 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => School_Events()),
+                  MaterialPageRoute(
+                    builder: (context) => Available_School_Event(
+                      schoolName: 'Your School Name',
+                      selectedClass: 'Your Class Name',
+                    ),
+                  ),
                 );
               },
             ),
