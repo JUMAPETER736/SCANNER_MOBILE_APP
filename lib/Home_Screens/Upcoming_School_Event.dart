@@ -18,6 +18,438 @@ class Upcoming_School_Event extends StatefulWidget {
 
 class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'School Events',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.blueAccent,
+        elevation: 0,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blueAccent.shade50, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: StreamBuilder<QuerySnapshot>(
+          stream: _firestore
+              .collection('Schools')
+              .doc(widget.schoolName)
+              .collection('Classes')
+              .doc(widget.selectedClass)
+              .collection('Upcoming_School_Events')
+              .orderBy('dateTime', descending: false)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                ),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 60, color: Colors.red),
+                    SizedBox(height: 16),
+                    Text(
+                      'Error loading events',
+                      style: TextStyle(fontSize: 18, color: Colors.red),
+                    ),
+                    Text(
+                      '${snapshot.error}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.event_busy,
+                      size: 80,
+                      color: Colors.grey.shade400,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'No Events Yet',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Create your first event using the + button',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: () async {
+                setState(() {});
+              },
+              child: ListView.builder(
+                padding: EdgeInsets.all(16),
+                itemCount: snapshot.data!.docs.length,
+                itemBuilder: (context, index) {
+                  final doc = snapshot.data!.docs[index];
+                  final data = doc.data() as Map<String, dynamic>;
+                  final eventDateTime = (data['dateTime'] as Timestamp).toDate();
+                  final now = DateTime.now();
+                  final isUpcoming = eventDateTime.isAfter(now);
+
+                  return Container(
+                    margin: EdgeInsets.only(bottom: 16),
+                    child: Card(
+                      elevation: 8,
+                      shadowColor: Colors.blueAccent.withOpacity(0.3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            colors: isUpcoming
+                                ? [Colors.white, Colors.blue.shade50]
+                                : [Colors.grey.shade100, Colors.grey.shade200],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: isUpcoming ? Colors.blueAccent : Colors.grey,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      _getEventIcon(data['type']),
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          data['title'] ?? 'No Title',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: isUpcoming ? Colors.black87 : Colors.grey.shade600,
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: isUpcoming
+                                                ? Colors.blueAccent.shade100
+                                                : Colors.grey.shade300,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            data['type'] ?? 'Event',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              color: isUpcoming ? Colors.blue.shade700 : Colors.grey.shade600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (!isUpcoming)
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.shade100,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        'Past',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.red.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              SizedBox(height: 12),
+                              Text(
+                                data['description'] ?? 'No description',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade700,
+                                  height: 1.4,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(height: 12),
+                              Container(
+                                padding: EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.7),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.grey.shade200),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.calendar_today, size: 16, color: Colors.blueAccent),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      '${eventDateTime.day}/${eventDateTime.month}/${eventDateTime.year}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    SizedBox(width: 16),
+                                    Icon(Icons.access_time, size: 16, color: Colors.blueAccent),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      TimeOfDay.fromDateTime(eventDateTime).format(context),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(Icons.location_on, size: 16, color: Colors.grey.shade600),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      data['location'] ?? 'No location',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => _showEventDetails(context, data),
+                                    child: Text(
+                                      'View Details',
+                                      style: TextStyle(
+                                        color: Colors.blueAccent,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showCreateEventDialog(context),
+        backgroundColor: Colors.blueAccent,
+        icon: Icon(Icons.add, color: Colors.white),
+        label: Text(
+          'Create Event',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        elevation: 8,
+      ),
+    );
+  }
+
+  IconData _getEventIcon(String? type) {
+    switch (type?.toLowerCase()) {
+      case 'academic':
+        return Icons.school;
+      case 'sports':
+        return Icons.sports;
+      case 'cultural':
+        return Icons.theater_comedy;
+      case 'meeting':
+        return Icons.groups;
+      case 'examination':
+        return Icons.quiz;
+      case 'holiday':
+        return Icons.celebration;
+      default:
+        return Icons.event;
+    }
+  }
+
+  void _showCreateEventDialog(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateEventPage(
+          schoolName: widget.schoolName,
+          selectedClass: widget.selectedClass,
+        ),
+      ),
+    );
+  }
+
+  void _showEventDetails(BuildContext context, Map<String, dynamic> data) {
+    final eventDateTime = (data['dateTime'] as Timestamp).toDate();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(_getEventIcon(data['type']), color: Colors.blueAccent),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  data['title'] ?? 'Event Details',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDetailRow('Type', data['type'] ?? 'N/A', Icons.category),
+                _buildDetailRow('Description', data['description'] ?? 'N/A', Icons.description),
+                _buildDetailRow('Location', data['location'] ?? 'N/A', Icons.location_on),
+                _buildDetailRow('Date', '${eventDateTime.day}/${eventDateTime.month}/${eventDateTime.year}', Icons.calendar_today),
+                _buildDetailRow('Time', TimeOfDay.fromDateTime(eventDateTime).format(context), Icons.access_time),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Close',
+                style: TextStyle(color: Colors.blueAccent),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: Colors.blueAccent),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Create Event Page
+class CreateEventPage extends StatefulWidget {
+  final String schoolName;
+  final String selectedClass;
+
+  const CreateEventPage({
+    Key? key,
+    required this.schoolName,
+    required this.selectedClass,
+  }) : super(key: key);
+
+  @override
+  _CreateEventPageState createState() => _CreateEventPageState();
+}
+
+class _CreateEventPageState extends State<CreateEventPage> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _formKey = GlobalKey<FormState>();
 
   // Form controllers
@@ -53,33 +485,27 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'School Events Management',
+          'Create New Event',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.blueAccent,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.list),
-            onPressed: _viewAllEvents,
-            tooltip: 'View All Events',
-          ),
-        ],
+        elevation: 0,
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.lightBlueAccent.shade100, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            colors: [Colors.blueAccent.shade50, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Card(
             elevation: 8,
-            shadowColor: Colors.blueAccent,
+            shadowColor: Colors.blueAccent.withOpacity(0.3),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Padding(
               padding: const EdgeInsets.all(20.0),
@@ -90,7 +516,7 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
                   children: [
                     Icon(
                       Icons.event,
-                      size: 80,
+                      size: 60,
                       color: Colors.blueAccent,
                     ),
                     SizedBox(height: 16),
@@ -103,7 +529,7 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 20),
+                    SizedBox(height: 24),
                     _buildEventTitleField(),
                     SizedBox(height: 16),
                     _buildEventDescriptionField(),
@@ -133,10 +559,10 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
         hintText: 'Enter event title',
         prefixIcon: Icon(Icons.title, color: Colors.blueAccent),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.blueAccent, width: 2),
         ),
       ),
@@ -158,10 +584,10 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
         hintText: 'Enter event description',
         prefixIcon: Icon(Icons.description, color: Colors.blueAccent),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.blueAccent, width: 2),
         ),
       ),
@@ -181,10 +607,10 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
         labelText: 'Event Type',
         prefixIcon: Icon(Icons.category, color: Colors.blueAccent),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.blueAccent, width: 2),
         ),
       ),
@@ -210,10 +636,10 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
         hintText: 'Enter event location',
         prefixIcon: Icon(Icons.location_on, color: Colors.blueAccent),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.blueAccent, width: 2),
         ),
       ),
@@ -238,7 +664,7 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
@@ -266,7 +692,7 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
@@ -322,8 +748,9 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
           fontWeight: FontWeight.bold,
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
         ),
+        elevation: 4,
       ),
       onPressed: _isLoading ? null : _saveEvent,
     );
@@ -398,17 +825,15 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
         'isActive': true,
       };
 
-      // Get reference to the document
-      final DocumentReference eventRef = _firestore
+      // Save to Firestore using event title as document ID
+      await _firestore
           .collection('Schools')
           .doc(widget.schoolName)
           .collection('Classes')
           .doc(widget.selectedClass)
           .collection('Upcoming_School_Events')
-          .doc(); // Auto-generate document ID
-
-      // Save to Firestore
-      await eventRef.set(eventData);
+          .doc(_eventTitleController.text.trim()) // Using event title as document ID
+          .set(eventData);
 
       // Clear form
       _clearForm();
@@ -420,6 +845,9 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
           backgroundColor: Colors.green,
         ),
       );
+
+      // Navigate back
+      Navigator.pop(context);
 
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -444,177 +872,5 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
       _selectedTime = null;
       _selectedEventType = 'Academic';
     });
-  }
-
-  void _viewAllEvents() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EventsListPage(
-          schoolName: widget.schoolName,
-          selectedClass: widget.selectedClass,
-        ),
-      ),
-    );
-  }
-}
-
-// Events List Page to view all events
-class EventsListPage extends StatelessWidget {
-  final String schoolName;
-  final String selectedClass;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  EventsListPage({
-    Key? key,
-    required this.schoolName,
-    required this.selectedClass,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('All Events'),
-        backgroundColor: Colors.blueAccent,
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore
-            .collection('Schools')
-            .doc(schoolName)
-            .collection('Classes')
-            .doc(selectedClass)
-            .collection('Upcoming_School_Events')
-            .orderBy('dateTime', descending: false)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('Error: ${snapshot.error}'),
-            );
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.event_busy,
-                    size: 80,
-                    color: Colors.grey,
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'No events found',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: EdgeInsets.all(16),
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              final doc = snapshot.data!.docs[index];
-              final data = doc.data() as Map<String, dynamic>;
-              final eventDateTime = (data['dateTime'] as Timestamp).toDate();
-
-              return Card(
-                elevation: 4,
-                margin: EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.blueAccent,
-                    child: Icon(
-                      Icons.event,
-                      color: Colors.white,
-                    ),
-                  ),
-                  title: Text(
-                    data['title'] ?? 'No Title',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(data['description'] ?? ''),
-                      SizedBox(height: 4),
-                      Text(
-                        '${eventDateTime.day}/${eventDateTime.month}/${eventDateTime.year} at ${TimeOfDay.fromDateTime(eventDateTime).format(context)}',
-                        style: TextStyle(
-                          color: Colors.blueAccent,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        'Location: ${data['location'] ?? 'N/A'}',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                  trailing: Chip(
-                    label: Text(
-                      data['type'] ?? 'Event',
-                      style: TextStyle(fontSize: 10),
-                    ),
-                    backgroundColor: Colors.blueAccent.shade100,
-                  ),
-                  onTap: () {
-                    _showEventDetails(context, data);
-                  },
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  void _showEventDetails(BuildContext context, Map<String, dynamic> data) {
-    final eventDateTime = (data['dateTime'] as Timestamp).toDate();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(data['title'] ?? 'Event Details'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Description: ${data['description'] ?? 'N/A'}'),
-              SizedBox(height: 8),
-              Text('Type: ${data['type'] ?? 'N/A'}'),
-              SizedBox(height: 8),
-              Text('Location: ${data['location'] ?? 'N/A'}'),
-              SizedBox(height: 8),
-              Text('Date: ${eventDateTime.day}/${eventDateTime.month}/${eventDateTime.year}'),
-              SizedBox(height: 8),
-              Text('Time: ${TimeOfDay.fromDateTime(eventDateTime).format(context)}'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
   }
 }

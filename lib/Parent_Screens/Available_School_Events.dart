@@ -1,8 +1,5 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 
 class Available_School_Events extends StatefulWidget {
   final String schoolName;
@@ -20,26 +17,6 @@ class Available_School_Events extends StatefulWidget {
 
 class _Available_School_EventsState extends State<Available_School_Events> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  String _selectedFilter = 'All';
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
-
-  final List<String> _filterOptions = [
-    'All',
-    'Academic',
-    'Sports',
-    'Cultural',
-    'Meeting',
-    'Examination',
-    'Holiday',
-    'Other'
-  ];
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,469 +26,319 @@ class _Available_School_EventsState extends State<Available_School_Events> {
           'Available School Events',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.greenAccent.shade700,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: () {
-              setState(() {});
-            },
-            tooltip: 'Refresh Events',
-          ),
-        ],
+        backgroundColor: Colors.blueAccent,
+        elevation: 0,
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.lightGreenAccent.shade100, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            colors: [Colors.blueAccent.shade50, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
-        child: Column(
-          children: [
-            _buildSearchAndFilter(),
-            Expanded(child: _buildEventsList()),
-          ],
-        ),
-      ),
-    );
-  }
+        child: StreamBuilder<QuerySnapshot>(
+          stream: _firestore
+              .collection('Schools')
+              .doc(widget.schoolName)
+              .collection('Classes')
+              .doc(widget.selectedClass)
+              .collection('Upcoming_School_Events')
+              .orderBy('dateTime', descending: false)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                ),
+              );
+            }
 
-  Widget _buildSearchAndFilter() {
-    return Container(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // Search Bar
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search events...',
-              prefixIcon: Icon(Icons.search, color: Colors.green),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                icon: Icon(Icons.clear),
-                onPressed: () {
-                  setState(() {
-                    _searchController.clear();
-                    _searchQuery = '';
-                  });
-                },
-              )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: BorderSide(color: Colors.green, width: 2),
-              ),
-            ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value.toLowerCase();
-              });
-            },
-          ),
-          SizedBox(height: 12),
-          // Filter Dropdown
-          Container(
-            width: double.infinity,
-            child: DropdownButtonFormField<String>(
-              value: _selectedFilter,
-              decoration: InputDecoration(
-                labelText: 'Filter by Event Type',
-                prefixIcon: Icon(Icons.filter_list, color: Colors.green),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+            if (snapshot.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 60, color: Colors.red),
+                    SizedBox(height: 16),
+                    Text(
+                      'Error loading events',
+                      style: TextStyle(fontSize: 18, color: Colors.red),
+                    ),
+                    Text(
+                      '${snapshot.error}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.green, width: 2),
+              );
+            }
+
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.event_busy,
+                      size: 80,
+                      color: Colors.grey.shade400,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'No Events Available',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Check back later for upcoming events',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
-              ),
-              items: _filterOptions.map((String filter) {
-                return DropdownMenuItem<String>(
-                  value: filter,
-                  child: Text(filter),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedFilter = newValue!;
-                });
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: () async {
+                setState(() {});
               },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+              child: ListView.builder(
+                padding: EdgeInsets.all(16),
+                itemCount: snapshot.data!.docs.length,
+                itemBuilder: (context, index) {
+                  final doc = snapshot.data!.docs[index];
+                  final data = doc.data() as Map<String, dynamic>;
+                  final eventDateTime = (data['dateTime'] as Timestamp).toDate();
+                  final now = DateTime.now();
+                  final isUpcoming = eventDateTime.isAfter(now);
 
-  Widget _buildEventsList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _firestore
-          .collection('Schools')
-          .doc(widget.schoolName)
-          .collection('Classes')
-          .doc(widget.selectedClass)
-          .collection('Upcoming_School_Events')
-          .where('isActive', isEqualTo: true)
-          .orderBy('dateTime', descending: false)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(color: Colors.green),
-                SizedBox(height: 16),
-                Text('Loading events...'),
-              ],
-            ),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 80,
-                  color: Colors.red,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Error loading events',
-                  style: TextStyle(fontSize: 18, color: Colors.red),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Error: ${snapshot.error}',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          );
-        }
-
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.event_busy,
-                  size: 100,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'No events available',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Check back later for upcoming events',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        // Filter events based on search query and selected filter
-        final filteredDocs = snapshot.data!.docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final title = (data['title'] ?? '').toString().toLowerCase();
-          final description = (data['description'] ?? '').toString().toLowerCase();
-          final type = data['type'] ?? '';
-          final location = (data['location'] ?? '').toString().toLowerCase();
-
-          // Apply search filter
-          final matchesSearch = _searchQuery.isEmpty ||
-              title.contains(_searchQuery) ||
-              description.contains(_searchQuery) ||
-              location.contains(_searchQuery);
-
-          // Apply type filter
-          final matchesType = _selectedFilter == 'All' || type == _selectedFilter;
-
-          return matchesSearch && matchesType;
-        }).toList();
-
-        if (filteredDocs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.search_off,
-                  size: 80,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'No events match your criteria',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Try adjusting your search or filter',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          itemCount: filteredDocs.length,
-          itemBuilder: (context, index) {
-            final doc = filteredDocs[index];
-            final data = doc.data() as Map<String, dynamic>;
-            final eventDateTime = (data['dateTime'] as Timestamp).toDate();
-            final now = DateTime.now();
-            final isUpcoming = eventDateTime.isAfter(now);
-            final isPast = eventDateTime.isBefore(now);
-
-            return Card(
-              elevation: 6,
-              margin: EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  gradient: LinearGradient(
-                    colors: isUpcoming
-                        ? [Colors.green.shade50, Colors.white]
-                        : isPast
-                        ? [Colors.grey.shade100, Colors.white]
-                        : [Colors.orange.shade50, Colors.white],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: ListTile(
-                  contentPadding: EdgeInsets.all(16),
-                  leading: Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _getEventTypeColor(data['type']),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      _getEventTypeIcon(data['type']),
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  title: Text(
-                    data['title'] ?? 'No Title',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: isPast ? Colors.grey.shade600 : Colors.black,
-                    ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 4),
-                      Text(
-                        data['description'] ?? '',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isPast ? Colors.grey.shade500 : Colors.grey.shade700,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                  return Container(
+                    margin: EdgeInsets.only(bottom: 16),
+                    child: Card(
+                      elevation: 8,
+                      shadowColor: Colors.blueAccent.withOpacity(0.3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 16,
-                            color: isUpcoming ? Colors.green : isPast ? Colors.grey : Colors.orange,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            '${eventDateTime.day}/${eventDateTime.month}/${eventDateTime.year} at ${TimeOfDay.fromDateTime(eventDateTime).format(context)}',
-                            style: TextStyle(
-                              color: isUpcoming ? Colors.green : isPast ? Colors.grey : Colors.orange,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.location_on,
-                            size: 16,
-                            color: Colors.grey.shade600,
-                          ),
-                          SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              data['location'] ?? 'N/A',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Chip(
-                        label: Text(
-                          data['type'] ?? 'Event',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        backgroundColor: _getEventTypeColor(data['type']),
-                      ),
-                      SizedBox(height: 4),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      child: Container(
                         decoration: BoxDecoration(
-                          color: isUpcoming
-                              ? Colors.green
-                              : isPast
-                              ? Colors.grey
-                              : Colors.orange,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            colors: isUpcoming
+                                ? [Colors.white, Colors.blue.shade50]
+                                : [Colors.grey.shade100, Colors.grey.shade200],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                         ),
-                        child: Text(
-                          isUpcoming
-                              ? 'Upcoming'
-                              : isPast
-                              ? 'Past'
-                              : 'Today',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: isUpcoming ? Colors.blueAccent : Colors.grey,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      _getEventIcon(data['type']),
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          data['title'] ?? 'No Title',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: isUpcoming ? Colors.black87 : Colors.grey.shade600,
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: isUpcoming
+                                                ? Colors.blueAccent.shade100
+                                                : Colors.grey.shade300,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            data['type'] ?? 'Event',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              color: isUpcoming ? Colors.blue.shade700 : Colors.grey.shade600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (!isUpcoming)
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.shade100,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        'Past',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.red.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              SizedBox(height: 12),
+                              Text(
+                                data['description'] ?? 'No description',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade700,
+                                  height: 1.4,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(height: 12),
+                              Container(
+                                padding: EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.7),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.grey.shade200),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.calendar_today, size: 16, color: Colors.blueAccent),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      '${eventDateTime.day}/${eventDateTime.month}/${eventDateTime.year}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    SizedBox(width: 16),
+                                    Icon(Icons.access_time, size: 16, color: Colors.blueAccent),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      TimeOfDay.fromDateTime(eventDateTime).format(context),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(Icons.location_on, size: 16, color: Colors.grey.shade600),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      data['location'] ?? 'No location',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => _showEventDetails(context, data),
+                                    child: Text(
+                                      'View Details',
+                                      style: TextStyle(
+                                        color: Colors.blueAccent,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  onTap: () {
-                    _showEventDetails(context, data, doc.id);
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
             );
           },
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Color _getEventTypeColor(String? type) {
-    switch (type) {
-      case 'Academic':
-        return Colors.blue;
-      case 'Sports':
-        return Colors.orange;
-      case 'Cultural':
-        return Colors.purple;
-      case 'Meeting':
-        return Colors.teal;
-      case 'Examination':
-        return Colors.red;
-      case 'Holiday':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  IconData _getEventTypeIcon(String? type) {
-    switch (type) {
-      case 'Academic':
+  IconData _getEventIcon(String? type) {
+    switch (type?.toLowerCase()) {
+      case 'academic':
         return Icons.school;
-      case 'Sports':
+      case 'sports':
         return Icons.sports;
-      case 'Cultural':
+      case 'cultural':
         return Icons.theater_comedy;
-      case 'Meeting':
-        return Icons.meeting_room;
-      case 'Examination':
+      case 'meeting':
+        return Icons.groups;
+      case 'examination':
         return Icons.quiz;
-      case 'Holiday':
+      case 'holiday':
         return Icons.celebration;
       default:
         return Icons.event;
     }
   }
 
-  void _showEventDetails(BuildContext context, Map<String, dynamic> data, String eventId) {
+  void _showEventDetails(BuildContext context, Map<String, dynamic> data) {
     final eventDateTime = (data['dateTime'] as Timestamp).toDate();
-    final createdAt = data['createdAt'] != null
-        ? (data['createdAt'] as Timestamp).toDate()
-        : null;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(16),
           ),
           title: Row(
             children: [
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _getEventTypeColor(data['type']),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  _getEventTypeIcon(data['type']),
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              SizedBox(width: 12),
+              Icon(_getEventIcon(data['type']), color: Colors.blueAccent),
+              SizedBox(width: 8),
               Expanded(
                 child: Text(
                   data['title'] ?? 'Event Details',
-                  style: TextStyle(fontSize: 18),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -521,34 +348,20 @@ class _Available_School_EventsState extends State<Available_School_Events> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDetailRow('Description', data['description'] ?? 'N/A'),
-                _buildDetailRow('Type', data['type'] ?? 'N/A'),
-                _buildDetailRow('Location', data['location'] ?? 'N/A'),
-                _buildDetailRow('Date', '${eventDateTime.day}/${eventDateTime.month}/${eventDateTime.year}'),
-                _buildDetailRow('Time', TimeOfDay.fromDateTime(eventDateTime).format(context)),
-                _buildDetailRow('Created By', data['createdBy'] ?? 'N/A'),
-                if (createdAt != null)
-                  _buildDetailRow('Created On', '${createdAt.day}/${createdAt.month}/${createdAt.year}'),
-                _buildDetailRow('School', data['schoolName'] ?? widget.schoolName),
-                _buildDetailRow('Class', data['className'] ?? widget.selectedClass),
+                _buildDetailRow('Type', data['type'] ?? 'N/A', Icons.category),
+                _buildDetailRow('Description', data['description'] ?? 'N/A', Icons.description),
+                _buildDetailRow('Location', data['location'] ?? 'N/A', Icons.location_on),
+                _buildDetailRow('Date', '${eventDateTime.day}/${eventDateTime.month}/${eventDateTime.year}', Icons.calendar_today),
+                _buildDetailRow('Time', TimeOfDay.fromDateTime(eventDateTime).format(context), Icons.access_time),
               ],
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Close'),
-            ),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _showEventReminder(context, data);
-              },
-              icon: Icon(Icons.notifications),
-              label: Text('Set Reminder'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
+              child: Text(
+                'Close',
+                style: TextStyle(color: Colors.blueAccent),
               ),
             ),
           ],
@@ -557,61 +370,39 @@ class _Available_School_EventsState extends State<Available_School_Events> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(String label, String value, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.grey.shade700,
-              ),
-            ),
-          ),
-          SizedBox(width: 8),
+          Icon(icon, size: 20, color: Colors.blueAccent),
+          SizedBox(width: 12),
           Expanded(
-            child: Text(
-              value,
-              style: TextStyle(color: Colors.black87),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-    );
-  }
-
-  void _showEventReminder(BuildContext context, Map<String, dynamic> data) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Event Reminder'),
-          content: Text('Reminder functionality would be implemented here.\n\nEvent: ${data['title']}'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Reminder set for ${data['title']}'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              },
-              child: Text('Set Reminder'),
-            ),
-          ],
-        );
-      },
     );
   }
 }
