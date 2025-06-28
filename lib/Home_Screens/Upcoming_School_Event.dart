@@ -42,10 +42,7 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
           stream: _firestore
               .collection('Schools')
               .doc(widget.schoolName)
-              .collection('Classes')
-              .doc(widget.selectedClass)
               .collection('Upcoming_School_Events')
-              .orderBy('dateTime', descending: false)
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -759,8 +756,8 @@ class _CreateEventPageState extends State<CreateEventPage> {
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
+      initialDate: DateTime.now().add(Duration(days: 1)), // Start from tomorrow
+      firstDate: DateTime.now(), // Can't select today or past dates
       lastDate: DateTime.now().add(Duration(days: 365)),
     );
     if (picked != null && picked != _selectedDate) {
@@ -797,20 +794,30 @@ class _CreateEventPageState extends State<CreateEventPage> {
       return;
     }
 
+    // Validate that the selected date and time is not in the past
+    final DateTime eventDateTime = DateTime(
+      _selectedDate!.year,
+      _selectedDate!.month,
+      _selectedDate!.day,
+      _selectedTime!.hour,
+      _selectedTime!.minute,
+    );
+
+    if (eventDateTime.isBefore(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Event date and time cannot be in the past'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Combine date and time
-      final DateTime eventDateTime = DateTime(
-        _selectedDate!.year,
-        _selectedDate!.month,
-        _selectedDate!.day,
-        _selectedTime!.hour,
-        _selectedTime!.minute,
-      );
-
       // Create event data
       final Map<String, dynamic> eventData = {
         'title': _eventTitleController.text.trim(),
@@ -825,15 +832,12 @@ class _CreateEventPageState extends State<CreateEventPage> {
         'isActive': true,
       };
 
-      // Save to Firestore using event title as document ID
+      // Save to Firestore - using the correct path
       await _firestore
           .collection('Schools')
           .doc(widget.schoolName)
-          .collection('Classes')
-          .doc(widget.selectedClass)
           .collection('Upcoming_School_Events')
-          .doc(_eventTitleController.text.trim()) // Using event title as document ID
-          .set(eventData);
+          .add(eventData); // Using add() instead of doc().set() for auto-generated ID
 
       // Clear form
       _clearForm();
