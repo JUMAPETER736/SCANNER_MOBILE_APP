@@ -33,6 +33,9 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
     }
   }
 
+
+
+
   @override
   void initState() {
     super.initState();
@@ -137,16 +140,19 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
         'subtitle': 'View profile & info',
         'color': const Color(0xFF4F46E5),
         'onTap': () {
+
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => Student_Details_View(
-                schoolName: "School Name Here",
-                studentClass: "Class Name Here",
-                studentFullName: "Student Full Name Here",
+                schoolName: 'schoolName',
+                className: 'className',
+                studentClass: 'studentClass',
+                studentName: 'StudentName',
               ),
             ),
           );
+
         },
       },
       {
