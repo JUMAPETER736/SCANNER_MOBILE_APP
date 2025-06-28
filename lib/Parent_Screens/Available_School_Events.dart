@@ -32,7 +32,7 @@ class _Available_School_EventsState extends State<Available_School_Events> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.blueAccent.shade50, Colors.white],
+            colors: [Colors.blueAccent, Colors.white],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
