@@ -995,7 +995,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
       });
     }
   }
-  
+
   Future<void> _selectTime() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -1030,8 +1030,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
     }
   }
 
-
-
+  
   void _clearForm() {
     _eventTitleController.clear();
     _eventDescriptionController.clear();
