@@ -162,7 +162,10 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
                   context,
                   MaterialPageRoute(builder: (context) => Upcoming_School_Event(
                     schoolName: 'schoolName',
-                    selectedClass: 'selectedClass')),
+                    selectedClass: 'selectedClass',
+                      teacherEmail: 'teacherEmail',
+                  )
+                  ),
                 );
               },
             ),
