@@ -33,7 +33,7 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.blueAccent.shade50, Colors.white],
+            colors: [Colors.blueAccent, Colors.white],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -494,7 +494,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.blueAccent.shade50, Colors.white],
+            colors: [Colors.blueAccent, Colors.white],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
