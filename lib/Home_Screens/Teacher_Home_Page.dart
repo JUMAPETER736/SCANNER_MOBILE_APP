@@ -15,7 +15,7 @@ import 'package:scanna/Home_Screens/School_Reports_PDF_List.dart';
 User? loggedInUser;
 
 class Teacher_Home_Page extends StatefulWidget {
-  static String id = '/Main';
+  static String id = '/Teacher_Main_Home_Page';
 
   @override
   _Teacher_Home_PageState createState() => _Teacher_Home_PageState();

@@ -9,7 +9,7 @@ import 'package:scanna/Parent_Screens/School_Fees_Structure_And_Balance.dart';
 User? loggedInUser;
 
 class Parent_Home_Page extends StatefulWidget {
-  static String id = '/ParentMain';
+  static String id = '/Parent_Main_Home_Page';
 
   @override
   _Parent_Home_PageState createState() => _Parent_Home_PageState();

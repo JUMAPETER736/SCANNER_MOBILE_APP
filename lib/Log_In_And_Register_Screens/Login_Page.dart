@@ -441,7 +441,7 @@ class _Login_PageState extends State<Login_Page> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: _isTeacherMode ? _login : _parentLogin,
+        onPressed: _isTeacherMode ? _teacherLogin : _parentLogin,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -684,7 +684,7 @@ class _Login_PageState extends State<Login_Page> {
 
   // ==================== AUTHENTICATION METHODS ====================
 
-  Future<void> _login() async {
+  Future<void> _teacherLogin() async {
     // Clear all previous errors
     setState(() {
       _wrongEmail = false;
