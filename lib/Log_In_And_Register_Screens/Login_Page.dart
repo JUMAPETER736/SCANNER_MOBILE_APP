@@ -16,6 +16,8 @@ import 'package:scanna/Log_In_And_Register_Screens/Register_Page.dart';
 class Login_Page extends StatefulWidget {
   static String id = '/LoginPage';
 
+
+
   @override
   _Login_PageState createState() => _Login_PageState();
 }

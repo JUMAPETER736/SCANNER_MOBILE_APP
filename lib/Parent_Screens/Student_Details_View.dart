@@ -5,14 +5,16 @@ import 'package:intl/intl.dart';
 
 class Student_Details_View extends StatefulWidget {
   final String schoolName;
+  final String className;
   final String studentClass;
-  final String studentFullName;
+  final String studentName;
 
   const Student_Details_View({
     Key? key,
     required this.schoolName,
+    required this.className,
     required this.studentClass,
-    required this.studentFullName,
+    required this.studentName,
   }) : super(key: key);
 
   @override
@@ -24,284 +26,260 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
 
   // Student Information
   Map<String, dynamic>? studentPersonalInfo;
-  Map<String, dynamic>? schoolInfo;
+  Map<String, dynamic>? studentSubjects;
+  Map<String, dynamic>? studentMarks;
+  Map<String, dynamic>? studentRemarks;
 
   // Loading states
   bool _isLoadingStudent = true;
-  bool _isLoadingSchool = true;
   bool _hasError = false;
   String _errorMessage = '';
+  String? _actualPath;
 
   @override
   void initState() {
     super.initState();
     _fetchStudentData();
-    _fetchSchoolData();
   }
 
-  // MARK: - Data Fetching Methods
+  // Fetch student data using the exact path structure from the save method
   Future<void> _fetchStudentData() async {
-    try {
-      setState(() {
-        _isLoadingStudent = true;
-        _hasError = false;
-        _errorMessage = '';
-      });
-
-      // Exact path as specified
-      final String documentPath = 'Schools/${widget.schoolName}/Classes/${widget.studentClass}/Student_Details/${widget.studentFullName}/Personal_Information/Registered_Information';
-
-      print('Fetching student data from path: $documentPath');
-
-      // Create document reference using the exact path
-      final DocumentReference studentDocRef = _firestore.doc(documentPath);
-
-      print('Document reference created: ${studentDocRef.path}');
-
-      // Get the document
-      DocumentSnapshot studentDoc = await studentDocRef.get();
-
-      if (studentDoc.exists && studentDoc.data() != null) {
-        final data = studentDoc.data() as Map<String, dynamic>;
-        print('Student data fetched successfully: $data');
-
-        setState(() {
-          studentPersonalInfo = data;
-          _isLoadingStudent = false;
-          _hasError = false;
-        });
-      } else {
-        print('Student document does not exist at path: ${studentDocRef.path}');
-
-        // Check if the parent document exists
-        await _checkStudentDocumentStructure();
-      }
-    } catch (e) {
-      print('Error fetching student data: $e');
-      setState(() {
-        _hasError = true;
-        _errorMessage = 'Error loading student data: ${e.toString()}';
-        _isLoadingStudent = false;
-      });
-    }
-  }
-
-  // Helper method to check document structure
-  Future<void> _checkStudentDocumentStructure() async {
-    try {
-      // Check if Student_Details document exists
-      final DocumentReference studentDetailsRef = _firestore
-          .doc('Schools/${widget.schoolName}/Classes/${widget.studentClass}/Student_Details/${widget.studentFullName}');
-
-      DocumentSnapshot studentDetailsDoc = await studentDetailsRef.get();
-
-      if (studentDetailsDoc.exists) {
-        print('Student_Details document exists, checking Personal_Information collection...');
-
-        // Check Personal_Information collection
-        final QuerySnapshot personalInfoQuery = await studentDetailsRef
-            .collection('Personal_Information')
-            .get();
-
-        if (personalInfoQuery.docs.isNotEmpty) {
-          print('Personal_Information collection has ${personalInfoQuery.docs.length} documents');
-
-          // Check if Registered_Information document exists
-          final DocumentSnapshot registeredInfoDoc = await studentDetailsRef
-              .collection('Personal_Information')
-              .doc('Registered_Information')
-              .get();
-
-          if (registeredInfoDoc.exists && registeredInfoDoc.data() != null) {
-            final data = registeredInfoDoc.data() as Map<String, dynamic>;
-            print('Found Registered_Information: $data');
-
-            setState(() {
-              studentPersonalInfo = data;
-              _isLoadingStudent = false;
-              _hasError = false;
-            });
-          } else {
-            print('Registered_Information document does not exist or is empty');
-            setState(() {
-              _hasError = true;
-              _errorMessage = 'Student registration information not found. The document may not be properly created.';
-              _isLoadingStudent = false;
-            });
-          }
-        } else {
-          print('Personal_Information collection is empty');
-          setState(() {
-            _hasError = true;
-            _errorMessage = 'Student personal information collection is empty.';
-            _isLoadingStudent = false;
-          });
-        }
-      } else {
-        print('Student_Details document does not exist');
-        setState(() {
-          _hasError = true;
-          _errorMessage = 'Student not found in the database. Please verify the student name: "${widget.studentFullName}" exists in class "${widget.studentClass}".';
-          _isLoadingStudent = false;
-        });
-      }
-    } catch (e) {
-      print('Error checking document structure: $e');
-      setState(() {
-        _hasError = true;
-        _errorMessage = 'Error verifying student data structure: ${e.toString()}';
-        _isLoadingStudent = false;
-      });
-    }
-  }
-
-  Future<void> _fetchSchoolData() async {
-    try {
-      setState(() {
-        _isLoadingSchool = true;
-      });
-
-      print('Fetching school data from: Schools/${widget.schoolName}/School_Information/School_Details');
-
-      final DocumentReference schoolDocRef = _firestore
-          .doc('Schools/${widget.schoolName}/School_Information/School_Details');
-
-      DocumentSnapshot schoolDoc = await schoolDocRef.get();
-
-      if (schoolDoc.exists && schoolDoc.data() != null) {
-        setState(() {
-          schoolInfo = schoolDoc.data() as Map<String, dynamic>;
-          _isLoadingSchool = false;
-        });
-        print('School data fetched successfully');
-      } else {
-        print('School document does not exist, using default values');
-        _setDefaultSchoolInfo();
-      }
-    } catch (e) {
-      print('Error fetching school data: $e');
-      _setDefaultSchoolInfo();
-    }
-  }
-
-  void _setDefaultSchoolInfo() {
     setState(() {
-      schoolInfo = {
-        'Telephone': 'N/A',
-        'Email': 'N/A',
-        'boxNumber': 0,
-        'schoolLocation': 'N/A',
-        'School_Fees': 'N/A',
-        'School_Bank_Account': 'N/A',
-        'Next_Term_Opening_Date': 'N/A',
-      };
-      _isLoadingSchool = false;
+      _isLoadingStudent = true;
+      _hasError = false;
+      _errorMessage = '';
     });
-  }
 
-  // Method to debug and list all students in the class
-  Future<void> _debugListStudents() async {
     try {
-      print('=== DEBUG: Listing all students in class ${widget.studentClass} ===');
+      // Clean and normalize the input parameters exactly as in save method
+      final String cleanSchoolName = widget.schoolName.trim();
+      final String cleanStudentClass = widget.studentClass.trim();
+      final String cleanStudentName = widget.studentName.trim();
 
-      final QuerySnapshot studentsQuery = await _firestore
-          .collection('Schools')
-          .doc(widget.schoolName)
-          .collection('Classes')
-          .doc(widget.studentClass)
-          .collection('Student_Details')
+      print('=== FETCHING STUDENT DATA ===');
+      print('School: "$cleanSchoolName"');
+      print('Class: "$cleanStudentClass"');
+      print('Student: "$cleanStudentName"');
+
+      // Use the exact path structure from the save method
+      final String basePath = 'Schools/$cleanSchoolName/Classes/$cleanStudentClass/Student_Details/$cleanStudentName';
+
+      print('Base path: $basePath');
+
+      // Check if the main student document exists first
+      final DocumentSnapshot mainStudentDoc = await _firestore.doc(basePath).get();
+
+      if (!mainStudentDoc.exists) {
+        throw Exception('Student document not found at: $basePath');
+      }
+
+      // Fetch Personal Information (exactly as saved)
+      final String personalInfoPath = '$basePath/Personal_Information/Registered_Information';
+      final DocumentSnapshot personalInfoDoc = await _firestore.doc(personalInfoPath).get();
+
+      if (!personalInfoDoc.exists) {
+        throw Exception('Personal information not found at: $personalInfoPath');
+      }
+
+      // Fetch Student Subjects
+      final QuerySnapshot subjectsSnapshot = await _firestore
+          .collection('$basePath/Student_Subjects')
           .get();
 
-      print('Found ${studentsQuery.docs.length} students in class');
+      // Fetch Total Marks
+      final DocumentSnapshot totalMarksDoc = await _firestore
+          .doc('$basePath/TOTAL_MARKS/Marks')
+          .get();
 
-      for (var doc in studentsQuery.docs) {
-        print('Student document ID: ${doc.id}');
+      // Fetch Results Remarks
+      final DocumentSnapshot remarksDoc = await _firestore
+          .doc('$basePath/TOTAL_MARKS/Results_Remarks')
+          .get();
 
-        // Check if Personal_Information subcollection exists
-        final QuerySnapshot personalInfoQuery = await doc.reference
-            .collection('Personal_Information')
-            .get();
+      // Process the fetched data
+      Map<String, dynamic> personalData = personalInfoDoc.data() as Map<String, dynamic>;
 
-        print('  - Personal_Information documents: ${personalInfoQuery.docs.length}');
-        for (var personalDoc in personalInfoQuery.docs) {
-          print('    - Document: ${personalDoc.id}');
-          if (personalDoc.id == 'Registered_Information') {
-            print('    - Data: ${personalDoc.data()}');
-          }
-        }
+      Map<String, dynamic> subjectsData = {};
+      for (var doc in subjectsSnapshot.docs) {
+        subjectsData[doc.id] = doc.data();
       }
 
-      // Also check what we're looking for specifically
-      print('\n=== Looking for specific student: ${widget.studentFullName} ===');
-      final DocumentReference specificStudentRef = _firestore
-          .doc('Schools/${widget.schoolName}/Classes/${widget.studentClass}/Student_Details/${widget.studentFullName}');
-
-      final DocumentSnapshot specificDoc = await specificStudentRef.get();
-      print('Student document exists: ${specificDoc.exists}');
-
-      if (specificDoc.exists) {
-        final QuerySnapshot specificPersonalInfo = await specificStudentRef
-            .collection('Personal_Information')
-            .get();
-        print('Personal_Information documents: ${specificPersonalInfo.docs.length}');
-
-        for (var doc in specificPersonalInfo.docs) {
-          print('Document: ${doc.id} - ${doc.data()}');
-        }
+      Map<String, dynamic> marksData = {};
+      if (totalMarksDoc.exists) {
+        marksData = totalMarksDoc.data() as Map<String, dynamic>;
       }
+
+      Map<String, dynamic> remarksData = {};
+      if (remarksDoc.exists) {
+        remarksData = remarksDoc.data() as Map<String, dynamic>;
+      }
+
+      setState(() {
+        studentPersonalInfo = personalData;
+        studentSubjects = subjectsData;
+        studentMarks = marksData;
+        studentRemarks = remarksData;
+        _actualPath = personalInfoPath;
+        _isLoadingStudent = false;
+      });
+
+      print('✅ Student data loaded successfully!');
+      print('Personal Info keys: ${personalData.keys.toList()}');
+      print('Number of subjects: ${subjectsData.length}');
+
     } catch (e) {
-      print('Debug error: $e');
+      // If exact path fails, try to debug what's available
+      await _debugAvailableData();
+
+      setState(() {
+        _hasError = true;
+        _errorMessage = 'Error loading student data: $e';
+        _isLoadingStudent = false;
+      });
+      print('Error fetching student data: $e');
     }
   }
 
-  // MARK: - Helper Methods
-  String _formatAge(String? ageString) {
-    if (ageString == null || ageString.isEmpty) return 'N/A';
-    return '$ageString years old';
+  // Debug method to check what data exists
+  Future<void> _debugAvailableData() async {
+    try {
+      print('=== DEBUGGING AVAILABLE DATA ===');
+
+      final String cleanSchoolName = widget.schoolName.trim();
+      final String cleanStudentClass = widget.studentClass.trim();
+
+      // Check if school exists
+      final DocumentSnapshot schoolDoc = await _firestore
+          .doc('Schools/$cleanSchoolName')
+          .get();
+
+      if (!schoolDoc.exists) {
+        print('❌ School not found: $cleanSchoolName');
+        return;
+      }
+
+      print('✅ School exists: $cleanSchoolName');
+
+      // Check if class exists
+      final DocumentSnapshot classDoc = await _firestore
+          .doc('Schools/$cleanSchoolName/Classes/$cleanStudentClass')
+          .get();
+
+      if (!classDoc.exists) {
+        print('❌ Class not found: $cleanStudentClass');
+
+        // List available classes
+        final QuerySnapshot classesSnapshot = await _firestore
+            .collection('Schools/$cleanSchoolName/Classes')
+            .get();
+
+        if (classesSnapshot.docs.isNotEmpty) {
+          print('Available classes:');
+          for (var doc in classesSnapshot.docs) {
+            print('  - ${doc.id}');
+          }
+        }
+        return;
+      }
+
+      print('✅ Class exists: $cleanStudentClass');
+
+      // Check available students
+      final QuerySnapshot studentsSnapshot = await _firestore
+          .collection('Schools/$cleanSchoolName/Classes/$cleanStudentClass/Student_Details')
+          .get();
+
+      if (studentsSnapshot.docs.isNotEmpty) {
+        print('Available students in class:');
+        for (var doc in studentsSnapshot.docs) {
+          print('  - "${doc.id}"');
+        }
+
+        // Check for similar names
+        final String targetName = widget.studentName.toLowerCase().trim();
+        final List<String> similarNames = studentsSnapshot.docs
+            .where((doc) => doc.id.toLowerCase().trim() == targetName)
+            .map((doc) => doc.id)
+            .toList();
+
+        if (similarNames.isNotEmpty) {
+          print('Exact matches found: $similarNames');
+        } else {
+          print('❌ No exact match for: "${widget.studentName}"');
+        }
+      } else {
+        print('❌ No students found in class');
+      }
+
+    } catch (e) {
+      print('Error in debug: $e');
+    }
   }
 
+  // Helper method to get student ID safely
+  String _getStudentID() {
+    return studentPersonalInfo?['studentID'] ?? 'N/A';
+  }
+
+  // Helper method to format date (same as original)
   String _formatDate(String? dateString) {
     if (dateString == null || dateString.isEmpty) return 'N/A';
+
     try {
-      final DateFormat inputFormat = DateFormat('dd-MM-yyyy');
-      final DateFormat outputFormat = DateFormat('dd MMM yyyy');
-      final DateTime date = inputFormat.parse(dateString);
-      return outputFormat.format(date);
+      final List<String> formats = ['yyyy-MM-dd', 'dd/MM/yyyy', 'MM/dd/yyyy', 'dd-MM-yyyy'];
+
+      for (String format in formats) {
+        try {
+          final DateTime date = DateFormat(format).parse(dateString);
+          return DateFormat('dd MMM yyyy').format(date);
+        } catch (e) {
+          continue;
+        }
+      }
+      return dateString;
     } catch (e) {
-      print('Error formatting date: $e');
       return dateString;
     }
   }
 
-  String _formatBoxNumber(dynamic boxNumber) {
-    if (boxNumber == null || boxNumber == 0) return 'N/A';
-    return 'P.O. Box $boxNumber';
-  }
+  // Helper method to format age (same as original)
+  String _formatAge(dynamic ageValue) {
+    if (ageValue == null) return 'N/A';
 
-  // Generate student ID if not present
-  String _getStudentID() {
-    if (studentPersonalInfo?['studentID'] != null &&
-        studentPersonalInfo!['studentID'].toString().isNotEmpty) {
-      return studentPersonalInfo!['studentID'].toString();
+    String ageString = ageValue.toString();
+    if (ageString.isEmpty) return 'N/A';
+
+    final int? age = int.tryParse(ageString);
+    if (age != null) {
+      return '$age years old';
     }
 
-    // Generate ID from available data
-    final firstName = studentPersonalInfo?['firstName'] ?? '';
-    final lastName = studentPersonalInfo?['lastName'] ?? '';
-    final studentClass = studentPersonalInfo?['studentClass'] ?? widget.studentClass;
-
-    if (firstName.isNotEmpty && lastName.isNotEmpty) {
-      // Create ID format: FIRST3LAST3CLASS (e.g., PETJUMFORM1)
-      final firstPart = firstName.length >= 3 ? firstName.substring(0, 3) : firstName;
-      final lastPart = lastName.length >= 3 ? lastName.substring(0, 3) : lastName;
-      final classPart = studentClass.replaceAll(' ', '');
-      return '${firstPart.toUpperCase()}${lastPart.toUpperCase()}$classPart';
-    }
-
-    return 'N/A';
+    return ageString.contains('years') ? ageString : '$ageString years old';
   }
 
-  // MARK: - Build Methods
+  // Helper method to format timestamp (same as original)
+  String _formatTimestamp(dynamic timestamp) {
+    if (timestamp == null) return 'N/A';
+
+    try {
+      DateTime dateTime;
+      if (timestamp is Timestamp) {
+        dateTime = timestamp.toDate();
+      } else if (timestamp is String) {
+        dateTime = DateTime.parse(timestamp);
+      } else if (timestamp is int) {
+        dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+      } else {
+        return 'N/A';
+      }
+
+      final DateFormat formatter = DateFormat('dd MMM yyyy, HH:mm');
+      return formatter.format(dateTime);
+    } catch (e) {
+      return timestamp.toString();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -324,22 +302,60 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
       elevation: 2,
       iconTheme: const IconThemeData(color: Colors.white),
       actions: [
-        // Debug button to help troubleshoot
-        IconButton(
-          icon: const Icon(Icons.bug_report),
-          onPressed: _debugListStudents,
-          tooltip: 'Debug - List Students',
-        ),
-        // Refresh button
         IconButton(
           icon: const Icon(Icons.refresh),
-          onPressed: () {
-            _fetchStudentData();
-            _fetchSchoolData();
-          },
+          onPressed: _fetchStudentData,
           tooltip: 'Refresh Data',
         ),
+        IconButton(
+          icon: const Icon(Icons.bug_report),
+          onPressed: _showDebugInfo,
+          tooltip: 'Debug Info',
+        ),
       ],
+    );
+  }
+
+  // Show debug information
+  void _showDebugInfo() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Debug Information'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('School: ${widget.schoolName}'),
+              Text('Class: ${widget.studentClass}'),
+              Text('Student: ${widget.studentName}'),
+              const SizedBox(height: 10),
+              if (_actualPath != null) ...[
+                const Text('Successful Path:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(_actualPath!, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
+                const SizedBox(height: 10),
+              ],
+              if (studentPersonalInfo != null) ...[
+                const Text('Personal Info Keys:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(studentPersonalInfo!.keys.join(', ')),
+                const SizedBox(height: 10),
+              ],
+              if (studentSubjects != null) ...[
+                const Text('Subjects:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('${studentSubjects!.length} subjects found'),
+                Text(studentSubjects!.keys.join(', ')),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -363,10 +379,11 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
           children: [
             _buildStudentPersonalInfoCard(),
             const SizedBox(height: 20),
-            _buildSchoolInfoCard(),
+            _buildSubjectsCard(),
+            const SizedBox(height: 20),
+            _buildMarksCard(),
             const SizedBox(height: 20),
             _buildQRCodeCard(),
-            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -409,27 +426,6 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
                 color: Colors.red.shade600,
               ),
             ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Expected path:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'Schools/${widget.schoolName}/Classes/${widget.studentClass}/Student_Details/${widget.studentFullName}/Personal_Information/Registered_Information',
-                    style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -439,10 +435,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
                     backgroundColor: Colors.blueAccent,
                     foregroundColor: Colors.white,
                   ),
-                  onPressed: () {
-                    _fetchStudentData();
-                    _fetchSchoolData();
-                  },
+                  onPressed: _fetchStudentData,
                   child: const Text('Retry'),
                 ),
                 ElevatedButton(
@@ -450,7 +443,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
                     backgroundColor: Colors.orange,
                     foregroundColor: Colors.white,
                   ),
-                  onPressed: _debugListStudents,
+                  onPressed: _showDebugInfo,
                   child: const Text('Debug'),
                 ),
               ],
@@ -515,14 +508,16 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
                   ),
                 )
               else if (studentPersonalInfo != null) ...[
-                _buildInfoRow('Full Name', widget.studentFullName, Icons.badge),
+                _buildInfoRow('Full Name', widget.studentName, Icons.badge),
                 _buildInfoRow('First Name', studentPersonalInfo!['firstName'] ?? 'N/A', Icons.person_outline),
                 _buildInfoRow('Last Name', studentPersonalInfo!['lastName'] ?? 'N/A', Icons.person_outline),
-                _buildInfoRow('Student ID', _getStudentID(), Icons.numbers),
+                _buildInfoRow('Student ID', studentPersonalInfo!['studentID'] ?? 'N/A', Icons.numbers),
                 _buildInfoRow('Class', studentPersonalInfo!['studentClass'] ?? widget.studentClass, Icons.school),
                 _buildInfoRow('Gender', studentPersonalInfo!['studentGender'] ?? 'N/A', Icons.wc),
                 _buildInfoRow('Date of Birth', _formatDate(studentPersonalInfo!['studentDOB']), Icons.cake),
                 _buildInfoRow('Age', _formatAge(studentPersonalInfo!['studentAge']), Icons.timeline),
+                if (studentPersonalInfo!['createdBy'] != null)
+                  _buildInfoRow('Created By', studentPersonalInfo!['createdBy'] ?? 'N/A', Icons.person_add),
                 if (studentPersonalInfo!['timestamp'] != null)
                   _buildInfoRow('Registered', _formatTimestamp(studentPersonalInfo!['timestamp']), Icons.access_time),
               ] else ...[
@@ -546,104 +541,8 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     );
   }
 
-  String _formatTimestamp(dynamic timestamp) {
-    if (timestamp == null) return 'N/A';
-
-    try {
-      DateTime dateTime;
-      if (timestamp is Timestamp) {
-        dateTime = timestamp.toDate();
-      } else if (timestamp is String) {
-        dateTime = DateTime.parse(timestamp);
-      } else {
-        return 'N/A';
-      }
-
-      final DateFormat formatter = DateFormat('dd MMM yyyy, HH:mm');
-      return formatter.format(dateTime);
-    } catch (e) {
-      print('Error formatting timestamp: $e');
-      return 'N/A';
-    }
-  }
-
-  Widget _buildSchoolInfoCard() {
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-          gradient: LinearGradient(
-            colors: [Colors.green.shade50, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade600,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.school,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Text(
-                    'School Information',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              if (_isLoadingSchool)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: CircularProgressIndicator(color: Colors.green),
-                  ),
-                )
-              else if (schoolInfo != null) ...[
-                _buildInfoRow('School Name', widget.schoolName, Icons.account_balance),
-                _buildInfoRow('Telephone', schoolInfo!['Telephone'] ?? 'N/A', Icons.phone),
-                _buildInfoRow('Email', schoolInfo!['Email'] ?? 'N/A', Icons.email),
-                _buildInfoRow('Address', _formatBoxNumber(schoolInfo!['boxNumber']), Icons.location_on),
-                _buildInfoRow('Location', schoolInfo!['schoolLocation'] ?? 'N/A', Icons.place),
-                _buildInfoRow('School Fees', schoolInfo!['School_Fees'] ?? 'N/A', Icons.attach_money),
-                _buildInfoRow('Bank Account', schoolInfo!['School_Bank_Account'] ?? 'N/A', Icons.account_balance_wallet),
-                _buildInfoRow('Next Term Opens', _formatDate(schoolInfo!['Next_Term_Opening_Date']), Icons.calendar_today),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQRCodeCard() {
-    if (_isLoadingStudent || studentPersonalInfo == null) {
-      return const SizedBox.shrink();
-    }
-
-    final String studentID = _getStudentID();
-    if (studentID == 'N/A') {
+  Widget _buildSubjectsCard() {
+    if (_isLoadingStudent || studentSubjects == null || studentSubjects!.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -664,14 +563,176 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.purple.shade600,
+                      color: Colors.purple,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.subject,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    'Subjects (${studentSubjects!.length})',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.purple,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: studentSubjects!.entries.map((entry) {
+                  final subject = entry.value as Map<String, dynamic>;
+                  final subjectName = subject['Subject_Name'] ?? entry.key;
+                  final grade = subject['Subject_Grade'] ?? 'N/A';
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.purple.shade200),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          subjectName,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Grade: $grade',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMarksCard() {
+    if (_isLoadingStudent || (studentMarks == null || studentMarks!.isEmpty) && (studentRemarks == null || studentRemarks!.isEmpty)) {
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          gradient: LinearGradient(
+            colors: [Colors.orange.shade50, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.grade,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Text(
+                    'Academic Performance',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              if (studentMarks != null) ...[
+                _buildInfoRow('Aggregate Grade', studentMarks!['Aggregate_Grade'] ?? 'N/A', Icons.star),
+                _buildInfoRow('Best Six Total Points', studentMarks!['Best_Six_Total_Points']?.toString() ?? '0', Icons.trending_up),
+                _buildInfoRow('Student Total Marks', studentMarks!['Student_Total_Marks'] ?? '0', Icons.calculate),
+                _buildInfoRow('Teacher Total Marks', studentMarks!['Teacher_Total_Marks'] ?? '0', Icons.assignment_turned_in),
+              ],
+              if (studentRemarks != null) ...[
+                const SizedBox(height: 16),
+                _buildInfoRow('Form Teacher Remark', studentRemarks!['Form_Teacher_Remark'] ?? 'N/A', Icons.comment),
+                _buildInfoRow('Head Teacher Remark', studentRemarks!['Head_Teacher_Remark'] ?? 'N/A', Icons.school),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQRCodeCard() {
+    if (_isLoadingStudent || studentPersonalInfo == null) return const SizedBox.shrink();
+
+    final String studentID = _getStudentID();
+    if (studentID == 'N/A' || studentID.isEmpty) return const SizedBox.shrink();
+
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          gradient: LinearGradient(
+            colors: [Colors.green.shade50, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
@@ -686,32 +747,32 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Colors.purple,
+                      color: Colors.green,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
               Container(
-                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(15),
                   boxShadow: const [
                     BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
+                      color: Colors.black26,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
                     BarcodeWidget(
                       barcode: Barcode.qrCode(),
                       data: studentID,
-                      width: 180,
-                      height: 180,
+                      width: 200,
+                      height: 200,
                     ),
                     const SizedBox(height: 16),
                     Container(
@@ -721,18 +782,18 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        'ID: $studentID',
+                        'Student ID: $studentID',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: Colors.black,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Text(
                 'Scan this QR code for quick student identification',
                 style: TextStyle(
