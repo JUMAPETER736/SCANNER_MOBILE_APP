@@ -45,35 +45,111 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
       setState(() {
         _isLoadingStudent = true;
         _hasError = false;
+        _errorMessage = '';
       });
 
-      DocumentSnapshot studentDoc = await _firestore
-          .collection('Schools')
-          .doc(widget.schoolName)
-          .collection('Classes')
-          .doc(widget.studentClass)
-          .collection('Student_Details')
-          .doc(widget.studentFullName)
-          .collection('Personal_Information')
-          .doc('Registered_Information')
-          .get();
+      // Exact path as specified
+      final String documentPath = 'Schools/${widget.schoolName}/Classes/${widget.studentClass}/Student_Details/${widget.studentFullName}/Personal_Information/Registered_Information';
 
-      if (studentDoc.exists) {
+      print('Fetching student data from path: $documentPath');
+
+      // Create document reference using the exact path
+      final DocumentReference studentDocRef = _firestore.doc(documentPath);
+
+      print('Document reference created: ${studentDocRef.path}');
+
+      // Get the document
+      DocumentSnapshot studentDoc = await studentDocRef.get();
+
+      if (studentDoc.exists && studentDoc.data() != null) {
+        final data = studentDoc.data() as Map<String, dynamic>;
+        print('Student data fetched successfully: $data');
+
         setState(() {
-          studentPersonalInfo = studentDoc.data() as Map<String, dynamic>;
+          studentPersonalInfo = data;
           _isLoadingStudent = false;
+          _hasError = false;
         });
       } else {
+        print('Student document does not exist at path: ${studentDocRef.path}');
+
+        // Check if the parent document exists
+        await _checkStudentDocumentStructure();
+      }
+    } catch (e) {
+      print('Error fetching student data: $e');
+      setState(() {
+        _hasError = true;
+        _errorMessage = 'Error loading student data: ${e.toString()}';
+        _isLoadingStudent = false;
+      });
+    }
+  }
+
+  // Helper method to check document structure
+  Future<void> _checkStudentDocumentStructure() async {
+    try {
+      // Check if Student_Details document exists
+      final DocumentReference studentDetailsRef = _firestore
+          .doc('Schools/${widget.schoolName}/Classes/${widget.studentClass}/Student_Details/${widget.studentFullName}');
+
+      DocumentSnapshot studentDetailsDoc = await studentDetailsRef.get();
+
+      if (studentDetailsDoc.exists) {
+        print('Student_Details document exists, checking Personal_Information collection...');
+
+        // Check Personal_Information collection
+        final QuerySnapshot personalInfoQuery = await studentDetailsRef
+            .collection('Personal_Information')
+            .get();
+
+        if (personalInfoQuery.docs.isNotEmpty) {
+          print('Personal_Information collection has ${personalInfoQuery.docs.length} documents');
+
+          // Check if Registered_Information document exists
+          final DocumentSnapshot registeredInfoDoc = await studentDetailsRef
+              .collection('Personal_Information')
+              .doc('Registered_Information')
+              .get();
+
+          if (registeredInfoDoc.exists && registeredInfoDoc.data() != null) {
+            final data = registeredInfoDoc.data() as Map<String, dynamic>;
+            print('Found Registered_Information: $data');
+
+            setState(() {
+              studentPersonalInfo = data;
+              _isLoadingStudent = false;
+              _hasError = false;
+            });
+          } else {
+            print('Registered_Information document does not exist or is empty');
+            setState(() {
+              _hasError = true;
+              _errorMessage = 'Student registration information not found. The document may not be properly created.';
+              _isLoadingStudent = false;
+            });
+          }
+        } else {
+          print('Personal_Information collection is empty');
+          setState(() {
+            _hasError = true;
+            _errorMessage = 'Student personal information collection is empty.';
+            _isLoadingStudent = false;
+          });
+        }
+      } else {
+        print('Student_Details document does not exist');
         setState(() {
           _hasError = true;
-          _errorMessage = 'Student information not found';
+          _errorMessage = 'Student not found in the database. Please verify the student name: "${widget.studentFullName}" exists in class "${widget.studentClass}".';
           _isLoadingStudent = false;
         });
       }
     } catch (e) {
+      print('Error checking document structure: $e');
       setState(() {
         _hasError = true;
-        _errorMessage = 'Error loading student data: $e';
+        _errorMessage = 'Error verifying student data structure: ${e.toString()}';
         _isLoadingStudent = false;
       });
     }
@@ -85,47 +161,96 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
         _isLoadingSchool = true;
       });
 
-      DocumentSnapshot schoolDoc = await _firestore
-          .collection('Schools')
-          .doc(widget.schoolName)
-          .collection('School_Information')
-          .doc('School_Details')
-          .get();
+      print('Fetching school data from: Schools/${widget.schoolName}/School_Information/School_Details');
 
-      if (schoolDoc.exists) {
+      final DocumentReference schoolDocRef = _firestore
+          .doc('Schools/${widget.schoolName}/School_Information/School_Details');
+
+      DocumentSnapshot schoolDoc = await schoolDocRef.get();
+
+      if (schoolDoc.exists && schoolDoc.data() != null) {
         setState(() {
           schoolInfo = schoolDoc.data() as Map<String, dynamic>;
           _isLoadingSchool = false;
         });
+        print('School data fetched successfully');
       } else {
-        // Set default values if school info doesn't exist
-        setState(() {
-          schoolInfo = {
-            'Telephone': 'N/A',
-            'Email': 'N/A',
-            'boxNumber': 0,
-            'schoolLocation': 'N/A',
-            'School_Fees': 'N/A',
-            'School_Bank_Account': 'N/A',
-            'Next_Term_Opening_Date': 'N/A',
-          };
-          _isLoadingSchool = false;
-        });
+        print('School document does not exist, using default values');
+        _setDefaultSchoolInfo();
       }
     } catch (e) {
-      setState(() {
-        schoolInfo = {
-          'Telephone': 'N/A',
-          'Email': 'N/A',
-          'boxNumber': 0,
-          'schoolLocation': 'N/A',
-          'School_Fees': 'N/A',
-          'School_Bank_Account': 'N/A',
-          'Next_Term_Opening_Date': 'N/A',
-        };
-        _isLoadingSchool = false;
-      });
       print('Error fetching school data: $e');
+      _setDefaultSchoolInfo();
+    }
+  }
+
+  void _setDefaultSchoolInfo() {
+    setState(() {
+      schoolInfo = {
+        'Telephone': 'N/A',
+        'Email': 'N/A',
+        'boxNumber': 0,
+        'schoolLocation': 'N/A',
+        'School_Fees': 'N/A',
+        'School_Bank_Account': 'N/A',
+        'Next_Term_Opening_Date': 'N/A',
+      };
+      _isLoadingSchool = false;
+    });
+  }
+
+  // Method to debug and list all students in the class
+  Future<void> _debugListStudents() async {
+    try {
+      print('=== DEBUG: Listing all students in class ${widget.studentClass} ===');
+
+      final QuerySnapshot studentsQuery = await _firestore
+          .collection('Schools')
+          .doc(widget.schoolName)
+          .collection('Classes')
+          .doc(widget.studentClass)
+          .collection('Student_Details')
+          .get();
+
+      print('Found ${studentsQuery.docs.length} students in class');
+
+      for (var doc in studentsQuery.docs) {
+        print('Student document ID: ${doc.id}');
+
+        // Check if Personal_Information subcollection exists
+        final QuerySnapshot personalInfoQuery = await doc.reference
+            .collection('Personal_Information')
+            .get();
+
+        print('  - Personal_Information documents: ${personalInfoQuery.docs.length}');
+        for (var personalDoc in personalInfoQuery.docs) {
+          print('    - Document: ${personalDoc.id}');
+          if (personalDoc.id == 'Registered_Information') {
+            print('    - Data: ${personalDoc.data()}');
+          }
+        }
+      }
+
+      // Also check what we're looking for specifically
+      print('\n=== Looking for specific student: ${widget.studentFullName} ===');
+      final DocumentReference specificStudentRef = _firestore
+          .doc('Schools/${widget.schoolName}/Classes/${widget.studentClass}/Student_Details/${widget.studentFullName}');
+
+      final DocumentSnapshot specificDoc = await specificStudentRef.get();
+      print('Student document exists: ${specificDoc.exists}');
+
+      if (specificDoc.exists) {
+        final QuerySnapshot specificPersonalInfo = await specificStudentRef
+            .collection('Personal_Information')
+            .get();
+        print('Personal_Information documents: ${specificPersonalInfo.docs.length}');
+
+        for (var doc in specificPersonalInfo.docs) {
+          print('Document: ${doc.id} - ${doc.data()}');
+        }
+      }
+    } catch (e) {
+      print('Debug error: $e');
     }
   }
 
@@ -143,6 +268,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
       final DateTime date = inputFormat.parse(dateString);
       return outputFormat.format(date);
     } catch (e) {
+      print('Error formatting date: $e');
       return dateString;
     }
   }
@@ -150,6 +276,29 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
   String _formatBoxNumber(dynamic boxNumber) {
     if (boxNumber == null || boxNumber == 0) return 'N/A';
     return 'P.O. Box $boxNumber';
+  }
+
+  // Generate student ID if not present
+  String _getStudentID() {
+    if (studentPersonalInfo?['studentID'] != null &&
+        studentPersonalInfo!['studentID'].toString().isNotEmpty) {
+      return studentPersonalInfo!['studentID'].toString();
+    }
+
+    // Generate ID from available data
+    final firstName = studentPersonalInfo?['firstName'] ?? '';
+    final lastName = studentPersonalInfo?['lastName'] ?? '';
+    final studentClass = studentPersonalInfo?['studentClass'] ?? widget.studentClass;
+
+    if (firstName.isNotEmpty && lastName.isNotEmpty) {
+      // Create ID format: FIRST3LAST3CLASS (e.g., PETJUMFORM1)
+      final firstPart = firstName.length >= 3 ? firstName.substring(0, 3) : firstName;
+      final lastPart = lastName.length >= 3 ? lastName.substring(0, 3) : lastName;
+      final classPart = studentClass.replaceAll(' ', '');
+      return '${firstPart.toUpperCase()}${lastPart.toUpperCase()}$classPart';
+    }
+
+    return 'N/A';
   }
 
   // MARK: - Build Methods
@@ -174,6 +323,23 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
       backgroundColor: Colors.blueAccent,
       elevation: 2,
       iconTheme: const IconThemeData(color: Colors.white),
+      actions: [
+        // Debug button to help troubleshoot
+        IconButton(
+          icon: const Icon(Icons.bug_report),
+          onPressed: _debugListStudents,
+          tooltip: 'Debug - List Students',
+        ),
+        // Refresh button
+        IconButton(
+          icon: const Icon(Icons.refresh),
+          onPressed: () {
+            _fetchStudentData();
+            _fetchSchoolData();
+          },
+          tooltip: 'Refresh Data',
+        ),
+      ],
     );
   }
 
@@ -243,17 +409,51 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
                 color: Colors.red.shade600,
               ),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                foregroundColor: Colors.white,
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
               ),
-              onPressed: () {
-                _fetchStudentData();
-                _fetchSchoolData();
-              },
-              child: const Text('Retry'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Expected path:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Schools/${widget.schoolName}/Classes/${widget.studentClass}/Student_Details/${widget.studentFullName}/Personal_Information/Registered_Information',
+                    style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    _fetchStudentData();
+                    _fetchSchoolData();
+                  },
+                  child: const Text('Retry'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: _debugListStudents,
+                  child: const Text('Debug'),
+                ),
+              ],
             ),
           ],
         ),
@@ -318,18 +518,53 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
                 _buildInfoRow('Full Name', widget.studentFullName, Icons.badge),
                 _buildInfoRow('First Name', studentPersonalInfo!['firstName'] ?? 'N/A', Icons.person_outline),
                 _buildInfoRow('Last Name', studentPersonalInfo!['lastName'] ?? 'N/A', Icons.person_outline),
-                _buildInfoRow('Student ID', studentPersonalInfo!['studentID'] ?? 'N/A', Icons.numbers),
-                _buildInfoRow('Class', studentPersonalInfo!['studentClass'] ?? 'N/A', Icons.school),
+                _buildInfoRow('Student ID', _getStudentID(), Icons.numbers),
+                _buildInfoRow('Class', studentPersonalInfo!['studentClass'] ?? widget.studentClass, Icons.school),
                 _buildInfoRow('Gender', studentPersonalInfo!['studentGender'] ?? 'N/A', Icons.wc),
                 _buildInfoRow('Date of Birth', _formatDate(studentPersonalInfo!['studentDOB']), Icons.cake),
                 _buildInfoRow('Age', _formatAge(studentPersonalInfo!['studentAge']), Icons.timeline),
-                _buildInfoRow('Created By', studentPersonalInfo!['createdBy'] ?? 'N/A', Icons.person_add),
+                if (studentPersonalInfo!['timestamp'] != null)
+                  _buildInfoRow('Registered', _formatTimestamp(studentPersonalInfo!['timestamp']), Icons.access_time),
+              ] else ...[
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text(
+                      'No student data available',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ],
           ),
         ),
       ),
     );
+  }
+
+  String _formatTimestamp(dynamic timestamp) {
+    if (timestamp == null) return 'N/A';
+
+    try {
+      DateTime dateTime;
+      if (timestamp is Timestamp) {
+        dateTime = timestamp.toDate();
+      } else if (timestamp is String) {
+        dateTime = DateTime.parse(timestamp);
+      } else {
+        return 'N/A';
+      }
+
+      final DateFormat formatter = DateFormat('dd MMM yyyy, HH:mm');
+      return formatter.format(dateTime);
+    } catch (e) {
+      print('Error formatting timestamp: $e');
+      return 'N/A';
+    }
   }
 
   Widget _buildSchoolInfoCard() {
@@ -407,8 +642,8 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
       return const SizedBox.shrink();
     }
 
-    final String? studentID = studentPersonalInfo!['studentID'];
-    if (studentID == null || studentID.isEmpty) {
+    final String studentID = _getStudentID();
+    if (studentID == 'N/A') {
       return const SizedBox.shrink();
     }
 

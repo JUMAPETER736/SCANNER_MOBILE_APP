@@ -83,10 +83,11 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
                 height: MediaQuery.of(context).size.width * 0.12,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                    colors: [Colors.blueAccent, Colors.blueAccent],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
+
                   borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width * 0.06),
                 ),
                 child: Icon(
@@ -104,7 +105,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
                       'Welcome back!',
                       style: TextStyle(
                         fontSize: MediaQuery.of(context).size.width * 0.04,
-                        color: const Color(0xFF667eea),
+                        color: Colors.blueAccent,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -114,7 +115,8 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
                       style: TextStyle(
                         fontSize: MediaQuery.of(context).size.width * 0.055,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF2D3748),
+                        color: Colors.blueAccent,
+
                       ),
                     ),
                   ],
@@ -317,7 +319,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
             fontSize: MediaQuery.of(context).size.width * 0.05,
           ),
         ),
-        backgroundColor: const Color(0xFF667eea),
+        backgroundColor: Colors.blueAccent,
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
@@ -344,7 +346,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+              colors: [Colors.blueAccent, Colors.blueAccent],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
