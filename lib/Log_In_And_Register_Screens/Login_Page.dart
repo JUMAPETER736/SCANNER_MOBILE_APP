@@ -1,5 +1,4 @@
-
-
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -7,39 +6,120 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Google_Done.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Forgot_Password.dart';
 import 'package:scanna/Home_Screens/Teacher_Home_Page.dart';
 import 'package:scanna/Home_Screens/Parent_Home_Page.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Register_Page.dart';
 
+// ==================== PARENT DATA MANAGER ====================
+class ParentDataManager {
+  static final ParentDataManager _instance = ParentDataManager._internal();
+  factory ParentDataManager() => _instance;
+  ParentDataManager._internal();
+
+  String? _studentName;
+  String? _studentClass;
+  String? _firstName;
+  String? _lastName;
+  Map<String, dynamic>? _studentDetails;
+
+  // Getters
+  String? get studentName => _studentName;
+  String? get studentClass => _studentClass;
+  String? get firstName => _firstName;
+  String? get lastName => _lastName;
+  Map<String, dynamic>? get studentDetails => _studentDetails;
+
+  // Set parent data
+  void setParentData({
+    required String studentName,
+    required String studentClass,
+    String? firstName,
+    String? lastName,
+    Map<String, dynamic>? studentDetails,
+  }) {
+    _studentName = studentName;
+    _studentClass = studentClass;
+    _firstName = firstName;
+    _lastName = lastName;
+    _studentDetails = studentDetails;
+  }
+
+  // Clear data (for logout)
+  void clearData() {
+    _studentName = null;
+    _studentClass = null;
+    _firstName = null;
+    _lastName = null;
+    _studentDetails = null;
+  }
+
+  // Save to SharedPreferences for persistence
+  Future<void> saveToPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_studentName != null) await prefs.setString('parent_student_name', _studentName!);
+    if (_studentClass != null) await prefs.setString('parent_student_class', _studentClass!);
+    if (_firstName != null) await prefs.setString('parent_first_name', _firstName!);
+    if (_lastName != null) await prefs.setString('parent_last_name', _lastName!);
+    if (_studentDetails != null) {
+      String detailsJson = jsonEncode(_studentDetails);
+      await prefs.setString('parent_student_details', detailsJson);
+    }
+  }
+
+  // Load from SharedPreferences
+  Future<void> loadFromPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    _studentName = prefs.getString('parent_student_name');
+    _studentClass = prefs.getString('parent_student_class');
+    _firstName = prefs.getString('parent_first_name');
+    _lastName = prefs.getString('parent_last_name');
+
+    String? detailsJson = prefs.getString('parent_student_details');
+    if (detailsJson != null) {
+      _studentDetails = jsonDecode(detailsJson);
+    }
+  }
+
+  // Clear from SharedPreferences
+  Future<void> clearFromPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('parent_student_name');
+    await prefs.remove('parent_student_class');
+    await prefs.remove('parent_first_name');
+    await prefs.remove('parent_last_name');
+    await prefs.remove('parent_student_details');
+  }
+}
+
+// ==================== LOGIN PAGE CLASS ====================
 class Login_Page extends StatefulWidget {
   static String id = '/LoginPage';
-
-
 
   @override
   _Login_PageState createState() => _Login_PageState();
 }
 
 class _Login_PageState extends State<Login_Page> {
-  // Firebase and Google Sign-In instances
+  // ==================== FIREBASE INSTANCES ====================
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Form data
+  // ==================== FORM DATA ====================
   String email = '';
   String password = '';
   String studentName = '';
   String studentClass = '';
 
-  // UI state variables
+  // ==================== UI STATE VARIABLES ====================
   bool _showSpinner = false;
   bool _isPasswordVisible = false;
-  bool _isTeacherMode = true; // Default to teacher mode
+  bool _isTeacherMode = true;
 
-  // Error state variables
+  // ==================== ERROR STATE VARIABLES ====================
   bool _wrongEmail = false;
   bool _wrongPassword = false;
   bool _emptyEmailField = false;
@@ -52,6 +132,13 @@ class _Login_PageState extends State<Login_Page> {
   String _passwordErrorMessage = '';
   String _studentNameErrorMessage = '';
   String _studentClassErrorMessage = '';
+
+  // ==================== LIFECYCLE METHODS ====================
+  @override
+  void initState() {
+    super.initState();
+    _checkExistingParentSession();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +170,8 @@ class _Login_PageState extends State<Login_Page> {
                         SizedBox(height: _getResponsiveSpacing(context, 24.0)),
                         _buildToggleButtons(context),
                         SizedBox(height: _getResponsiveSpacing(context, 24.0)),
+
+                        // Form Fields
                         if (_isTeacherMode) ...[
                           _buildEmailField(context),
                           SizedBox(height: _getResponsiveSpacing(context, 16.0)),
@@ -93,48 +182,21 @@ class _Login_PageState extends State<Login_Page> {
                           SizedBox(height: _getResponsiveSpacing(context, 16.0)),
                           _buildStudentClassField(context),
                         ],
-                        // General Error Message Display
-                        if (_errorMessage.isNotEmpty)
-                          Padding(
-                            padding: EdgeInsets.only(top: _getResponsiveSpacing(context, 8.0)),
-                            child: Container(
-                              width: double.infinity,
-                              padding: EdgeInsets.all(12.0),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.1),
-                                border: Border.all(color: Colors.red.withOpacity(0.3)),
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.error_outline,
-                                    color: Colors.red,
-                                    size: _getResponsiveFontSize(context, 18.0),
-                                  ),
-                                  SizedBox(width: 8.0),
-                                  Expanded(
-                                    child: Text(
-                                      _errorMessage,
-                                      style: TextStyle(
-                                        color: Colors.red,
-                                        fontSize: _getResponsiveFontSize(context, 14.0),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+
+                        // Error Message Display
+                        if (_errorMessage.isNotEmpty) _buildErrorMessage(context),
+
                         SizedBox(height: _getResponsiveSpacing(context, 24.0)),
                         _buildLoginButton(context),
+
+                        // Social Media Login (Teacher Mode Only)
                         if (_isTeacherMode) ...[
                           SizedBox(height: _getResponsiveSpacing(context, 20.0)),
                           _buildDivider(context),
                           SizedBox(height: _getResponsiveSpacing(context, 20.0)),
                           _buildSocialMediaButtons(context),
                         ],
+
                         Expanded(child: Container()),
                         if (_isTeacherMode) _buildSignUpLink(context),
                       ],
@@ -150,7 +212,6 @@ class _Login_PageState extends State<Login_Page> {
   }
 
   // ==================== UI BUILDING METHODS ====================
-
   BoxDecoration _buildBackgroundDecoration() {
     return BoxDecoration(
       gradient: LinearGradient(
@@ -216,95 +277,73 @@ class _Login_PageState extends State<Login_Page> {
       ),
       child: Row(
         children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _isTeacherMode = true;
-                  _clearAllErrors();
-                });
-              },
-              child: Container(
-                padding: EdgeInsets.symmetric(vertical: 12.0),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15.0),
-                  color: _isTeacherMode ? Colors.blueAccent : Colors.transparent,
-                  boxShadow: _isTeacherMode ? [
-                    BoxShadow(
-                      color: Colors.blueAccent.withOpacity(0.3),
-                      spreadRadius: 1,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
-                    ),
-                  ] : [],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.school,
-                      color: _isTeacherMode ? Colors.white : Colors.blueAccent,
-                      size: _getResponsiveFontSize(context, 20.0),
-                    ),
-                    SizedBox(width: 8.0),
-                    Text(
-                      'Teacher',
-                      style: TextStyle(
-                        fontSize: _getResponsiveFontSize(context, 16.0),
-                        color: _isTeacherMode ? Colors.white : Colors.blueAccent,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          _buildToggleButton(
+            context,
+            'Teacher',
+            Icons.school,
+            _isTeacherMode,
+                () {
+              setState(() {
+                _isTeacherMode = true;
+                _clearAllErrors();
+              });
+            },
           ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _isTeacherMode = false;
-                  _clearAllErrors();
-                });
-              },
-              child: Container(
-                padding: EdgeInsets.symmetric(vertical: 12.0),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15.0),
-                  color: !_isTeacherMode ? Colors.blueAccent : Colors.transparent,
-                  boxShadow: !_isTeacherMode ? [
-                    BoxShadow(
-                      color: Colors.blueAccent.withOpacity(0.3),
-                      spreadRadius: 1,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
-                    ),
-                  ] : [],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.people,
-                      color: !_isTeacherMode ? Colors.white : Colors.blueAccent,
-                      size: _getResponsiveFontSize(context, 20.0),
-                    ),
-                    SizedBox(width: 8.0),
-                    Text(
-                      'Parent',
-                      style: TextStyle(
-                        fontSize: _getResponsiveFontSize(context, 16.0),
-                        color: !_isTeacherMode ? Colors.white : Colors.blueAccent,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          _buildToggleButton(
+            context,
+            'Parent',
+            Icons.people,
+            !_isTeacherMode,
+                () {
+              setState(() {
+                _isTeacherMode = false;
+                _clearAllErrors();
+              });
+            },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildToggleButton(BuildContext context, String text, IconData icon, bool isSelected, VoidCallback onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 12.0),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15.0),
+            color: isSelected ? Colors.blueAccent : Colors.transparent,
+            boxShadow: isSelected ? [
+              BoxShadow(
+                color: Colors.blueAccent.withOpacity(0.3),
+                spreadRadius: 1,
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ] : [],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? Colors.white : Colors.blueAccent,
+                size: _getResponsiveFontSize(context, 20.0),
+              ),
+              SizedBox(width: 8.0),
+              Text(
+                text,
+                style: TextStyle(
+                  fontSize: _getResponsiveFontSize(context, 16.0),
+                  color: isSelected ? Colors.white : Colors.blueAccent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -397,6 +436,41 @@ class _Login_PageState extends State<Login_Page> {
           _errorMessage = '';
         });
       },
+    );
+  }
+
+  Widget _buildErrorMessage(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(top: _getResponsiveSpacing(context, 8.0)),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(12.0),
+        decoration: BoxDecoration(
+          color: Colors.red.withOpacity(0.1),
+          border: Border.all(color: Colors.red.withOpacity(0.3)),
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: _getResponsiveFontSize(context, 18.0),
+            ),
+            SizedBox(width: 8.0),
+            Expanded(
+              child: Text(
+                _errorMessage,
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: _getResponsiveFontSize(context, 14.0),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -656,7 +730,6 @@ class _Login_PageState extends State<Login_Page> {
   }
 
   // ==================== RESPONSIVE HELPER METHODS ====================
-
   double _getResponsiveFontSize(BuildContext context, double baseFontSize) {
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
@@ -685,19 +758,8 @@ class _Login_PageState extends State<Login_Page> {
   }
 
   // ==================== AUTHENTICATION METHODS ====================
-
   Future<void> _teacherLogin() async {
-    // Clear all previous errors
-    setState(() {
-      _wrongEmail = false;
-      _wrongPassword = false;
-      _emptyEmailField = false;
-      _emptyPasswordField = false;
-      _emailNotRegistered = false;
-      _errorMessage = '';
-      _emailErrorMessage = '';
-      _passwordErrorMessage = '';
-    });
+    _clearAllErrors();
 
     // Validate inputs
     bool hasErrors = false;
@@ -718,12 +780,8 @@ class _Login_PageState extends State<Login_Page> {
       hasErrors = true;
     }
 
-    // If there are validation errors, don't proceed with login
-    if (hasErrors) {
-      return;
-    }
+    if (hasErrors) return;
 
-    // Start loading
     setState(() {
       _showSpinner = true;
     });
@@ -735,11 +793,10 @@ class _Login_PageState extends State<Login_Page> {
       );
 
       if (userCredential.user != null) {
-        // Navigate to Teacher Home Page
         Navigator.pushNamedAndRemoveUntil(
-            context,
-            Teacher_Home_Page.id,
-                (route) => false
+          context,
+          Teacher_Home_Page.id,
+              (route) => false,
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -753,14 +810,7 @@ class _Login_PageState extends State<Login_Page> {
   }
 
   Future<void> _parentLogin() async {
-    // Clear all previous errors
-    setState(() {
-      _emptyStudentNameField = false;
-      _emptyStudentClassField = false;
-      _errorMessage = '';
-      _studentNameErrorMessage = '';
-      _studentClassErrorMessage = '';
-    });
+    _clearAllErrors();
 
     // Validate inputs
     bool hasErrors = false;
@@ -781,31 +831,24 @@ class _Login_PageState extends State<Login_Page> {
       hasErrors = true;
     }
 
-    // If there are validation errors, don't proceed
-    if (hasErrors) {
-      return;
-    }
+    if (hasErrors) return;
 
-    // Start loading
     setState(() {
       _showSpinner = true;
     });
 
     try {
-      // Validate student name and class against Firebase
       bool isValidStudent = await _validateStudentInFirebase(studentName.trim(), studentClass.trim());
 
-      // Stop loading
       setState(() {
         _showSpinner = false;
       });
 
       if (isValidStudent) {
-        // Navigate to Parent Home Page
         Navigator.pushNamedAndRemoveUntil(
-            context,
-            Parent_Home_Page.id,
-                (route) => false
+          context,
+          Parent_Home_Page.id,
+              (route) => false,
         );
       } else {
         setState(() {
@@ -816,7 +859,6 @@ class _Login_PageState extends State<Login_Page> {
           _studentClassErrorMessage = "Invalid class";
         });
       }
-
     } catch (e) {
       setState(() {
         _showSpinner = false;
@@ -828,7 +870,6 @@ class _Login_PageState extends State<Login_Page> {
 
   Future<bool> _validateStudentInFirebase(String studentName, String studentClass) async {
     try {
-      // Split the student name to get first and last name
       List<String> nameParts = studentName.toUpperCase().split(' ');
       if (nameParts.length < 2) {
         return false; // Need both first and last name
@@ -837,31 +878,184 @@ class _Login_PageState extends State<Login_Page> {
       String firstName = nameParts[0];
       String lastName = nameParts[1];
 
-      // Construct the Firebase path
       String documentPath = 'Schools/Bwaila Secondary School/Classes/${studentClass.toUpperCase()}/Student_Details/${firstName} ${lastName}/Personal_Information/Registered_Information';
 
-      // Query Firebase
       DocumentSnapshot doc = await _firestore.doc(documentPath).get();
 
       if (doc.exists) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
-        // Verify the data matches
         String dbFirstName = data['firstName']?.toString().toUpperCase() ?? '';
         String dbLastName = data['lastName']?.toString().toUpperCase() ?? '';
         String dbClass = data['studentClass']?.toString().toUpperCase() ?? '';
 
-        // Check if names and class match
         bool nameMatch = (dbFirstName == firstName && dbLastName == lastName);
         bool classMatch = (dbClass == studentClass.toUpperCase());
 
-        return nameMatch && classMatch;
+        if (nameMatch && classMatch) {
+          ParentDataManager().setParentData(
+            studentName: studentName.trim(),
+            studentClass: studentClass.trim(),
+            firstName: firstName,
+            lastName: lastName,
+            studentDetails: data,
+          );
+
+          await ParentDataManager().saveToPreferences();
+          return true;
+        }
       }
 
       return false;
     } catch (e) {
-      print('Firebase validation error: $e');
+
+      print('Error validating student: $e');
       return false;
+    }
+  }
+
+  void _handleFirebaseAuthException(FirebaseAuthException e) {
+    setState(() {
+      _showSpinner = false;
+    });
+
+    switch (e.code) {
+      case 'user-not-found':
+        setState(() {
+          _emailNotRegistered = true;
+          _emailErrorMessage = 'No account found with this email';
+        });
+        break;
+      case 'wrong-password':
+        setState(() {
+          _wrongPassword = true;
+          _passwordErrorMessage = 'Incorrect password';
+        });
+        break;
+      case 'invalid-email':
+        setState(() {
+          _wrongEmail = true;
+          _emailErrorMessage = 'Invalid email format';
+        });
+        break;
+      case 'user-disabled':
+        setState(() {
+          _errorMessage = 'This account has been disabled';
+        });
+        break;
+      case 'too-many-requests':
+        setState(() {
+          _errorMessage = 'Too many failed attempts. Please try again later';
+        });
+        break;
+      case 'network-request-failed':
+        setState(() {
+          _errorMessage = 'Network error. Please check your connection';
+        });
+        break;
+      default:
+        setState(() {
+          _errorMessage = 'Login failed. Please try again';
+        });
+        break;
+    }
+  }
+
+  Future<UserCredential?> _signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        setState(() {
+          _showSpinner = false;
+        });
+        return null; // User cancelled the sign-in
+      }
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      return await _auth.signInWithCredential(credential);
+    } catch (e) {
+      print('Google sign in error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _signInWithSocialMedia(String provider) async {
+    setState(() {
+      _showSpinner = true;
+    });
+
+    try {
+      UserCredential? userCredential;
+
+      if (provider == 'google') {
+        userCredential = await _signInWithGoogle();
+      } else if (provider == 'facebook') {
+        userCredential = await _signInWithFacebook();
+      }
+
+      if (userCredential?.user != null) {
+        // Fix 1: Use the correct route name or property
+        // Replace 'Google_Done.id' with the actual route name
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/home', // or whatever your actual route name is
+              (route) => false,
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _showSpinner = false;
+        _errorMessage = 'Social login failed. Please try again';
+      });
+      print('Social login error: $e');
+    }
+  }
+
+  Future<UserCredential?> _signInWithFacebook() async {
+    try {
+      final LoginResult result = await FacebookAuth.instance.login();
+
+      if (result.status == LoginStatus.success) {
+        // Fix 2: Use 'tokenString' instead of 'token'
+        final OAuthCredential facebookAuthCredential =
+        FacebookAuthProvider.credential(result.accessToken!.tokenString);
+
+        return await _auth.signInWithCredential(facebookAuthCredential);
+      } else {
+        setState(() {
+          _showSpinner = false;
+        });
+        return null;
+      }
+    } catch (e) {
+      print('Facebook sign in error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _checkExistingParentSession() async {
+    try {
+      await ParentDataManager().loadFromPreferences();
+
+      if (ParentDataManager().studentName != null &&
+          ParentDataManager().studentClass != null) {
+        // Parent session exists, but don't auto-navigate
+        // Let them choose mode manually
+        setState(() {
+          _isTeacherMode = false;
+          studentName = ParentDataManager().studentName ?? '';
+          studentClass = ParentDataManager().studentClass ?? '';
+        });
+      }
+    } catch (e) {
+      print('Error checking parent session: $e');
     }
   }
 
@@ -879,145 +1073,7 @@ class _Login_PageState extends State<Login_Page> {
       _passwordErrorMessage = '';
       _studentNameErrorMessage = '';
       _studentClassErrorMessage = '';
-
-      // Clear form data when switching modes
-      email = '';
-      password = '';
-      studentName = '';
-      studentClass = '';
     });
-  }
-
-  void _handleFirebaseAuthException(FirebaseAuthException e) {
-    setState(() {
-      _showSpinner = false;
-      switch (e.code) {
-        case 'wrong-password':
-          _wrongPassword = true;
-          _passwordErrorMessage = "Incorrect password";
-          _errorMessage = "Incorrect password. Please try again.";
-          break;
-        case 'user-not-found':
-          _emailNotRegistered = true;
-          _emailErrorMessage = "Email not registered";
-          _errorMessage = "No account found with this email address.";
-          break;
-        case 'invalid-email':
-          _wrongEmail = true;
-          _emailErrorMessage = "Invalid email format";
-          _errorMessage = "Please enter a valid email address.";
-          break;
-        case 'too-many-requests':
-          _errorMessage = "Too many failed attempts. Please try again later.";
-          break;
-        case 'user-disabled':
-          _errorMessage = "This account has been disabled. Contact support.";
-          break;
-        case 'invalid-credential':
-          _wrongEmail = true;
-          _wrongPassword = true;
-          _emailErrorMessage = "Incorrect Email";
-          _passwordErrorMessage = "Incorrect Password";
-          break;
-        case 'network-request-failed':
-          _errorMessage = "Network error. Please check your internet connection.";
-          break;
-        default:
-          _errorMessage = "Login failed. Please check your email and password.";
-          print('Firebase Auth Error: ${e.code} - ${e.message}');
-      }
-    });
-  }
-
-  Future<void> _signInWithSocialMedia(String provider) async {
-    if (provider == 'google') {
-      await _handleGoogleSignIn(context);
-    } else if (provider == 'facebook') {
-      await _handleFacebookSignIn(context);
-    }
-  }
-
-  Future<void> _handleGoogleSignIn(BuildContext context) async {
-    setState(() {
-      _showSpinner = true;
-    });
-
-    User? user = await _performGoogleSignIn();
-
-    setState(() {
-      _showSpinner = false;
-    });
-
-    if (user != null) {
-      // For social media login, we assume it's a teacher login
-      // You can modify this logic based on your needs
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => Google_Done(user, _googleSignIn),
-        ),
-      );
-    } else {
-      _showToast("Google sign-in failed");
-    }
-  }
-
-  Future<void> _handleFacebookSignIn(BuildContext context) async {
-    setState(() {
-      _showSpinner = true;
-    });
-
-    User? user = await _performFacebookSignIn();
-
-    setState(() {
-      _showSpinner = false;
-    });
-
-    if (user != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => Teacher_Home_Page(),
-        ),
-      );
-    } else {
-      _showToast("Facebook sign-in failed");
-    }
-  }
-
-  Future<User?> _performGoogleSignIn() async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-        final AuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-        final UserCredential userCredential = await _auth.signInWithCredential(credential);
-        return userCredential.user;
-      }
-    } catch (e) {
-      print('Google sign-in error: $e');
-      return null;
-    }
-  }
-
-  Future<User?> _performFacebookSignIn() async {
-    try {
-      final LoginResult result = await FacebookAuth.instance.login();
-      if (result.status == LoginStatus.success) {
-        final AccessToken accessToken = result.accessToken!;
-        final AuthCredential credential = FacebookAuthProvider.credential(accessToken.tokenString);
-        final UserCredential userCredential = await _auth.signInWithCredential(credential);
-        return userCredential.user;
-      }
-    } catch (e) {
-      print('Facebook sign-in error: $e');
-      return null;
-    }
-    return null;
   }
 
   void _showToast(String message) {
@@ -1030,5 +1086,10 @@ class _Login_PageState extends State<Login_Page> {
       textColor: Colors.white,
       fontSize: 16.0,
     );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 }
