@@ -143,10 +143,11 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> {
               iconSize: iconSize,
               textSize: textSize,
               onTap: () {
-                // Navigator.push(
-                //   context,
-                //   MaterialPageRoute(builder: (context) => Student_Results(loggedInUser: loggedInUser)),
-                // );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => Student_Results(
+                      studentFullName: 'studentFullName')),
+                );
               },
             ),
             _buildHomeCard(
