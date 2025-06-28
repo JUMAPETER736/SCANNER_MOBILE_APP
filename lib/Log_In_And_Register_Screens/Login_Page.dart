@@ -56,7 +56,6 @@ class ParentDataManager {
     _studentDetails = null;
   }
 
-  // Save to SharedPreferences for persistence
   Future<void> saveToPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     if (_studentName != null) await prefs.setString('parent_student_name', _studentName!);
@@ -64,12 +63,33 @@ class ParentDataManager {
     if (_firstName != null) await prefs.setString('parent_first_name', _firstName!);
     if (_lastName != null) await prefs.setString('parent_last_name', _lastName!);
     if (_studentDetails != null) {
-      String detailsJson = jsonEncode(_studentDetails);
+      // Convert Timestamps to milliseconds since epoch
+      Map<String, dynamic> sanitizedDetails = _convertTimestamps(_studentDetails!);
+      String detailsJson = jsonEncode(sanitizedDetails);
       await prefs.setString('parent_student_details', detailsJson);
     }
   }
 
-  // Load from SharedPreferences
+  Map<String, dynamic> _convertTimestamps(Map<String, dynamic> data) {
+    return data.map((key, value) {
+      if (value is Timestamp) {
+        return MapEntry(key, value.millisecondsSinceEpoch);
+      } else if (value is Map<String, dynamic>) {
+        return MapEntry(key, _convertTimestamps(value));
+      } else if (value is List) {
+        return MapEntry(key, value.map((item) {
+          if (item is Map<String, dynamic>) {
+            return _convertTimestamps(item);
+          } else if (item is Timestamp) {
+            return item.millisecondsSinceEpoch;
+          }
+          return item;
+        }).toList());
+      }
+      return MapEntry(key, value);
+    });
+  }
+
   Future<void> loadFromPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     _studentName = prefs.getString('parent_student_name');
@@ -79,8 +99,28 @@ class ParentDataManager {
 
     String? detailsJson = prefs.getString('parent_student_details');
     if (detailsJson != null) {
-      _studentDetails = jsonDecode(detailsJson);
+      Map<String, dynamic> decoded = jsonDecode(detailsJson);
+      _studentDetails = _restoreTimestamps(decoded);
     }
+  }
+
+  Map<String, dynamic> _restoreTimestamps(Map<String, dynamic> data) {
+    return data.map((key, value) {
+      if (value is int && (key.toLowerCase().contains('time') || key.toLowerCase().contains('date'))) {
+        // Heuristic to identify timestamp fields - you might need to adjust this
+        return MapEntry(key, Timestamp.fromMillisecondsSinceEpoch(value));
+      } else if (value is Map<String, dynamic>) {
+        return MapEntry(key, _restoreTimestamps(value));
+      } else if (value is List) {
+        return MapEntry(key, value.map((item) {
+          if (item is Map<String, dynamic>) {
+            return _restoreTimestamps(item);
+          }
+          return item;
+        }).toList());
+      }
+      return MapEntry(key, value);
+    });
   }
 
   // Clear from SharedPreferences
@@ -885,9 +925,13 @@ class _Login_PageState extends State<Login_Page> {
       if (doc.exists) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
+
         String dbFirstName = data['firstName']?.toString().toUpperCase() ?? '';
         String dbLastName = data['lastName']?.toString().toUpperCase() ?? '';
         String dbClass = data['studentClass']?.toString().toUpperCase() ?? '';
+
+        // Convert any Timestamps in the data to milliseconds
+       // data = _convertTimestamps(data);
 
         bool nameMatch = (dbFirstName == firstName && dbLastName == lastName);
         bool classMatch = (dbClass == studentClass.toUpperCase());
