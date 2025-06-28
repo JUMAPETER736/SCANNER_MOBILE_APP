@@ -893,62 +893,6 @@ class _CreateEventPageState extends State<CreateEventPage> {
     }
   }
 
-  final DateTime eventDateTime = DateTime(
-    _selectedDate!.year,
-    _selectedDate!.month,
-    _selectedDate!.day,
-    _selectedTime!.hour,
-    _selectedTime!.minute,
-  );
-
-// Add this check right after creating eventDateTime:
-  if (eventDateTime.isBefore(DateTime.now())) {
-  ScaffoldMessenger.of(context).showSnackBar(
-  SnackBar(
-  content: Text('Cannot create event for past date/time'),
-  backgroundColor: Colors.redAccent,
-  ),
-  );
-  setState(() {
-  _isLoading = false;
-  });
-  return;
-  }
-
-  Future<void> _selectTime() async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    if (picked != null && picked != _selectedTime) {
-      // Check if selected date is today and time is in the past
-      if (_selectedDate != null) {
-        final now = DateTime.now();
-        final selectedDateTime = DateTime(
-          _selectedDate!.year,
-          _selectedDate!.month,
-          _selectedDate!.day,
-          picked.hour,
-          picked.minute,
-        );
-
-        if (selectedDateTime.isBefore(now)) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Cannot select past time for today'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-          return;
-        }
-      }
-
-      setState(() {
-        _selectedTime = picked;
-      });
-    }
-  }
-
   Future<void> _saveEvent() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -980,6 +924,20 @@ class _CreateEventPageState extends State<CreateEventPage> {
         _selectedTime!.hour,
         _selectedTime!.minute,
       );
+
+      // Check if the event date/time is in the past
+      if (eventDateTime.isBefore(DateTime.now())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Cannot create event for past date/time'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
 
       // Get current user info
       String? currentUserEmail = FirebaseAuth.instance.currentUser?.email;
@@ -1037,6 +995,42 @@ class _CreateEventPageState extends State<CreateEventPage> {
       });
     }
   }
+  
+  Future<void> _selectTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null && picked != _selectedTime) {
+      // Check if selected date is today and time is in the past
+      if (_selectedDate != null) {
+        final now = DateTime.now();
+        final selectedDateTime = DateTime(
+          _selectedDate!.year,
+          _selectedDate!.month,
+          _selectedDate!.day,
+          picked.hour,
+          picked.minute,
+        );
+
+        if (selectedDateTime.isBefore(now)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Cannot select past time for today'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+          return;
+        }
+      }
+
+      setState(() {
+        _selectedTime = picked;
+      });
+    }
+  }
+
+
 
   void _clearForm() {
     _eventTitleController.clear();
@@ -1048,4 +1042,5 @@ class _CreateEventPageState extends State<CreateEventPage> {
       _selectedEventType = 'Academic';
     });
   }
+
 }
