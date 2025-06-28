@@ -39,11 +39,14 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
           ),
         ),
         child: StreamBuilder<QuerySnapshot>(
+
           stream: _firestore
               .collection('Schools')
               .doc(widget.schoolName)
               .collection('Upcoming_School_Events')
+              .orderBy('dateTime', descending: false)
               .snapshots(),
+
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(
@@ -756,8 +759,8 @@ class _CreateEventPageState extends State<CreateEventPage> {
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().add(Duration(days: 1)), // Start from tomorrow
-      firstDate: DateTime.now(), // Can't select today or past dates
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(), // Changed from DateTime.now() to prevent past dates
       lastDate: DateTime.now().add(Duration(days: 365)),
     );
     if (picked != null && picked != _selectedDate) {
@@ -779,6 +782,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
     }
   }
 
+
   Future<void> _saveEvent() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -794,30 +798,20 @@ class _CreateEventPageState extends State<CreateEventPage> {
       return;
     }
 
-    // Validate that the selected date and time is not in the past
-    final DateTime eventDateTime = DateTime(
-      _selectedDate!.year,
-      _selectedDate!.month,
-      _selectedDate!.day,
-      _selectedTime!.hour,
-      _selectedTime!.minute,
-    );
-
-    if (eventDateTime.isBefore(DateTime.now())) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Event date and time cannot be in the past'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
-
     setState(() {
       _isLoading = true;
     });
 
     try {
+      // Combine date and time
+      final DateTime eventDateTime = DateTime(
+        _selectedDate!.year,
+        _selectedDate!.month,
+        _selectedDate!.day,
+        _selectedTime!.hour,
+        _selectedTime!.minute,
+      );
+
       // Create event data
       final Map<String, dynamic> eventData = {
         'title': _eventTitleController.text.trim(),
@@ -832,12 +826,13 @@ class _CreateEventPageState extends State<CreateEventPage> {
         'isActive': true,
       };
 
-      // Save to Firestore - using the correct path
+      // Save to Firestore at school level - UPDATED PATH
       await _firestore
           .collection('Schools')
           .doc(widget.schoolName)
           .collection('Upcoming_School_Events')
-          .add(eventData); // Using add() instead of doc().set() for auto-generated ID
+          .doc(_eventTitleController.text.trim()) // Using event title as document ID
+          .set(eventData);
 
       // Clear form
       _clearForm();
@@ -865,6 +860,151 @@ class _CreateEventPageState extends State<CreateEventPage> {
         _isLoading = false;
       });
     }
+  }
+
+
+
+  // Method 1: If you have the school name in your widget or state
+  Stream<QuerySnapshot> getSchoolEvents(String schoolName) {
+    return FirebaseFirestore.instance
+        .collection('Schools')
+        .doc(schoolName) // Use the specific school name
+        .collection('Upcoming_School_Events')
+        .orderBy('dateTime', descending: false)
+        .snapshots();
+  }
+
+// Method 2: If you need to get the school name from the logged-in teacher
+  Stream<QuerySnapshot> getSchoolEventsForLoggedTeacher() async* {
+    // Get current user's email
+    String? teacherEmail = FirebaseAuth.instance.currentUser?.email;
+
+    if (teacherEmail != null) {
+      // Get teacher's school from Teachers_Details
+      DocumentSnapshot teacherDoc = await FirebaseFirestore.instance
+          .collection('Teachers_Details')
+          .doc(teacherEmail)
+          .get();
+
+      if (teacherDoc.exists) {
+        String schoolName = teacherDoc.get('school');
+
+        // Now stream events for this specific school
+        yield* FirebaseFirestore.instance
+            .collection('Schools')
+            .doc(schoolName)
+            .collection('Upcoming_School_Events')
+            .orderBy('dateTime', descending: false)
+            .snapshots();
+      }
+    }
+  }
+
+// Method 3: Using FutureBuilder approach (recommended)
+  class SchoolEventsWidget extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+  return FutureBuilder<String>(
+  future: getCurrentUserSchool(),
+  builder: (context, snapshot) {
+  if (snapshot.connectionState == ConnectionState.waiting) {
+  return CircularProgressIndicator();
+  }
+
+  if (snapshot.hasError || !snapshot.hasData) {
+  return Text('Error loading school information');
+  }
+
+  String schoolName = snapshot.data!;
+
+  return StreamBuilder<QuerySnapshot>(
+  stream: FirebaseFirestore.instance
+      .collection('Schools')
+      .doc(schoolName)
+      .collection('Upcoming_School_Events')
+      .orderBy('dateTime', descending: false)
+      .snapshots(),
+  builder: (context, snapshot) {
+  if (snapshot.connectionState == ConnectionState.waiting) {
+  return CircularProgressIndicator();
+  }
+
+  if (snapshot.hasError) {
+  return Text('Error: ${snapshot.error}');
+  }
+
+  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+  return Text('No upcoming events');
+  }
+
+  return ListView.builder(
+  itemCount: snapshot.data!.docs.length,
+  itemBuilder: (context, index) {
+  var event = snapshot.data!.docs[index];
+  // Build your event UI here
+  return ListTile(
+  title: Text(event.get('eventTitle') ?? 'Event'),
+  subtitle: Text(event.get('dateTime').toString()),
+  );
+  },
+  );
+  },
+  );
+  },
+  );
+  }
+
+  Future<String> getCurrentUserSchool() async {
+  String? teacherEmail = FirebaseAuth.instance.currentUser?.email;
+
+  if (teacherEmail != null) {
+  DocumentSnapshot teacherDoc = await FirebaseFirestore.instance
+      .collection('Teachers_Details')
+      .doc(teacherEmail)
+      .get();
+
+  if (teacherDoc.exists) {
+  return teacherDoc.get('school');
+  }
+  }
+
+  throw Exception('Unable to determine user school');
+  }
+  }
+
+// Method 4: If you're using a state management solution (Provider, Bloc, etc.)
+  class SchoolProvider extends ChangeNotifier {
+  String? _currentSchool;
+
+  String? get currentSchool => _currentSchool;
+
+  Future<void> loadCurrentUserSchool() async {
+  String? teacherEmail = FirebaseAuth.instance.currentUser?.email;
+
+  if (teacherEmail != null) {
+  DocumentSnapshot teacherDoc = await FirebaseFirestore.instance
+      .collection('Teachers_Details')
+      .doc(teacherEmail)
+      .get();
+
+  if (teacherDoc.exists) {
+  _currentSchool = teacherDoc.get('school');
+  notifyListeners();
+  }
+  }
+  }
+
+  Stream<QuerySnapshot>? getSchoolEventsStream() {
+  if (_currentSchool != null) {
+  return FirebaseFirestore.instance
+      .collection('Schools')
+      .doc(_currentSchool!)
+      .collection('Upcoming_School_Events')
+      .orderBy('dateTime', descending: false)
+      .snapshots();
+  }
+  return null;
+  }
   }
 
   void _clearForm() {
