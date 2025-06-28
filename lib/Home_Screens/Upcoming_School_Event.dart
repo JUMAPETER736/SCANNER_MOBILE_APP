@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Upcoming_School_Event extends StatefulWidget {
   final String schoolName;
@@ -18,13 +19,45 @@ class Upcoming_School_Event extends StatefulWidget {
 
 class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  String? _teacherSchool; // Add this to store teacher's actual school
+
+  @override
+  void initState() {
+    super.initState();
+    _getTeacherSchool(); // Fetch teacher's school on init
+  }
+
+  // Add this method to get teacher's school
+  Future<void> _getTeacherSchool() async {
+    try {
+      String? currentUserEmail = FirebaseAuth.instance.currentUser?.email;
+      if (currentUserEmail != null) {
+        DocumentSnapshot teacherDoc = await _firestore
+            .collection('Teachers_Details')
+            .doc(currentUserEmail)
+            .get();
+
+        if (teacherDoc.exists) {
+          Map<String, dynamic> teacherData = teacherDoc.data() as Map<String, dynamic>;
+          setState(() {
+            _teacherSchool = teacherData['school']; // Get teacher's actual school
+          });
+        }
+      }
+    } catch (e) {
+      print('Error fetching teacher school: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Use teacher's actual school instead of widget.schoolName
+    String actualSchool = _teacherSchool ?? widget.schoolName;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'School Events',
+          'School Events - $actualSchool',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.blueAccent,
@@ -39,14 +72,14 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
           ),
         ),
         child: StreamBuilder<QuerySnapshot>(
-
+          // Use teacher's actual school for the stream
           stream: _firestore
               .collection('Schools')
-              .doc(widget.schoolName)
+              .doc(actualSchool) // Use teacher's actual school
               .collection('Upcoming_School_Events')
+              .where('dateTime', isGreaterThan: Timestamp.fromDate(DateTime.now().subtract(Duration(days: 7))))
               .orderBy('dateTime', descending: false)
               .snapshots(),
-
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(
@@ -98,7 +131,7 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Create your first event using the + button',
+                      'Create your first event for $actualSchool',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.grey.shade500,
@@ -123,6 +156,10 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
                   final eventDateTime = (data['dateTime'] as Timestamp).toDate();
                   final now = DateTime.now();
                   final isUpcoming = eventDateTime.isAfter(now);
+                  final relativeDate = _getRelativeDate(eventDateTime);
+                  final shouldShow = eventDateTime.isAfter(DateTime.now().subtract(Duration(days: 7)));
+
+                  if (!shouldShow) return SizedBox.shrink();
 
                   return Container(
                     margin: EdgeInsets.only(bottom: 16),
@@ -237,13 +274,27 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
                                   children: [
                                     Icon(Icons.calendar_today, size: 16, color: Colors.blueAccent),
                                     SizedBox(width: 8),
-                                    Text(
-                                      '${eventDateTime.day}/${eventDateTime.month}/${eventDateTime.year}',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.black87,
-                                      ),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${eventDateTime.day}/${eventDateTime.month}/${eventDateTime.year}',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        if (relativeDate.isNotEmpty)
+                                          Text(
+                                            relativeDate,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: isUpcoming ? Colors.green.shade600 : Colors.orange.shade600,
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                     SizedBox(width: 16),
                                     Icon(Icons.access_time, size: 16, color: Colors.blueAccent),
@@ -297,6 +348,7 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
           },
         ),
       ),
+
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateEventDialog(context),
         backgroundColor: Colors.blueAccent,
@@ -332,12 +384,35 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
     }
   }
 
+  String _getRelativeDate(DateTime eventDate) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final eventDay = DateTime(eventDate.year, eventDate.month, eventDate.day);
+    final difference = eventDay.difference(today).inDays;
+
+    if (difference == 0) {
+      return 'Today';
+    } else if (difference == 1) {
+      return 'Tomorrow';
+    } else if (difference == -1) {
+      return 'Yesterday';
+    } else if (difference > 1 && difference <= 7) {
+      return '$difference days remaining';
+    } else if (difference < -1 && difference >= -7) {
+      return '${difference.abs()} days ago';
+    } else if (difference > 7) {
+      return 'In ${difference} days';
+    } else {
+      return ''; // For events older than 7 days (won't be shown)
+    }
+  }
+
   void _showCreateEventDialog(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => CreateEventPage(
-          schoolName: widget.schoolName,
+          schoolName: _teacherSchool ?? widget.schoolName, // Use teacher's actual school
           selectedClass: widget.selectedClass,
         ),
       ),
@@ -379,6 +454,7 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
                 _buildDetailRow('Location', data['location'] ?? 'N/A', Icons.location_on),
                 _buildDetailRow('Date', '${eventDateTime.day}/${eventDateTime.month}/${eventDateTime.year}', Icons.calendar_today),
                 _buildDetailRow('Time', TimeOfDay.fromDateTime(eventDateTime).format(context), Icons.access_time),
+                _buildDetailRow('School', data['schoolName'] ?? 'N/A', Icons.school),
               ],
             ),
           ),
@@ -431,6 +507,9 @@ class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
       ),
     );
   }
+
+
+
 }
 
 // Create Event Page
@@ -461,6 +540,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
   TimeOfDay? _selectedTime;
   String _selectedEventType = 'Academic';
   bool _isLoading = false;
+  String? _teacherSchool; // Add this to store teacher's actual school
 
   final List<String> _eventTypes = [
     'Academic',
@@ -473,6 +553,37 @@ class _CreateEventPageState extends State<CreateEventPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _getTeacherSchool(); // Fetch teacher's school on init
+  }
+
+  // Add this method to get teacher's school
+  Future<void> _getTeacherSchool() async {
+    try {
+      String? currentUserEmail = FirebaseAuth.instance.currentUser?.email;
+      if (currentUserEmail != null) {
+        DocumentSnapshot teacherDoc = await _firestore
+            .collection('Teachers_Details')
+            .doc(currentUserEmail)
+            .get();
+
+        if (teacherDoc.exists) {
+          Map<String, dynamic> teacherData = teacherDoc.data() as Map<
+              String,
+              dynamic>;
+          setState(() {
+            _teacherSchool =
+            teacherData['school']; // Get teacher's actual school
+          });
+        }
+      }
+    } catch (e) {
+      print('Error fetching teacher school: $e');
+    }
+  }
+
+  @override
   void dispose() {
     _eventTitleController.dispose();
     _eventDescriptionController.dispose();
@@ -482,10 +593,13 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Use teacher's actual school instead of widget.schoolName
+    String actualSchool = _teacherSchool ?? widget.schoolName;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Create New Event',
+          'Create Event - $actualSchool',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.blueAccent,
@@ -521,9 +635,9 @@ class _CreateEventPageState extends State<CreateEventPage> {
                     ),
                     SizedBox(height: 16),
                     Text(
-                      'Create New Event',
+                      'Create Event for $actualSchool',
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors.blueAccent,
                       ),
@@ -567,7 +681,9 @@ class _CreateEventPageState extends State<CreateEventPage> {
         ),
       ),
       validator: (value) {
-        if (value == null || value.trim().isEmpty) {
+        if (value == null || value
+            .trim()
+            .isEmpty) {
           return 'Please enter an event title';
         }
         return null;
@@ -592,7 +708,9 @@ class _CreateEventPageState extends State<CreateEventPage> {
         ),
       ),
       validator: (value) {
-        if (value == null || value.trim().isEmpty) {
+        if (value == null || value
+            .trim()
+            .isEmpty) {
           return 'Please enter an event description';
         }
         return null;
@@ -644,7 +762,9 @@ class _CreateEventPageState extends State<CreateEventPage> {
         ),
       ),
       validator: (value) {
-        if (value == null || value.trim().isEmpty) {
+        if (value == null || value
+            .trim()
+            .isEmpty) {
           return 'Please enter an event location';
         }
         return null;
@@ -673,10 +793,12 @@ class _CreateEventPageState extends State<CreateEventPage> {
                       Text(
                         _selectedDate == null
                             ? 'Select Date'
-                            : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
+                            : '${_selectedDate!.day}/${_selectedDate!
+                            .month}/${_selectedDate!.year}',
                         style: TextStyle(
                           fontSize: 16,
-                          color: _selectedDate == null ? Colors.grey : Colors.black,
+                          color: _selectedDate == null ? Colors.grey : Colors
+                              .black,
                         ),
                       ),
                     ],
@@ -704,7 +826,8 @@ class _CreateEventPageState extends State<CreateEventPage> {
                             : _selectedTime!.format(context),
                         style: TextStyle(
                           fontSize: 16,
-                          color: _selectedTime == null ? Colors.grey : Colors.black,
+                          color: _selectedTime == null ? Colors.grey : Colors
+                              .black,
                         ),
                       ),
                     ],
@@ -760,7 +883,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime.now(), // Changed from DateTime.now() to prevent past dates
+      firstDate: DateTime.now(), // Changed: Cannot select past dates
       lastDate: DateTime.now().add(Duration(days: 365)),
     );
     if (picked != null && picked != _selectedDate) {
@@ -770,18 +893,61 @@ class _CreateEventPageState extends State<CreateEventPage> {
     }
   }
 
+  final DateTime eventDateTime = DateTime(
+    _selectedDate!.year,
+    _selectedDate!.month,
+    _selectedDate!.day,
+    _selectedTime!.hour,
+    _selectedTime!.minute,
+  );
+
+// Add this check right after creating eventDateTime:
+  if (eventDateTime.isBefore(DateTime.now())) {
+  ScaffoldMessenger.of(context).showSnackBar(
+  SnackBar(
+  content: Text('Cannot create event for past date/time'),
+  backgroundColor: Colors.redAccent,
+  ),
+  );
+  setState(() {
+  _isLoading = false;
+  });
+  return;
+  }
+
   Future<void> _selectTime() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
     );
     if (picked != null && picked != _selectedTime) {
+      // Check if selected date is today and time is in the past
+      if (_selectedDate != null) {
+        final now = DateTime.now();
+        final selectedDateTime = DateTime(
+          _selectedDate!.year,
+          _selectedDate!.month,
+          _selectedDate!.day,
+          picked.hour,
+          picked.minute,
+        );
+
+        if (selectedDateTime.isBefore(now)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Cannot select past time for today'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+          return;
+        }
+      }
+
       setState(() {
         _selectedTime = picked;
       });
     }
   }
-
 
   Future<void> _saveEvent() async {
     if (!_formKey.currentState!.validate()) {
@@ -803,6 +969,9 @@ class _CreateEventPageState extends State<CreateEventPage> {
     });
 
     try {
+      // Use teacher's actual school instead of widget.schoolName
+      String actualSchool = _teacherSchool ?? widget.schoolName;
+
       // Combine date and time
       final DateTime eventDateTime = DateTime(
         _selectedDate!.year,
@@ -812,6 +981,9 @@ class _CreateEventPageState extends State<CreateEventPage> {
         _selectedTime!.minute,
       );
 
+      // Get current user info
+      String? currentUserEmail = FirebaseAuth.instance.currentUser?.email;
+
       // Create event data
       final Map<String, dynamic> eventData = {
         'title': _eventTitleController.text.trim(),
@@ -820,18 +992,23 @@ class _CreateEventPageState extends State<CreateEventPage> {
         'location': _eventLocationController.text.trim(),
         'dateTime': Timestamp.fromDate(eventDateTime),
         'createdAt': Timestamp.now(),
-        'createdBy': 'Teacher', // You can replace this with actual teacher data
-        'schoolName': widget.schoolName,
+        'createdBy': currentUserEmail ?? 'Unknown',
+        'schoolName': actualSchool, // Use teacher's actual school
         'className': widget.selectedClass,
         'isActive': true,
       };
 
-      // Save to Firestore at school level - UPDATED PATH
+      // Generate a unique document ID to avoid conflicts
+      String docId = '${_eventTitleController.text.trim()}_${DateTime
+          .now()
+          .millisecondsSinceEpoch}';
+
+      // Save to Firestore - Using teacher's actual school
       await _firestore
           .collection('Schools')
-          .doc(widget.schoolName)
+          .doc(actualSchool) // Use teacher's actual school
           .collection('Upcoming_School_Events')
-          .doc(_eventTitleController.text.trim()) // Using event title as document ID
+          .doc(docId)
           .set(eventData);
 
       // Clear form
@@ -840,14 +1017,13 @@ class _CreateEventPageState extends State<CreateEventPage> {
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Event saved successfully!'),
+          content: Text('Event saved successfully for $actualSchool!'),
           backgroundColor: Colors.green,
         ),
       );
 
       // Navigate back
       Navigator.pop(context);
-
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -860,151 +1036,6 @@ class _CreateEventPageState extends State<CreateEventPage> {
         _isLoading = false;
       });
     }
-  }
-
-
-
-  // Method 1: If you have the school name in your widget or state
-  Stream<QuerySnapshot> getSchoolEvents(String schoolName) {
-    return FirebaseFirestore.instance
-        .collection('Schools')
-        .doc(schoolName) // Use the specific school name
-        .collection('Upcoming_School_Events')
-        .orderBy('dateTime', descending: false)
-        .snapshots();
-  }
-
-// Method 2: If you need to get the school name from the logged-in teacher
-  Stream<QuerySnapshot> getSchoolEventsForLoggedTeacher() async* {
-    // Get current user's email
-    String? teacherEmail = FirebaseAuth.instance.currentUser?.email;
-
-    if (teacherEmail != null) {
-      // Get teacher's school from Teachers_Details
-      DocumentSnapshot teacherDoc = await FirebaseFirestore.instance
-          .collection('Teachers_Details')
-          .doc(teacherEmail)
-          .get();
-
-      if (teacherDoc.exists) {
-        String schoolName = teacherDoc.get('school');
-
-        // Now stream events for this specific school
-        yield* FirebaseFirestore.instance
-            .collection('Schools')
-            .doc(schoolName)
-            .collection('Upcoming_School_Events')
-            .orderBy('dateTime', descending: false)
-            .snapshots();
-      }
-    }
-  }
-
-// Method 3: Using FutureBuilder approach (recommended)
-  class SchoolEventsWidget extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-  return FutureBuilder<String>(
-  future: getCurrentUserSchool(),
-  builder: (context, snapshot) {
-  if (snapshot.connectionState == ConnectionState.waiting) {
-  return CircularProgressIndicator();
-  }
-
-  if (snapshot.hasError || !snapshot.hasData) {
-  return Text('Error loading school information');
-  }
-
-  String schoolName = snapshot.data!;
-
-  return StreamBuilder<QuerySnapshot>(
-  stream: FirebaseFirestore.instance
-      .collection('Schools')
-      .doc(schoolName)
-      .collection('Upcoming_School_Events')
-      .orderBy('dateTime', descending: false)
-      .snapshots(),
-  builder: (context, snapshot) {
-  if (snapshot.connectionState == ConnectionState.waiting) {
-  return CircularProgressIndicator();
-  }
-
-  if (snapshot.hasError) {
-  return Text('Error: ${snapshot.error}');
-  }
-
-  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-  return Text('No upcoming events');
-  }
-
-  return ListView.builder(
-  itemCount: snapshot.data!.docs.length,
-  itemBuilder: (context, index) {
-  var event = snapshot.data!.docs[index];
-  // Build your event UI here
-  return ListTile(
-  title: Text(event.get('eventTitle') ?? 'Event'),
-  subtitle: Text(event.get('dateTime').toString()),
-  );
-  },
-  );
-  },
-  );
-  },
-  );
-  }
-
-  Future<String> getCurrentUserSchool() async {
-  String? teacherEmail = FirebaseAuth.instance.currentUser?.email;
-
-  if (teacherEmail != null) {
-  DocumentSnapshot teacherDoc = await FirebaseFirestore.instance
-      .collection('Teachers_Details')
-      .doc(teacherEmail)
-      .get();
-
-  if (teacherDoc.exists) {
-  return teacherDoc.get('school');
-  }
-  }
-
-  throw Exception('Unable to determine user school');
-  }
-  }
-
-// Method 4: If you're using a state management solution (Provider, Bloc, etc.)
-  class SchoolProvider extends ChangeNotifier {
-  String? _currentSchool;
-
-  String? get currentSchool => _currentSchool;
-
-  Future<void> loadCurrentUserSchool() async {
-  String? teacherEmail = FirebaseAuth.instance.currentUser?.email;
-
-  if (teacherEmail != null) {
-  DocumentSnapshot teacherDoc = await FirebaseFirestore.instance
-      .collection('Teachers_Details')
-      .doc(teacherEmail)
-      .get();
-
-  if (teacherDoc.exists) {
-  _currentSchool = teacherDoc.get('school');
-  notifyListeners();
-  }
-  }
-  }
-
-  Stream<QuerySnapshot>? getSchoolEventsStream() {
-  if (_currentSchool != null) {
-  return FirebaseFirestore.instance
-      .collection('Schools')
-      .doc(_currentSchool!)
-      .collection('Upcoming_School_Events')
-      .orderBy('dateTime', descending: false)
-      .snapshots();
-  }
-  return null;
-  }
   }
 
   void _clearForm() {
