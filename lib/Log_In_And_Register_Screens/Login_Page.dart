@@ -6,7 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Google_Done.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Forgot_Password.dart';
 import 'package:scanna/Home_Screens/Teacher_Home_Page.dart';
@@ -24,6 +24,7 @@ class _Login_PageState extends State<Login_Page> {
   // Firebase and Google Sign-In instances
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Form data
   String email = '';
@@ -133,7 +134,7 @@ class _Login_PageState extends State<Login_Page> {
                           _buildSocialMediaButtons(context),
                         ],
                         Expanded(child: Container()),
-                        _buildSignUpLink(context),
+                        if (_isTeacherMode) _buildSignUpLink(context),
                       ],
                     ),
                   ),
@@ -788,29 +789,77 @@ class _Login_PageState extends State<Login_Page> {
       _showSpinner = true;
     });
 
-    // Simulate parent login process
     try {
-      // Add your parent authentication logic here
-      // For now, we'll simulate a network call
-      await Future.delayed(Duration(seconds: 1));
+      // Validate student name and class against Firebase
+      bool isValidStudent = await _validateStudentInFirebase(studentName.trim(), studentClass.trim());
 
       // Stop loading
       setState(() {
         _showSpinner = false;
       });
 
-      // Navigate to Parent Home Page
-      Navigator.pushNamedAndRemoveUntil(
-          context,
-          Parent_Home_Page.id,
-              (route) => false
-      );
+      if (isValidStudent) {
+        // Navigate to Parent Home Page
+        Navigator.pushNamedAndRemoveUntil(
+            context,
+            Parent_Home_Page.id,
+                (route) => false
+        );
+      } else {
+        setState(() {
+          _errorMessage = "Student not found. Please check the name and class.";
+          _emptyStudentNameField = true;
+          _emptyStudentClassField = true;
+          _studentNameErrorMessage = "Student not found";
+          _studentClassErrorMessage = "Invalid class";
+        });
+      }
 
     } catch (e) {
       setState(() {
         _showSpinner = false;
-        _errorMessage = "Parent login failed. Please try again.";
+        _errorMessage = "Error validating student information. Please try again.";
       });
+      print('Parent login error: $e');
+    }
+  }
+
+  Future<bool> _validateStudentInFirebase(String studentName, String studentClass) async {
+    try {
+      // Split the student name to get first and last name
+      List<String> nameParts = studentName.toUpperCase().split(' ');
+      if (nameParts.length < 2) {
+        return false; // Need both first and last name
+      }
+
+      String firstName = nameParts[0];
+      String lastName = nameParts[1];
+
+      // Construct the Firebase path
+      String documentPath = 'Schools/Bwaila Secondary School/Classes/${studentClass.toUpperCase()}/Student_Details/${firstName} ${lastName}/Personal_Information/Registered_Information';
+
+      // Query Firebase
+      DocumentSnapshot doc = await _firestore.doc(documentPath).get();
+
+      if (doc.exists) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+        // Verify the data matches
+        String dbFirstName = data['firstName']?.toString().toUpperCase() ?? '';
+        String dbLastName = data['lastName']?.toString().toUpperCase() ?? '';
+        String dbClass = data['studentClass']?.toString().toUpperCase() ?? '';
+
+        // Check if names and class match
+        bool nameMatch = (dbFirstName == firstName && dbLastName == lastName);
+        bool classMatch = (dbClass == studentClass.toUpperCase());
+
+        return nameMatch && classMatch;
+      }
+
+      return false;
+    } catch (e) {
+      print('Firebase validation error: $e');
+      return false;
     }
   }
 
