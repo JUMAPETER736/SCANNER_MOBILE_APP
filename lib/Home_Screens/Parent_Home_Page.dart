@@ -166,7 +166,9 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
             MaterialPageRoute(
               builder: (context) => Available_School_Events(
                 schoolName: 'schoolName',
-                selectedClass: 'className',
+                className: 'className',
+                studentClass: 'studentClass',
+                studentName: 'StudentName',
               ),
             ),
           );
