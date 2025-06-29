@@ -471,6 +471,7 @@ class _Login_PageState extends State<Login_Page> {
       hintText: 'e.g. Lilongwe Secondary School',
       showError: _emptySchoolNameField,
       errorText: _schoolNameErrorMessage,
+      showLabelOnTop: true, // Add this line
       onChanged: (value) {
         schoolName = value;
         setState(() {
@@ -488,9 +489,10 @@ class _Login_PageState extends State<Login_Page> {
       icon: Icons.person,
       obscureText: false,
       keyboardType: TextInputType.name,
-      hintText: 'e.g. KAMANGA Peter',
+      hintText: 'e.g. JUMA PETER',
       showError: _emptyStudentNameField,
       errorText: _studentNameErrorMessage,
+      showLabelOnTop: true, // Add this line
       onChanged: (value) {
         studentName = value;
         setState(() {
@@ -511,8 +513,9 @@ class _Login_PageState extends State<Login_Page> {
       hintText: 'e.g. FORM 1',
       showError: _emptyStudentClassField,
       errorText: _studentClassErrorMessage,
+      showLabelOnTop: true, // Add this line
       onChanged: (value) {
-        studentClass = value.toUpperCase(); // Ensure it stays uppercase
+        studentClass = value.toUpperCase();
         setState(() {
           _emptyStudentClassField = false;
           _studentClassErrorMessage = '';
@@ -746,71 +749,158 @@ class _Login_PageState extends State<Login_Page> {
     String? errorText,
     Widget? suffixIcon,
     TextInputType? keyboardType,
+    bool showLabelOnTop = false, // New parameter
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: Offset(0, 3),
+    if (showLabelOnTop) {
+      // Parent mode: Label on top, hint text visible
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Label at the top
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: _getResponsiveFontSize(context, 16.0),
+                fontWeight: FontWeight.w600,
+                color: Colors.blueAccent,
+              ),
+            ),
+          ),
+          // TextField with hint text
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  spreadRadius: 1,
+                  blurRadius: 5,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: TextField(
+              obscureText: obscureText,
+              onChanged: onChanged,
+              keyboardType: keyboardType,
+              style: TextStyle(fontSize: _getResponsiveFontSize(context, 16.0)),
+              decoration: InputDecoration(
+                hintText: hintText,
+                hintStyle: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: _getResponsiveFontSize(context, 14.0),
+                ),
+                errorText: showError ? errorText : null,
+                errorStyle: TextStyle(
+                  color: Colors.red,
+                  fontSize: _getResponsiveFontSize(context, 12.0),
+                ),
+                prefixIcon: Container(
+                  margin: EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                  child: Icon(icon, color: Colors.blueAccent, size: _getResponsiveFontSize(context, 20.0)),
+                ),
+                suffixIcon: suffixIcon,
+                filled: true,
+                fillColor: Colors.grey.withOpacity(0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15.0),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15.0),
+                  borderSide: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15.0),
+                  borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15.0),
+                  borderSide: BorderSide(color: Colors.red, width: 1),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15.0),
+                  borderSide: BorderSide(color: Colors.red, width: 2),
+                ),
+                contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              ),
+            ),
           ),
         ],
-      ),
-      child: TextField(
-        obscureText: obscureText,
-        onChanged: onChanged,
-        keyboardType: keyboardType,
-        style: TextStyle(fontSize: _getResponsiveFontSize(context, 16.0)),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(
-            color: Colors.blueAccent,
-            fontSize: _getResponsiveFontSize(context, 16.0),
-            fontWeight: FontWeight.w500,
-          ),
-          errorText: showError ? errorText : null,
-          errorStyle: TextStyle(
-            color: Colors.red,
-            fontSize: _getResponsiveFontSize(context, 12.0),
-          ),
-          prefixIcon: Container(
-            margin: EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              color: Colors.blueAccent.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10.0),
+      );
+    } else {
+      // Teacher mode: Original style with floating label
+      return Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: Offset(0, 3),
             ),
-            child: Icon(icon, color: Colors.blueAccent, size: _getResponsiveFontSize(context, 20.0)),
-          ),
-          suffixIcon: suffixIcon,
-          filled: true,
-          fillColor: Colors.grey.withOpacity(0.05),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15.0),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15.0),
-            borderSide: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15.0),
-            borderSide: BorderSide(color: Colors.blueAccent, width: 2),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15.0),
-            borderSide: BorderSide(color: Colors.red, width: 1),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15.0),
-            borderSide: BorderSide(color: Colors.red, width: 2),
-          ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          ],
         ),
-      ),
-    );
+        child: TextField(
+          obscureText: obscureText,
+          onChanged: onChanged,
+          keyboardType: keyboardType,
+          style: TextStyle(fontSize: _getResponsiveFontSize(context, 16.0)),
+          decoration: InputDecoration(
+            labelText: label,
+            labelStyle: TextStyle(
+              color: Colors.blueAccent,
+              fontSize: _getResponsiveFontSize(context, 16.0),
+              fontWeight: FontWeight.w500,
+            ),
+            errorText: showError ? errorText : null,
+            errorStyle: TextStyle(
+              color: Colors.red,
+              fontSize: _getResponsiveFontSize(context, 12.0),
+            ),
+            prefixIcon: Container(
+              margin: EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: Icon(icon, color: Colors.blueAccent, size: _getResponsiveFontSize(context, 20.0)),
+            ),
+            suffixIcon: suffixIcon,
+            filled: true,
+            fillColor: Colors.grey.withOpacity(0.05),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: BorderSide(color: Colors.red, width: 1),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: BorderSide(color: Colors.red, width: 2),
+            ),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          ),
+        ),
+      );
+    }
   }
 
   // ==================== RESPONSIVE HELPER METHODS ====================
