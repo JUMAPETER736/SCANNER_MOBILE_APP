@@ -542,8 +542,6 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     );
   }
 
-
-
   Widget _buildErrorWidget() {
     return Center(
       child: Container(
