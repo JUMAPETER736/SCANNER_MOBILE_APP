@@ -11,7 +11,9 @@ class Available_School_Events  extends StatefulWidget {
     required String schoolName,
     required String className,
     required String studentClass,
-    required String studentName}) : super(key: key);
+    required String studentName
+  }
+      ) : super(key: key);
 
   @override
   _Available_School_EventsState createState() => _Available_School_EventsState();

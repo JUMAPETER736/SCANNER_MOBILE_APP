@@ -1,16 +1,22 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import '../Log_In_And_Register_Screens/Login_Page.dart'; // Import for ParentDataManager
 
 class Student_Results extends StatefulWidget {
-  final String studentFullName;
+  static const String id = 'student_school_results';
+
+  final String schoolName;
+  final String className;
+  final String studentClass;
+  final String studentName;
 
   const Student_Results({
-    required this.studentFullName,
     Key? key,
+    required this.schoolName,
+    required this.className,
+    required this.studentClass,
+    required this.studentName,
   }) : super(key: key);
 
   @override
@@ -19,13 +25,16 @@ class Student_Results extends StatefulWidget {
 
 class _Student_ResultsState extends State<Student_Results> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Data variables
   Map<String, Map<String, Map<String, dynamic>>> academicYearResults = {};
   List<String> availableAcademicYears = [];
   String? selectedAcademicYear;
-  String? userSchool;
+
+  // Parent data from ParentDataManager
+  String? _schoolName;
+  String? _studentName;
+  String? _studentClass;
 
   // State variables
   bool isLoading = true;
@@ -39,58 +48,49 @@ class _Student_ResultsState extends State<Student_Results> {
   }
 
   Future<void> _initializeData() async {
-    await _getTeacherSchool();
-    if (userSchool != null) {
+    await _loadParentData();
+    if (_schoolName != null) {
       await _fetchStudentAcademicYears();
     }
   }
 
-  Future<void> _getTeacherSchool() async {
+  Future<void> _loadParentData() async {
     setState(() {
       isLoading = true;
       hasError = false;
       errorMessage = null;
     });
 
-    User? user = _auth.currentUser;
-    if (user == null) {
-      setState(() {
-        isLoading = false;
-        hasError = true;
-        errorMessage = 'No user is currently logged in.';
-      });
-      return;
-    }
-
     try {
-      DocumentSnapshot userDoc = await _firestore
-          .collection('Teachers_Details')
-          .doc(user.email)
-          .get();
+      // Load data from ParentDataManager
+      await ParentDataManager().loadFromPreferences();
 
-      if (!userDoc.exists) {
+      setState(() {
+        _schoolName = ParentDataManager().schoolName;
+        _studentName = ParentDataManager().studentName;
+        _studentClass = ParentDataManager().studentClass;
+      });
+
+      print('🎓 Parent Data Loaded for Results:');
+      print('School: $_schoolName');
+      print('Student: $_studentName');
+      print('Class: $_studentClass');
+
+      if (_schoolName == null || _schoolName!.isEmpty) {
         setState(() {
           isLoading = false;
           hasError = true;
-          errorMessage = 'User details not found.';
+          errorMessage = 'No school data found. Please login again.';
         });
         return;
       }
 
-      userSchool = userDoc['school'];
-      if (userSchool == null) {
-        setState(() {
-          isLoading = false;
-          hasError = true;
-          errorMessage = 'Please select a school before accessing results.';
-        });
-        return;
-      }
     } catch (e) {
+      print('❌ Error loading parent data: $e');
       setState(() {
         isLoading = false;
         hasError = true;
-        errorMessage = 'Error fetching user details: ${e.toString()}';
+        errorMessage = 'Error loading parent data: ${e.toString()}';
       });
     }
   }
@@ -99,9 +99,9 @@ class _Student_ResultsState extends State<Student_Results> {
     try {
       setState(() => isLoading = true);
 
-      // Get all academic years for this student
+      // Get all academic years for this student using school from ParentDataManager
       QuerySnapshot academicYearsSnapshot = await _firestore
-          .collection('Schools/$userSchool/Academic_Years')
+          .collection('Schools/$_schoolName/Academic_Years')
           .get();
 
       List<String> years = [];
@@ -113,7 +113,7 @@ class _Student_ResultsState extends State<Student_Results> {
 
         // Get all classes for this academic year
         QuerySnapshot classesSnapshot = await _firestore
-            .collection('Schools/$userSchool/Academic_Years/$academicYear/Classes')
+            .collection('Schools/$_schoolName/Academic_Years/$academicYear/Classes')
             .get();
 
         Map<String, Map<String, dynamic>> yearResults = {};
@@ -123,7 +123,7 @@ class _Student_ResultsState extends State<Student_Results> {
 
           // Check if student exists in this class
           DocumentSnapshot studentDoc = await _firestore
-              .doc('Schools/$userSchool/Academic_Years/$academicYear/Classes/$className/Student_Details/${widget.studentFullName}')
+              .doc('Schools/$_schoolName/Academic_Years/$academicYear/Classes/$className/Student_Details/${_studentName}')
               .get();
 
           if (studentDoc.exists) {
@@ -168,7 +168,7 @@ class _Student_ResultsState extends State<Student_Results> {
       List<String> terms = ['TERM_ONE', 'TERM_TWO', 'TERM_THREE'];
 
       for (String term in terms) {
-        String basePath = 'Schools/$userSchool/Academic_Years/$academicYear/Classes/$className/Student_Details/${widget.studentFullName}/Terms/$term';
+        String basePath = 'Schools/$_schoolName/Academic_Years/$academicYear/Classes/$className/Student_Details/${_studentName}/Terms/$term';
 
         // Check if term data exists
         DocumentSnapshot termCheck = await _firestore
@@ -272,6 +272,70 @@ class _Student_ResultsState extends State<Student_Results> {
       case 'TERM_THREE': return 'TERM 3';
       default: return term;
     }
+  }
+
+  Widget _buildStudentInfoCard() {
+    return Container(
+      margin: EdgeInsets.all(16),
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              colors: [Colors.blue.shade600, Colors.blue.shade400],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.person, color: Colors.white, size: 24),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _studentName ?? widget.studentName,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Class: ${_studentClass ?? 'N/A'}',
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(Icons.school, color: Colors.white, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _schoolName ?? 'Unknown School',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildAcademicYearSelector() {
@@ -552,14 +616,58 @@ class _Student_ResultsState extends State<Student_Results> {
     );
   }
 
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: Colors.red),
+          SizedBox(height: 16),
+          Text(
+            'Error Loading Results',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            errorMessage ?? 'An unknown error occurred',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.red),
+          ),
+          SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _initializeData,
+            child: Text('Try Again'),
+          ),
+          if (errorMessage?.contains('login') == true) ...[
+            SizedBox(height: 8),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Go Back'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.studentFullName} - Academic History'),
+        title: Text('${_studentName ?? widget.studentName} - Academic History'),
         backgroundColor: Colors.blue[600],
         foregroundColor: Colors.white,
         elevation: 2,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: () {
+              _initializeData();
+            },
+          ),
+        ],
       ),
       body: isLoading
           ? Center(
@@ -575,36 +683,14 @@ class _Student_ResultsState extends State<Student_Results> {
         ),
       )
           : hasError
-          ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.red),
-            SizedBox(height: 16),
-            Text(
-              'Error Loading Results',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text(
-              errorMessage ?? 'An unknown error occurred',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.red),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _initializeData,
-              child: Text('Try Again'),
-            ),
-          ],
-        ),
-      )
+          ? _buildErrorState()
           : RefreshIndicator(
         onRefresh: _initializeData,
         child: SingleChildScrollView(
           physics: AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
+              _buildStudentInfoCard(),
               if (availableAcademicYears.isNotEmpty) ...[
                 _buildAcademicYearSelector(),
                 _buildResultsContent(),
@@ -616,9 +702,14 @@ class _Student_ResultsState extends State<Student_Results> {
                       Icon(Icons.school_outlined, size: 64, color: Colors.grey),
                       SizedBox(height: 16),
                       Text(
-                        'No academic records found for ${widget.studentFullName}',
+                        'No academic records found for ${_studentName ?? widget.studentName}',
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                         textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'School: ${_schoolName ?? 'Unknown'}',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                       ),
                     ],
                   ),

@@ -184,7 +184,10 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
             context,
             MaterialPageRoute(
               builder: (context) => Student_Results(
-                studentFullName: 'studentFullName',
+                schoolName: 'schoolName',
+                className: 'className',
+                studentClass: 'studentClass',
+                studentName: 'StudentName',
               ),
             ),
           );
