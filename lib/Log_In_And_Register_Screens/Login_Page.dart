@@ -426,7 +426,7 @@ class _Login_PageState extends State<Login_Page> {
           _emailErrorMessage = '';
           _errorMessage = '';
         });
-      },
+      }, hintText: '',
     );
   }
 
@@ -458,7 +458,7 @@ class _Login_PageState extends State<Login_Page> {
             _isPasswordVisible = !_isPasswordVisible;
           });
         },
-      ),
+      ), hintText: '',
     );
   }
 
@@ -468,6 +468,7 @@ class _Login_PageState extends State<Login_Page> {
       icon: Icons.school,
       obscureText: false,
       keyboardType: TextInputType.text,
+      hintText: 'e.g. Lilongwe Secondary School',
       showError: _emptySchoolNameField,
       errorText: _schoolNameErrorMessage,
       onChanged: (value) {
@@ -487,6 +488,7 @@ class _Login_PageState extends State<Login_Page> {
       icon: Icons.person,
       obscureText: false,
       keyboardType: TextInputType.name,
+      hintText: 'e.g. KAMANGA Peter',
       showError: _emptyStudentNameField,
       errorText: _studentNameErrorMessage,
       onChanged: (value) {
@@ -506,10 +508,11 @@ class _Login_PageState extends State<Login_Page> {
       icon: Icons.class_,
       obscureText: false,
       keyboardType: TextInputType.text,
+      hintText: 'e.g. FORM 1',
       showError: _emptyStudentClassField,
       errorText: _studentClassErrorMessage,
       onChanged: (value) {
-        studentClass = value;
+        studentClass = value.toUpperCase(); // Ensure it stays uppercase
         setState(() {
           _emptyStudentClassField = false;
           _studentClassErrorMessage = '';
@@ -737,6 +740,7 @@ class _Login_PageState extends State<Login_Page> {
     required String label,
     required IconData icon,
     required bool obscureText,
+    required String hintText,
     Function(String)? onChanged,
     bool showError = false,
     String? errorText,
@@ -971,7 +975,7 @@ class _Login_PageState extends State<Login_Page> {
 
       print('🔍 Starting search for: $inputName1 $inputName2 in class: $studentClass at school: $schoolName');
 
-      // TODO: Add your actual Firebase validation logic here
+
       // This is where you need to implement the actual student lookup
 
       // Example implementation structure:
