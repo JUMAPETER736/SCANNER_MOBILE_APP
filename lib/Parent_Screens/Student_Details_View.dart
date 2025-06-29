@@ -397,12 +397,13 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     }
   }
 
-  // Helper method to format date
+// Helper method to format date
   String _formatDate(String? dateString) {
     if (dateString == null || dateString.isEmpty) return 'N/A';
 
     try {
-      final List<String> formats = ['yyyy-MM-dd', 'dd/MM/yyyy', 'MM/dd/yyyy', 'dd-MM-yyyy'];
+      // Updated format order - put dd-MM-yyyy first since that's your data format
+      final List<String> formats = ['dd-MM-yyyy', 'yyyy-MM-dd', 'dd/MM/yyyy', 'MM/dd/yyyy'];
 
       for (String format in formats) {
         try {
@@ -541,46 +542,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     );
   }
 
-  // Show debug information
-  void _showDebugInfo() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Debug Information'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('ParentDataManager Data:', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('School Name: ${schoolName ?? "N/A"}'),
-              Text('Student Name: ${studentName ?? "N/A"}'),
-              Text('Student Class: ${studentClass ?? "N/A"}'),
-              Text('First Name: ${firstName ?? "N/A"}'),
-              Text('Last Name: ${lastName ?? "N/A"}'),
-              Text('Has Student Details: ${studentDetails != null ? "Yes" : "No"}'),
-              const SizedBox(height: 10),
-              if (_actualPath != null) ...[
-                const Text('Successful Firestore Path:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text(_actualPath!, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
-                const SizedBox(height: 10),
-              ],
-              if (studentPersonalInfo != null) ...[
-                const Text('Personal Info Keys:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text(studentPersonalInfo!.keys.join(', ')),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildErrorWidget() {
     return Center(
@@ -630,14 +592,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
                   onPressed: _loadParentDataAndFetchStudent,
                   child: const Text('Retry'),
                 ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: _showDebugInfo,
-                  child: const Text('Debug'),
-                ),
+
               ],
             ),
           ],
@@ -692,7 +647,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
                       schoolName ?? 'Unknown School',
                       style: const TextStyle(
                         fontSize: 14,
-                        color: Colors.grey,
+                        color: Colors.blueAccent,
                       ),
                     ),
                   ],
