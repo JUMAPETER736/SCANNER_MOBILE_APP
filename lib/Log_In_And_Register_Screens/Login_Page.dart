@@ -849,6 +849,7 @@ class _Login_PageState extends State<Login_Page> {
     }
   }
 
+  // Updated parent login method
   Future<void> _parentLogin() async {
     _clearAllErrors();
 
@@ -863,14 +864,6 @@ class _Login_PageState extends State<Login_Page> {
       hasErrors = true;
     }
 
-    if (studentClass.trim().isEmpty) {
-      setState(() {
-        _emptyStudentClassField = true;
-        _studentClassErrorMessage = 'Class is required';
-      });
-      hasErrors = true;
-    }
-
     if (hasErrors) return;
 
     setState(() {
@@ -878,13 +871,19 @@ class _Login_PageState extends State<Login_Page> {
     });
 
     try {
-      bool isValidStudent = await _validateStudentInFirebase(studentName.trim(), studentClass.trim());
+      // Allow empty class for system-wide search
+      bool isValidStudent = await _validateStudentInFirebase(
+          studentName.trim(),
+          studentClass.trim() // Can be empty for broader search
+      );
 
       setState(() {
         _showSpinner = false;
       });
 
       if (isValidStudent) {
+        _showToast('Welcome! Student found successfully.');
+
         Navigator.pushNamedAndRemoveUntil(
           context,
           Parent_Home_Page.id,
@@ -892,17 +891,15 @@ class _Login_PageState extends State<Login_Page> {
         );
       } else {
         setState(() {
-          _errorMessage = "Student not found. Please check the name and class.";
+          _errorMessage = "Student not found in the system.\n\nTips:\n• Enter full name (First Last)\n• Check spelling\n• Class field is optional for system-wide search";
           _emptyStudentNameField = true;
-          _emptyStudentClassField = true;
           _studentNameErrorMessage = "Student not found";
-          _studentClassErrorMessage = "Invalid class";
         });
       }
     } catch (e) {
       setState(() {
         _showSpinner = false;
-        _errorMessage = "Error validating student information. Please try again.";
+        _errorMessage = "Search failed. Please check your internet connection and try again.";
       });
       print('Parent login error: $e');
     }
@@ -912,51 +909,113 @@ class _Login_PageState extends State<Login_Page> {
     try {
       List<String> nameParts = studentName.toUpperCase().split(' ');
       if (nameParts.length < 2) {
-        return false; // Need both first and last name
+        setState(() {
+          _errorMessage = 'Please enter both first and last name (e.g., "John Doe")';
+        });
+        return false;
       }
 
       String firstName = nameParts[0];
       String lastName = nameParts[1];
 
-      String documentPath = 'Schools/Bwaila Secondary School/Classes/${studentClass.toUpperCase()}/Student_Details/${firstName} ${lastName}/Personal_Information/Registered_Information';
+      setState(() {
+        _errorMessage = 'Searching for student...';
+      });
 
-      DocumentSnapshot doc = await _firestore.doc(documentPath).get();
+      // Search through all schools and classes
+      QuerySnapshot schoolsSnapshot = await _firestore.collection('Schools').get();
 
-      if (doc.exists) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      for (QueryDocumentSnapshot schoolDoc in schoolsSnapshot.docs) {
+        String schoolName = schoolDoc.id;
 
+        // Get all classes in this school
+        QuerySnapshot classesSnapshot = await _firestore
+            .collection('Schools/$schoolName/Classes')
+            .get();
 
-        String dbFirstName = data['firstName']?.toString().toUpperCase() ?? '';
-        String dbLastName = data['lastName']?.toString().toUpperCase() ?? '';
-        String dbClass = data['studentClass']?.toString().toUpperCase() ?? '';
+        for (QueryDocumentSnapshot classDoc in classesSnapshot.docs) {
+          String className = classDoc.id;
 
-        // Convert any Timestamps in the data to milliseconds
-       // data = _convertTimestamps(data);
+          // Skip if specific class was provided and this doesn't match
+          if (studentClass.isNotEmpty && className.toUpperCase() != studentClass.toUpperCase()) {
+            continue;
+          }
 
-        bool nameMatch = (dbFirstName == firstName && dbLastName == lastName);
-        bool classMatch = (dbClass == studentClass.toUpperCase());
-
-        if (nameMatch && classMatch) {
-          ParentDataManager().setParentData(
-            studentName: studentName.trim(),
-            studentClass: studentClass.trim(),
-            firstName: firstName,
-            lastName: lastName,
-            studentDetails: data,
-          );
-
-          await ParentDataManager().saveToPreferences();
-          return true;
+          // Search students in this class
+          bool found = await _searchStudentsInClass(schoolName, className, firstName, lastName, studentClass);
+          if (found) return true;
         }
       }
 
       return false;
-    } catch (e) {
 
+    } catch (e) {
       print('Error validating student: $e');
+      setState(() {
+        _errorMessage = 'Search failed due to network error. Please try again.';
+      });
       return false;
     }
   }
+
+  // Search students within a specific class
+  Future<bool> _searchStudentsInClass(
+      String schoolName,
+      String className,
+      String firstName,
+      String lastName,
+      String studentClass) async {
+    try {
+      String classPath = 'Schools/$schoolName/Classes/$className/Student_Details';
+
+      QuerySnapshot studentsSnapshot = await _firestore.collection(classPath).get();
+
+      for (QueryDocumentSnapshot studentDoc in studentsSnapshot.docs) {
+        try {
+          // Look directly in Personal_Information/Registered_Information
+          DocumentSnapshot registeredInfoDoc = await _firestore
+              .doc('$classPath/${studentDoc.id}/Personal_Information/Registered_Information')
+              .get();
+
+          if (registeredInfoDoc.exists) {
+            Map<String, dynamic> data = registeredInfoDoc.data() as Map<String, dynamic>;
+
+            String dbFirstName = data['firstName']?.toString().toUpperCase() ?? '';
+            String dbLastName = data['lastName']?.toString().toUpperCase() ?? '';
+            String dbClass = data['studentClass']?.toString().toUpperCase() ?? '';
+
+            // Exact match for names
+            bool nameMatch = (dbFirstName == firstName && dbLastName == lastName);
+            bool classMatch = studentClass.isEmpty || (dbClass == studentClass.toUpperCase());
+
+            if (nameMatch && classMatch) {
+              // Save student data
+              String fullName = '$firstName $lastName';
+
+              ParentDataManager().setParentData(
+                studentName: fullName,
+                studentClass: studentClass.isEmpty ? className : studentClass,
+                firstName: firstName,
+                lastName: lastName,
+                studentDetails: data,
+              );
+
+              await ParentDataManager().saveToPreferences();
+              return true;
+            }
+          }
+        } catch (e) {
+          print('Error checking student ${studentDoc.id}: $e');
+          continue;
+        }
+      }
+      return false;
+    } catch (e) {
+      print('Class search error: $e');
+      return false;
+    }
+  }
+
 
   void _handleFirebaseAuthException(FirebaseAuthException e) {
     setState(() {
