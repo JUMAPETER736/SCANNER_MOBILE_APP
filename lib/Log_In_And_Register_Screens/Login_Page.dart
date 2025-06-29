@@ -889,7 +889,7 @@ class _Login_PageState extends State<Login_Page> {
     }
   }
 
-// Enhanced parent login method with school selection
+
   Future<void> _parentLogin() async {
     _clearAllErrors();
 
@@ -902,11 +902,18 @@ class _Login_PageState extends State<Login_Page> {
       return;
     }
 
-    // Add school validation if you want to make it required
     if (schoolName.trim().isEmpty) {
       setState(() {
         _emptySchoolNameField = true;
         _schoolNameErrorMessage = 'School name is required';
+      });
+      return;
+    }
+
+    if (studentClass.trim().isEmpty) {
+      setState(() {
+        _emptyStudentClassField = true;
+        _studentClassErrorMessage = 'Student class is required';
       });
       return;
     }
@@ -919,7 +926,7 @@ class _Login_PageState extends State<Login_Page> {
       bool isValidStudent = await _validateStudentInFirebase(
           studentName.trim(),
           studentClass.trim(),
-          schoolName.trim()  // Add school parameter
+          schoolName.trim()
       );
 
       setState(() {
@@ -927,6 +934,7 @@ class _Login_PageState extends State<Login_Page> {
       });
 
       if (isValidStudent) {
+        print('✅ LOGIN SUCCESS: Student found and validated');
         Navigator.pushNamedAndRemoveUntil(
           context,
           Parent_Home_Page.id,
@@ -935,19 +943,19 @@ class _Login_PageState extends State<Login_Page> {
       } else {
         setState(() {
           _emptyStudentNameField = true;
-          _studentNameErrorMessage = "Student not found in the specified school";
+          _studentNameErrorMessage = "Student not found in the specified school and class";
         });
+        print('❌ LOGIN FAILED: Student not found');
       }
     } catch (e) {
       setState(() {
         _showSpinner = false;
         _errorMessage = "Search failed. Please check your internet connection and try again.";
       });
-      print('Parent login error: $e');
+      print('❌ Parent login error: $e');
     }
   }
 
-// Enhanced validation method with school parameter
   Future<bool> _validateStudentInFirebase(String studentName, String studentClass, String schoolName) async {
     try {
       List<String> nameParts = studentName.toUpperCase().split(' ');
@@ -961,13 +969,78 @@ class _Login_PageState extends State<Login_Page> {
       String inputName1 = nameParts[0];
       String inputName2 = nameParts[1];
 
-      print('Starting search for: $inputName1 $inputName2 in class: $studentClass at school: $schoolName');
+      print('🔍 Starting search for: $inputName1 $inputName2 in class: $studentClass at school: $schoolName');
 
-      // Search using multiple methods with school parameter
-      return await _searchStudent(inputName1, inputName2, studentClass, schoolName);
+      // TODO: Add your actual Firebase validation logic here
+      // This is where you need to implement the actual student lookup
+
+      // Example implementation structure:
+      try {
+        // Option 1: Direct document lookup
+        String studentPath = 'Schools/$schoolName/Classes/$studentClass/Student_Details/$studentName';
+        DocumentSnapshot studentDoc = await _firestore.doc(studentPath).get();
+
+        if (studentDoc.exists) {
+          // Verify student details from Personal_Information subcollection
+          DocumentSnapshot personalInfo = await studentDoc.reference
+              .collection('Personal_Information')
+              .doc('Registered_Information')
+              .get();
+
+          if (personalInfo.exists) {
+            var data = personalInfo.data() as Map<String, dynamic>;
+            // Add your validation logic here based on the actual data structure
+            // For example, check if names match
+            return true; // Return true if validation passes
+          }
+        }
+
+        // Option 2: Search through all students in the class
+        QuerySnapshot allStudents = await _firestore
+            .collection('Schools/$schoolName/Classes/$studentClass/Student_Details')
+            .get();
+
+        for (var studentDoc in allStudents.docs) {
+          // Check if this student matches the input
+          try {
+            DocumentSnapshot personalInfo = await studentDoc.reference
+                .collection('Personal_Information')
+                .doc('Registered_Information')
+                .get();
+
+            if (personalInfo.exists) {
+              var data = personalInfo.data() as Map<String, dynamic>;
+
+              // Example validation - adjust based on your data structure
+              String? firstName = data['firstName']?.toString().toUpperCase();
+              String? lastName = data['lastName']?.toString().toUpperCase();
+
+              if (firstName != null && lastName != null) {
+                if ((firstName == inputName1 && lastName == inputName2) ||
+                    (firstName == inputName2 && lastName == inputName1)) {
+                  return true; // Student found and validated
+                }
+              }
+            }
+          } catch (e) {
+            print('Error checking student ${studentDoc.id}: $e');
+            continue; // Continue to next student
+          }
+        }
+
+        // If we reach here, student was not found
+        return false;
+
+      } catch (e) {
+        print('❌ Firebase query error: $e');
+        setState(() {
+          _errorMessage = 'Search failed due to database error. Please try again.';
+        });
+        return false;
+      }
 
     } catch (e) {
-      print('Error validating student: $e');
+      print('❌ Error validating student: $e');
       setState(() {
         _errorMessage = 'Search failed due to network error. Please try again.';
       });
@@ -976,280 +1049,174 @@ class _Login_PageState extends State<Login_Page> {
   }
 
 
-  Future<bool> _searchAllSchoolsAndClasses(String name1, String name2, String studentClass) async {
+  Future<void> debugFirestoreStructure() async {
     try {
-      QuerySnapshot schoolsSnapshot = await _firestore.collection('Schools').get();
+      print('🔍 COMPREHENSIVE FIRESTORE STRUCTURE DEBUG');
+      print('=' * 50);
 
-      for (QueryDocumentSnapshot schoolDoc in schoolsSnapshot.docs) {
+      // 1. List all schools
+      QuerySnapshot schoolsSnapshot = await _firestore.collection('Schools').get();
+      print('📊 SCHOOLS FOUND (${schoolsSnapshot.docs.length}):');
+
+      for (var schoolDoc in schoolsSnapshot.docs) {
         String schoolName = schoolDoc.id;
+        print('🏫 School: $schoolName');
 
-        QuerySnapshot classesSnapshot = await _firestore
-            .collection('Schools/$schoolName/Classes')
-            .get();
+        // 2. List classes in each school
+        try {
+          QuerySnapshot classesSnapshot = await _firestore
+              .collection('Schools/$schoolName/Classes')
+              .get();
 
-        for (QueryDocumentSnapshot classDoc in classesSnapshot.docs) {
-          String className = classDoc.id;
+          print('   📚 Classes (${classesSnapshot.docs.length}):');
 
-          // Skip if specific class was provided and this doesn't match
-          if (studentClass.isNotEmpty && className.toUpperCase() != studentClass.toUpperCase()) {
-            continue;
+          for (var classDoc in classesSnapshot.docs) {
+            String className = classDoc.id;
+            print('      📝 Class: $className');
+
+            // 3. List students in each class (first 3 only to avoid spam)
+            try {
+              QuerySnapshot studentsSnapshot = await _firestore
+                  .collection('Schools/$schoolName/Classes/$className/Student_Details')
+                  .limit(3)
+                  .get();
+
+              print('         👥 Students (showing first 3 of ${studentsSnapshot.docs.length}):');
+
+              for (var studentDoc in studentsSnapshot.docs) {
+                String studentId = studentDoc.id;
+                print('            👤 Student ID: $studentId');
+
+                // 4. Check what's inside each student document
+                try {
+                  QuerySnapshot subCollections = await studentDoc.reference.collection('Personal_Information').get();
+                  if (subCollections.docs.isNotEmpty) {
+                    print('               📋 Has Personal_Information subcollection');
+
+                    for (var personalDoc in subCollections.docs) {
+                      print('                  📄 Document: ${personalDoc.id}');
+                      if (personalDoc.id == 'Registered_Information') {
+                        var data = personalDoc.data() as Map<String, dynamic>;
+                        print('                     📝 Fields: ${data.keys.toList()}');
+
+                        // Print first few field values
+                        data.forEach((key, value) {
+                          if (['firstName', 'lastName', 'studentName', 'studentID'].contains(key)) {
+                            print('                        $key: $value');
+                          }
+                        });
+                      }
+                    }
+                  } else {
+                    print('               ❌ No Personal_Information subcollection found');
+                  }
+
+                  // Check for other subcollections
+                  QuerySnapshot totalMarksCollection = await studentDoc.reference.collection('TOTAL_MARKS').get();
+                  if (totalMarksCollection.docs.isNotEmpty) {
+                    print('               📊 Has TOTAL_MARKS subcollection');
+                  }
+
+                } catch (e) {
+                  print('               ❌ Error reading student subcollections: $e');
+                }
+              }
+            } catch (e) {
+              print('         ❌ Error reading students: $e');
+            }
           }
-
-          bool found = await _searchStudentsInClass(schoolName, className, name1, name2, studentClass);
-          if (found) return true;
+        } catch (e) {
+          print('   ❌ Error reading classes: $e');
         }
+
+        print(''); // Empty line between schools
       }
-      return false;
+
+      print('=' * 50);
+      print('✅ DEBUG COMPLETE');
+
     } catch (e) {
-      print('Search all schools error: $e');
-      return false;
+      print('❌ Error in debug: $e');
     }
   }
 
-  Future<bool> _searchStudentsInClass(String schoolName, String className, String name1, String name2, String studentClass) async {
+  Future<void> testSpecificStudentLookup(String schoolName, String className, String studentName) async {
+    print('🔍 TESTING SPECIFIC STUDENT LOOKUP');
+    print('School: $schoolName');
+    print('Class: $className');
+    print('Student: $studentName');
+    print('-' * 30);
+
     try {
-      QuerySnapshot studentsSnapshot = await _firestore
+      // Test path 1: Direct document lookup using student name as ID
+      String path1 = 'Schools/$schoolName/Classes/$className/Student_Details/$studentName';
+      print('📍 Testing path 1: $path1');
+
+      DocumentSnapshot doc1 = await _firestore.doc(path1).get();
+      print('   Exists: ${doc1.exists}');
+
+      if (doc1.exists) {
+        print('   Data: ${doc1.data()}');
+
+        // Test subcollection access
+        String subPath = '$path1/Personal_Information/Registered_Information';
+        print('📍 Testing subpath: $subPath');
+
+        DocumentSnapshot subDoc = await _firestore.doc(subPath).get();
+        print('   Sub-document exists: ${subDoc.exists}');
+
+        if (subDoc.exists) {
+          var data = subDoc.data() as Map<String, dynamic>;
+          print('   Sub-document data: $data');
+        }
+      }
+
+      // Test path 2: Search all students and find match
+      print('📍 Testing comprehensive search in class...');
+      QuerySnapshot allStudents = await _firestore
           .collection('Schools/$schoolName/Classes/$className/Student_Details')
           .get();
 
-      for (QueryDocumentSnapshot studentDoc in studentsSnapshot.docs) {
-        String studentId = studentDoc.id;
+      print('   Total students in class: ${allStudents.docs.length}');
 
-        DocumentSnapshot personalInfoDoc = await _firestore
-            .doc('Schools/$schoolName/Classes/$className/Student_Details/$studentId/Personal_Information/Registered_Information')
-            .get();
+      for (var studentDoc in allStudents.docs) {
+        String docId = studentDoc.id;
+        if (docId.toUpperCase().contains(studentName.toUpperCase()) ||
+            studentName.toUpperCase().contains(docId.toUpperCase())) {
+          print('   🎯 Potential match found: $docId');
 
-        if (personalInfoDoc.exists) {
-          Map<String, dynamic> data = personalInfoDoc.data() as Map<String, dynamic>;
-          if (_validateStudentData(data, name1, name2, studentClass)) {
-            await _saveStudentData(data, className, schoolName);
-            return true;
+          // Check personal info
+          try {
+            DocumentSnapshot personalInfo = await studentDoc.reference
+                .collection('Personal_Information')
+                .doc('Registered_Information')
+                .get();
+
+            if (personalInfo.exists) {
+              var data = personalInfo.data() as Map<String, dynamic>;
+              print('      Personal info: $data');
+            }
+          } catch (e) {
+            print('      Error reading personal info: $e');
           }
         }
       }
-      return false;
+
     } catch (e) {
-      print('Search students in class error: $e');
-      return false;
+      print('❌ Error in specific lookup: $e');
     }
   }
 
-  Future<bool> _fuzzySearchInClass(String schoolName, String className, String name1, String name2, String studentClass) async {
-    try {
-      QuerySnapshot studentsSnapshot = await _firestore
-          .collection('Schools/$schoolName/Classes/$className/Student_Details')
-          .get();
+  Future<void> runDebugTests() async {
+    // Uncomment the line below to run full structure debug
+    // await debugFirestoreStructure();
 
-      for (QueryDocumentSnapshot studentDoc in studentsSnapshot.docs) {
-        String studentId = studentDoc.id;
-
-        DocumentSnapshot personalInfoDoc = await _firestore
-            .doc('Schools/$schoolName/Classes/$className/Student_Details/$studentId/Personal_Information/Registered_Information')
-            .get();
-
-        if (personalInfoDoc.exists) {
-          Map<String, dynamic> data = personalInfoDoc.data() as Map<String, dynamic>;
-          if (_validateStudentDataFuzzy(data, name1, name2, studentClass)) {
-            await _saveStudentData(data, className, schoolName);
-            return true;
-          }
-        }
-      }
-      return false;
-    } catch (e) {
-      print('Fuzzy search in class error: $e');
-      return false;
-    }
+    // Test specific student - replace with actual values
+    await testSpecificStudentLookup('YOUR_SCHOOL_NAME', 'FORM 1', 'PETER JUMA');
   }
 
-  bool _validateStudentData(Map<String, dynamic> data, String name1, String name2, String studentClass) {
-    String dbFirstName = data['firstName']?.toString().toUpperCase() ?? '';
-    String dbLastName = data['lastName']?.toString().toUpperCase() ?? '';
 
-    return (dbFirstName == name1.toUpperCase() && dbLastName == name2.toUpperCase()) ||
-        (dbFirstName == name2.toUpperCase() && dbLastName == name1.toUpperCase());
-  }
 
-  bool _validateStudentDataFuzzy(Map<String, dynamic> data, String name1, String name2, String studentClass) {
-    String dbFirstName = data['firstName']?.toString().toUpperCase() ?? '';
-    String dbLastName = data['lastName']?.toString().toUpperCase() ?? '';
-
-    // Exact match first
-    if (_validateStudentData(data, name1, name2, studentClass)) {
-      return true;
-    }
-
-    // Fuzzy matching - check if names contain each other
-    return (dbFirstName.contains(name1.toUpperCase()) || name1.toUpperCase().contains(dbFirstName)) &&
-        (dbLastName.contains(name2.toUpperCase()) || name2.toUpperCase().contains(dbLastName));
-  }
-
-// Enhanced unified search method
-  Future<bool> _searchStudent(String name1, String name2, String studentClass, String schoolName) async {
-    // Method 1: Direct path search with school (fastest)
-    bool found = await _searchDirectPath(name1, name2, studentClass, schoolName);
-    if (found) return true;
-
-    // Method 2: Search within specified school only
-    found = await _searchWithinSchool(name1, name2, studentClass, schoolName);
-    if (found) return true;
-
-    // Method 3: Fuzzy search within specified school
-    found = await _fuzzySearchWithinSchool(name1, name2, studentClass, schoolName);
-    if (found) return true;
-
-    // Method 4: If school name might be wrong, search all schools (optional)
-    found = await _searchAllSchoolsAndClasses(name1, name2, studentClass);
-    return found;
-  }
-
-// Method 1: Direct path search with specific school
-  Future<bool> _searchDirectPath(String name1, String name2, String studentClass, String schoolName) async {
-    try {
-      // Try both name orders for direct path
-      List<String> nameOrders = ['$name1 $name2', '$name2 $name1'];
-
-      for (String fullName in nameOrders) {
-        String documentPath = 'Schools/$schoolName/Classes/${studentClass.toUpperCase()}/Student_Details/$fullName/Personal_Information/Registered_Information';
-
-        DocumentSnapshot doc = await _firestore.doc(documentPath).get();
-
-        if (doc.exists) {
-          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-          if (_validateStudentData(data, name1, name2, studentClass)) {
-            await _saveStudentData(data, studentClass, schoolName);
-            return true;
-          }
-        }
-      }
-      return false;
-    } catch (e) {
-      print('Direct path search error: $e');
-      return false;
-    }
-  }
-
-// Method 2: Search within specific school
-  Future<bool> _searchWithinSchool(String name1, String name2, String studentClass, String schoolName) async {
-    try {
-      // Check if school exists
-      DocumentSnapshot schoolDoc = await _firestore.doc('Schools/$schoolName').get();
-      if (!schoolDoc.exists) {
-        print('School not found: $schoolName');
-        return false;
-      }
-
-      QuerySnapshot classesSnapshot = await _firestore
-          .collection('Schools/$schoolName/Classes')
-          .get();
-
-      for (QueryDocumentSnapshot classDoc in classesSnapshot.docs) {
-        String className = classDoc.id;
-
-        // Skip if specific class was provided and this doesn't match
-        if (studentClass.isNotEmpty && className.toUpperCase() != studentClass.toUpperCase()) {
-          continue;
-        }
-
-        bool found = await _searchStudentsInClass(schoolName, className, name1, name2, studentClass);
-        if (found) return true;
-      }
-      return false;
-    } catch (e) {
-      print('School-specific search error: $e');
-      return false;
-    }
-  }
-
-// Method 3: Fuzzy search within specific school
-  Future<bool> _fuzzySearchWithinSchool(String name1, String name2, String studentClass, String schoolName) async {
-    try {
-      // Check if school exists
-      DocumentSnapshot schoolDoc = await _firestore.doc('Schools/$schoolName').get();
-      if (!schoolDoc.exists) {
-        print('School not found for fuzzy search: $schoolName');
-        return false;
-      }
-
-      QuerySnapshot classesSnapshot = await _firestore
-          .collection('Schools/$schoolName/Classes')
-          .get();
-
-      for (QueryDocumentSnapshot classDoc in classesSnapshot.docs) {
-        String className = classDoc.id;
-
-        // Skip if class doesn't match (with partial matching)
-        if (studentClass.isNotEmpty) {
-          bool classMatches = className.toUpperCase().contains(studentClass.toUpperCase()) ||
-              studentClass.toUpperCase().contains(className.toUpperCase());
-          if (!classMatches) continue;
-        }
-
-        bool found = await _fuzzySearchInClass(schoolName, className, name1, name2, studentClass);
-        if (found) return true;
-      }
-      return false;
-    } catch (e) {
-      print('Fuzzy search within school error: $e');
-      return false;
-    }
-  }
-
-// Enhanced save method with school name
-  Future<void> _saveStudentData(Map<String, dynamic> data, String studentClass, String schoolName) async {
-    String dbFirstName = data['firstName']?.toString() ?? '';
-    String dbLastName = data['lastName']?.toString() ?? '';
-    String fullName = '$dbFirstName $dbLastName';
-
-    ParentDataManager().setParentData(
-      studentName: fullName,
-      studentClass: studentClass,
-      schoolName: schoolName,  // Add school name
-      firstName: dbFirstName,
-      lastName: dbLastName,
-      studentDetails: data,
-    );
-
-    await ParentDataManager().saveToPreferences();
-  }
-
-// Helper method to get all schools (for dropdown/autocomplete)
-  Future<List<String>> getAllSchools() async {
-    try {
-      QuerySnapshot schoolsSnapshot = await _firestore.collection('Schools').get();
-      List<String> schools = [];
-
-      for (QueryDocumentSnapshot doc in schoolsSnapshot.docs) {
-        schools.add(doc.id);
-      }
-
-      schools.sort(); // Sort alphabetically
-      return schools;
-    } catch (e) {
-      print('Error getting schools: $e');
-      return [];
-    }
-  }
-
-// Helper method to get classes for a specific school
-  Future<List<String>> getClassesForSchool(String schoolName) async {
-    try {
-      QuerySnapshot classesSnapshot = await _firestore
-          .collection('Schools/$schoolName/Classes')
-          .get();
-
-      List<String> classes = [];
-      for (QueryDocumentSnapshot doc in classesSnapshot.docs) {
-        classes.add(doc.id);
-      }
-
-      classes.sort(); // Sort alphabetically
-      return classes;
-    } catch (e) {
-      print('Error getting classes for school $schoolName: $e');
-      return [];
-    }
-  }
 
   void _handleFirebaseAuthException(FirebaseAuthException e) {
     setState(() {
