@@ -5,18 +5,11 @@ import 'package:intl/intl.dart';
 import '../Log_In_And_Register_Screens/Login_Page.dart';
 
 class Student_Details_View extends StatefulWidget {
-  final String? schoolName;
-  final String? className;
-  final String? studentClass;
-  final String? studentName;
-
-  const Student_Details_View({
-    Key? key,
-    this.schoolName,
-    this.className,
-    this.studentClass,
-    this.studentName,
-  }) : super(key: key);
+  const Student_Details_View({Key? key,
+    required String schoolName,
+    required String className,
+    required String studentClass,
+    required String studentName}) : super(key: key);
 
   @override
   State<Student_Details_View> createState() => _Student_Details_ViewState();
@@ -28,12 +21,13 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
   // Student Information
   Map<String, dynamic>? studentPersonalInfo;
 
-  // Parent login data
-  String? parentStudentName;
-  String? parentStudentClass;
-  String? parentFirstName;
-  String? parentLastName;
-  Map<String, dynamic>? parentStudentDetails;
+  // Parent login data from ParentDataManager
+  String? schoolName;
+  String? studentName;
+  String? studentClass;
+  String? firstName;
+  String? lastName;
+  Map<String, dynamic>? studentDetails;
 
   // Loading states
   bool _isLoadingStudent = true;
@@ -59,36 +53,43 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
       // Load parent data from ParentDataManager
       await ParentDataManager().loadFromPreferences();
 
-      parentStudentName = ParentDataManager().studentName;
-      parentStudentClass = ParentDataManager().studentClass;
-      parentFirstName = ParentDataManager().firstName;
-      parentLastName = ParentDataManager().lastName;
-      parentStudentDetails = ParentDataManager().studentDetails;
+      schoolName = ParentDataManager().schoolName;
+      studentName = ParentDataManager().studentName;
+      studentClass = ParentDataManager().studentClass;
+      firstName = ParentDataManager().firstName;
+      lastName = ParentDataManager().lastName;
+      studentDetails = ParentDataManager().studentDetails;
 
       print('=== PARENT LOGIN DATA ===');
-      print('Student Name: $parentStudentName');
-      print('Student Class: $parentStudentClass');
-      print('First Name: $parentFirstName');
-      print('Last Name: $parentLastName');
+      print('School Name: $schoolName');
+      print('Student Name: $studentName');
+      print('Student Class: $studentClass');
+      print('First Name: $firstName');
+      print('Last Name: $lastName');
 
-      // Use parent data if available, otherwise fall back to widget parameters
-      final String effectiveStudentName = parentStudentName ?? widget.studentName ?? '';
-      final String effectiveStudentClass = parentStudentClass ?? widget.studentClass ?? '';
+      // Validate required data
+      if (schoolName == null || schoolName!.isEmpty) {
+        throw Exception('School name not available from parent login data');
+      }
 
-      if (effectiveStudentName.isEmpty) {
-        throw Exception('No student name available from parent login or widget parameters');
+      if (studentName == null || studentName!.isEmpty) {
+        throw Exception('Student name not available from parent login data');
+      }
+
+      if (studentClass == null || studentClass!.isEmpty) {
+        throw Exception('Student class not available from parent login data');
       }
 
       // If we already have student details from parent login, use them
-      if (parentStudentDetails != null && parentStudentDetails!.isNotEmpty) {
+      if (studentDetails != null && studentDetails!.isNotEmpty) {
         print('Using cached parent student details');
         setState(() {
-          studentPersonalInfo = parentStudentDetails;
+          studentPersonalInfo = studentDetails;
           _isLoadingStudent = false;
         });
       } else {
-        // Fetch student personal information only
-        await _fetchStudentPersonalInfo(effectiveStudentName, effectiveStudentClass);
+        // Fetch student personal information from Firestore
+        await _fetchStudentPersonalInfo();
       }
 
     } catch (e) {
@@ -101,65 +102,220 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     }
   }
 
-  // Fetch only student personal information
-  Future<void> _fetchStudentPersonalInfo(String studentName, String studentClass) async {
+  // Fetch student personal information using ParentDataManager data
+  Future<void> _fetchStudentPersonalInfo() async {
     try {
       print('=== FETCHING STUDENT PERSONAL INFO ===');
+      print('School: "$schoolName"');
       print('Student: "$studentName"');
       print('Class: "$studentClass"');
 
-      // Try the most common school first
-      final String schoolName = 'Bwaila Secondary School';
-      final String basePath = 'Schools/$schoolName/Classes/$studentClass/Student_Details/$studentName';
+      // Try different path strategies based on how the data was saved during login
+      List<String> possiblePaths = [
+        'Schools/$schoolName/Classes/$studentClass/Student_Details/$studentName',
+      ];
 
-      print('Base path: $basePath');
-
-      // Check if the main student document exists first
-      final DocumentSnapshot mainStudentDoc = await _firestore.doc(basePath).get();
-
-      if (!mainStudentDoc.exists) {
-        throw Exception('Student document not found at: $basePath');
+      // Also try with different name variations if the original fails
+      if (firstName != null && lastName != null) {
+        possiblePaths.addAll([
+          'Schools/$schoolName/Classes/$studentClass/Student_Details/$firstName $lastName',
+          'Schools/$schoolName/Classes/$studentClass/Student_Details/${firstName!.toUpperCase()} ${lastName!.toUpperCase()}',
+        ]);
       }
 
-      // Fetch Personal Information only
-      final String personalInfoPath = '$basePath/Personal_Information/Registered_Information';
-      final DocumentSnapshot personalInfoDoc = await _firestore.doc(personalInfoPath).get();
+      Map<String, dynamic>? personalData;
+      String? successfulPath;
 
-      if (!personalInfoDoc.exists) {
-        throw Exception('Personal information not found at: $personalInfoPath');
+      // Try each possible path
+      for (String basePath in possiblePaths) {
+        try {
+          print('Trying path: $basePath');
+
+          final DocumentSnapshot mainStudentDoc = await _firestore.doc(basePath).get();
+
+          if (mainStudentDoc.exists) {
+            print('✅ Found student document at: $basePath');
+
+            // Fetch Personal Information
+            final String personalInfoPath = '$basePath/Personal_Information/Registered_Information';
+            final DocumentSnapshot personalInfoDoc = await _firestore.doc(personalInfoPath).get();
+
+            if (personalInfoDoc.exists) {
+              personalData = personalInfoDoc.data() as Map<String, dynamic>;
+              successfulPath = personalInfoPath;
+              print('✅ Found personal information at: $personalInfoPath');
+              break; // Success - exit the loop
+            } else {
+              print('⚠️ Student document exists but no personal information at: $personalInfoPath');
+            }
+          } else {
+            print('❌ No document found at: $basePath');
+          }
+        } catch (e) {
+          print('❌ Error trying path $basePath: $e');
+          continue; // Try next path
+        }
       }
 
-      // Process the fetched personal data only
-      Map<String, dynamic> personalData = personalInfoDoc.data() as Map<String, dynamic>;
+      if (personalData != null && successfulPath != null) {
+        // Save the fetched data back to ParentDataManager for future use
+        ParentDataManager().setParentData(
+          schoolName: schoolName!,
+          studentName: studentName!,
+          studentClass: studentClass!,
+          firstName: firstName,
+          lastName: lastName,
+          studentDetails: personalData,
+        );
+        await ParentDataManager().saveToPreferences();
 
-      setState(() {
-        studentPersonalInfo = personalData;
-        _actualPath = personalInfoPath;
-        _isLoadingStudent = false;
-      });
+        setState(() {
+          studentPersonalInfo = personalData;
+          _actualPath = successfulPath;
+          _isLoadingStudent = false;
+        });
 
-      print('✅ Student personal information loaded successfully!');
-      print('Personal Info keys: ${personalData.keys.toList()}');
+        print('✅ Student personal information loaded and cached successfully!');
+        print('Personal Info keys: ${personalData.keys.toList()}');
+      } else {
+        throw Exception('Student personal information not found in any expected location');
+      }
 
     } catch (e) {
-      // If exact path fails, try to debug what's available
-      await _debugAvailableData(studentName, studentClass);
+      print('❌ All direct paths failed, trying comprehensive search...');
 
-      setState(() {
-        _hasError = true;
-        _errorMessage = 'Error loading student data: $e';
-        _isLoadingStudent = false;
-      });
-      print('Error fetching student data: $e');
+      // If direct paths fail, try comprehensive search
+      Map<String, dynamic>? searchResult = await _comprehensiveStudentSearch();
+
+      if (searchResult != null) {
+        setState(() {
+          studentPersonalInfo = searchResult;
+          _isLoadingStudent = false;
+        });
+        print('✅ Student found via comprehensive search!');
+      } else {
+        // If comprehensive search also fails, try to debug what's available
+        await _debugAvailableData();
+
+        setState(() {
+          _hasError = true;
+          _errorMessage = 'Error loading student data: $e';
+          _isLoadingStudent = false;
+        });
+        print('Error fetching student data: $e');
+      }
     }
   }
 
-  // Debug method to check what data exists
-  Future<void> _debugAvailableData(String studentName, String studentClass) async {
+  // Comprehensive search method when direct paths fail
+  Future<Map<String, dynamic>?> _comprehensiveStudentSearch() async {
+    try {
+      print('🔍 Starting comprehensive student search...');
+
+      QuerySnapshot allStudents = await _firestore
+          .collection('Schools/$schoolName/Classes/$studentClass/Student_Details')
+          .get();
+
+      print('📊 Found ${allStudents.docs.length} students in class');
+
+      // Prepare search terms
+      List<String> searchTerms = [studentName!.toUpperCase()];
+      if (firstName != null && lastName != null) {
+        searchTerms.addAll([
+          '$firstName $lastName'.toUpperCase(),
+          '$lastName $firstName'.toUpperCase(),
+          firstName!.toUpperCase(),
+          lastName!.toUpperCase(),
+        ]);
+      }
+
+      for (var studentDoc in allStudents.docs) {
+        String docId = studentDoc.id;
+        print('🔍 Checking student: $docId');
+
+        try {
+          DocumentSnapshot personalInfo = await studentDoc.reference
+              .collection('Personal_Information')
+              .doc('Registered_Information')
+              .get();
+
+          if (personalInfo.exists) {
+            var data = personalInfo.data() as Map<String, dynamic>;
+
+            // Get names from the data
+            String? dbFirstName = data['firstName']?.toString().toUpperCase();
+            String? dbLastName = data['lastName']?.toString().toUpperCase();
+            String? dbFullName = data['studentName']?.toString().toUpperCase();
+            String docIdUpper = docId.toUpperCase();
+
+            print('   👤 Comparing with - First: $dbFirstName, Last: $dbLastName, Full: $dbFullName, DocID: $docIdUpper');
+
+            // Check if any search term matches
+            for (String searchTerm in searchTerms) {
+              bool isMatch = false;
+
+              // Check various matching scenarios
+              if (dbFirstName != null && dbLastName != null) {
+                String dbFullNameCombined = '$dbFirstName $dbLastName';
+                if (dbFullNameCombined == searchTerm ||
+                    '$dbLastName $dbFirstName' == searchTerm) {
+                  isMatch = true;
+                }
+              }
+
+              if (!isMatch && dbFullName != null && dbFullName.contains(searchTerm)) {
+                isMatch = true;
+              }
+
+              if (!isMatch && docIdUpper.contains(searchTerm)) {
+                isMatch = true;
+              }
+
+              if (isMatch) {
+                print('   ✅ MATCH FOUND for search term: $searchTerm');
+
+                // Save the successful path info for debugging
+                _actualPath = 'Schools/$schoolName/Classes/$studentClass/Student_Details/$docId/Personal_Information/Registered_Information';
+
+                // Update ParentDataManager with the correct information
+                ParentDataManager().setParentData(
+                  schoolName: schoolName!,
+                  studentName: docId, // Use the actual document ID
+                  studentClass: studentClass!,
+                  firstName: dbFirstName?.toLowerCase().split(' ').map((word) => word.isNotEmpty ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}' : '').join(' '),
+                  lastName: dbLastName?.toLowerCase().split(' ').map((word) => word.isNotEmpty ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}' : '').join(' '),
+                  studentDetails: data,
+                );
+                await ParentDataManager().saveToPreferences();
+
+                return data;
+              }
+            }
+          }
+        } catch (e) {
+          print('   ❌ Error checking student $docId: $e');
+          continue;
+        }
+      }
+
+      print('❌ No matching student found in comprehensive search');
+      return null;
+
+    } catch (e) {
+      print('❌ Error in comprehensive search: $e');
+      return null;
+    }
+  }
+
+  // Debug method to check what data exists using ParentDataManager data
+  Future<void> _debugAvailableData() async {
     try {
       print('=== DEBUGGING AVAILABLE DATA ===');
 
-      final String schoolName = 'Bwaila Secondary School';
+      if (schoolName == null || schoolName!.isEmpty) {
+        print('❌ No school name available from ParentDataManager');
+        return;
+      }
 
       // Check if school exists
       final DocumentSnapshot schoolDoc = await _firestore
@@ -168,6 +324,18 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
 
       if (!schoolDoc.exists) {
         print('❌ School not found: $schoolName');
+
+        // List available schools
+        final QuerySnapshot schoolsSnapshot = await _firestore
+            .collection('Schools')
+            .get();
+
+        if (schoolsSnapshot.docs.isNotEmpty) {
+          print('Available schools:');
+          for (var doc in schoolsSnapshot.docs) {
+            print('  - ${doc.id}');
+          }
+        }
         return;
       }
 
@@ -209,7 +377,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
         }
 
         // Check for similar names
-        final String targetName = studentName.toLowerCase().trim();
+        final String targetName = studentName!.toLowerCase().trim();
         final List<String> similarNames = studentsSnapshot.docs
             .where((doc) => doc.id.toLowerCase().trim() == targetName)
             .map((doc) => doc.id)
@@ -227,16 +395,6 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     } catch (e) {
       print('Error in debug: $e');
     }
-  }
-
-  // Helper method to get effective student name
-  String _getEffectiveStudentName() {
-    return parentStudentName ?? widget.studentName ?? 'Unknown Student';
-  }
-
-  // Helper method to get effective student class
-  String _getEffectiveStudentClass() {
-    return parentStudentClass ?? widget.studentClass ?? 'Unknown Class';
   }
 
   // Helper method to format date
@@ -339,7 +497,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Clean white background
+      backgroundColor: Colors.white,
       appBar: _buildAppBar(),
       body: _isLoadingStudent
           ? const Center(
@@ -359,12 +517,11 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     );
   }
 
-
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      title: const Text(
-        'Student Registration Information',
-        style: TextStyle(
+      title: Text(
+        'Student Details',
+        style: const TextStyle(
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
@@ -395,19 +552,16 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Parent Login Data:', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('Student Name: ${parentStudentName ?? "N/A"}'),
-              Text('Student Class: ${parentStudentClass ?? "N/A"}'),
-              Text('First Name: ${parentFirstName ?? "N/A"}'),
-              Text('Last Name: ${parentLastName ?? "N/A"}'),
-              const SizedBox(height: 10),
-              const Text('Widget Parameters:', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('School: ${widget.schoolName ?? "N/A"}'),
-              Text('Class: ${widget.studentClass ?? "N/A"}'),
-              Text('Student: ${widget.studentName ?? "N/A"}'),
+              const Text('ParentDataManager Data:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('School Name: ${schoolName ?? "N/A"}'),
+              Text('Student Name: ${studentName ?? "N/A"}'),
+              Text('Student Class: ${studentClass ?? "N/A"}'),
+              Text('First Name: ${firstName ?? "N/A"}'),
+              Text('Last Name: ${lastName ?? "N/A"}'),
+              Text('Has Student Details: ${studentDetails != null ? "Yes" : "No"}'),
               const SizedBox(height: 10),
               if (_actualPath != null) ...[
-                const Text('Successful Path:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Successful Firestore Path:', style: TextStyle(fontWeight: FontWeight.bold)),
                 Text(_actualPath!, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
                 const SizedBox(height: 10),
               ],
@@ -427,10 +581,6 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
       ),
     );
   }
-
-
-
-
 
   Widget _buildErrorWidget() {
     return Center(
@@ -503,6 +653,14 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -518,24 +676,36 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
                 child: const Icon(Icons.person, color: Colors.white),
               ),
               const SizedBox(width: 16),
-              const Expanded(
-                child: Text(
-                  'Student Registration Information',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueAccent,
-                  ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Student Registration Information',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blueAccent,
+                      ),
+                    ),
+                    Text(
+                      schoolName ?? 'Unknown School',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 20),
           if (studentPersonalInfo != null) ...[
-            _buildInfoRow('First Name', studentPersonalInfo!['firstName'] ?? parentFirstName ?? 'N/A', Icons.person_outline),
-            _buildInfoRow('Last Name', studentPersonalInfo!['lastName'] ?? parentLastName ?? 'N/A', Icons.person_outline),
+            _buildInfoRow('First Name', studentPersonalInfo!['firstName'] ?? firstName ?? 'N/A', Icons.person_outline),
+            _buildInfoRow('Last Name', studentPersonalInfo!['lastName'] ?? lastName ?? 'N/A', Icons.person_outline),
             _buildInfoRow('Student ID', studentPersonalInfo!['studentID'] ?? 'N/A', Icons.numbers),
-            _buildInfoRow('Class', studentPersonalInfo!['studentClass'] ?? _getEffectiveStudentClass(), Icons.school),
+            _buildInfoRow('Class', studentPersonalInfo!['studentClass'] ?? studentClass ?? 'N/A', Icons.school),
             _buildInfoRow('Gender', studentPersonalInfo!['studentGender'] ?? 'N/A', Icons.wc),
             _buildInfoRow('Date of Birth', _formatDate(studentPersonalInfo!['studentDOB']), Icons.cake),
             _buildInfoRow('Age', _formatAge(studentPersonalInfo!['studentAge']), Icons.timeline),
@@ -554,6 +724,4 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
       ),
     );
   }
-
-
 }

@@ -893,7 +893,6 @@ class _Login_PageState extends State<Login_Page> {
     }
   }
 
-
   Future<void> _parentLogin() async {
     _clearAllErrors();
 
@@ -927,7 +926,7 @@ class _Login_PageState extends State<Login_Page> {
     });
 
     try {
-      bool isValidStudent = await _validateStudentInFirebase(
+      Map<String, dynamic>? studentData = await _validateStudentInFirebase(
           studentName.trim(),
           studentClass.trim(),
           schoolName.trim()
@@ -937,8 +936,33 @@ class _Login_PageState extends State<Login_Page> {
         _showSpinner = false;
       });
 
-      if (isValidStudent) {
+      if (studentData != null) {
         print('✅ LOGIN SUCCESS: Student found and validated');
+
+        // Save all login data to ParentDataManager
+        List<String> nameParts = studentName.toUpperCase().split(' ');
+        String firstName = nameParts.isNotEmpty ? nameParts[0] : '';
+        String lastName = nameParts.length > 1 ? nameParts[1] : '';
+
+        // Set parent data with complete information
+        ParentDataManager().setParentData(
+          schoolName: schoolName.trim(),
+          studentName: studentName.trim(),
+          studentClass: studentClass.trim(),
+          firstName: firstName,
+          lastName: lastName,
+          studentDetails: studentData,
+        );
+
+        // Save to SharedPreferences for persistence
+        await ParentDataManager().saveToPreferences();
+
+        print('✅ Parent data saved to ParentDataManager');
+        print('School: ${schoolName.trim()}');
+        print('Student: ${studentName.trim()}');
+        print('Class: ${studentClass.trim()}');
+        print('Student Details Keys: ${studentData.keys.toList()}');
+
         Navigator.pushNamedAndRemoveUntil(
           context,
           Parent_Home_Page.id,
@@ -947,7 +971,7 @@ class _Login_PageState extends State<Login_Page> {
       } else {
         setState(() {
           _emptyStudentNameField = true;
-          _studentNameErrorMessage = "Student not found in the specified school and class";
+          _studentNameErrorMessage = "Student not found";
         });
         print('❌ LOGIN FAILED: Student not found');
       }
@@ -960,14 +984,14 @@ class _Login_PageState extends State<Login_Page> {
     }
   }
 
-  Future<bool> _validateStudentInFirebase(String studentName, String studentClass, String schoolName) async {
+  Future<Map<String, dynamic>?> _validateStudentInFirebase(String studentName, String studentClass, String schoolName) async {
     try {
       List<String> nameParts = studentName.toUpperCase().split(' ');
       if (nameParts.length < 2) {
         setState(() {
           _errorMessage = 'Please enter both first and last name (e.g., "John Doe")';
         });
-        return false;
+        return null;
       }
 
       String inputName1 = nameParts[0];
@@ -975,17 +999,15 @@ class _Login_PageState extends State<Login_Page> {
 
       print('🔍 Starting search for: $inputName1 $inputName2 in class: $studentClass at school: $schoolName');
 
-
-      // This is where you need to implement the actual student lookup
-
-      // Example implementation structure:
       try {
-        // Option 1: Direct document lookup
+        // Option 1: Direct document lookup using exact student name
         String studentPath = 'Schools/$schoolName/Classes/$studentClass/Student_Details/$studentName';
         DocumentSnapshot studentDoc = await _firestore.doc(studentPath).get();
 
         if (studentDoc.exists) {
-          // Verify student details from Personal_Information subcollection
+          print('✅ Found student document at: $studentPath');
+
+          // Try to get personal information
           DocumentSnapshot personalInfo = await studentDoc.reference
               .collection('Personal_Information')
               .doc('Registered_Information')
@@ -993,19 +1015,27 @@ class _Login_PageState extends State<Login_Page> {
 
           if (personalInfo.exists) {
             var data = personalInfo.data() as Map<String, dynamic>;
-            // Add your validation logic here based on the actual data structure
-            // For example, check if names match
-            return true; // Return true if validation passes
+            print('✅ Personal information found');
+            return data; // Return the complete student data
+          } else {
+            print('⚠️ Student document exists but no personal information found');
           }
+        } else {
+          print('❌ Direct document lookup failed for: $studentPath');
         }
 
         // Option 2: Search through all students in the class
+        print('🔍 Searching through all students in class...');
         QuerySnapshot allStudents = await _firestore
             .collection('Schools/$schoolName/Classes/$studentClass/Student_Details')
             .get();
 
+        print('📊 Found ${allStudents.docs.length} students in class');
+
         for (var studentDoc in allStudents.docs) {
-          // Check if this student matches the input
+          String docId = studentDoc.id;
+          print('🔍 Checking student: $docId');
+
           try {
             DocumentSnapshot personalInfo = await studentDoc.reference
                 .collection('Personal_Information')
@@ -1015,32 +1045,67 @@ class _Login_PageState extends State<Login_Page> {
             if (personalInfo.exists) {
               var data = personalInfo.data() as Map<String, dynamic>;
 
-              // Example validation - adjust based on your data structure
+              // Get names from the data
               String? firstName = data['firstName']?.toString().toUpperCase();
               String? lastName = data['lastName']?.toString().toUpperCase();
+              String? fullStudentName = data['studentName']?.toString().toUpperCase();
 
+              print('   👤 Student data - First: $firstName, Last: $lastName, Full: $fullStudentName');
+
+              // Check multiple matching scenarios
+              bool nameMatch = false;
+
+              // Scenario 1: Direct first and last name match
               if (firstName != null && lastName != null) {
                 if ((firstName == inputName1 && lastName == inputName2) ||
                     (firstName == inputName2 && lastName == inputName1)) {
-                  return true; // Student found and validated
+                  nameMatch = true;
+                  print('   ✅ Match found via firstName/lastName');
                 }
               }
+
+              // Scenario 2: Full student name contains both input names
+              if (!nameMatch && fullStudentName != null) {
+                if (fullStudentName.contains(inputName1) && fullStudentName.contains(inputName2)) {
+                  nameMatch = true;
+                  print('   ✅ Match found via full studentName');
+                }
+              }
+
+              // Scenario 3: Document ID matches the input
+              if (!nameMatch) {
+                String docIdUpper = docId.toUpperCase();
+                if (docIdUpper.contains(inputName1) && docIdUpper.contains(inputName2)) {
+                  nameMatch = true;
+                  print('   ✅ Match found via document ID');
+                }
+              }
+
+              if (nameMatch) {
+                print('🎯 STUDENT VALIDATED SUCCESSFULLY!');
+                print('   Document ID: $docId');
+                print('   Data: $data');
+                return data; // Return the complete student data
+              }
+            } else {
+              print('   ❌ No personal information for student: $docId');
             }
           } catch (e) {
-            print('Error checking student ${studentDoc.id}: $e');
+            print('   ❌ Error checking student $docId: $e');
             continue; // Continue to next student
           }
         }
 
         // If we reach here, student was not found
-        return false;
+        print('❌ Student not found after comprehensive search');
+        return null;
 
       } catch (e) {
         print('❌ Firebase query error: $e');
         setState(() {
           _errorMessage = 'Search failed due to database error. Please try again.';
         });
-        return false;
+        return null;
       }
 
     } catch (e) {
@@ -1048,10 +1113,9 @@ class _Login_PageState extends State<Login_Page> {
       setState(() {
         _errorMessage = 'Search failed due to network error. Please try again.';
       });
-      return false;
+      return null;
     }
   }
-
 
   Future<void> debugFirestoreStructure() async {
     try {
@@ -1172,6 +1236,19 @@ class _Login_PageState extends State<Login_Page> {
         if (subDoc.exists) {
           var data = subDoc.data() as Map<String, dynamic>;
           print('   Sub-document data: $data');
+
+          // Save this data to ParentDataManager for testing
+          List<String> nameParts = studentName.split(' ');
+          ParentDataManager().setParentData(
+            schoolName: schoolName,
+            studentName: studentName,
+            studentClass: className,
+            firstName: nameParts.isNotEmpty ? nameParts[0] : null,
+            lastName: nameParts.length > 1 ? nameParts[1] : null,
+            studentDetails: data,
+          );
+          await ParentDataManager().saveToPreferences();
+          print('   ✅ Data saved to ParentDataManager');
         }
       }
 
@@ -1218,9 +1295,6 @@ class _Login_PageState extends State<Login_Page> {
     // Test specific student - replace with actual values
     await testSpecificStudentLookup('YOUR_SCHOOL_NAME', 'FORM 1', 'PETER JUMA');
   }
-
-
-
 
   void _handleFirebaseAuthException(FirebaseAuthException e) {
     setState(() {
