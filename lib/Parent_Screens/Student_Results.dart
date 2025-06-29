@@ -43,22 +43,6 @@ class _Student_ResultsState extends State<Student_Results> {
   bool hasError = false;
   String? errorMessage;
 
-  // Term date mappings
-  Map<String, Map<String, String>> termDates = {
-    'TERM_ONE': {
-      'start_date': '01-09-2024',
-      'end_date': '31-12-2024',
-    },
-    'TERM_TWO': {
-      'start_date': '01-01-2025',
-      'end_date': '20-03-2025',
-    },
-    'TERM_THREE': {
-      'start_date': '01-04-2025',
-      'end_date': '30-08-2025',
-    },
-  };
-
   @override
   void initState() {
     super.initState();
@@ -200,33 +184,35 @@ class _Student_ResultsState extends State<Student_Results> {
     try {
       List<String> terms = ['TERM_ONE', 'TERM_TWO', 'TERM_THREE'];
 
-      // Always create entries for all terms, even if no data exists
-      for (String term in terms) {
+      // Use Future.wait to fetch all terms in parallel
+      List<Future<Map<String, dynamic>>> termFutures = terms.map((term) async {
+        String termPath = '$studentPath/Academic_Performance/$academicYear/$term/Term_Info';
+
         try {
-          Map<String, dynamic> termData = await _fetchTermDataOptimized(studentPath, academicYear, term);
+          // Quick check if term exists
+          DocumentSnapshot termSummaryDoc = await _firestore
+              .doc('$termPath/Term_Summary/Summary')
+              .get();
 
-          // If no data exists, create default structure with N/A values
-          if (termData.isEmpty) {
-            termData = _createDefaultTermData();
+          if (termSummaryDoc.exists) {
+            Map<String, dynamic> termData = await _fetchTermDataOptimized(studentPath, academicYear, term);
+            return {term: termData};
           }
-
-          // Add term dates to the data
-          termData['term_dates'] = termDates[term] ?? {
-            'start_date': 'N/A',
-            'end_date': 'N/A',
-          };
-
-          classResults[term] = termData;
         } catch (e) {
-          print("Error fetching term $term: $e");
-          // Create default data even on error
-          classResults[term] = {
-            ..._createDefaultTermData(),
-            'term_dates': termDates[term] ?? {
-              'start_date': 'N/A',
-              'end_date': 'N/A',
-            },
-          };
+          print("Error checking term $term: $e");
+        }
+        return <String, dynamic>{};
+      }).toList();
+
+      List<Map<String, dynamic>> termResults = await Future.wait(termFutures);
+
+      for (var termResult in termResults) {
+        if (termResult.isNotEmpty) {
+          String term = termResult.keys.first;
+          Map<String, dynamic> data = termResult[term];
+          if (data.isNotEmpty) {
+            classResults[term] = data;
+          }
         }
       }
     } catch (e) {
@@ -234,24 +220,6 @@ class _Student_ResultsState extends State<Student_Results> {
     }
 
     return classResults;
-  }
-
-  Map<String, dynamic> _createDefaultTermData() {
-    return {
-      'subjects': <Map<String, dynamic>>[],
-      'totalMarks': {
-        'Student_Total_Marks': 'N/A',
-        'Student_Class_Position': 'N/A',
-        'Average_Grade_Letter': 'N/A',
-        'Total_Class_Students_Number': 'N/A',
-        'Average_Percentage': 'N/A',
-        'JCE_Status': 'N/A',
-      },
-      'remarks': {
-        'Form_Teacher_Remark': 'N/A',
-        'Head_Teacher_Remark': 'N/A',
-      },
-    };
   }
 
   Future<Map<String, dynamic>> _fetchTermDataOptimized(String studentPath, String academicYear, String term) async {
@@ -279,36 +247,30 @@ class _Student_ResultsState extends State<Student_Results> {
       DocumentSnapshot totalMarksDoc = results[2] as DocumentSnapshot;
       DocumentSnapshot remarksDoc = results[3] as DocumentSnapshot;
 
-      // Process subjects with proper position data and N/A defaults
+      // Process subjects with proper position data
       List<Map<String, dynamic>> subjects = [];
-      if (subjectsSnapshot.docs.isNotEmpty) {
-        for (var doc in subjectsSnapshot.docs) {
-          final data = doc.data() as Map<String, dynamic>;
-
-          // Handle score with N/A default
-          String scoreStr = 'N/A';
-          int score = 0;
-          if (data['Subject_Grade'] != null && data['Subject_Grade'] != 'N/A' && data['Subject_Grade'] != '') {
-            score = double.tryParse(data['Subject_Grade'].toString())?.round() ?? 0;
-            scoreStr = score.toString();
-          }
-
-          // Get position data from the document with N/A defaults
-          String position = data['Subject_Position']?.toString() ?? 'N/A';
-          String totalStudents = data['Total_Students_Subject']?.toString() ?? 'N/A';
-          String gradeLetter = data['Grade_Letter'] ?? (score > 0 ? _getGradeFromPercentage(score.toDouble()) : 'N/A');
-
-          subjects.add({
-            'subject': data['Subject_Name'] ?? doc.id,
-            'score': scoreStr,
-            'position': position,
-            'totalStudents': totalStudents,
-            'gradeLetter': gradeLetter,
-          });
+      for (var doc in subjectsSnapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        int score = 0;
+        if (data['Subject_Grade'] != null && data['Subject_Grade'] != 'N/A') {
+          score = double.tryParse(data['Subject_Grade'].toString())?.round() ?? 0;
         }
+
+        // Get position data from the document
+        int position = data['Subject_Position'] ?? 0;
+        int totalStudents = data['Total_Students_Subject'] ?? 0;
+        String gradeLetter = data['Grade_Letter'] ?? _getGradeFromPercentage(score.toDouble());
+
+        subjects.add({
+          'subject': data['Subject_Name'] ?? doc.id,
+          'score': score,
+          'position': position,
+          'totalStudents': totalStudents,
+          'gradeLetter': gradeLetter,
+        });
       }
 
-      // Process other data with N/A defaults
+      // Process other data
       Map<String, dynamic> termSummary = {};
       if (termSummaryDoc.exists) {
         termSummary = termSummaryDoc.data() as Map<String, dynamic>;
@@ -324,30 +286,18 @@ class _Student_ResultsState extends State<Student_Results> {
         remarks = remarksDoc.data() as Map<String, dynamic>;
       }
 
-      // Combine marks with N/A defaults
       Map<String, dynamic> combinedMarks = {
-        'Student_Total_Marks': totalMarks['Student_Total_Marks'] ?? termSummary['Student_Total_Marks'] ?? 'N/A',
-        'Student_Class_Position': totalMarks['Student_Class_Position'] ?? termSummary['Student_Class_Position'] ?? 'N/A',
-        'Average_Grade_Letter': totalMarks['Average_Grade_Letter'] ?? termSummary['Average_Grade_Letter'] ?? 'N/A',
-        'Total_Class_Students_Number': totalMarks['Total_Class_Students_Number'] ?? termSummary['Total_Class_Students_Number'] ?? 'N/A',
-        'Average_Percentage': totalMarks['Average_Percentage'] ?? termSummary['Average_Percentage'] ?? 'N/A',
-        'JCE_Status': totalMarks['JCE_Status'] ?? termSummary['JCE_Status'] ?? 'N/A',
-      };
-
-      // Remarks with N/A defaults
-      Map<String, dynamic> processedRemarks = {
-        'Form_Teacher_Remark': remarks['Form_Teacher_Remark'] ?? 'N/A',
-        'Head_Teacher_Remark': remarks['Head_Teacher_Remark'] ?? 'N/A',
+        ...totalMarks,
+        ...termSummary,
       };
 
       termData = {
         'subjects': subjects,
         'totalMarks': combinedMarks,
-        'remarks': processedRemarks,
+        'remarks': remarks,
       };
     } catch (e) {
       print("Error fetching term data for $term: $e");
-      // Return empty map, will be handled by calling function
     }
 
     return termData;
@@ -381,7 +331,6 @@ class _Student_ResultsState extends State<Student_Results> {
       case 'B': return 'VERY GOOD';
       case 'C': return 'GOOD';
       case 'D': return 'PASS';
-      case 'N/A': return 'N/A';
       default: return 'FAIL';
     }
   }
@@ -420,7 +369,6 @@ class _Student_ResultsState extends State<Student_Results> {
               style: TextStyle(
                 color: Colors.blueAccent,
                 fontSize: 22,
-                fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
               ),
             ),
@@ -559,19 +507,15 @@ class _Student_ResultsState extends State<Student_Results> {
     String firstClassName = yearData.keys.first;
     Map<String, dynamic> classData = yearData[firstClassName]!;
 
-    // Always show all three terms
-    List<String> allTerms = ['TERM_ONE', 'TERM_TWO', 'TERM_THREE'];
+    List<String> availableTerms = classData.keys.toList();
+    availableTerms.sort();
 
     return Container(
       margin: EdgeInsets.only(left: 16, right: 16, bottom: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: allTerms.map((term) {
+        children: availableTerms.map((term) {
           bool isSelected = selectedTerm == term;
-          bool hasData = classData.containsKey(term) &&
-              classData[term]['subjects'] != null &&
-              (classData[term]['subjects'] as List).isNotEmpty;
-
           return Expanded(
             child: Container(
               margin: EdgeInsets.symmetric(horizontal: 4),
@@ -588,33 +532,18 @@ class _Student_ResultsState extends State<Student_Results> {
                     color: isSelected ? Colors.blueAccent : Colors.white,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: hasData ? Colors.blueAccent : Colors.grey[400]!,
+                      color: Colors.blueAccent,
                       width: 1,
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      Text(
-                        _formatTermName(term),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: isSelected ? Colors.white : (hasData ? Colors.blueAccent : Colors.grey[600]),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      if (!hasData) ...[
-                        SizedBox(height: 2),
-                        Text(
-                          'No Data',
-                          style: TextStyle(
-                            fontSize: 8,
-                            color: isSelected ? Colors.white70 : Colors.grey[500],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ],
+                  child: Text(
+                    _formatTermName(term),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? Colors.white : Colors.blueAccent,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ),
@@ -643,7 +572,6 @@ class _Student_ResultsState extends State<Student_Results> {
     List<Map<String, dynamic>> subjects = List<Map<String, dynamic>>.from(termData['subjects'] ?? []);
     Map<String, dynamic> totalMarks = termData['totalMarks'] ?? {};
     Map<String, dynamic> remarks = termData['remarks'] ?? {};
-    Map<String, dynamic> termDatesInfo = termData['term_dates'] ?? {};
 
     return Container(
       margin: EdgeInsets.all(16),
@@ -690,17 +618,6 @@ class _Student_ResultsState extends State<Student_Results> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                if (termDatesInfo.isNotEmpty) ...[
-                  SizedBox(height: 8),
-                  Text(
-                    '${termDatesInfo['start_date']} to ${termDatesInfo['end_date']}',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
               ],
             ),
           ),
@@ -723,17 +640,8 @@ class _Student_ResultsState extends State<Student_Results> {
   }
 
   Widget _buildSubjectsTable(List<Map<String, dynamic>> subjects) {
-    // If no subjects data, show default N/A table
     if (subjects.isEmpty) {
-      subjects = [
-        {
-          'subject': 'No subjects available',
-          'score': 'N/A',
-          'position': 'N/A',
-          'totalStudents': 'N/A',
-          'gradeLetter': 'N/A',
-        }
-      ];
+      return Text('No subjects data available');
     }
 
     return Table(
@@ -757,16 +665,16 @@ class _Student_ResultsState extends State<Student_Results> {
           ],
         ),
         ...subjects.map((subject) {
-          String grade = subject['gradeLetter'] ?? 'N/A';
+          String grade = subject['gradeLetter'] ?? 'F';
           String comment = _getRemarkFromGrade(grade);
-          String position = subject['position']?.toString() ?? 'N/A';
-          String totalStudents = subject['totalStudents']?.toString() ?? 'N/A';
-          String positionText = (position != 'N/A' && totalStudents != 'N/A') ? '$position/$totalStudents' : 'N/A';
+          int position = subject['position'] ?? 0;
+          int totalStudents = subject['totalStudents'] ?? 0;
+          String positionText = totalStudents > 0 ? '$position/$totalStudents' : 'N/A';
 
           return TableRow(
             children: [
               _tableCell(subject['subject'] ?? 'Unknown'),
-              _tableCell(subject['score']?.toString() ?? 'N/A'),
+              _tableCell(subject['score']?.toString() ?? '0'),
               _tableCell(grade),
               _tableCell(positionText),
               _tableCell(comment),
@@ -795,7 +703,7 @@ class _Student_ResultsState extends State<Student_Results> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total Marks: ${totalMarks['Student_Total_Marks'] ?? 'N/A'}'),
+              Text('Total Marks: ${totalMarks['Student_Total_Marks'] ?? 0}'),
               Text('Position: ${totalMarks['Student_Class_Position'] ?? 'N/A'}'),
             ],
           ),
@@ -809,12 +717,11 @@ class _Student_ResultsState extends State<Student_Results> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Average %: ${_formatAverage(totalMarks['Average_Percentage'])}'),
+              Text('Average %: ${totalMarks['Average_Percentage']?.toStringAsFixed(1) ?? 'N/A'}'),
               Text(
                 'Status: ${totalMarks['JCE_Status'] ?? 'N/A'}',
                 style: TextStyle(
-                  color: (totalMarks['JCE_Status'] == 'PASS') ? Colors.green :
-                  (totalMarks['JCE_Status'] == 'N/A') ? Colors.grey : Colors.red,
+                  color: (totalMarks['JCE_Status'] == 'PASS') ? Colors.green : Colors.red,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -825,54 +732,45 @@ class _Student_ResultsState extends State<Student_Results> {
     );
   }
 
-  String _formatAverage(dynamic average) {
-    if (average == null || average == 'N/A') return 'N/A';
-    if (average is num) {
-      return average.toStringAsFixed(1);
-    }
-    return average.toString();
-  }
-
   Widget _buildRemarksSection(Map<String, dynamic> remarks) {
     return Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(12),
-    decoration: BoxDecoration(
-    borderRadius: BorderRadius.circular(8),
-    border: Border.all(color: Colors.blue[200]!),
-    ),
-    child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-    Text(
-    'REMARKS',
-    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-    ),
-    SizedBox(height: 8),
-    Text(
-    'Form Teacher: ${remarks['Form_Teacher_Remark'] ?? 'N/A'}',
-    style: TextStyle(fontSize: 14),
-    ),
-    SizedBox(height: 4),
-    Text(
-    'Head Teacher: ${remarks['Head_Teacher_Remark'] ?? 'N/A'}',
-    style: TextStyle(fontSize: 14),
-    ),
-
-    ],
-    ),
+      width: double.infinity,
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'REMARKS',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Form Teacher: ${remarks['Form_Teacher_Remark'] ?? 'N/A'}',
+            style: TextStyle(fontSize: 14),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Head Teacher: ${remarks['Head_Teacher_Remark'] ?? 'N/A'}',
+            style: TextStyle(fontSize: 14),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _tableCell(String text, {bool isHeader = false}) {
-    return Padding(
-      padding: EdgeInsets.all(8.0),
+    return Container(
+      padding: EdgeInsets.all(8),
+      color: isHeader ? Colors.grey[300] : Colors.white,
       child: Text(
         text,
         style: TextStyle(
           fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
           fontSize: isHeader ? 12 : 11,
-          color: isHeader ? Colors.blueAccent : Colors.black87,
         ),
         textAlign: TextAlign.center,
       ),
@@ -881,131 +779,36 @@ class _Student_ResultsState extends State<Student_Results> {
 
   Widget _buildErrorState() {
     return Center(
-      child: Container(
-        margin: EdgeInsets.all(20),
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.red[50],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.red[200]!),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              color: Colors.red,
-              size: 48,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Error Loading Results',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.red[700],
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              errorMessage ?? 'An unknown error occurred',
-              style: TextStyle(
-                color: Colors.red[600],
-                fontSize: 14,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  hasError = false;
-                  errorMessage = null;
-                });
-                _initializeData();
-              },
-              child: Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.red),
           SizedBox(height: 16),
           Text(
-            'Loading student results...',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.blueAccent,
-            ),
+            'Error Loading Results',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNoResultsState() {
-    return Center(
-      child: Container(
-        margin: EdgeInsets.all(20),
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[300]!),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.school_outlined,
-              color: Colors.grey[600],
-              size: 48,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'No Academic Results Found',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
-              ),
-            ),
+          SizedBox(height: 8),
+          Text(
+            errorMessage ?? 'An unknown error occurred',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.red),
+          ),
+          SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _initializeData,
+            child: Text('Try Again'),
+          ),
+          if (errorMessage?.contains('login') == true) ...[
             SizedBox(height: 8),
-            Text(
-              'No academic performance data is available for this student.',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
+            TextButton(
               onPressed: () {
-                _initializeData();
+                Navigator.pop(context);
               },
-              child: Text('Refresh'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                foregroundColor: Colors.white,
-              ),
+              child: Text('Go Back'),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -1013,47 +816,69 @@ class _Student_ResultsState extends State<Student_Results> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Student Results',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.blueAccent,
-        iconTheme: IconThemeData(color: Colors.white),
-        elevation: 0,
-      ),
       backgroundColor: Colors.grey[50],
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _initializeData,
-          child: SingleChildScrollView(
-            physics: AlwaysScrollableScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (hasError)
-                  _buildErrorState()
-                else if (isLoading)
-                  Container(
-                    height: MediaQuery.of(context).size.height * 0.7,
-                    child: _buildLoadingState(),
-                  )
-                else if (availableAcademicYears.isEmpty)
-                    Container(
-                      height: MediaQuery.of(context).size.height * 0.7,
-                      child: _buildNoResultsState(),
-                    )
-                  else ...[
-                      _buildStudentInfoHeader(),
-                      _buildAcademicYearsList(),
-                      if (selectedTerm != null) _buildTermDetails(),
-                    ],
-                SizedBox(height: 20),
-              ],
+      appBar: AppBar(
+        title: Text('Academic History'),
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
+        elevation: 2,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: () {
+              _initializeData();
+            },
+          ),
+        ],
+      ),
+      body: isLoading
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
             ),
+            SizedBox(height: 16),
+            Text('Loading academic history...'),
+          ],
+        ),
+      )
+          : hasError
+          ? _buildErrorState()
+          : RefreshIndicator(
+        onRefresh: _initializeData,
+        child: SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              _buildStudentInfoHeader(),
+              if (availableAcademicYears.isNotEmpty) ...[
+                _buildAcademicYearsList(),
+                if (selectedTerm != null) _buildTermDetails(),
+              ] else ...[
+                Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Column(
+                    children: [
+                      Icon(Icons.school_outlined, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'No academic records found for ${_studentName ?? widget.studentName}',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'School: ${_schoolName ?? 'Unknown'}',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              SizedBox(height: 20),
+            ],
           ),
         ),
       ),
