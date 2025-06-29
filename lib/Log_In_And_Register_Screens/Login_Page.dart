@@ -849,32 +849,27 @@ class _Login_PageState extends State<Login_Page> {
     }
   }
 
-  // Updated parent login method
+// Simplified parent login method
   Future<void> _parentLogin() async {
     _clearAllErrors();
 
     // Validate inputs
-    bool hasErrors = false;
-
     if (studentName.trim().isEmpty) {
       setState(() {
         _emptyStudentNameField = true;
         _studentNameErrorMessage = 'Student name is required';
       });
-      hasErrors = true;
+      return;
     }
-
-    if (hasErrors) return;
 
     setState(() {
       _showSpinner = true;
     });
 
     try {
-      // Allow empty class for system-wide search
       bool isValidStudent = await _validateStudentInFirebase(
           studentName.trim(),
-          studentClass.trim() // Can be empty for broader search
+          studentClass.trim()
       );
 
       setState(() {
@@ -882,7 +877,6 @@ class _Login_PageState extends State<Login_Page> {
       });
 
       if (isValidStudent) {
-        _showToast('Welcome! Student found successfully.');
 
         Navigator.pushNamedAndRemoveUntil(
           context,
@@ -891,7 +885,7 @@ class _Login_PageState extends State<Login_Page> {
         );
       } else {
         setState(() {
-          _errorMessage = "Student not found in the system.\n\nTips:\n• Enter full name (First Last)\n• Check spelling\n• Class field is optional for system-wide search";
+
           _emptyStudentNameField = true;
           _studentNameErrorMessage = "Student not found";
         });
@@ -905,6 +899,7 @@ class _Login_PageState extends State<Login_Page> {
     }
   }
 
+// Main validation method
   Future<bool> _validateStudentInFirebase(String studentName, String studentClass) async {
     try {
       List<String> nameParts = studentName.toUpperCase().split(' ');
@@ -915,20 +910,76 @@ class _Login_PageState extends State<Login_Page> {
         return false;
       }
 
-      String firstName = nameParts[0];
-      String lastName = nameParts[1];
+      String inputName1 = nameParts[0];
+      String inputName2 = nameParts[1];
+
+      print('Starting search for: $inputName1 $inputName2 in class: $studentClass');
 
       setState(() {
         _errorMessage = 'Searching for student...';
       });
 
-      // Search through all schools and classes
+      // Search using multiple methods
+      return await _searchStudent(inputName1, inputName2, studentClass);
+
+    } catch (e) {
+      print('Error validating student: $e');
+      setState(() {
+        _errorMessage = 'Search failed due to network error. Please try again.';
+      });
+      return false;
+    }
+  }
+
+// Unified search method that tries all approaches
+  Future<bool> _searchStudent(String name1, String name2, String studentClass) async {
+    // Method 1: Direct path search (fastest)
+    bool found = await _searchDirectPath(name1, name2, studentClass);
+    if (found) return true;
+
+    // Method 2: Comprehensive search through all schools and classes
+    found = await _searchAllSchoolsAndClasses(name1, name2, studentClass);
+    if (found) return true;
+
+    // Method 3: Fuzzy search for typos and partial matches
+    found = await _fuzzySearchStudent(name1, name2, studentClass);
+    return found;
+  }
+
+// Method 1: Direct path search
+  Future<bool> _searchDirectPath(String name1, String name2, String studentClass) async {
+    try {
+      // Try both name orders for direct path
+      List<String> nameOrders = ['$name1 $name2', '$name2 $name1'];
+
+      for (String fullName in nameOrders) {
+        String documentPath = 'Schools/Bwaila Secondary School/Classes/${studentClass.toUpperCase()}/Student_Details/$fullName/Personal_Information/Registered_Information';
+
+        DocumentSnapshot doc = await _firestore.doc(documentPath).get();
+
+        if (doc.exists) {
+          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+          if (_validateStudentData(data, name1, name2, studentClass)) {
+            await _saveStudentData(data, studentClass);
+            return true;
+          }
+        }
+      }
+      return false;
+    } catch (e) {
+      print('Direct path search error: $e');
+      return false;
+    }
+  }
+
+// Method 2: Comprehensive search through all schools and classes
+  Future<bool> _searchAllSchoolsAndClasses(String name1, String name2, String studentClass) async {
+    try {
       QuerySnapshot schoolsSnapshot = await _firestore.collection('Schools').get();
 
       for (QueryDocumentSnapshot schoolDoc in schoolsSnapshot.docs) {
         String schoolName = schoolDoc.id;
 
-        // Get all classes in this school
         QuerySnapshot classesSnapshot = await _firestore
             .collection('Schools/$schoolName/Classes')
             .get();
@@ -941,38 +992,25 @@ class _Login_PageState extends State<Login_Page> {
             continue;
           }
 
-          // Search students in this class
-          bool found = await _searchStudentsInClass(schoolName, className, firstName, lastName, studentClass);
+          bool found = await _searchStudentsInClass(schoolName, className, name1, name2, studentClass);
           if (found) return true;
         }
       }
-
       return false;
-
     } catch (e) {
-      print('Error validating student: $e');
-      setState(() {
-        _errorMessage = 'Search failed due to network error. Please try again.';
-      });
+      print('Comprehensive search error: $e');
       return false;
     }
   }
 
-  // Search students within a specific class
-  Future<bool> _searchStudentsInClass(
-      String schoolName,
-      String className,
-      String firstName,
-      String lastName,
-      String studentClass) async {
+// Search students within a specific class
+  Future<bool> _searchStudentsInClass(String schoolName, String className, String name1, String name2, String studentClass) async {
     try {
       String classPath = 'Schools/$schoolName/Classes/$className/Student_Details';
-
       QuerySnapshot studentsSnapshot = await _firestore.collection(classPath).get();
 
       for (QueryDocumentSnapshot studentDoc in studentsSnapshot.docs) {
         try {
-          // Look directly in Personal_Information/Registered_Information
           DocumentSnapshot registeredInfoDoc = await _firestore
               .doc('$classPath/${studentDoc.id}/Personal_Information/Registered_Information')
               .get();
@@ -980,40 +1018,191 @@ class _Login_PageState extends State<Login_Page> {
           if (registeredInfoDoc.exists) {
             Map<String, dynamic> data = registeredInfoDoc.data() as Map<String, dynamic>;
 
-            String dbFirstName = data['firstName']?.toString().toUpperCase() ?? '';
-            String dbLastName = data['lastName']?.toString().toUpperCase() ?? '';
-            String dbClass = data['studentClass']?.toString().toUpperCase() ?? '';
-
-            // Exact match for names
-            bool nameMatch = (dbFirstName == firstName && dbLastName == lastName);
-            bool classMatch = studentClass.isEmpty || (dbClass == studentClass.toUpperCase());
-
-            if (nameMatch && classMatch) {
-              // Save student data
-              String fullName = '$firstName $lastName';
-
-              ParentDataManager().setParentData(
-                studentName: fullName,
-                studentClass: studentClass.isEmpty ? className : studentClass,
-                firstName: firstName,
-                lastName: lastName,
-                studentDetails: data,
-              );
-
-              await ParentDataManager().saveToPreferences();
+            if (_validateStudentData(data, name1, name2, studentClass)) {
+              await _saveStudentData(data, studentClass.isEmpty ? className : studentClass);
               return true;
             }
           }
         } catch (e) {
-          print('Error checking student ${studentDoc.id}: $e');
           continue;
         }
       }
       return false;
     } catch (e) {
-      print('Class search error: $e');
       return false;
     }
+  }
+
+// Method 3: Fuzzy search for partial matches and typos
+  Future<bool> _fuzzySearchStudent(String name1, String name2, String studentClass) async {
+    try {
+      QuerySnapshot schoolsSnapshot = await _firestore.collection('Schools').get();
+
+      for (QueryDocumentSnapshot schoolDoc in schoolsSnapshot.docs) {
+        String schoolName = schoolDoc.id;
+
+        QuerySnapshot classesSnapshot = await _firestore
+            .collection('Schools/$schoolName/Classes')
+            .get();
+
+        for (QueryDocumentSnapshot classDoc in classesSnapshot.docs) {
+          String className = classDoc.id;
+
+          // Skip if class doesn't match (with partial matching)
+          if (studentClass.isNotEmpty) {
+            bool classMatches = className.toUpperCase().contains(studentClass.toUpperCase()) ||
+                studentClass.toUpperCase().contains(className.toUpperCase());
+            if (!classMatches) continue;
+          }
+
+          bool found = await _fuzzySearchInClass(schoolName, className, name1, name2, studentClass);
+          if (found) return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      print('Fuzzy search error: $e');
+      return false;
+    }
+  }
+
+// Fuzzy search within a specific class
+  Future<bool> _fuzzySearchInClass(String schoolName, String className, String name1, String name2, String studentClass) async {
+    try {
+      String classPath = 'Schools/$schoolName/Classes/$className/Student_Details';
+      QuerySnapshot studentsSnapshot = await _firestore.collection(classPath).get();
+
+      for (QueryDocumentSnapshot studentDoc in studentsSnapshot.docs) {
+        try {
+          DocumentSnapshot registeredInfoDoc = await _firestore
+              .doc('$classPath/${studentDoc.id}/Personal_Information/Registered_Information')
+              .get();
+
+          if (registeredInfoDoc.exists) {
+            Map<String, dynamic> data = registeredInfoDoc.data() as Map<String, dynamic>;
+
+            if (_fuzzyValidateStudentData(data, name1, name2, studentClass)) {
+              await _saveStudentData(data, studentClass.isEmpty ? className : studentClass);
+              return true;
+            }
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+// Smart validation - handles names in any order
+  bool _validateStudentData(Map<String, dynamic> data, String name1, String name2, String studentClass) {
+    String dbFirstName = data['firstName']?.toString().toUpperCase() ?? '';
+    String dbLastName = data['lastName']?.toString().toUpperCase() ?? '';
+    String dbClass = data['studentClass']?.toString().toUpperCase() ?? '';
+
+    // Create sets for flexible name matching (order doesn't matter)
+    Set<String> inputNames = {name1.trim(), name2.trim()};
+    Set<String> dbNames = {dbFirstName.trim(), dbLastName.trim()};
+
+    // Remove empty strings
+    inputNames.removeWhere((name) => name.isEmpty);
+    dbNames.removeWhere((name) => name.isEmpty);
+
+    // Names match if both sets contain the same names (regardless of order)
+    bool nameMatch = inputNames.length == dbNames.length &&
+        inputNames.every((name) => dbNames.contains(name));
+
+    bool classMatch = studentClass.isEmpty || (dbClass == studentClass.toUpperCase());
+
+    return nameMatch && classMatch;
+  }
+
+// Fuzzy validation - allows for typos and partial matches
+  bool _fuzzyValidateStudentData(Map<String, dynamic> data, String name1, String name2, String studentClass) {
+    String dbFirstName = data['firstName']?.toString().toUpperCase() ?? '';
+    String dbLastName = data['lastName']?.toString().toUpperCase() ?? '';
+    String dbClass = data['studentClass']?.toString().toUpperCase() ?? '';
+
+    Set<String> inputNames = {name1.trim(), name2.trim()};
+    Set<String> dbNames = {dbFirstName.trim(), dbLastName.trim()};
+
+    inputNames.removeWhere((name) => name.isEmpty);
+    dbNames.removeWhere((name) => name.isEmpty);
+
+    // Check for fuzzy matches
+    int matchCount = 0;
+    for (String inputName in inputNames) {
+      for (String dbName in dbNames) {
+        if (dbName.contains(inputName) || inputName.contains(dbName) ||
+            _calculateSimilarity(dbName, inputName) > 0.7) {
+          matchCount++;
+          break;
+        }
+      }
+    }
+
+    bool nameMatch = matchCount == inputNames.length;
+    bool classMatch = studentClass.isEmpty || (dbClass == studentClass.toUpperCase());
+
+    return nameMatch && classMatch;
+  }
+
+// Save student data using database values (correct order)
+  Future<void> _saveStudentData(Map<String, dynamic> data, String studentClass) async {
+    String dbFirstName = data['firstName']?.toString() ?? '';
+    String dbLastName = data['lastName']?.toString() ?? '';
+    String fullName = '$dbFirstName $dbLastName';
+
+    ParentDataManager().setParentData(
+      studentName: fullName,
+      studentClass: studentClass,
+      firstName: dbFirstName,
+      lastName: dbLastName,
+      studentDetails: data,
+    );
+
+    await ParentDataManager().saveToPreferences();
+  }
+
+// Helper method to calculate string similarity
+  double _calculateSimilarity(String s1, String s2) {
+    if (s1 == s2) return 1.0;
+    if (s1.isEmpty || s2.isEmpty) return 0.0;
+
+    int maxLength = s1.length > s2.length ? s1.length : s2.length;
+    int distance = _levenshteinDistance(s1, s2);
+
+    return (maxLength - distance) / maxLength;
+  }
+
+// Levenshtein distance calculation for fuzzy matching
+  int _levenshteinDistance(String s1, String s2) {
+    List<List<int>> matrix = List.generate(
+      s1.length + 1,
+          (i) => List.generate(s2.length + 1, (j) => 0),
+    );
+
+    for (int i = 0; i <= s1.length; i++) {
+      matrix[i][0] = i;
+    }
+    for (int j = 0; j <= s2.length; j++) {
+      matrix[0][j] = j;
+    }
+
+    for (int i = 1; i <= s1.length; i++) {
+      for (int j = 1; j <= s2.length; j++) {
+        int cost = s1[i - 1] == s2[j - 1] ? 0 : 1;
+        matrix[i][j] = [
+          matrix[i - 1][j] + 1,      // deletion
+          matrix[i][j - 1] + 1,      // insertion
+          matrix[i - 1][j - 1] + cost // substitution
+        ].reduce((a, b) => a < b ? a : b);
+      }
+    }
+
+    return matrix[s1.length][s2.length];
   }
 
 
