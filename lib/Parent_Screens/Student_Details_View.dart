@@ -339,10 +339,26 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // Clean white background
       appBar: _buildAppBar(),
-      body: _buildBody(),
+      body: _isLoadingStudent
+          ? const Center(
+        child: CircularProgressIndicator(color: Colors.blueAccent),
+      )
+          : _hasError
+          ? _buildErrorWidget()
+          : SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildStudentPersonalInfoCard(),
+          ],
+        ),
+      ),
     );
   }
+
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
@@ -363,11 +379,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
           onPressed: _loadParentDataAndFetchStudent,
           tooltip: 'Refresh Data',
         ),
-        IconButton(
-          icon: const Icon(Icons.bug_report),
-          onPressed: _showDebugInfo,
-          tooltip: 'Debug Info',
-        ),
+
       ],
     );
   }
@@ -416,31 +428,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     );
   }
 
-  Widget _buildBody() {
-    if (_hasError) {
-      return _buildErrorWidget();
-    }
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.lightBlueAccent.shade100, Colors.white],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            _buildStudentPersonalInfoCard(),
-          ],
-        ),
-      ),
-    );
-  }
 
 
 
@@ -508,88 +496,64 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     );
   }
 
-  // Main student personal information card
   Widget _buildStudentPersonalInfoCard() {
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-          gradient: LinearGradient(
-            colors: [Colors.blue.shade50, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blueAccent,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Text(
-                    'Student Registration Information',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueAccent,
-                    ),
-                  ),
-                ],
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.person, color: Colors.white),
               ),
-              const SizedBox(height: 20),
-              if (_isLoadingStudent)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: CircularProgressIndicator(color: Colors.blueAccent),
-                  ),
-                )
-              else if (studentPersonalInfo != null) ...[
-                _buildInfoRow('First Name', studentPersonalInfo!['firstName'] ?? parentFirstName ?? 'N/A', Icons.person_outline),
-                _buildInfoRow('Last Name', studentPersonalInfo!['lastName'] ?? parentLastName ?? 'N/A', Icons.person_outline),
-                _buildInfoRow('Student ID', studentPersonalInfo!['studentID'] ?? 'N/A', Icons.numbers),
-                _buildInfoRow('Class', studentPersonalInfo!['studentClass'] ?? _getEffectiveStudentClass(), Icons.school),
-                _buildInfoRow('Gender', studentPersonalInfo!['studentGender'] ?? 'N/A', Icons.wc),
-                _buildInfoRow('Date of Birth', _formatDate(studentPersonalInfo!['studentDOB']), Icons.cake),
-                _buildInfoRow('Age', _formatAge(studentPersonalInfo!['studentAge']), Icons.timeline),
-                if (studentPersonalInfo!['timestamp'] != null)
-                  _buildInfoRow('Registered', _formatTimestamp(studentPersonalInfo!['timestamp']), Icons.access_time),
-              ] else ...[
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Text(
-                      'No student registration information available',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
-                    ),
+              const SizedBox(width: 16),
+              const Expanded(
+                child: Text(
+                  'Student Registration Information',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueAccent,
                   ),
                 ),
-              ],
+              ),
             ],
           ),
-        ),
+          const SizedBox(height: 20),
+          if (studentPersonalInfo != null) ...[
+            _buildInfoRow('First Name', studentPersonalInfo!['firstName'] ?? parentFirstName ?? 'N/A', Icons.person_outline),
+            _buildInfoRow('Last Name', studentPersonalInfo!['lastName'] ?? parentLastName ?? 'N/A', Icons.person_outline),
+            _buildInfoRow('Student ID', studentPersonalInfo!['studentID'] ?? 'N/A', Icons.numbers),
+            _buildInfoRow('Class', studentPersonalInfo!['studentClass'] ?? _getEffectiveStudentClass(), Icons.school),
+            _buildInfoRow('Gender', studentPersonalInfo!['studentGender'] ?? 'N/A', Icons.wc),
+            _buildInfoRow('Date of Birth', _formatDate(studentPersonalInfo!['studentDOB']), Icons.cake),
+            _buildInfoRow('Age', _formatAge(studentPersonalInfo!['studentAge']), Icons.timeline),
+            if (studentPersonalInfo!['timestamp'] != null)
+              _buildInfoRow('Registered', _formatTimestamp(studentPersonalInfo!['timestamp']), Icons.access_time),
+          ] else ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text(
+                'No student registration information available',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
+
+
 }
