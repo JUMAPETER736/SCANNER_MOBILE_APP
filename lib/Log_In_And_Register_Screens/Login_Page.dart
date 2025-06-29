@@ -19,6 +19,7 @@ class ParentDataManager {
   factory ParentDataManager() => _instance;
   ParentDataManager._internal();
 
+  String? _schoolName;
   String? _studentName;
   String? _studentClass;
   String? _firstName;
@@ -26,6 +27,7 @@ class ParentDataManager {
   Map<String, dynamic>? _studentDetails;
 
   // Getters
+  String? get schoolName => _schoolName;
   String? get studentName => _studentName;
   String? get studentClass => _studentClass;
   String? get firstName => _firstName;
@@ -34,12 +36,16 @@ class ParentDataManager {
 
   // Set parent data
   void setParentData({
+
+    required String schoolName,
     required String studentName,
     required String studentClass,
     String? firstName,
     String? lastName,
-    Map<String, dynamic>? studentDetails, required String schoolName,
+    Map<String, dynamic>? studentDetails,
   }) {
+
+    _schoolName = schoolName;
     _studentName = studentName;
     _studentClass = studentClass;
     _firstName = firstName;
@@ -49,6 +55,8 @@ class ParentDataManager {
 
   // Clear data (for logout)
   void clearData() {
+
+    _schoolName = null;
     _studentName = null;
     _studentClass = null;
     _firstName = null;
@@ -58,6 +66,8 @@ class ParentDataManager {
 
   Future<void> saveToPreferences() async {
     final prefs = await SharedPreferences.getInstance();
+
+    if (_schoolName != null) await prefs.setString('parent_school_name', _schoolName!);
     if (_studentName != null) await prefs.setString('parent_student_name', _studentName!);
     if (_studentClass != null) await prefs.setString('parent_student_class', _studentClass!);
     if (_firstName != null) await prefs.setString('parent_first_name', _firstName!);
@@ -92,6 +102,8 @@ class ParentDataManager {
 
   Future<void> loadFromPreferences() async {
     final prefs = await SharedPreferences.getInstance();
+
+    _schoolName = prefs.getString('parent_school_name');
     _studentName = prefs.getString('parent_student_name');
     _studentClass = prefs.getString('parent_student_class');
     _firstName = prefs.getString('parent_first_name');
@@ -126,6 +138,8 @@ class ParentDataManager {
   // Clear from SharedPreferences
   Future<void> clearFromPreferences() async {
     final prefs = await SharedPreferences.getInstance();
+
+    await prefs.remove('parent_school_name');
     await prefs.remove('parent_student_name');
     await prefs.remove('parent_student_class');
     await prefs.remove('parent_first_name');
