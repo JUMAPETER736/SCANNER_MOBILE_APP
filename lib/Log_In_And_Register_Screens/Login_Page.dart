@@ -38,7 +38,7 @@ class ParentDataManager {
     required String studentClass,
     String? firstName,
     String? lastName,
-    Map<String, dynamic>? studentDetails, required String schoolName,
+    Map<String, dynamic>? studentDetails,
   }) {
     _studentName = studentName;
     _studentClass = studentClass;
@@ -148,10 +148,6 @@ class _Login_PageState extends State<Login_Page> {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  String schoolName = '';
-  bool _emptySchoolNameField = false;
-  String _schoolNameErrorMessage = '';
-
   // ==================== FORM DATA ====================
   String email = '';
   String password = '';
@@ -221,10 +217,7 @@ class _Login_PageState extends State<Login_Page> {
                           SizedBox(height: _getResponsiveSpacing(context, 16.0)),
                           _buildPasswordField(context),
                           _buildForgotPasswordLink(context),
-
                         ] else ...[
-                          _buildSchoolNameField(context),
-                          SizedBox(height: _getResponsiveSpacing(context, 16.0)),
                           _buildStudentNameField(context),
                           SizedBox(height: _getResponsiveSpacing(context, 16.0)),
                           _buildStudentClassField(context),
@@ -445,25 +438,6 @@ class _Login_PageState extends State<Login_Page> {
           });
         },
       ),
-    );
-  }
-
-  Widget _buildSchoolNameField(BuildContext context) {
-    return _buildStyledTextField(
-      label: 'School Name',
-      icon: Icons.school,
-      obscureText: false,
-      keyboardType: TextInputType.text,
-      showError: _emptySchoolNameField,
-      errorText: _schoolNameErrorMessage,
-      onChanged: (value) {
-        schoolName = value;
-        setState(() {
-          _emptySchoolNameField = false;
-          _schoolNameErrorMessage = '';
-          _errorMessage = '';
-        });
-      },
     );
   }
 
@@ -875,7 +849,7 @@ class _Login_PageState extends State<Login_Page> {
     }
   }
 
-// Enhanced parent login method with school selection
+// Simplified parent login method
   Future<void> _parentLogin() async {
     _clearAllErrors();
 
@@ -888,15 +862,6 @@ class _Login_PageState extends State<Login_Page> {
       return;
     }
 
-    // Add school validation if you want to make it required
-    if (schoolName.trim().isEmpty) {
-      setState(() {
-        _emptySchoolNameField = true;
-        _schoolNameErrorMessage = 'School name is required';
-      });
-      return;
-    }
-
     setState(() {
       _showSpinner = true;
     });
@@ -904,8 +869,7 @@ class _Login_PageState extends State<Login_Page> {
     try {
       bool isValidStudent = await _validateStudentInFirebase(
           studentName.trim(),
-          studentClass.trim(),
-          schoolName.trim()  // Add school parameter
+          studentClass.trim()
       );
 
       setState(() {
@@ -913,6 +877,7 @@ class _Login_PageState extends State<Login_Page> {
       });
 
       if (isValidStudent) {
+
         Navigator.pushNamedAndRemoveUntil(
           context,
           Parent_Home_Page.id,
@@ -920,8 +885,9 @@ class _Login_PageState extends State<Login_Page> {
         );
       } else {
         setState(() {
+
           _emptyStudentNameField = true;
-          _studentNameErrorMessage = "Student not found in the specified school";
+          _studentNameErrorMessage = "Student not found";
         });
       }
     } catch (e) {
@@ -933,8 +899,8 @@ class _Login_PageState extends State<Login_Page> {
     }
   }
 
-// Enhanced validation method with school parameter
-  Future<bool> _validateStudentInFirebase(String studentName, String studentClass, String schoolName) async {
+// Main validation method
+  Future<bool> _validateStudentInFirebase(String studentName, String studentClass) async {
     try {
       List<String> nameParts = studentName.toUpperCase().split(' ');
       if (nameParts.length < 2) {
@@ -947,10 +913,12 @@ class _Login_PageState extends State<Login_Page> {
       String inputName1 = nameParts[0];
       String inputName2 = nameParts[1];
 
-      print('Starting search for: $inputName1 $inputName2 in class: $studentClass at school: $schoolName');
+      print('Starting search for: $inputName1 $inputName2 in class: $studentClass');
 
-      // Search using multiple methods with school parameter
-      return await _searchStudent(inputName1, inputName2, studentClass, schoolName);
+
+
+      // Search using multiple methods
+      return await _searchStudent(inputName1, inputName2, studentClass);
 
     } catch (e) {
       print('Error validating student: $e');
@@ -961,7 +929,52 @@ class _Login_PageState extends State<Login_Page> {
     }
   }
 
+// Unified search method that tries all approaches
+  Future<bool> _searchStudent(String name1, String name2, String studentClass) async {
+    // Method 1: Direct path search (fastest)
+    bool found = await _searchDirectPath(name1, name2, studentClass);
+    if (found) return true;
 
+    // Method 2: Comprehensive search through all schools and classes
+    found = await _searchAllSchoolsAndClasses(name1, name2, studentClass);
+    if (found) return true;
+
+    // Method 3: Fuzzy search for typos and partial matches
+    found = await _fuzzySearchStudent(name1, name2, studentClass);
+    return found;
+  }
+
+// Method 1: Direct path search
+  Future<bool> _searchDirectPath(String name1, String name2, String studentClass) async {
+    try {
+      // Try both name orders for direct path
+      List<String> nameOrders = ['$name1 $name2', '$name2 $name1'];
+
+      for (String fullName in nameOrders) {
+        String documentPath = 'Schools/Bwaila Secondary School/Classes/${studentClass.toUpperCase()}/Student_Details/$fullName/Personal_Information/Registered_Information';
+        String documentPath2 = 'Schools/Bandawe Boys Secondary School/Classes/${studentClass.toUpperCase()}/Student_Details/$fullName/Personal_Information/Registered_Information';
+        String documentPath3 = 'Schools/Salima Secondary School/Classes/${studentClass.toUpperCase()}/Student_Details/$fullName/Personal_Information/Registered_Information';
+        String documentPath4 = 'Schools/Balaka Secondary School/Classes/${studentClass.toUpperCase()}/Student_Details/$fullName/Personal_Information/Registered_Information';
+
+        DocumentSnapshot doc = await _firestore.doc(documentPath).get();
+
+
+        if (doc.exists) {
+          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+          if (_validateStudentData(data, name1, name2, studentClass)) {
+            await _saveStudentData(data, studentClass);
+            return true;
+          }
+        }
+      }
+      return false;
+    } catch (e) {
+      print('Direct path search error: $e');
+      return false;
+    }
+  }
+
+// Method 2: Comprehensive search through all schools and classes
   Future<bool> _searchAllSchoolsAndClasses(String name1, String name2, String studentClass) async {
     try {
       QuerySnapshot schoolsSnapshot = await _firestore.collection('Schools').get();
@@ -987,202 +1000,159 @@ class _Login_PageState extends State<Login_Page> {
       }
       return false;
     } catch (e) {
-      print('Search all schools error: $e');
+      print('Comprehensive search error: $e');
       return false;
     }
   }
 
+// Search students within a specific class
   Future<bool> _searchStudentsInClass(String schoolName, String className, String name1, String name2, String studentClass) async {
     try {
-      QuerySnapshot studentsSnapshot = await _firestore
-          .collection('Schools/$schoolName/Classes/$className/Student_Details')
-          .get();
+      String classPath = 'Schools/$schoolName/Classes/$className/Student_Details';
+      QuerySnapshot studentsSnapshot = await _firestore.collection(classPath).get();
 
       for (QueryDocumentSnapshot studentDoc in studentsSnapshot.docs) {
-        String studentId = studentDoc.id;
+        try {
+          DocumentSnapshot registeredInfoDoc = await _firestore
+              .doc('$classPath/${studentDoc.id}/Personal_Information/Registered_Information')
+              .get();
 
-        DocumentSnapshot personalInfoDoc = await _firestore
-            .doc('Schools/$schoolName/Classes/$className/Student_Details/$studentId/Personal_Information/Registered_Information')
-            .get();
+          if (registeredInfoDoc.exists) {
+            Map<String, dynamic> data = registeredInfoDoc.data() as Map<String, dynamic>;
 
-        if (personalInfoDoc.exists) {
-          Map<String, dynamic> data = personalInfoDoc.data() as Map<String, dynamic>;
-          if (_validateStudentData(data, name1, name2, studentClass)) {
-            await _saveStudentData(data, className, schoolName);
-            return true;
+            if (_validateStudentData(data, name1, name2, studentClass)) {
+              await _saveStudentData(data, studentClass.isEmpty ? className : studentClass);
+              return true;
+            }
           }
+        } catch (e) {
+          continue;
         }
       }
       return false;
     } catch (e) {
-      print('Search students in class error: $e');
       return false;
     }
   }
 
+// Method 3: Fuzzy search for partial matches and typos
+  Future<bool> _fuzzySearchStudent(String name1, String name2, String studentClass) async {
+    try {
+      QuerySnapshot schoolsSnapshot = await _firestore.collection('Schools').get();
+
+      for (QueryDocumentSnapshot schoolDoc in schoolsSnapshot.docs) {
+        String schoolName = schoolDoc.id;
+
+        QuerySnapshot classesSnapshot = await _firestore
+            .collection('Schools/$schoolName/Classes')
+            .get();
+
+        for (QueryDocumentSnapshot classDoc in classesSnapshot.docs) {
+          String className = classDoc.id;
+
+          // Skip if class doesn't match (with partial matching)
+          if (studentClass.isNotEmpty) {
+            bool classMatches = className.toUpperCase().contains(studentClass.toUpperCase()) ||
+                studentClass.toUpperCase().contains(className.toUpperCase());
+            if (!classMatches) continue;
+          }
+
+          bool found = await _fuzzySearchInClass(schoolName, className, name1, name2, studentClass);
+          if (found) return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      print('Fuzzy search error: $e');
+      return false;
+    }
+  }
+
+// Fuzzy search within a specific class
   Future<bool> _fuzzySearchInClass(String schoolName, String className, String name1, String name2, String studentClass) async {
     try {
-      QuerySnapshot studentsSnapshot = await _firestore
-          .collection('Schools/$schoolName/Classes/$className/Student_Details')
-          .get();
+      String classPath = 'Schools/$schoolName/Classes/$className/Student_Details';
+      QuerySnapshot studentsSnapshot = await _firestore.collection(classPath).get();
 
       for (QueryDocumentSnapshot studentDoc in studentsSnapshot.docs) {
-        String studentId = studentDoc.id;
+        try {
+          DocumentSnapshot registeredInfoDoc = await _firestore
+              .doc('$classPath/${studentDoc.id}/Personal_Information/Registered_Information')
+              .get();
 
-        DocumentSnapshot personalInfoDoc = await _firestore
-            .doc('Schools/$schoolName/Classes/$className/Student_Details/$studentId/Personal_Information/Registered_Information')
-            .get();
+          if (registeredInfoDoc.exists) {
+            Map<String, dynamic> data = registeredInfoDoc.data() as Map<String, dynamic>;
 
-        if (personalInfoDoc.exists) {
-          Map<String, dynamic> data = personalInfoDoc.data() as Map<String, dynamic>;
-          if (_validateStudentDataFuzzy(data, name1, name2, studentClass)) {
-            await _saveStudentData(data, className, schoolName);
-            return true;
+            if (_fuzzyValidateStudentData(data, name1, name2, studentClass)) {
+              await _saveStudentData(data, studentClass.isEmpty ? className : studentClass);
+              return true;
+            }
           }
+        } catch (e) {
+          continue;
         }
       }
       return false;
     } catch (e) {
-      print('Fuzzy search in class error: $e');
       return false;
     }
   }
 
+// Smart validation - handles names in any order
   bool _validateStudentData(Map<String, dynamic> data, String name1, String name2, String studentClass) {
     String dbFirstName = data['firstName']?.toString().toUpperCase() ?? '';
     String dbLastName = data['lastName']?.toString().toUpperCase() ?? '';
+    String dbClass = data['studentClass']?.toString().toUpperCase() ?? '';
 
-    return (dbFirstName == name1.toUpperCase() && dbLastName == name2.toUpperCase()) ||
-        (dbFirstName == name2.toUpperCase() && dbLastName == name1.toUpperCase());
+    // Create sets for flexible name matching (order doesn't matter)
+    Set<String> inputNames = {name1.trim(), name2.trim()};
+    Set<String> dbNames = {dbFirstName.trim(), dbLastName.trim()};
+
+    // Remove empty strings
+    inputNames.removeWhere((name) => name.isEmpty);
+    dbNames.removeWhere((name) => name.isEmpty);
+
+    // Names match if both sets contain the same names (regardless of order)
+    bool nameMatch = inputNames.length == dbNames.length &&
+        inputNames.every((name) => dbNames.contains(name));
+
+    bool classMatch = studentClass.isEmpty || (dbClass == studentClass.toUpperCase());
+
+    return nameMatch && classMatch;
   }
 
-  bool _validateStudentDataFuzzy(Map<String, dynamic> data, String name1, String name2, String studentClass) {
+// Fuzzy validation - allows for typos and partial matches
+  bool _fuzzyValidateStudentData(Map<String, dynamic> data, String name1, String name2, String studentClass) {
     String dbFirstName = data['firstName']?.toString().toUpperCase() ?? '';
     String dbLastName = data['lastName']?.toString().toUpperCase() ?? '';
+    String dbClass = data['studentClass']?.toString().toUpperCase() ?? '';
 
-    // Exact match first
-    if (_validateStudentData(data, name1, name2, studentClass)) {
-      return true;
-    }
+    Set<String> inputNames = {name1.trim(), name2.trim()};
+    Set<String> dbNames = {dbFirstName.trim(), dbLastName.trim()};
 
-    // Fuzzy matching - check if names contain each other
-    return (dbFirstName.contains(name1.toUpperCase()) || name1.toUpperCase().contains(dbFirstName)) &&
-        (dbLastName.contains(name2.toUpperCase()) || name2.toUpperCase().contains(dbLastName));
-  }
+    inputNames.removeWhere((name) => name.isEmpty);
+    dbNames.removeWhere((name) => name.isEmpty);
 
-// Enhanced unified search method
-  Future<bool> _searchStudent(String name1, String name2, String studentClass, String schoolName) async {
-    // Method 1: Direct path search with school (fastest)
-    bool found = await _searchDirectPath(name1, name2, studentClass, schoolName);
-    if (found) return true;
-
-    // Method 2: Search within specified school only
-    found = await _searchWithinSchool(name1, name2, studentClass, schoolName);
-    if (found) return true;
-
-    // Method 3: Fuzzy search within specified school
-    found = await _fuzzySearchWithinSchool(name1, name2, studentClass, schoolName);
-    if (found) return true;
-
-    // Method 4: If school name might be wrong, search all schools (optional)
-    found = await _searchAllSchoolsAndClasses(name1, name2, studentClass);
-    return found;
-  }
-
-// Method 1: Direct path search with specific school
-  Future<bool> _searchDirectPath(String name1, String name2, String studentClass, String schoolName) async {
-    try {
-      // Try both name orders for direct path
-      List<String> nameOrders = ['$name1 $name2', '$name2 $name1'];
-
-      for (String fullName in nameOrders) {
-        String documentPath = 'Schools/$schoolName/Classes/${studentClass.toUpperCase()}/Student_Details/$fullName/Personal_Information/Registered_Information';
-
-        DocumentSnapshot doc = await _firestore.doc(documentPath).get();
-
-        if (doc.exists) {
-          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-          if (_validateStudentData(data, name1, name2, studentClass)) {
-            await _saveStudentData(data, studentClass, schoolName);
-            return true;
-          }
+    // Check for fuzzy matches
+    int matchCount = 0;
+    for (String inputName in inputNames) {
+      for (String dbName in dbNames) {
+        if (dbName.contains(inputName) || inputName.contains(dbName) ||
+            _calculateSimilarity(dbName, inputName) > 0.7) {
+          matchCount++;
+          break;
         }
       }
-      return false;
-    } catch (e) {
-      print('Direct path search error: $e');
-      return false;
     }
+
+    bool nameMatch = matchCount == inputNames.length;
+    bool classMatch = studentClass.isEmpty || (dbClass == studentClass.toUpperCase());
+
+    return nameMatch && classMatch;
   }
 
-// Method 2: Search within specific school
-  Future<bool> _searchWithinSchool(String name1, String name2, String studentClass, String schoolName) async {
-    try {
-      // Check if school exists
-      DocumentSnapshot schoolDoc = await _firestore.doc('Schools/$schoolName').get();
-      if (!schoolDoc.exists) {
-        print('School not found: $schoolName');
-        return false;
-      }
-
-      QuerySnapshot classesSnapshot = await _firestore
-          .collection('Schools/$schoolName/Classes')
-          .get();
-
-      for (QueryDocumentSnapshot classDoc in classesSnapshot.docs) {
-        String className = classDoc.id;
-
-        // Skip if specific class was provided and this doesn't match
-        if (studentClass.isNotEmpty && className.toUpperCase() != studentClass.toUpperCase()) {
-          continue;
-        }
-
-        bool found = await _searchStudentsInClass(schoolName, className, name1, name2, studentClass);
-        if (found) return true;
-      }
-      return false;
-    } catch (e) {
-      print('School-specific search error: $e');
-      return false;
-    }
-  }
-
-// Method 3: Fuzzy search within specific school
-  Future<bool> _fuzzySearchWithinSchool(String name1, String name2, String studentClass, String schoolName) async {
-    try {
-      // Check if school exists
-      DocumentSnapshot schoolDoc = await _firestore.doc('Schools/$schoolName').get();
-      if (!schoolDoc.exists) {
-        print('School not found for fuzzy search: $schoolName');
-        return false;
-      }
-
-      QuerySnapshot classesSnapshot = await _firestore
-          .collection('Schools/$schoolName/Classes')
-          .get();
-
-      for (QueryDocumentSnapshot classDoc in classesSnapshot.docs) {
-        String className = classDoc.id;
-
-        // Skip if class doesn't match (with partial matching)
-        if (studentClass.isNotEmpty) {
-          bool classMatches = className.toUpperCase().contains(studentClass.toUpperCase()) ||
-              studentClass.toUpperCase().contains(className.toUpperCase());
-          if (!classMatches) continue;
-        }
-
-        bool found = await _fuzzySearchInClass(schoolName, className, name1, name2, studentClass);
-        if (found) return true;
-      }
-      return false;
-    } catch (e) {
-      print('Fuzzy search within school error: $e');
-      return false;
-    }
-  }
-
-// Enhanced save method with school name
-  Future<void> _saveStudentData(Map<String, dynamic> data, String studentClass, String schoolName) async {
+// Save student data using database values (correct order)
+  Future<void> _saveStudentData(Map<String, dynamic> data, String studentClass) async {
     String dbFirstName = data['firstName']?.toString() ?? '';
     String dbLastName = data['lastName']?.toString() ?? '';
     String fullName = '$dbFirstName $dbLastName';
@@ -1190,7 +1160,6 @@ class _Login_PageState extends State<Login_Page> {
     ParentDataManager().setParentData(
       studentName: fullName,
       studentClass: studentClass,
-      schoolName: schoolName,  // Add school name
       firstName: dbFirstName,
       lastName: dbLastName,
       studentDetails: data,
@@ -1199,79 +1168,46 @@ class _Login_PageState extends State<Login_Page> {
     await ParentDataManager().saveToPreferences();
   }
 
-// Helper method to get all schools (for dropdown/autocomplete)
-  Future<List<String>> getAllSchools() async {
-    try {
-      QuerySnapshot schoolsSnapshot = await _firestore.collection('Schools').get();
-      List<String> schools = [];
+// Helper method to calculate string similarity
+  double _calculateSimilarity(String s1, String s2) {
+    if (s1 == s2) return 1.0;
+    if (s1.isEmpty || s2.isEmpty) return 0.0;
 
-      for (QueryDocumentSnapshot doc in schoolsSnapshot.docs) {
-        schools.add(doc.id);
-      }
+    int maxLength = s1.length > s2.length ? s1.length : s2.length;
+    int distance = _levenshteinDistance(s1, s2);
 
-      schools.sort(); // Sort alphabetically
-      return schools;
-    } catch (e) {
-      print('Error getting schools: $e');
-      return [];
-    }
+    return (maxLength - distance) / maxLength;
   }
 
-// Helper method to get classes for a specific school
-  Future<List<String>> getClassesForSchool(String schoolName) async {
-    try {
-      QuerySnapshot classesSnapshot = await _firestore
-          .collection('Schools/$schoolName/Classes')
-          .get();
+// Levenshtein distance calculation for fuzzy matching
+  int _levenshteinDistance(String s1, String s2) {
+    List<List<int>> matrix = List.generate(
+      s1.length + 1,
+          (i) => List.generate(s2.length + 1, (j) => 0),
+    );
 
-      List<String> classes = [];
-      for (QueryDocumentSnapshot doc in classesSnapshot.docs) {
-        classes.add(doc.id);
-      }
-
-      classes.sort(); // Sort alphabetically
-      return classes;
-    } catch (e) {
-      print('Error getting classes for school $schoolName: $e');
-      return [];
+    for (int i = 0; i <= s1.length; i++) {
+      matrix[i][0] = i;
     }
+    for (int j = 0; j <= s2.length; j++) {
+      matrix[0][j] = j;
+    }
+
+    for (int i = 1; i <= s1.length; i++) {
+      for (int j = 1; j <= s2.length; j++) {
+        int cost = s1[i - 1] == s2[j - 1] ? 0 : 1;
+        matrix[i][j] = [
+          matrix[i - 1][j] + 1,      // deletion
+          matrix[i][j - 1] + 1,      // insertion
+          matrix[i - 1][j - 1] + cost // substitution
+        ].reduce((a, b) => a < b ? a : b);
+      }
+    }
+
+    return matrix[s1.length][s2.length];
   }
 
-// Alternative: Search with school name fuzzy matching
-  Future<bool> _searchWithFuzzySchoolName(String name1, String name2, String studentClass, String schoolName) async {
-    try {
-      QuerySnapshot schoolsSnapshot = await _firestore.collection('Schools').get();
 
-      // Find schools that match or partially match the input
-      List<String> matchingSchools = [];
-
-      for (QueryDocumentSnapshot schoolDoc in schoolsSnapshot.docs) {
-        String dbSchoolName = schoolDoc.id;
-
-        // Exact match
-        if (dbSchoolName.toUpperCase() == schoolName.toUpperCase()) {
-          matchingSchools.insert(0, dbSchoolName); // Prioritize exact matches
-        }
-        // Partial match
-        else if (dbSchoolName.toUpperCase().contains(schoolName.toUpperCase()) ||
-            schoolName.toUpperCase().contains(dbSchoolName.toUpperCase())) {
-          matchingSchools.add(dbSchoolName);
-        }
-      }
-
-      // Search in matching schools
-      for (String matchingSchool in matchingSchools) {
-        bool found = await _searchWithinSchool(name1, name2, studentClass, matchingSchool);
-        if (found) return true;
-      }
-
-      return false;
-    } catch (e) {
-      print('Fuzzy school search error: $e');
-      return false;
-    }
-  }
-  
   void _handleFirebaseAuthException(FirebaseAuthException e) {
     setState(() {
       _showSpinner = false;
@@ -1425,18 +1361,26 @@ class _Login_PageState extends State<Login_Page> {
       _emptyPasswordField = false;
       _emptyStudentNameField = false;
       _emptyStudentClassField = false;
-      _emptySchoolNameField = false; // Add this line
       _emailNotRegistered = false;
       _errorMessage = '';
       _emailErrorMessage = '';
       _passwordErrorMessage = '';
       _studentNameErrorMessage = '';
       _studentClassErrorMessage = '';
-      _schoolNameErrorMessage = ''; // Add this line
     });
   }
 
-
+  void _showToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      timeInSecForIosWeb: 1,
+      backgroundColor: Colors.grey[800],
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
+  }
 
   @override
   void dispose() {
