@@ -915,9 +915,7 @@ class _Login_PageState extends State<Login_Page> {
 
       print('Starting search for: $inputName1 $inputName2 in class: $studentClass');
 
-      setState(() {
-        _errorMessage = 'Searching for student...';
-      });
+
 
       // Search using multiple methods
       return await _searchStudent(inputName1, inputName2, studentClass);
@@ -954,8 +952,12 @@ class _Login_PageState extends State<Login_Page> {
 
       for (String fullName in nameOrders) {
         String documentPath = 'Schools/Bwaila Secondary School/Classes/${studentClass.toUpperCase()}/Student_Details/$fullName/Personal_Information/Registered_Information';
+        String documentPath2 = 'Schools/Bandawe Boys Secondary School/Classes/${studentClass.toUpperCase()}/Student_Details/$fullName/Personal_Information/Registered_Information';
+        String documentPath3 = 'Schools/Salima Secondary School/Classes/${studentClass.toUpperCase()}/Student_Details/$fullName/Personal_Information/Registered_Information';
+        String documentPath4 = 'Schools/Balaka Secondary School/Classes/${studentClass.toUpperCase()}/Student_Details/$fullName/Personal_Information/Registered_Information';
 
         DocumentSnapshot doc = await _firestore.doc(documentPath).get();
+
 
         if (doc.exists) {
           Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
