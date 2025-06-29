@@ -367,17 +367,17 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
 
   IconData _getEventIcon(String? type) {
     switch (type?.toLowerCase()) {
-      case 'academic':
+      case 'Academic':
         return Icons.school;
-      case 'sports':
+      case 'Sports':
         return Icons.sports;
-      case 'cultural':
+      case 'Cultural':
         return Icons.theater_comedy;
-      case 'meeting':
+      case 'Meeting':
         return Icons.groups;
-      case 'examination':
+      case 'Examination':
         return Icons.quiz;
-      case 'holiday':
+      case 'Holiday':
         return Icons.celebration;
       default:
         return Icons.event;
