@@ -221,13 +221,7 @@ class _Available_School_EventsState extends State<Available_School_Events> {
                             textAlign: TextAlign.center,
                           ),
                           SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              setState(() {});
-                            },
-                            icon: Icon(Icons.refresh),
-                            label: Text('Refresh'),
-                          ),
+
                         ],
                       ),
                     );
