@@ -3,21 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class Upcoming_School_Event extends StatefulWidget {
+class Create_Upcoming_School_Event extends StatefulWidget {
   final String schoolName;
   final String selectedClass;
 
-  const Upcoming_School_Event({
+  const Create_Upcoming_School_Event({
     Key? key,
     required this.schoolName,
     required this.selectedClass,
   }) : super(key: key);
 
   @override
-  _Upcoming_School_EventState createState() => _Upcoming_School_EventState();
+  _Create_Upcoming_School_EventState createState() => _Create_Upcoming_School_EventState();
 }
 
-class _Upcoming_School_EventState extends State<Upcoming_School_Event> {
+class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Event> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String? _teacherSchool; // Add this to store teacher's actual school
 
