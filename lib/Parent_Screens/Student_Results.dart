@@ -96,43 +96,59 @@ class _Student_ResultsState extends State<Student_Results> {
     }
   }
 
+// Replace the _fetchStudentAcademicYears method (lines ~75-130):
   Future<void> _fetchStudentAcademicYears() async {
     try {
       setState(() => isLoading = true);
 
-      // Get all academic years for this student using school from ParentDataManager
-      QuerySnapshot academicYearsSnapshot = await _firestore
-          .collection('Schools/$_schoolName/Academic_Years')
-          .get();
-
+      // Get available academic years by checking current year and previous years
       List<String> years = [];
+      DateTime now = DateTime.now();
+      int currentYear = now.year;
+
+      // If we're before September, the academic year started last year
+      if (now.month < 9) {
+        currentYear -= 1;
+      }
+
+      // Check current and previous 3 academic years
+      for (int i = 0; i < 4; i++) {
+        int year = currentYear - i;
+        String academicYear = "${year}_${year + 1}";
+        years.add(academicYear);
+      }
+
       Map<String, Map<String, Map<String, dynamic>>> allResults = {};
 
-      for (var yearDoc in academicYearsSnapshot.docs) {
-        String academicYear = yearDoc.id;
-        years.add(academicYear);
-
-        // Get all classes for this academic year
-        QuerySnapshot classesSnapshot = await _firestore
-            .collection('Schools/$_schoolName/Academic_Years/$academicYear/Classes')
-            .get();
-
+      for (String academicYear in years) {
+        // Check if student exists in any class for this academic year
+        // We need to check all form classes since student might have been in different forms
+        List<String> formClasses = ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'];
         Map<String, Map<String, dynamic>> yearResults = {};
 
-        for (var classDoc in classesSnapshot.docs) {
-          String className = classDoc.id;
+        for (String formClass in formClasses) {
+          // Correct path based on your database structure
+          String studentPath = 'Schools/$_schoolName/Classes/$formClass/Student_Details/$_studentName';
 
-          // Check if student exists in this class
-          DocumentSnapshot studentDoc = await _firestore
-              .doc('Schools/$_schoolName/Academic_Years/$academicYear/Classes/$className/Student_Details/${_studentName}')
-              .get();
+          try {
+            DocumentSnapshot studentDoc = await _firestore.doc(studentPath).get();
 
-          if (studentDoc.exists) {
-            // Fetch all terms for this class
-            Map<String, dynamic> classResults = await _fetchTermsForClass(academicYear, className);
-            if (classResults.isNotEmpty) {
-              yearResults[className] = classResults;
+            if (studentDoc.exists) {
+              // Check if this student has academic performance data for this year
+              String academicPerformancePath = '$studentPath/Academic_Performance/$academicYear';
+              DocumentSnapshot academicDoc = await _firestore.doc(academicPerformancePath).get();
+
+              if (academicDoc.exists) {
+                // Fetch all terms for this academic year and class
+                Map<String, dynamic> classResults = await _fetchTermsForClass(academicYear, formClass);
+                if (classResults.isNotEmpty) {
+                  yearResults[formClass] = classResults;
+                }
+              }
             }
+          } catch (e) {
+            print("Error checking student in $formClass for $academicYear: $e");
+            continue;
           }
         }
 
@@ -141,17 +157,15 @@ class _Student_ResultsState extends State<Student_Results> {
         }
       }
 
-      // Sort years in descending order (most recent first) and limit to 4
-      years.sort((a, b) => b.compareTo(a));
-      if (years.length > 4) {
-        years = years.take(4).toList();
-      }
+      // Filter years that actually have data
+      List<String> availableYears = allResults.keys.toList();
+      availableYears.sort((a, b) => b.compareTo(a)); // Most recent first
 
       setState(() {
-        availableAcademicYears = years;
+        availableAcademicYears = availableYears;
         academicYearResults = allResults;
-        if (years.isNotEmpty) {
-          selectedAcademicYear = years.first;
+        if (availableYears.isNotEmpty) {
+          selectedAcademicYear = availableYears.first;
         }
         isLoading = false;
       });
@@ -165,25 +179,33 @@ class _Student_ResultsState extends State<Student_Results> {
     }
   }
 
+// Replace the _fetchTermsForClass method (lines ~132-155):
   Future<Map<String, dynamic>> _fetchTermsForClass(String academicYear, String className) async {
     Map<String, dynamic> classResults = {};
 
     try {
       List<String> terms = ['TERM_ONE', 'TERM_TWO', 'TERM_THREE'];
+      String studentPath = 'Schools/$_schoolName/Classes/$className/Student_Details/$_studentName';
 
       for (String term in terms) {
-        String basePath = 'Schools/$_schoolName/Academic_Years/$academicYear/Classes/$className/Student_Details/${_studentName}/Terms/$term';
+        // Correct path structure based on your database
+        String termPath = '$studentPath/Academic_Performance/$academicYear/$term/Term_Info';
 
-        // Check if term data exists
-        DocumentSnapshot termCheck = await _firestore
-            .doc('$basePath/TOTAL_MARKS/Marks')
-            .get();
+        try {
+          // Check if term has summary data
+          DocumentSnapshot termSummaryDoc = await _firestore
+              .doc('$termPath/Term_Summary/Summary')
+              .get();
 
-        if (termCheck.exists) {
-          Map<String, dynamic> termData = await _fetchTermData(basePath);
-          if (termData.isNotEmpty) {
-            classResults[term] = termData;
+          if (termSummaryDoc.exists) {
+            Map<String, dynamic> termData = await _fetchTermData(studentPath, academicYear, term);
+            if (termData.isNotEmpty) {
+              classResults[term] = termData;
+            }
           }
+        } catch (e) {
+          print("Error checking term $term: $e");
+          continue;
         }
       }
     } catch (e) {
@@ -193,35 +215,48 @@ class _Student_ResultsState extends State<Student_Results> {
     return classResults;
   }
 
-  Future<Map<String, dynamic>> _fetchTermData(String basePath) async {
+// Replace the _fetchTermData method (lines ~157-200):
+  Future<Map<String, dynamic>> _fetchTermData(String studentPath, String academicYear, String term) async {
     Map<String, dynamic> termData = {};
 
     try {
-      // Fetch subjects
+      String termPath = '$studentPath/Academic_Performance/$academicYear/$term/Term_Info';
+
+      // Fetch subjects from the main Student_Subjects collection
       QuerySnapshot subjectsSnapshot = await _firestore
-          .collection('$basePath/Student_Subjects')
+          .collection('$studentPath/Student_Subjects')
           .get();
 
       List<Map<String, dynamic>> subjects = [];
       for (var doc in subjectsSnapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
         int score = 0;
-        if (data['Subject_Grade'] != null) {
+        if (data['Subject_Grade'] != null && data['Subject_Grade'] != 'N/A') {
           score = double.tryParse(data['Subject_Grade'].toString())?.round() ?? 0;
         }
 
         subjects.add({
           'subject': data['Subject_Name'] ?? doc.id,
           'score': score,
-          'position': (data['Subject_Position'] as num?)?.toInt() ?? 0,
-          'totalStudents': (data['Total_Students_Subject'] as num?)?.toInt() ?? 0,
-          'gradeLetter': data['Grade_Letter']?.toString() ?? _getGradeFromPercentage(score.toDouble()),
+          'position': 0, // You might need to add position tracking in your database
+          'totalStudents': 0, // You might need to add this in your database
+          'gradeLetter': _getGradeFromPercentage(score.toDouble()),
         });
       }
 
-      // Fetch total marks
+      // Fetch term summary
+      DocumentSnapshot termSummaryDoc = await _firestore
+          .doc('$termPath/Term_Summary/Summary')
+          .get();
+
+      Map<String, dynamic> termSummary = {};
+      if (termSummaryDoc.exists) {
+        termSummary = termSummaryDoc.data() as Map<String, dynamic>;
+      }
+
+      // Fetch total marks from the main TOTAL_MARKS collection
       DocumentSnapshot totalMarksDoc = await _firestore
-          .doc('$basePath/TOTAL_MARKS/Marks')
+          .doc('$studentPath/TOTAL_MARKS/Marks')
           .get();
 
       Map<String, dynamic> totalMarks = {};
@@ -229,9 +264,9 @@ class _Student_ResultsState extends State<Student_Results> {
         totalMarks = totalMarksDoc.data() as Map<String, dynamic>;
       }
 
-      // Fetch remarks
+      // Fetch remarks from the main TOTAL_MARKS collection
       DocumentSnapshot remarksDoc = await _firestore
-          .doc('$basePath/TOTAL_MARKS/Results_Remarks')
+          .doc('$studentPath/TOTAL_MARKS/Results_Remarks')
           .get();
 
       Map<String, dynamic> remarks = {};
@@ -239,17 +274,41 @@ class _Student_ResultsState extends State<Student_Results> {
         remarks = remarksDoc.data() as Map<String, dynamic>;
       }
 
+      // Combine term summary with total marks for display
+      Map<String, dynamic> combinedMarks = {
+        ...totalMarks,
+        ...termSummary,
+      };
+
       termData = {
         'subjects': subjects,
-        'totalMarks': totalMarks,
+        'totalMarks': combinedMarks,
         'remarks': remarks,
       };
     } catch (e) {
-      print("Error fetching term data: $e");
+      print("Error fetching term data for $term: $e");
     }
 
     return termData;
   }
+
+// Add this method to format academic year correctly:
+  String _formatAcademicYearForDisplay(String year) {
+    // Convert format like "2024_2025" to "2024 - 2025"
+    if (year.contains('_')) {
+      List<String> parts = year.split('_');
+      if (parts.length == 2) {
+        return '${parts[0]} - ${parts[1]}';
+      }
+    }
+    return year;
+  }
+
+// Update the _formatAcademicYear method (around line 240):
+  String _formatAcademicYear(String year) {
+    return _formatAcademicYearForDisplay(year);
+  }
+
 
   String _getGradeFromPercentage(double percentage) {
     if (percentage >= 85) return 'A';
@@ -275,17 +334,6 @@ class _Student_ResultsState extends State<Student_Results> {
       case 'TERM_TWO': return 'TERM TWO';
       case 'TERM_THREE': return 'TERM THREE';
       default: return term;
-    }
-  }
-
-  String _formatAcademicYear(String year) {
-    // Convert format like "2024" to "2024 - 2025"
-    try {
-      int startYear = int.parse(year);
-      int endYear = startYear + 1;
-      return '$startYear - $endYear';
-    } catch (e) {
-      return year; // Return original if parsing fails
     }
   }
 
