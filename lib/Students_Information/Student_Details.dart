@@ -96,6 +96,61 @@ class _Student_DetailsState extends State<Student_Details> {
     }
   }
 
+  // MARK: - Academic Year Helper Methods
+  String _getCurrentAcademicYear() {
+    final DateTime now = DateTime.now();
+    int startYear, endYear;
+
+    if (now.month >= 9) {
+      // September onwards = start of new academic year
+      startYear = now.year;
+      endYear = now.year + 1;
+    } else {
+      // January to August = continuation of academic year that started previous year
+      startYear = now.year - 1;
+      endYear = now.year;
+    }
+
+    return '${startYear}_$endYear';
+  }
+
+  String _getCurrentTerm() {
+    final DateTime now = DateTime.now();
+    final int month = now.month;
+    final int day = now.day;
+
+    if (month >= 9 || month == 12) {
+      return 'TERM_ONE';
+    } else if (month >= 1 && (month < 3 || (month == 3 && day <= 20))) {
+      return 'TERM_TWO';
+    } else if (month >= 4 && month <= 8) {
+      return 'TERM_THREE';
+    } else {
+      return 'TERM_ONE'; // Default fallback
+    }
+  }
+
+  Map<String, Map<String, String>> _getTermDates(String academicYear) {
+    final List<String> years = academicYear.split('_');
+    final int startYear = int.parse(years[0]);
+    final int endYear = int.parse(years[1]);
+
+    return {
+      'TERM_ONE': {
+        'start_date': '01-09-$startYear',
+        'end_date': '31-12-$startYear',
+      },
+      'TERM_TWO': {
+        'start_date': '01-01-$endYear',
+        'end_date': '20-03-$endYear',
+      },
+      'TERM_THREE': {
+        'start_date': '01-04-$endYear',
+        'end_date': '30-08-$endYear',
+      },
+    };
+  }
+
   // MARK: - Utility Methods
   String _generateRandomStudentID() {
     final Random random = Random();
@@ -236,7 +291,7 @@ class _Student_DetailsState extends State<Student_Details> {
       'Next_Term_Opening_Date': '',
       'createdAt': FieldValue.serverTimestamp(),
       'lastUpdated': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true)); // merge: true prevents overwriting existing data
+    }, SetOptions(merge: true));
 
     // Main student document
     final DocumentReference studentRef = _firestore
@@ -302,6 +357,9 @@ class _Student_DetailsState extends State<Student_Details> {
       'Head_Teacher_Remark': 'N/A',
     });
 
+    // Academic Performance Structure (referencing existing collections)
+    await _createAcademicPerformanceStructure(batch, studentRef);
+
     try {
       await batch.commit();
       print("Student and school information saved successfully!");
@@ -311,7 +369,126 @@ class _Student_DetailsState extends State<Student_Details> {
     }
   }
 
-// Updated _fetchSchoolInfo method for the new path
+  // MARK: - Academic Performance Structure Creation (Updated to reference existing data)
+  Future<void> _createAcademicPerformanceStructure(WriteBatch batch, DocumentReference studentRef) async {
+    final String currentAcademicYear = _getCurrentAcademicYear();
+    final Map<String, Map<String, String>> termDates = _getTermDates(currentAcademicYear);
+
+    // Create Academic_Performance document
+    final DocumentReference academicPerformanceRef = studentRef
+        .collection('Academic_Performance')
+        .doc(currentAcademicYear);
+
+    batch.set(academicPerformanceRef, {
+      'academic_year': currentAcademicYear,
+      'created_at': FieldValue.serverTimestamp(),
+      'last_updated': FieldValue.serverTimestamp(),
+      // References to existing collections
+      'personal_info_ref': 'Personal_Information/Registered_Information',
+      'subjects_ref': 'Student_Subjects',
+      'total_marks_ref': 'TOTAL_MARKS',
+    });
+
+    // Create structure for each term
+    for (String term in ['TERM_ONE', 'TERM_TWO', 'TERM_THREE']) {
+      final DocumentReference termRef = academicPerformanceRef
+          .collection(term)
+          .doc('Term_Info');
+
+      batch.set(termRef, {
+        'term_name': term,
+        'start_date': termDates[term]!['start_date'],
+        'end_date': termDates[term]!['end_date'],
+        'term_status': 'Not Started',
+        'created_at': FieldValue.serverTimestamp(),
+        // Reference to existing Student_Subjects collection for marks
+        'subjects_collection_ref': '../../Student_Subjects',
+        'total_marks_ref': '../../TOTAL_MARKS',
+      });
+
+      // Create term-specific marks tracking (references existing subjects)
+      final DocumentReference termMarksRef = termRef
+          .collection('Term_Marks')
+          .doc('Marks_Summary');
+
+      batch.set(termMarksRef, {
+        'term_name': term,
+        // This will reference the Student_Subjects collection for individual subject marks
+        'subjects_source': 'Student_Subjects', // Points to existing collection
+        'marks_entered': false,
+        'marks_verified': false,
+        'last_updated': FieldValue.serverTimestamp(),
+        'updated_by': _loggedInUser?.email ?? 'system',
+      });
+
+      // Create term summary (calculations based on existing data)
+      final DocumentReference termSummaryRef = termRef
+          .collection('Term_Summary')
+          .doc('Summary');
+
+      batch.set(termSummaryRef, {
+        'total_marks': 0,
+        'average_marks': 0.0,
+        'total_subjects': _defaultSubjects[_selectedClass]!.length,
+        'subjects_passed': 0,
+        'subjects_failed': 0,
+        'overall_grade': 'N/A',
+        'class_position': 0,
+        'form_teacher_remarks': 'N/A',
+        'head_teacher_remarks': 'N/A',
+        'term_completed': false,
+        'completion_date': null,
+        'last_updated': FieldValue.serverTimestamp(),
+        // References for calculations
+        'calculated_from_subjects': 'Student_Subjects',
+        'total_marks_source': 'TOTAL_MARKS',
+      });
+
+      // Create attendance structure for each term
+      final DocumentReference attendanceRef = termRef
+          .collection('Attendance')
+          .doc('Attendance_Summary');
+
+      batch.set(attendanceRef, {
+        'total_school_days': 0,
+        'days_present': 0,
+        'days_absent': 0,
+        'attendance_percentage': 0.0,
+        'late_arrivals': 0,
+        'early_departures': 0,
+        'last_updated': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Create Academic Year Summary
+    final DocumentReference yearSummaryRef = academicPerformanceRef
+        .collection('Year_Summary')
+        .doc('Academic_Summary');
+
+    batch.set(yearSummaryRef, {
+      'academic_year': currentAcademicYear,
+      'total_terms': 3,
+      'completed_terms': 0,
+      'overall_average': 0.0,
+      'best_term': 'N/A',
+      'weakest_term': 'N/A',
+      'year_grade': 'N/A',
+      'promoted_to_next_class': false,
+      'promotion_status': 'Pending',
+      'year_completed': false,
+      'completion_date': null,
+      'last_updated': FieldValue.serverTimestamp(),
+      // References for year-end calculations
+      'personal_info_source': 'Personal_Information',
+      'subjects_source': 'Student_Subjects',
+      'total_marks_source': 'TOTAL_MARKS',
+    });
+
+    print("Academic Performance structure created for academic year: $currentAcademicYear");
+    print("Structure references existing collections: Personal_Information, Student_Subjects, TOTAL_MARKS");
+  }
+
+  // Updated _fetchSchoolInfo method for the new path
   Future<void> _fetchSchoolInfo(String school) async {
     try {
       DocumentSnapshot schoolInfoDoc = await _firestore
@@ -356,7 +533,6 @@ class _Student_DetailsState extends State<Student_Details> {
       });
     }
   }
-
 
   Future<void> _updateTotalStudentsCountOnSave(String school, String studentClass) async {
     try {
@@ -717,68 +893,86 @@ class _Student_DetailsState extends State<Student_Details> {
     String? Function(String?)? validator,
   }) {
     return Container(
-      decoration: BoxDecoration(
+        decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
-        ],
+    boxShadow: const [
+    BoxShadow(
+    color: Colors.black12,
+    blurRadius: 6,
+    offset: Offset(0, 2),
+    ),
+    ],
+    ),
+
+    child: DropdownButtonFormField<String>(
+    value: value,
+    decoration: InputDecoration(
+      labelText: labelText,
+      labelStyle: const TextStyle(color: Colors.blueAccent),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
       ),
-      child: DropdownButtonFormField<String>(
-        value: value,
-        decoration: InputDecoration(
-          labelText: labelText,
-          labelStyle: const TextStyle(color: Colors.blueAccent),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          filled: true,
-          fillColor: Colors.white,
-        ),
-        items: items.map((String item) {
-          return DropdownMenuItem<String>(
-            value: item,
-            child: Text(item),
-          );
-        }).toList(),
-        onChanged: onChanged,
-        validator: validator,
-        dropdownColor: Colors.white,
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
       ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      filled: true,
+      fillColor: Colors.white,
+    ),
+      items: items.map<DropdownMenuItem<String>>((String item) {
+        return DropdownMenuItem<String>(
+          value: item,
+          child: Text(item),
+        );
+      }).toList(),
+      onChanged: onChanged,
+      validator: validator,
+      dropdownColor: Colors.white,
+      style: const TextStyle(
+        color: Colors.black,
+        fontSize: 16,
+      ),
+      icon: const Icon(
+        Icons.arrow_drop_down,
+        color: Colors.blueAccent,
+      ),
+    ),
     );
   }
 }
 
-// MARK: - Custom Input Formatter
+// Date Input Formatter Class
 class _DateInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
       TextEditingValue oldValue,
       TextEditingValue newValue,
       ) {
-    final String text = newValue.text.replaceAll('-', '');
-    String newText = '';
+    String text = newValue.text;
 
-    for (int i = 0; i < text.length && i < 8; i++) {
-      newText += text[i];
-      if ((i == 1 || i == 3) && i != text.length - 1) {
-        newText += '-';
+    // Remove any non-digit characters
+    text = text.replaceAll(RegExp(r'[^0-9]'), '');
+
+    // Limit to 8 digits (DDMMYYYY)
+    if (text.length > 8) {
+      text = text.substring(0, 8);
+    }
+
+    // Format the text with dashes
+    String formattedText = '';
+    for (int i = 0; i < text.length; i++) {
+      if (i == 2 || i == 4) {
+        formattedText += '-';
       }
+      formattedText += text[i];
     }
 
     return TextEditingValue(
-      text: newText,
-      selection: TextSelection.collapsed(offset: newText.length),
+      text: formattedText,
+      selection: TextSelection.collapsed(offset: formattedText.length),
     );
   }
 }
