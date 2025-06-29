@@ -229,6 +229,11 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     }
   }
 
+  // Helper method to get effective student name
+  String _getEffectiveStudentName() {
+    return parentStudentName ?? widget.studentName ?? 'Unknown Student';
+  }
+
   // Helper method to get effective student class
   String _getEffectiveStudentClass() {
     return parentStudentClass ?? widget.studentClass ?? 'Unknown Class';
@@ -293,10 +298,47 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     }
   }
 
+  // Helper method to build info rows
+  Widget _buildInfoRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: Colors.blueAccent,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.black54,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: _buildAppBar(),
       body: _buildBody(),
     );
@@ -305,24 +347,72 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       title: const Text(
-        'Student Information',
+        'Student Registration Information',
         style: TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 20,
+          fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
       ),
       centerTitle: true,
-      backgroundColor: const Color(0xFF1E40AF),
-      elevation: 0,
+      backgroundColor: Colors.blueAccent,
+      elevation: 2,
       iconTheme: const IconThemeData(color: Colors.white),
       actions: [
         IconButton(
-          icon: const Icon(Icons.refresh_rounded),
+          icon: const Icon(Icons.refresh),
           onPressed: _loadParentDataAndFetchStudent,
           tooltip: 'Refresh Data',
         ),
+        IconButton(
+          icon: const Icon(Icons.bug_report),
+          onPressed: _showDebugInfo,
+          tooltip: 'Debug Info',
+        ),
       ],
+    );
+  }
+
+  // Show debug information
+  void _showDebugInfo() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Debug Information'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Parent Login Data:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('Student Name: ${parentStudentName ?? "N/A"}'),
+              Text('Student Class: ${parentStudentClass ?? "N/A"}'),
+              Text('First Name: ${parentFirstName ?? "N/A"}'),
+              Text('Last Name: ${parentLastName ?? "N/A"}'),
+              const SizedBox(height: 10),
+              const Text('Widget Parameters:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('School: ${widget.schoolName ?? "N/A"}'),
+              Text('Class: ${widget.studentClass ?? "N/A"}'),
+              Text('Student: ${widget.studentName ?? "N/A"}'),
+              const SizedBox(height: 10),
+              if (_actualPath != null) ...[
+                const Text('Successful Path:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(_actualPath!, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
+                const SizedBox(height: 10),
+              ],
+              if (studentPersonalInfo != null) ...[
+                const Text('Personal Info Keys:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(studentPersonalInfo!.keys.join(', ')),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -332,230 +422,173 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     }
 
     return Container(
-      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.lightBlueAccent.shade100, Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildStudentInfoSection(),
+            const SizedBox(height: 20),
+            _buildStudentPersonalInfoCard(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStudentInfoSection() {
-    if (_isLoadingStudent) {
-      return _buildLoadingWidget();
-    }
 
-    if (studentPersonalInfo == null) {
-      return _buildNoDataWidget();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Personal Information',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1E40AF),
-          ),
-        ),
-        const SizedBox(height: 30),
-        _buildInfoList(),
-      ],
-    );
-  }
-
-  Widget _buildInfoList() {
-    final List<Map<String, dynamic>> infoItems = [
-      {
-        'label': 'First Name',
-        'value': studentPersonalInfo!['firstName'] ?? parentFirstName ?? 'N/A',
-      },
-      {
-        'label': 'Last Name',
-        'value': studentPersonalInfo!['lastName'] ?? parentLastName ?? 'N/A',
-      },
-      {
-        'label': 'Student ID',
-        'value': studentPersonalInfo!['studentID'] ?? 'N/A',
-      },
-      {
-        'label': 'Class',
-        'value': studentPersonalInfo!['studentClass'] ?? _getEffectiveStudentClass(),
-      },
-      {
-        'label': 'Gender',
-        'value': studentPersonalInfo!['studentGender'] ?? 'N/A',
-      },
-      {
-        'label': 'Date of Birth',
-        'value': _formatDate(studentPersonalInfo!['studentDOB']),
-      },
-      {
-        'label': 'Age',
-        'value': _formatAge(studentPersonalInfo!['studentAge']),
-      },
-    ];
-
-    return Column(
-      children: infoItems.map((item) => _buildInfoRow(item['label'], item['value'])).toList(),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 16.0),
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Color(0xFFE5E7EB),
-            width: 1,
-          ),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1E40AF),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 3,
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF1E40AF),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadingWidget() {
-    return Container(
-      padding: const EdgeInsets.all(40),
-      child: const Center(
-        child: Column(
-          children: [
-            CircularProgressIndicator(
-              color: Color(0xFF1E40AF),
-              strokeWidth: 3,
-            ),
-            SizedBox(height: 24),
-            Text(
-              'Loading student information...',
-              style: TextStyle(
-                fontSize: 16,
-                color: Color(0xFF1E40AF),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNoDataWidget() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(40),
-      child: const Column(
-        children: [
-          Icon(
-            Icons.info_outline_rounded,
-            size: 48,
-            color: Color(0xFF1E40AF),
-          ),
-          SizedBox(height: 24),
-          Text(
-            'No Information Available',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E40AF),
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Student registration information is not available at the moment.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF1E40AF),
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildErrorWidget() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.error_outline_rounded,
-            size: 48,
-            color: Color(0xFF1E40AF),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Unable to Load Data',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E40AF),
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.red.shade200),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red.shade400,
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _errorMessage,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Color(0xFF1E40AF),
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E40AF),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            const SizedBox(height: 16),
+            Text(
+              'Error Loading Data',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.red.shade700,
               ),
             ),
-            onPressed: _loadParentDataAndFetchStudent,
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Retry'),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.red.shade600,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: _loadParentDataAndFetchStudent,
+                  child: const Text('Retry'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: _showDebugInfo,
+                  child: const Text('Debug'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Main student personal information card
+  Widget _buildStudentPersonalInfoCard() {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          gradient: LinearGradient(
+            colors: [Colors.blue.shade50, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Text(
+                    'Student Registration Information',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueAccent,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              if (_isLoadingStudent)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CircularProgressIndicator(color: Colors.blueAccent),
+                  ),
+                )
+              else if (studentPersonalInfo != null) ...[
+                _buildInfoRow('First Name', studentPersonalInfo!['firstName'] ?? parentFirstName ?? 'N/A', Icons.person_outline),
+                _buildInfoRow('Last Name', studentPersonalInfo!['lastName'] ?? parentLastName ?? 'N/A', Icons.person_outline),
+                _buildInfoRow('Student ID', studentPersonalInfo!['studentID'] ?? 'N/A', Icons.numbers),
+                _buildInfoRow('Class', studentPersonalInfo!['studentClass'] ?? _getEffectiveStudentClass(), Icons.school),
+                _buildInfoRow('Gender', studentPersonalInfo!['studentGender'] ?? 'N/A', Icons.wc),
+                _buildInfoRow('Date of Birth', _formatDate(studentPersonalInfo!['studentDOB']), Icons.cake),
+                _buildInfoRow('Age', _formatAge(studentPersonalInfo!['studentAge']), Icons.timeline),
+                if (studentPersonalInfo!['timestamp'] != null)
+                  _buildInfoRow('Registered', _formatTimestamp(studentPersonalInfo!['timestamp']), Icons.access_time),
+              ] else ...[
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text(
+                      'No student registration information available',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
