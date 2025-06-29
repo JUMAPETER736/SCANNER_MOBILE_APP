@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:barcode_widget/barcode_widget.dart';
 import 'package:intl/intl.dart';
 
+import '../Log_In_And_Register_Screens/Login_Page.dart';
+
 class Student_Details_View extends StatefulWidget {
-  final String schoolName;
-  final String className;
-  final String studentClass;
-  final String studentName;
+  final String? schoolName;
+  final String? className;
+  final String? studentClass;
+  final String? studentName;
 
   const Student_Details_View({
     Key? key,
-    required this.schoolName,
-    required this.className,
-    required this.studentClass,
-    required this.studentName,
+    this.schoolName,
+    this.className,
+    this.studentClass,
+    this.studentName,
   }) : super(key: key);
 
   @override
@@ -26,9 +27,13 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
 
   // Student Information
   Map<String, dynamic>? studentPersonalInfo;
-  Map<String, dynamic>? studentSubjects;
-  Map<String, dynamic>? studentMarks;
-  Map<String, dynamic>? studentRemarks;
+
+  // Parent login data
+  String? parentStudentName;
+  String? parentStudentClass;
+  String? parentFirstName;
+  String? parentLastName;
+  Map<String, dynamic>? parentStudentDetails;
 
   // Loading states
   bool _isLoadingStudent = true;
@@ -39,11 +44,11 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
   @override
   void initState() {
     super.initState();
-    _fetchStudentData();
+    _loadParentDataAndFetchStudent();
   }
 
-  // Fetch student data using the exact path structure from the save method
-  Future<void> _fetchStudentData() async {
+  // Load parent data first, then fetch student details
+  Future<void> _loadParentDataAndFetchStudent() async {
     setState(() {
       _isLoadingStudent = true;
       _hasError = false;
@@ -51,18 +56,61 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     });
 
     try {
-      // Clean and normalize the input parameters exactly as in save method
-      final String cleanSchoolName = widget.schoolName.trim();
-      final String cleanStudentClass = widget.studentClass.trim();
-      final String cleanStudentName = widget.studentName.trim();
+      // Load parent data from ParentDataManager
+      await ParentDataManager().loadFromPreferences();
 
-      print('=== FETCHING STUDENT DATA ===');
-      print('School: "$cleanSchoolName"');
-      print('Class: "$cleanStudentClass"');
-      print('Student: "$cleanStudentName"');
+      parentStudentName = ParentDataManager().studentName;
+      parentStudentClass = ParentDataManager().studentClass;
+      parentFirstName = ParentDataManager().firstName;
+      parentLastName = ParentDataManager().lastName;
+      parentStudentDetails = ParentDataManager().studentDetails;
 
-      // Use the exact path structure from the save method
-      final String basePath = 'Schools/$cleanSchoolName/Classes/$cleanStudentClass/Student_Details/$cleanStudentName';
+      print('=== PARENT LOGIN DATA ===');
+      print('Student Name: $parentStudentName');
+      print('Student Class: $parentStudentClass');
+      print('First Name: $parentFirstName');
+      print('Last Name: $parentLastName');
+
+      // Use parent data if available, otherwise fall back to widget parameters
+      final String effectiveStudentName = parentStudentName ?? widget.studentName ?? '';
+      final String effectiveStudentClass = parentStudentClass ?? widget.studentClass ?? '';
+
+      if (effectiveStudentName.isEmpty) {
+        throw Exception('No student name available from parent login or widget parameters');
+      }
+
+      // If we already have student details from parent login, use them
+      if (parentStudentDetails != null && parentStudentDetails!.isNotEmpty) {
+        print('Using cached parent student details');
+        setState(() {
+          studentPersonalInfo = parentStudentDetails;
+          _isLoadingStudent = false;
+        });
+      } else {
+        // Fetch student personal information only
+        await _fetchStudentPersonalInfo(effectiveStudentName, effectiveStudentClass);
+      }
+
+    } catch (e) {
+      setState(() {
+        _hasError = true;
+        _errorMessage = 'Error loading parent data: $e';
+        _isLoadingStudent = false;
+      });
+      print('Error loading parent data: $e');
+    }
+  }
+
+  // Fetch only student personal information
+  Future<void> _fetchStudentPersonalInfo(String studentName, String studentClass) async {
+    try {
+      print('=== FETCHING STUDENT PERSONAL INFO ===');
+      print('Student: "$studentName"');
+      print('Class: "$studentClass"');
+
+      // Try the most common school first
+      final String schoolName = 'Bwaila Secondary School';
+      final String basePath = 'Schools/$schoolName/Classes/$studentClass/Student_Details/$studentName';
 
       print('Base path: $basePath');
 
@@ -73,7 +121,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
         throw Exception('Student document not found at: $basePath');
       }
 
-      // Fetch Personal Information (exactly as saved)
+      // Fetch Personal Information only
       final String personalInfoPath = '$basePath/Personal_Information/Registered_Information';
       final DocumentSnapshot personalInfoDoc = await _firestore.doc(personalInfoPath).get();
 
@@ -81,55 +129,21 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
         throw Exception('Personal information not found at: $personalInfoPath');
       }
 
-      // Fetch Student Subjects
-      final QuerySnapshot subjectsSnapshot = await _firestore
-          .collection('$basePath/Student_Subjects')
-          .get();
-
-      // Fetch Total Marks
-      final DocumentSnapshot totalMarksDoc = await _firestore
-          .doc('$basePath/TOTAL_MARKS/Marks')
-          .get();
-
-      // Fetch Results Remarks
-      final DocumentSnapshot remarksDoc = await _firestore
-          .doc('$basePath/TOTAL_MARKS/Results_Remarks')
-          .get();
-
-      // Process the fetched data
+      // Process the fetched personal data only
       Map<String, dynamic> personalData = personalInfoDoc.data() as Map<String, dynamic>;
-
-      Map<String, dynamic> subjectsData = {};
-      for (var doc in subjectsSnapshot.docs) {
-        subjectsData[doc.id] = doc.data();
-      }
-
-      Map<String, dynamic> marksData = {};
-      if (totalMarksDoc.exists) {
-        marksData = totalMarksDoc.data() as Map<String, dynamic>;
-      }
-
-      Map<String, dynamic> remarksData = {};
-      if (remarksDoc.exists) {
-        remarksData = remarksDoc.data() as Map<String, dynamic>;
-      }
 
       setState(() {
         studentPersonalInfo = personalData;
-        studentSubjects = subjectsData;
-        studentMarks = marksData;
-        studentRemarks = remarksData;
         _actualPath = personalInfoPath;
         _isLoadingStudent = false;
       });
 
-      print('✅ Student data loaded successfully!');
+      print('✅ Student personal information loaded successfully!');
       print('Personal Info keys: ${personalData.keys.toList()}');
-      print('Number of subjects: ${subjectsData.length}');
 
     } catch (e) {
       // If exact path fails, try to debug what's available
-      await _debugAvailableData();
+      await _debugAvailableData(studentName, studentClass);
 
       setState(() {
         _hasError = true;
@@ -141,36 +155,35 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
   }
 
   // Debug method to check what data exists
-  Future<void> _debugAvailableData() async {
+  Future<void> _debugAvailableData(String studentName, String studentClass) async {
     try {
       print('=== DEBUGGING AVAILABLE DATA ===');
 
-      final String cleanSchoolName = widget.schoolName.trim();
-      final String cleanStudentClass = widget.studentClass.trim();
+      final String schoolName = 'Bwaila Secondary School';
 
       // Check if school exists
       final DocumentSnapshot schoolDoc = await _firestore
-          .doc('Schools/$cleanSchoolName')
+          .doc('Schools/$schoolName')
           .get();
 
       if (!schoolDoc.exists) {
-        print('❌ School not found: $cleanSchoolName');
+        print('❌ School not found: $schoolName');
         return;
       }
 
-      print('✅ School exists: $cleanSchoolName');
+      print('✅ School exists: $schoolName');
 
       // Check if class exists
       final DocumentSnapshot classDoc = await _firestore
-          .doc('Schools/$cleanSchoolName/Classes/$cleanStudentClass')
+          .doc('Schools/$schoolName/Classes/$studentClass')
           .get();
 
       if (!classDoc.exists) {
-        print('❌ Class not found: $cleanStudentClass');
+        print('❌ Class not found: $studentClass');
 
         // List available classes
         final QuerySnapshot classesSnapshot = await _firestore
-            .collection('Schools/$cleanSchoolName/Classes')
+            .collection('Schools/$schoolName/Classes')
             .get();
 
         if (classesSnapshot.docs.isNotEmpty) {
@@ -182,11 +195,11 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
         return;
       }
 
-      print('✅ Class exists: $cleanStudentClass');
+      print('✅ Class exists: $studentClass');
 
       // Check available students
       final QuerySnapshot studentsSnapshot = await _firestore
-          .collection('Schools/$cleanSchoolName/Classes/$cleanStudentClass/Student_Details')
+          .collection('Schools/$schoolName/Classes/$studentClass/Student_Details')
           .get();
 
       if (studentsSnapshot.docs.isNotEmpty) {
@@ -196,7 +209,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
         }
 
         // Check for similar names
-        final String targetName = widget.studentName.toLowerCase().trim();
+        final String targetName = studentName.toLowerCase().trim();
         final List<String> similarNames = studentsSnapshot.docs
             .where((doc) => doc.id.toLowerCase().trim() == targetName)
             .map((doc) => doc.id)
@@ -205,7 +218,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
         if (similarNames.isNotEmpty) {
           print('Exact matches found: $similarNames');
         } else {
-          print('❌ No exact match for: "${widget.studentName}"');
+          print('❌ No exact match for: "$studentName"');
         }
       } else {
         print('❌ No students found in class');
@@ -216,12 +229,12 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     }
   }
 
-  // Helper method to get student ID safely
-  String _getStudentID() {
-    return studentPersonalInfo?['studentID'] ?? 'N/A';
+  // Helper method to get effective student class
+  String _getEffectiveStudentClass() {
+    return parentStudentClass ?? widget.studentClass ?? 'Unknown Class';
   }
 
-  // Helper method to format date (same as original)
+  // Helper method to format date
   String _formatDate(String? dateString) {
     if (dateString == null || dateString.isEmpty) return 'N/A';
 
@@ -242,7 +255,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     }
   }
 
-  // Helper method to format age (same as original)
+  // Helper method to format age
   String _formatAge(dynamic ageValue) {
     if (ageValue == null) return 'N/A';
 
@@ -257,7 +270,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     return ageString.contains('years') ? ageString : '$ageString years old';
   }
 
-  // Helper method to format timestamp (same as original)
+  // Helper method to format timestamp
   String _formatTimestamp(dynamic timestamp) {
     if (timestamp == null) return 'N/A';
 
@@ -283,6 +296,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: _buildAppBar(),
       body: _buildBody(),
     );
@@ -291,71 +305,24 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       title: const Text(
-        'Student Details',
+        'Student Information',
         style: TextStyle(
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
+          fontSize: 20,
           color: Colors.white,
         ),
       ),
       centerTitle: true,
-      backgroundColor: Colors.blueAccent,
-      elevation: 2,
+      backgroundColor: const Color(0xFF1E40AF),
+      elevation: 0,
       iconTheme: const IconThemeData(color: Colors.white),
       actions: [
         IconButton(
-          icon: const Icon(Icons.refresh),
-          onPressed: _fetchStudentData,
+          icon: const Icon(Icons.refresh_rounded),
+          onPressed: _loadParentDataAndFetchStudent,
           tooltip: 'Refresh Data',
         ),
-        IconButton(
-          icon: const Icon(Icons.bug_report),
-          onPressed: _showDebugInfo,
-          tooltip: 'Debug Info',
-        ),
       ],
-    );
-  }
-
-  // Show debug information
-  void _showDebugInfo() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Debug Information'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('School: ${widget.schoolName}'),
-              Text('Class: ${widget.studentClass}'),
-              Text('Student: ${widget.studentName}'),
-              const SizedBox(height: 10),
-              if (_actualPath != null) ...[
-                const Text('Successful Path:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text(_actualPath!, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
-                const SizedBox(height: 10),
-              ],
-              if (studentPersonalInfo != null) ...[
-                const Text('Personal Info Keys:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text(studentPersonalInfo!.keys.join(', ')),
-                const SizedBox(height: 10),
-              ],
-              if (studentSubjects != null) ...[
-                const Text('Subjects:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('${studentSubjects!.length} subjects found'),
-                Text(studentSubjects!.keys.join(', ')),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -365,494 +332,228 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
     }
 
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.lightBlueAccent.shade100, Colors.white],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+      width: double.infinity,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildStudentPersonalInfoCard(),
-            const SizedBox(height: 20),
-            _buildSubjectsCard(),
-            const SizedBox(height: 20),
-            _buildMarksCard(),
-            const SizedBox(height: 20),
-            _buildQRCodeCard(),
+            _buildStudentInfoSection(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStudentInfoSection() {
+    if (_isLoadingStudent) {
+      return _buildLoadingWidget();
+    }
+
+    if (studentPersonalInfo == null) {
+      return _buildNoDataWidget();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Personal Information',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1E40AF),
+          ),
+        ),
+        const SizedBox(height: 30),
+        _buildInfoList(),
+      ],
+    );
+  }
+
+  Widget _buildInfoList() {
+    final List<Map<String, dynamic>> infoItems = [
+      {
+        'label': 'First Name',
+        'value': studentPersonalInfo!['firstName'] ?? parentFirstName ?? 'N/A',
+      },
+      {
+        'label': 'Last Name',
+        'value': studentPersonalInfo!['lastName'] ?? parentLastName ?? 'N/A',
+      },
+      {
+        'label': 'Student ID',
+        'value': studentPersonalInfo!['studentID'] ?? 'N/A',
+      },
+      {
+        'label': 'Class',
+        'value': studentPersonalInfo!['studentClass'] ?? _getEffectiveStudentClass(),
+      },
+      {
+        'label': 'Gender',
+        'value': studentPersonalInfo!['studentGender'] ?? 'N/A',
+      },
+      {
+        'label': 'Date of Birth',
+        'value': _formatDate(studentPersonalInfo!['studentDOB']),
+      },
+      {
+        'label': 'Age',
+        'value': _formatAge(studentPersonalInfo!['studentAge']),
+      },
+    ];
+
+    return Column(
+      children: infoItems.map((item) => _buildInfoRow(item['label'], item['value'])).toList(),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: Color(0xFFE5E7EB),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E40AF),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF1E40AF),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingWidget() {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      child: const Center(
+        child: Column(
+          children: [
+            CircularProgressIndicator(
+              color: Color(0xFF1E40AF),
+              strokeWidth: 3,
+            ),
+            SizedBox(height: 24),
+            Text(
+              'Loading student information...',
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFF1E40AF),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoDataWidget() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(40),
+      child: const Column(
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: 48,
+            color: Color(0xFF1E40AF),
+          ),
+          SizedBox(height: 24),
+          Text(
+            'No Information Available',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E40AF),
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Student registration information is not available at the moment.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Color(0xFF1E40AF),
+              height: 1.5,
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildErrorWidget() {
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.red.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.red.shade200),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red.shade400,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Error Loading Data',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.red.shade700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _errorMessage,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.red.shade600,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: _fetchStudentData,
-                  child: const Text('Retry'),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: _showDebugInfo,
-                  child: const Text('Debug'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStudentPersonalInfoCard() {
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-          gradient: LinearGradient(
-            colors: [Colors.blue.shade50, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blueAccent,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Text(
-                    'Personal Information',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueAccent,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              if (_isLoadingStudent)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: CircularProgressIndicator(color: Colors.blueAccent),
-                  ),
-                )
-              else if (studentPersonalInfo != null) ...[
-                _buildInfoRow('Full Name', widget.studentName, Icons.badge),
-                _buildInfoRow('First Name', studentPersonalInfo!['firstName'] ?? 'N/A', Icons.person_outline),
-                _buildInfoRow('Last Name', studentPersonalInfo!['lastName'] ?? 'N/A', Icons.person_outline),
-                _buildInfoRow('Student ID', studentPersonalInfo!['studentID'] ?? 'N/A', Icons.numbers),
-                _buildInfoRow('Class', studentPersonalInfo!['studentClass'] ?? widget.studentClass, Icons.school),
-                _buildInfoRow('Gender', studentPersonalInfo!['studentGender'] ?? 'N/A', Icons.wc),
-                _buildInfoRow('Date of Birth', _formatDate(studentPersonalInfo!['studentDOB']), Icons.cake),
-                _buildInfoRow('Age', _formatAge(studentPersonalInfo!['studentAge']), Icons.timeline),
-                if (studentPersonalInfo!['createdBy'] != null)
-                  _buildInfoRow('Created By', studentPersonalInfo!['createdBy'] ?? 'N/A', Icons.person_add),
-                if (studentPersonalInfo!['timestamp'] != null)
-                  _buildInfoRow('Registered', _formatTimestamp(studentPersonalInfo!['timestamp']), Icons.access_time),
-              ] else ...[
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Text(
-                      'No student data available',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSubjectsCard() {
-    if (_isLoadingStudent || studentSubjects == null || studentSubjects!.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-          gradient: LinearGradient(
-            colors: [Colors.purple.shade50, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.purple,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.subject,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Text(
-                    'Subjects (${studentSubjects!.length})',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.purple,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: studentSubjects!.entries.map((entry) {
-                  final subject = entry.value as Map<String, dynamic>;
-                  final subjectName = subject['Subject_Name'] ?? entry.key;
-                  final grade = subject['Subject_Grade'] ?? 'N/A';
-
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.purple.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.purple.shade200),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          subjectName,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          'Grade: $grade',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMarksCard() {
-    if (_isLoadingStudent || (studentMarks == null || studentMarks!.isEmpty) && (studentRemarks == null || studentRemarks!.isEmpty)) {
-      return const SizedBox.shrink();
-    }
-
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-          gradient: LinearGradient(
-            colors: [Colors.orange.shade50, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.grade,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Text(
-                    'Academic Performance',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              if (studentMarks != null) ...[
-                _buildInfoRow('Aggregate Grade', studentMarks!['Aggregate_Grade'] ?? 'N/A', Icons.star),
-                _buildInfoRow('Best Six Total Points', studentMarks!['Best_Six_Total_Points']?.toString() ?? '0', Icons.trending_up),
-                _buildInfoRow('Student Total Marks', studentMarks!['Student_Total_Marks'] ?? '0', Icons.calculate),
-                _buildInfoRow('Teacher Total Marks', studentMarks!['Teacher_Total_Marks'] ?? '0', Icons.assignment_turned_in),
-              ],
-              if (studentRemarks != null) ...[
-                const SizedBox(height: 16),
-                _buildInfoRow('Form Teacher Remark', studentRemarks!['Form_Teacher_Remark'] ?? 'N/A', Icons.comment),
-                _buildInfoRow('Head Teacher Remark', studentRemarks!['Head_Teacher_Remark'] ?? 'N/A', Icons.school),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQRCodeCard() {
-    if (_isLoadingStudent || studentPersonalInfo == null) return const SizedBox.shrink();
-
-    final String studentID = _getStudentID();
-    if (studentID == 'N/A' || studentID.isEmpty) return const SizedBox.shrink();
-
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-          gradient: LinearGradient(
-            colors: [Colors.green.shade50, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.qr_code,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Text(
-                    'Student QR Code',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    BarcodeWidget(
-                      barcode: Barcode.qrCode(),
-                      data: studentID,
-                      width: 200,
-                      height: 200,
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'Student ID: $studentID',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Scan this QR code for quick student identification',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                  fontStyle: FontStyle.italic,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: Colors.grey.shade600,
+          const Icon(
+            Icons.error_outline_rounded,
+            size: 48,
+            color: Color(0xFF1E40AF),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Unable to Load Data',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E40AF),
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 8),
+          Text(
+            _errorMessage,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Color(0xFF1E40AF),
+              height: 1.5,
             ),
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E40AF),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: _loadParentDataAndFetchStudent,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Retry'),
           ),
         ],
       ),
