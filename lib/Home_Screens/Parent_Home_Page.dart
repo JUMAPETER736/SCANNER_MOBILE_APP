@@ -33,9 +33,6 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
     }
   }
 
-
-
-
   @override
   void initState() {
     super.initState();
@@ -70,62 +67,66 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
   }
 
   Widget _buildWelcomeSection() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: MediaQuery.of(context).size.width * 0.01,
-        vertical: MediaQuery.of(context).size.height * 0.03,
+        horizontal: screenWidth * 0.05,
+        vertical: screenHeight * 0.02,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                width: MediaQuery.of(context).size.width * 0.12,
-                height: MediaQuery.of(context).size.width * 0.12,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Colors.blueAccent, Colors.blueAccent],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+          Container(
+            width: screenWidth * 0.15,
+            height: screenWidth * 0.15,
+            constraints: BoxConstraints(
+              minWidth: 50,
+              minHeight: 50,
+              maxWidth: 80,
+              maxHeight: 80,
+            ),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Colors.blueAccent, Colors.blue],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(screenWidth * 0.075),
+            ),
+            child: Icon(
+              Icons.person,
+              color: Colors.white,
+              size: screenWidth * 0.08,
+            ),
+          ),
+          SizedBox(width: screenWidth * 0.04),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Welcome back!',
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.04,
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.w600,
                   ),
-
-                  borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width * 0.06),
                 ),
-                child: Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: MediaQuery.of(context).size.width * 0.07,
+                SizedBox(height: screenHeight * 0.005),
+                Text(
+                  loggedInUser?.email?.split('@')[0] ?? 'Parent',
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.055,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueAccent,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              SizedBox(width: MediaQuery.of(context).size.width * 0.04),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Welcome back!',
-                      style: TextStyle(
-                        fontSize: MediaQuery.of(context).size.width * 0.04,
-                        color: Colors.blueAccent,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.005),
-                    Text(
-                      loggedInUser?.email?.split('@')[0] ?? 'Parent',
-                      style: TextStyle(
-                        fontSize: MediaQuery.of(context).size.width * 0.055,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
-
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -133,6 +134,9 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
   }
 
   Widget _buildQuickActions() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     final actions = [
       {
         'icon': Icons.person_outline,
@@ -140,7 +144,6 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
         'subtitle': 'View profile & info',
         'color': const Color(0xFF4F46E5),
         'onTap': () {
-
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -152,7 +155,6 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
               ),
             ),
           );
-
         },
       },
       {
@@ -207,112 +209,151 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
       },
     ];
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: MediaQuery.of(context).size.width * 0.01,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Quick Actions',
-            style: TextStyle(
-              fontSize: MediaQuery.of(context).size.width * 0.055,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF667eea),
+    // Calculate dynamic spacing based on screen height
+    final availableHeight = screenHeight -
+        kToolbarHeight -
+        MediaQuery.of(context).padding.top -
+        MediaQuery.of(context).padding.bottom -
+        (screenHeight * 0.15); // Welcome section height
+
+    final itemHeight = (availableHeight * 0.8) / actions.length;
+    final minItemHeight = 70.0; // Fixed minimum height in pixels
+    final maxItemHeight = screenHeight * 0.12;
+    final finalItemHeight = itemHeight.clamp(minItemHeight, maxItemHeight);
+
+    return Expanded(
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Quick Actions',
+              style: TextStyle(
+                fontSize: screenWidth * 0.055,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF667eea),
+              ),
             ),
-          ),
-          SizedBox(height: MediaQuery.of(context).size.height * 0.02),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: actions.length,
-            itemBuilder: (context, index) {
-              final action = actions[index];
-              return AnimatedBuilder(
-                animation: _fadeAnimation,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(0, 50 * (1 - _fadeAnimation.value)),
-                    child: Opacity(
-                      opacity: _fadeAnimation.value,
-                      child: Container(
-                        width: double.infinity,
-                        margin: EdgeInsets.only(bottom: MediaQuery.of(context).size.height * 0.02),
-                        child: InkWell(
-                          onTap: action['onTap'] as VoidCallback,
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: MediaQuery.of(context).size.width * 0.03,
-                              vertical: MediaQuery.of(context).size.height * 0.01,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
+            SizedBox(height: screenHeight * 0.015),
+            Expanded(
+              child: ListView.separated(
+                physics: const BouncingScrollPhysics(),
+                itemCount: actions.length,
+                separatorBuilder: (context, index) => SizedBox(
+                  height: screenHeight * 0.01,
+                ),
+                itemBuilder: (context, index) {
+                  final action = actions[index];
+                  return AnimatedBuilder(
+                    animation: _fadeAnimation,
+                    builder: (context, child) {
+                      return Transform.translate(
+                        offset: Offset(0, 20 * (1 - _fadeAnimation.value)),
+                        child: Opacity(
+                          opacity: _fadeAnimation.value,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: action['onTap'] as VoidCallback,
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                width: double.infinity,
+                                constraints: BoxConstraints(
+                                  minHeight: finalItemHeight,
+                                ),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: screenWidth * 0.04,
+                                  vertical: (screenHeight * 0.015).clamp(8.0, 20.0),
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
                                   children: [
                                     Container(
-                                      width: MediaQuery.of(context).size.width * 0.12,
-                                      height: MediaQuery.of(context).size.width * 0.12,
+                                      width: screenWidth * 0.12,
+                                      height: screenWidth * 0.12,
+                                      constraints: BoxConstraints(
+                                        minWidth: 45,
+                                        minHeight: 45,
+                                        maxWidth: 60,
+                                        maxHeight: 60,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: (action['color'] as Color).withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(10),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Icon(
                                         action['icon'] as IconData,
                                         color: action['color'] as Color,
-                                        size: MediaQuery.of(context).size.width * 0.06,
+                                        size: screenWidth * 0.06,
                                       ),
                                     ),
-                                    SizedBox(width: MediaQuery.of(context).size.width * 0.04),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          action['title'] as String,
-                                          style: TextStyle(
-                                            fontSize: MediaQuery.of(context).size.width * 0.045,
-                                            fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF2D3748),
+                                    SizedBox(width: screenWidth * 0.04),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              action['title'] as String,
+                                              style: TextStyle(
+                                                fontSize: (screenWidth * 0.044).clamp(14.0, 18.0),
+                                                fontWeight: FontWeight.w600,
+                                                color: const Color(0xFF2D3748),
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
                                           ),
-                                        ),
-                                        SizedBox(height: MediaQuery.of(context).size.height * 0.003),
-                                        Text(
-                                          action['subtitle'] as String,
-                                          style: TextStyle(
-                                            fontSize: MediaQuery.of(context).size.width * 0.037,
-                                            color: const Color(0xFF667eea),
-                                            fontWeight: FontWeight.w500,
+                                          SizedBox(height: (screenHeight * 0.003).clamp(2.0, 6.0)),
+                                          Flexible(
+                                            child: Text(
+                                              action['subtitle'] as String,
+                                              style: TextStyle(
+                                                fontSize: (screenWidth * 0.035).clamp(12.0, 16.0),
+                                                color: const Color(0xFF667eea),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.arrow_forward_ios,
+                                      size: screenWidth * 0.04,
+                                      color: const Color(0xFF667eea),
                                     ),
                                   ],
                                 ),
-                                Padding(
-                                  padding: EdgeInsets.only(right: MediaQuery.of(context).size.width * 0.02),
-                                  child: Icon(
-                                    Icons.arrow_forward_ios,
-                                    size: MediaQuery.of(context).size.width * 0.04,
-                                    color: const Color(0xFF667eea),
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   );
                 },
-              );
-            },
-          ),
-        ],
+              ),
+            ),
+            SizedBox(height: screenHeight * 0.02), // Small bottom padding
+          ],
+        ),
       ),
     );
   }
@@ -357,31 +398,22 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.blueAccent, Colors.blueAccent],
+              colors: [Colors.blueAccent, Colors.blue],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
         ),
       ),
-      body: SizedBox(
-        width: double.infinity,
-        height: MediaQuery.of(context).size.height,
-        child: SingleChildScrollView(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: Column(
-              children: [
-                _buildWelcomeSection(),
-                SizedBox(height: MediaQuery.of(context).size.height * 0.01),
-                _buildQuickActions(),
-                SizedBox(height: MediaQuery.of(context).size.height * 0.04),
-              ],
-            ),
-          ),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Column(
+          children: [
+            _buildWelcomeSection(),
+            _buildQuickActions(),
+          ],
         ),
       ),
     );
   }
-
 }
