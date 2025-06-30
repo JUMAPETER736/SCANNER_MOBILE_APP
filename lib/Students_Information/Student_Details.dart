@@ -310,8 +310,6 @@ class _Student_DetailsState extends State<Student_Details> {
       'other_fees': 0,
       'total_fees': 0,
       'bank_account_number': '',
-      'mobile_money_number': '',
-      'cash_payment_location': '',
       'amount_paid': 0,
       'outstanding_balance': 0,
       'next_payment_due': '',
@@ -519,52 +517,6 @@ class _Student_DetailsState extends State<Student_Details> {
 
     print("Academic Performance structure created for academic year: $currentAcademicYear");
     print("Structure references existing collections: Personal_Information, Student_Subjects, TOTAL_MARKS");
-  }
-
-  // Updated _fetchSchoolInfo method for the new path
-  Future<void> _fetchSchoolInfo(String school) async {
-    try {
-      DocumentSnapshot schoolInfoDoc = await _firestore
-          .collection('Schools')
-          .doc(school)
-          .collection('School_Information')
-          .doc('School_Details')
-          .get();
-
-      if (schoolInfoDoc.exists) {
-        setState(() {
-          schoolPhone = schoolInfoDoc['Telephone'] ?? 'N/A';
-          schoolEmail = schoolInfoDoc['Email'] ?? 'N/A';
-          boxNumber = schoolInfoDoc['boxNumber'] ?? 0;
-          schoolLocation = schoolInfoDoc['schoolLocation'] ?? 'N/A';
-          schoolFees = schoolInfoDoc['School_Fees'] ?? 'N/A';
-          schoolBankAccount = schoolInfoDoc['School_Bank_Account'] ?? 'N/A';
-          nextTermOpeningDate = schoolInfoDoc['Next_Term_Opening_Date'] ?? 'N/A';
-        });
-      } else {
-        // If document doesn't exist, set default values
-        setState(() {
-          schoolPhone = 'N/A';
-          schoolEmail = 'N/A';
-          boxNumber = 0;
-          schoolLocation = 'N/A';
-          schoolFees = 'N/A';
-          schoolBankAccount = 'N/A';
-          nextTermOpeningDate = 'N/A';
-        });
-      }
-    } catch (e) {
-      print("Error fetching school info: $e");
-      setState(() {
-        schoolPhone = 'N/A';
-        schoolEmail = 'N/A';
-        boxNumber = 0;
-        schoolLocation = 'N/A';
-        schoolFees = 'N/A';
-        schoolBankAccount = 'N/A';
-        nextTermOpeningDate = 'N/A';
-      });
-    }
   }
 
   Future<void> _updateTotalStudentsCountOnSave(String school, String studentClass) async {
