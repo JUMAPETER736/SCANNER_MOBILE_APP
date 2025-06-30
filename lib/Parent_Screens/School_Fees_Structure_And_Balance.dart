@@ -821,17 +821,64 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
 
   Widget _buildBalanceItem(String label, String amount, Color color, {bool isDate = false}) {
     return Padding(
-        padding: EdgeInsets.symmetric(vertical: _getResponsiveValue(context, 6, 8, 10)),
-    child: Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-    Text(
-    label,
-    style: TextStyle(
-    fontSize: _getResponsiveValue(context, 14, 16, 18),
-    fontWeight: FontWeight.w500,
-    color: Colors.black87,
-    ),
-    ),
-    Container(
-    padding: EdgeIn
+      padding: EdgeInsets.symmetric(vertical: _getResponsiveValue(context, 6, 8, 10)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: _getResponsiveValue(context, 14, 16, 18),
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: _getResponsiveValue(context, 8, 10, 12),
+              vertical: _getResponsiveValue(context, 4, 6, 8),
+            ),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(_getResponsiveValue(context, 6, 8, 10)),
+              border: Border.all(color: color.withOpacity(0.3)),
+            ),
+            child: Text(
+              isDate ? amount : 'MWK $amount',
+              style: TextStyle(
+                fontSize: _getResponsiveValue(context, 14, 16, 18),
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ParentDataManager class that seems to be missing
+class ParentDataManager {
+  static final ParentDataManager _instance = ParentDataManager._internal();
+  factory ParentDataManager() => _instance;
+  ParentDataManager._internal();
+
+  String? schoolName;
+  String? studentName;
+  String? studentClass;
+
+  Future<void> loadFromPreferences() async {
+    // Add your SharedPreferences loading logic here
+    // This is a placeholder implementation
+    try {
+      // Example implementation - replace with your actual logic
+      schoolName = "Sample School"; // Load from SharedPreferences
+      studentName = "Sample Student"; // Load from SharedPreferences
+      studentClass = "Grade 10"; // Load from SharedPreferences
+    } catch (e) {
+      print('Error loading preferences: $e');
+      throw e;
+    }
+  }
+}
