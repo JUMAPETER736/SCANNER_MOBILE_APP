@@ -271,10 +271,11 @@ class _Student_DetailsState extends State<Student_Details> {
     return teacherDetails['school'] as String;
   }
 
+
   Future<void> _saveStudentToFirestore(String schoolName) async {
     final WriteBatch batch = _firestore.batch();
 
-    // Create School Information document (if it doesn't exist)
+    // 1. School Information Document
     final DocumentReference schoolInfoRef = _firestore
         .collection('Schools')
         .doc(schoolName)
@@ -293,7 +294,32 @@ class _Student_DetailsState extends State<Student_Details> {
       'lastUpdated': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
-    // Main student document
+    // 2. Fees Details Document (Added this new section)
+    final DocumentReference feesDetailsRef = _firestore
+        .collection('Schools')
+        .doc(schoolName)
+        .collection('School_Information')
+        .doc('Fees_Details');
+
+    batch.set(feesDetailsRef, {
+      'tuition_fee': 0,
+      'development_fee': 0,
+      'library_fee': 0,
+      'sports_fee': 0,
+      'laboratory_fee': 0,
+      'other_fees': 0,
+      'total_fees': 0,
+      'bank_account_number': '',
+      'mobile_money_number': '',
+      'cash_payment_location': '',
+      'amount_paid': 0,
+      'outstanding_balance': 0,
+      'next_payment_due': '',
+      'createdAt': FieldValue.serverTimestamp(),
+      'lastUpdated': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    // 3. Main student document
     final DocumentReference studentRef = _firestore
         .collection('Schools')
         .doc(schoolName)
@@ -306,7 +332,7 @@ class _Student_DetailsState extends State<Student_Details> {
       'timestamp': FieldValue.serverTimestamp(),
     });
 
-    // Personal information
+    // 4. Personal information
     final DocumentReference personalInfoRef = studentRef
         .collection('Personal_Information')
         .doc('Registered_Information');
@@ -323,7 +349,7 @@ class _Student_DetailsState extends State<Student_Details> {
       'timestamp': FieldValue.serverTimestamp(),
     });
 
-    // Student subjects
+    // 5. Student subjects
     for (String subject in _defaultSubjects[_selectedClass]!) {
       final DocumentReference subjectRef = studentRef
           .collection('Student_Subjects')
@@ -335,7 +361,7 @@ class _Student_DetailsState extends State<Student_Details> {
       });
     }
 
-    // Total marks document
+    // 6. Total marks document
     final DocumentReference totalMarksRef = studentRef
         .collection('TOTAL_MARKS')
         .doc('Marks');
@@ -347,7 +373,7 @@ class _Student_DetailsState extends State<Student_Details> {
       'Teacher_Total_Marks': '0',
     });
 
-    // Results remarks document
+    // 7. Results remarks document
     final DocumentReference resultsRemarksRef = studentRef
         .collection('TOTAL_MARKS')
         .doc('Results_Remarks');
@@ -357,17 +383,18 @@ class _Student_DetailsState extends State<Student_Details> {
       'Head_Teacher_Remark': 'N/A',
     });
 
-    // Academic Performance Structure (referencing existing collections)
+    // 8. Academic Performance Structure
     await _createAcademicPerformanceStructure(batch, studentRef);
 
     try {
       await batch.commit();
-      print("Student and school information saved successfully!");
+      print("Student, school information, and fees structure saved successfully!");
     } catch (e) {
       print("Error saving data: $e");
       throw e;
     }
   }
+
 
   // MARK: - Academic Performance Structure Creation (Updated to reference existing data)
   Future<void> _createAcademicPerformanceStructure(WriteBatch batch, DocumentReference studentRef) async {
