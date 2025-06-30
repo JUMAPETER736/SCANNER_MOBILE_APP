@@ -132,11 +132,11 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
       return Scaffold(
         appBar: AppBar(
           title: Text('School Fees'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.blueAccent,
         ),
         body: Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
           ),
         ),
       );
@@ -147,7 +147,7 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
       return Scaffold(
         appBar: AppBar(
           title: Text('School Fees'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.blueAccent,
         ),
         body: Center(
           child: Padding(
@@ -253,7 +253,7 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.green, Colors.white],
+            colors: [Colors.blueAccent, Colors.white],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -314,7 +314,7 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
                   Container(
                     padding: EdgeInsets.all(_getResponsiveValue(context, 8, 10, 12)),
                     decoration: BoxDecoration(
-                      color: Colors.green,
+                      color: Colors.blueAccent,
                       borderRadius: BorderRadius.circular(_getResponsiveValue(context, 8, 10, 12)),
                     ),
                     child: Icon(
@@ -373,7 +373,7 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
                   Container(
                     padding: EdgeInsets.all(_getResponsiveValue(context, 8, 10, 12)),
                     decoration: BoxDecoration(
-                      color: Colors.green,
+                      color: Colors.blueAccent,
                       borderRadius: BorderRadius.circular(_getResponsiveValue(context, 8, 10, 12)),
                     ),
                     child: Icon(
@@ -446,7 +446,7 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
                   Container(
                     padding: EdgeInsets.all(_getResponsiveValue(context, 8, 10, 12)),
                     decoration: BoxDecoration(
-                      color: Colors.green,
+                      color: Colors.blueAccent,
                       borderRadius: BorderRadius.circular(_getResponsiveValue(context, 8, 10, 12)),
                     ),
                     child: Icon(
@@ -514,7 +514,7 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
                   Container(
                     padding: EdgeInsets.all(_getResponsiveValue(context, 8, 10, 12)),
                     decoration: BoxDecoration(
-                      color: Colors.green,
+                      color: Colors.blueAccent,
                       borderRadius: BorderRadius.circular(_getResponsiveValue(context, 8, 10, 12)),
                     ),
                     child: Icon(
@@ -564,7 +564,7 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
           Icon(
             icon,
             size: _getResponsiveValue(context, 18, 20, 24),
-            color: Colors.green,
+            color: Colors.blueAccent,
           ),
           SizedBox(width: _getResponsiveValue(context, 8, 12, 16)),
           Expanded(
