@@ -1,9 +1,6 @@
-
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../Log_In_And_Register_Screens/Login_Page.dart';
 
 class School_Fees_Structure_And_Balance extends StatefulWidget {
@@ -13,7 +10,7 @@ class School_Fees_Structure_And_Balance extends StatefulWidget {
     Key? key,
     required String schoolName,
     required String studentClass,
-    required String studentName
+    required String studentName,
   }) : super(key: key);
 
   @override
@@ -26,8 +23,8 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
   String? _studentName;
   String? _studentClass;
   bool _isLoading = true;
-
   Map<String, dynamic>? _feesData;
+  Map<String, dynamic>? _schoolData; // Added for school information
   String? _errorMessage;
 
   @override
@@ -45,7 +42,6 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
         _schoolName = ParentDataManager().schoolName;
         _studentName = ParentDataManager().studentName;
         _studentClass = ParentDataManager().studentClass;
-
       });
 
       print('🏫 Parent Data Loaded:');
@@ -53,9 +49,11 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
       print('Student: $_studentName');
       print('Class: $_studentClass');
 
-
-      // Load fees data after parent data is loaded
-      await _loadFeesData();
+      // Load both fees data and school information
+      await Future.wait([
+        _loadFeesData(),
+        _loadSchoolData(),
+      ]);
     } catch (e) {
       print('❌ Error loading parent data: $e');
       setState(() {
@@ -86,16 +84,13 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
       if (feesSnapshot.exists) {
         setState(() {
           _feesData = feesSnapshot.data() as Map<String, dynamic>?;
-          _isLoading = false;
-          _errorMessage = null;
         });
         print('💰 Fees data loaded successfully');
+        print('Fees data: $_feesData');
       } else {
-        setState(() {
-          _errorMessage = 'No fees information found for this school';
-          _isLoading = false;
-        });
         print('⚠️ No fees document found');
+        // Create default fees structure if it doesn't exist
+        await _createDefaultFeesStructure();
       }
     } catch (e) {
       print('❌ Error loading fees data: $e');
@@ -104,6 +99,105 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _loadSchoolData() async {
+    if (_schoolName == null || _schoolName!.isEmpty) {
+      return;
+    }
+
+    try {
+      // Fetch school details from Firestore
+      final DocumentSnapshot schoolSnapshot = await _firestore
+          .collection('Schools')
+          .doc(_schoolName!)
+          .collection('School_Information')
+          .doc('School_Details')
+          .get();
+
+      if (schoolSnapshot.exists) {
+        setState(() {
+          _schoolData = schoolSnapshot.data() as Map<String, dynamic>?;
+          _isLoading = false;
+        });
+        print('🏫 School data loaded successfully');
+        print('School data: $_schoolData');
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        print('⚠️ No school details document found');
+      }
+    } catch (e) {
+      print('❌ Error loading school data: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _createDefaultFeesStructure() async {
+    try {
+      final DocumentReference feesDetailsRef = _firestore
+          .collection('Schools')
+          .doc(_schoolName!)
+          .collection('School_Information')
+          .doc('Fees_Details');
+
+      final defaultFeesData = {
+        'tuition_fee': 0,
+        'development_fee': 0,
+        'library_fee': 0,
+        'sports_fee': 0,
+        'laboratory_fee': 0,
+        'other_fees': 0,
+        'total_fees': 0,
+        'bank_account_number': 'Not Set',
+        'mobile_money_number': 'Not Set',
+        'cash_payment_location': 'Not Set',
+        'amount_paid': 0,
+        'outstanding_balance': 0,
+        'next_payment_due': 'Not Set',
+        'bank_name': 'Not Set',
+        'bank_account_name': 'Not Set',
+        'airtel_money': 'Not Set',
+        'tnm_mpamba': 'Not Set',
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastUpdated': FieldValue.serverTimestamp(),
+      };
+
+      await feesDetailsRef.set(defaultFeesData);
+
+      setState(() {
+        _feesData = defaultFeesData;
+      });
+
+      print('✅ Default fees structure created');
+    } catch (e) {
+      print('❌ Error creating default fees structure: $e');
+    }
+  }
+
+  // Helper method to safely get string value
+  String _getStringValue(dynamic value) {
+    if (value == null) return 'Not Available';
+    if (value is String && value.isEmpty) return 'Not Set';
+    if (value is String && (value.toLowerCase() == 'n/a' || value.toLowerCase() == 'not available')) return 'Not Set';
+    return value.toString();
+  }
+
+  // Helper method to safely get numeric value
+  String _getNumericValue(dynamic value) {
+    if (value == null) return '0';
+    if (value is num) return value.toString();
+    if (value is String) {
+      try {
+        return double.parse(value).toString();
+      } catch (e) {
+        return '0';
+      }
+    }
+    return '0';
   }
 
   // Helper method to get responsive dimensions
@@ -135,8 +229,21 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
           backgroundColor: Colors.blueAccent,
         ),
         body: Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Loading fees information...',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -266,6 +373,11 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Student Info Card
+                if (_studentName != null && _studentClass != null)
+                  _buildStudentInfoCard(),
+                if (_studentName != null && _studentClass != null)
+                  SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
 
                 // Fees Structure Card
                 _buildFeesStructureCard(),
@@ -285,6 +397,72 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
     );
   }
 
+  Widget _buildStudentInfoCard() {
+    return Card(
+      elevation: _getResponsiveValue(context, 4, 6, 8),
+      shadowColor: Colors.blue.withOpacity(0.3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(_getResponsiveValue(context, 12, 16, 20)),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(_getResponsiveValue(context, 12, 16, 20)),
+          gradient: LinearGradient(
+            colors: [Colors.white, Colors.blue.shade50],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(_getResponsiveValue(context, 16, 20, 24)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(_getResponsiveValue(context, 8, 10, 12)),
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent,
+                      borderRadius: BorderRadius.circular(_getResponsiveValue(context, 8, 10, 12)),
+                    ),
+                    child: Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: _getResponsiveValue(context, 20, 24, 28),
+                    ),
+                  ),
+                  SizedBox(width: _getResponsiveValue(context, 12, 16, 20)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _studentName ?? 'Unknown Student',
+                          style: TextStyle(
+                            fontSize: _getResponsiveValue(context, 18, 20, 24),
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          'Class: ${_studentClass ?? 'Unknown'}',
+                          style: TextStyle(
+                            fontSize: _getResponsiveValue(context, 14, 16, 18),
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildFeesStructureCard() {
     return Card(
@@ -409,17 +587,58 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
               ),
               SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
               if (_feesData != null) ...[
-                _buildPaymentMethod('Bank Transfer', _feesData!['bank_account_number'], Icons.account_balance),
-                _buildPaymentMethod('Mobile Money', _feesData!['mobile_money_number'], Icons.phone_android),
-                _buildPaymentMethod('Cash Payment', _feesData!['cash_payment_location'], Icons.money),
-              ] else
-                Text(
-                  'No payment methods available',
-                  style: TextStyle(
-                    fontSize: _getResponsiveValue(context, 14, 16, 18),
-                    color: Colors.grey.shade600,
+                // Bank Transfer Section
+                _buildPaymentSectionHeader('BANK TRANSFER', Icons.account_balance),
+                _buildPaymentMethod('Bank Name', _getStringValue(_feesData!['bank_name'])),
+                _buildPaymentMethod('Account Name', _getStringValue(_feesData!['bank_account_name'])),
+                _buildPaymentMethod('Account Number', _getStringValue(_feesData!['bank_account_number'])),
+
+                SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
+
+                // Mobile Money Section
+                _buildPaymentSectionHeader('MOBILE MONEY', Icons.phone_android),
+                _buildPaymentMethod('Airtel Money', _getStringValue(_feesData!['airtel_money'])),
+                _buildPaymentMethod('TNM Mpamba', _getStringValue(_feesData!['tnm_mpamba'])),
+
+                SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
+
+                // Other Payment Methods
+                _buildPaymentSectionHeader('OTHER METHODS', Icons.location_on),
+                _buildPaymentMethod('Cash Payment Location', _getStringValue(_feesData!['cash_payment_location'])),
+              ] else ...[
+                Container(
+                  padding: EdgeInsets.all(_getResponsiveValue(context, 16, 20, 24)),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(_getResponsiveValue(context, 8, 10, 12)),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: _getResponsiveValue(context, 40, 50, 60),
+                        color: Colors.grey.shade500,
+                      ),
+                      SizedBox(height: _getResponsiveValue(context, 8, 10, 12)),
+                      Text(
+                        'No payment methods configured',
+                        style: TextStyle(
+                          fontSize: _getResponsiveValue(context, 14, 16, 18),
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        'Please contact school administration',
+                        style: TextStyle(
+                          fontSize: _getResponsiveValue(context, 12, 14, 16),
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+              ],
             ],
           ),
         ),
@@ -477,9 +696,9 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
               ),
               SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
               if (_feesData != null) ...[
-                _buildBalanceItem('Amount Paid', _feesData!['amount_paid'], Colors.green),
-                _buildBalanceItem('Outstanding Balance', _feesData!['outstanding_balance'], Colors.red),
-                _buildBalanceItem('Next Payment Due', _feesData!['next_payment_due'], Colors.orange),
+                _buildBalanceItem('Amount Paid', _getNumericValue(_feesData!['amount_paid']), Colors.green),
+                _buildBalanceItem('Outstanding Balance', _getNumericValue(_feesData!['outstanding_balance']), Colors.red),
+                _buildBalanceItem('Next Payment Due', _getStringValue(_feesData!['next_payment_due']), Colors.orange, isDate: true),
               ] else
                 Text(
                   'No balance information available',
@@ -510,7 +729,7 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
             ),
           ),
           Text(
-            amount != null ? 'MWK ${amount.toString()}' : 'N/A',
+            'MWK ${_getNumericValue(amount)}',
             style: TextStyle(
               fontSize: _getResponsiveValue(context, 14, 16, 18),
               fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
@@ -522,118 +741,23 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
     );
   }
 
-  Widget _buildPaymentMethodsCard() {
-    return Card(
-      elevation: _getResponsiveValue(context, 4, 6, 8),
-      shadowColor: Colors.green.withOpacity(0.3),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(_getResponsiveValue(context, 12, 16, 20)),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(_getResponsiveValue(context, 12, 16, 20)),
-          gradient: LinearGradient(
-            colors: [Colors.white, Colors.green.shade50],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(_getResponsiveValue(context, 16, 20, 24)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(_getResponsiveValue(context, 8, 10, 12)),
-                    decoration: BoxDecoration(
-                      color: Colors.blueAccent,
-                      borderRadius: BorderRadius.circular(_getResponsiveValue(context, 8, 10, 12)),
-                    ),
-                    child: Icon(
-                      Icons.payment,
-                      color: Colors.white,
-                      size: _getResponsiveValue(context, 20, 24, 28),
-                    ),
-                  ),
-                  SizedBox(width: _getResponsiveValue(context, 12, 16, 20)),
-                  Expanded(
-                    child: Text(
-                      'Payment Methods',
-                      style: TextStyle(
-                        fontSize: _getResponsiveValue(context, 18, 20, 24),
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
-              if (_feesData != null) ...[
-                // Bank Transfer
-                _buildPaymentSectionHeader('BANK TRANSFER', Icons.account_balance),
-                _buildPaymentMethod('Bank Name', _feesData!['bank_name']),
-                _buildPaymentMethod('Bank Account Name', _feesData!['bank_account_name']),
-                _buildPaymentMethod('Bank Account Number', _feesData!['bank_account_number']),
-
-                SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
-
-                // Mobile Money
-                _buildPaymentSectionHeader('MOBILE MONEY', Icons.phone_android),
-                _buildPaymentMethod('Airtel Money', _feesData!['airtel_money']),
-                _buildPaymentMethod('TNM Mpamba', _feesData!['tnm_mpamba']),
-
-                SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
-
-
-              ] else
-                Text(
-                  'No payment methods available',
-                  style: TextStyle(
-                    fontSize: _getResponsiveValue(context, 14, 16, 18),
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-
-  Widget _buildBalanceItem(String label, dynamic amount, Color color) {
+  Widget _buildPaymentSectionHeader(String title, IconData icon) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: _getResponsiveValue(context, 6, 8, 10)),
+      padding: EdgeInsets.only(bottom: _getResponsiveValue(context, 8, 10, 12)),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          Icon(
+            icon,
+            size: _getResponsiveValue(context, 16, 18, 20),
+            color: Colors.blueAccent,
+          ),
+          SizedBox(width: _getResponsiveValue(context, 8, 10, 12)),
           Text(
-            label,
+            title,
             style: TextStyle(
               fontSize: _getResponsiveValue(context, 14, 16, 18),
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: _getResponsiveValue(context, 8, 10, 12),
-              vertical: _getResponsiveValue(context, 4, 6, 8),
-            ),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(_getResponsiveValue(context, 6, 8, 10)),
-            ),
-            child: Text(
-              amount != null ? 'MWK ${amount.toString()}' : 'N/A',
-              style: TextStyle(
-                fontSize: _getResponsiveValue(context, 14, 16, 18),
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+              fontWeight: FontWeight.bold,
+              color: Colors.blueAccent,
             ),
           ),
         ],
@@ -641,4 +765,73 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
     );
   }
 
-}
+  Widget _buildPaymentMethod(String label, String value) {
+    bool isAvailable = value != 'Not Available' && value != 'Not Set' && value.isNotEmpty;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: _getResponsiveValue(context, 4, 6, 8)),
+      child: Container(
+        padding: EdgeInsets.all(_getResponsiveValue(context, 12, 14, 16)),
+        decoration: BoxDecoration(
+          color: isAvailable ? Colors.green.shade50 : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(_getResponsiveValue(context, 8, 10, 12)),
+          border: Border.all(
+            color: isAvailable ? Colors.green.shade200 : Colors.grey.shade300,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              isAvailable ? Icons.check_circle : Icons.info,
+              size: _getResponsiveValue(context, 16, 18, 20),
+              color: isAvailable ? Colors.green.shade600 : Colors.grey.shade500,
+            ),
+            SizedBox(width: _getResponsiveValue(context, 8, 12, 16)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: _getResponsiveValue(context, 14, 16, 18),
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: _getResponsiveValue(context, 13, 15, 17),
+                      fontWeight: FontWeight.w500,
+                      color: isAvailable ? Colors.green.shade700 : Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBalanceItem(String label, String amount, Color color, {bool isDate = false}) {
+    return Padding(
+        padding: EdgeInsets.symmetric(vertical: _getResponsiveValue(context, 6, 8, 10)),
+    child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+    Text(
+    label,
+    style: TextStyle(
+    fontSize: _getResponsiveValue(context, 14, 16, 18),
+    fontWeight: FontWeight.w500,
+    color: Colors.black87,
+    ),
+    ),
+    Container(
+    padding: EdgeIn
