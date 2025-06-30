@@ -271,7 +271,6 @@ class _Student_DetailsState extends State<Student_Details> {
     return teacherDetails['school'] as String;
   }
 
-
   Future<void> _saveStudentToFirestore(String schoolName) async {
     final WriteBatch batch = _firestore.batch();
 
@@ -397,8 +396,6 @@ class _Student_DetailsState extends State<Student_Details> {
       throw e;
     }
   }
-
-
 
   // MARK: - Academic Performance Structure Creation (Updated to reference existing data)
   Future<void> _createAcademicPerformanceStructure(WriteBatch batch, DocumentReference studentRef) async {
