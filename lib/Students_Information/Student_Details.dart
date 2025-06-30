@@ -294,7 +294,7 @@ class _Student_DetailsState extends State<Student_Details> {
       'lastUpdated': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
-    // 2. Fees Details Document (Added this new section)
+    // 2. Fees Details Document (updated with new fields)
     final DocumentReference feesDetailsRef = _firestore
         .collection('Schools')
         .doc(schoolName)
@@ -315,6 +315,11 @@ class _Student_DetailsState extends State<Student_Details> {
       'amount_paid': 0,
       'outstanding_balance': 0,
       'next_payment_due': '',
+      'bank_name': 'N/A',
+      'bank_account_name': 'N/A',
+      'bank_account_number': 'N/A',
+      'airtel_money': 'N/A',
+      'tnm_mpamba': 'N/A',
       'createdAt': FieldValue.serverTimestamp(),
       'lastUpdated': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
@@ -394,6 +399,7 @@ class _Student_DetailsState extends State<Student_Details> {
       throw e;
     }
   }
+
 
 
   // MARK: - Academic Performance Structure Creation (Updated to reference existing data)
