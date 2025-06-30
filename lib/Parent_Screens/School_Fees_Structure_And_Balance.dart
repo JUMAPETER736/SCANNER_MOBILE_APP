@@ -266,9 +266,6 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Student Information Card
-                _buildStudentInfoCard(),
-                SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
 
                 // Fees Structure Card
                 _buildFeesStructureCard(),
@@ -288,64 +285,6 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
     );
   }
 
-  Widget _buildStudentInfoCard() {
-    return Card(
-      elevation: _getResponsiveValue(context, 4, 6, 8),
-      shadowColor: Colors.green.withOpacity(0.3),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(_getResponsiveValue(context, 12, 16, 20)),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(_getResponsiveValue(context, 12, 16, 20)),
-          gradient: LinearGradient(
-            colors: [Colors.white, Colors.green.shade50],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(_getResponsiveValue(context, 16, 20, 24)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(_getResponsiveValue(context, 8, 10, 12)),
-                    decoration: BoxDecoration(
-                      color: Colors.blueAccent,
-                      borderRadius: BorderRadius.circular(_getResponsiveValue(context, 8, 10, 12)),
-                    ),
-                    child: Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: _getResponsiveValue(context, 20, 24, 28),
-                    ),
-                  ),
-                  SizedBox(width: _getResponsiveValue(context, 12, 16, 20)),
-                  Expanded(
-                    child: Text(
-                      'Student Information',
-                      style: TextStyle(
-                        fontSize: _getResponsiveValue(context, 18, 20, 24),
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
-              _buildInfoRow('Student Name', _studentName ?? 'N/A', Icons.person_outline),
-              _buildInfoRow('Class', _studentClass ?? 'N/A', Icons.class_),
-              _buildInfoRow('School', _schoolName ?? 'N/A', Icons.school),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildFeesStructureCard() {
     return Card(
@@ -556,45 +495,6 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
     );
   }
 
-  Widget _buildInfoRow(String label, String value, IconData icon) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: _getResponsiveValue(context, 6, 8, 10)),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: _getResponsiveValue(context, 18, 20, 24),
-            color: Colors.blueAccent,
-          ),
-          SizedBox(width: _getResponsiveValue(context, 8, 12, 16)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: _getResponsiveValue(context, 12, 14, 16),
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: _getResponsiveValue(context, 14, 16, 18),
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildFeeItem(String label, dynamic amount, {bool isTotal = false}) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: _getResponsiveValue(context, 4, 6, 8)),
@@ -622,45 +522,87 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
     );
   }
 
-  Widget _buildPaymentMethod(String method, dynamic details, IconData icon) {
-    if (details == null || details.toString().isEmpty) return SizedBox.shrink();
-
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: _getResponsiveValue(context, 6, 8, 10)),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: _getResponsiveValue(context, 18, 20, 24),
-            color: Colors.green,
+  Widget _buildPaymentMethodsCard() {
+    return Card(
+      elevation: _getResponsiveValue(context, 4, 6, 8),
+      shadowColor: Colors.green.withOpacity(0.3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(_getResponsiveValue(context, 12, 16, 20)),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(_getResponsiveValue(context, 12, 16, 20)),
+          gradient: LinearGradient(
+            colors: [Colors.white, Colors.green.shade50],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          SizedBox(width: _getResponsiveValue(context, 8, 12, 16)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(_getResponsiveValue(context, 16, 20, 24)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(_getResponsiveValue(context, 8, 10, 12)),
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent,
+                      borderRadius: BorderRadius.circular(_getResponsiveValue(context, 8, 10, 12)),
+                    ),
+                    child: Icon(
+                      Icons.payment,
+                      color: Colors.white,
+                      size: _getResponsiveValue(context, 20, 24, 28),
+                    ),
+                  ),
+                  SizedBox(width: _getResponsiveValue(context, 12, 16, 20)),
+                  Expanded(
+                    child: Text(
+                      'Payment Methods',
+                      style: TextStyle(
+                        fontSize: _getResponsiveValue(context, 18, 20, 24),
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
+              if (_feesData != null) ...[
+                // Bank Transfer
+                _buildPaymentSectionHeader('BANK TRANSFER', Icons.account_balance),
+                _buildPaymentMethod('Bank Name', _feesData!['bank_name']),
+                _buildPaymentMethod('Bank Account Name', _feesData!['bank_account_name']),
+                _buildPaymentMethod('Bank Account Number', _feesData!['bank_account_number']),
+
+                SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
+
+                // Mobile Money
+                _buildPaymentSectionHeader('MOBILE MONEY', Icons.phone_android),
+                _buildPaymentMethod('Airtel Money', _feesData!['airtel_money']),
+                _buildPaymentMethod('TNM Mpamba', _feesData!['tnm_mpamba']),
+
+                SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
+
+
+              ] else
                 Text(
-                  method,
+                  'No payment methods available',
                   style: TextStyle(
                     fontSize: _getResponsiveValue(context, 14, 16, 18),
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    color: Colors.grey.shade600,
                   ),
                 ),
-                Text(
-                  details.toString(),
-                  style: TextStyle(
-                    fontSize: _getResponsiveValue(context, 12, 14, 16),
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-              ],
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
+
 
   Widget _buildBalanceItem(String label, dynamic amount, Color color) {
     return Padding(
@@ -698,4 +640,5 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
       ),
     );
   }
+
 }
