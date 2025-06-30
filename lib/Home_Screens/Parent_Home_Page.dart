@@ -201,10 +201,14 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
         'subtitle': 'Payment & balance',
         'color': const Color(0xFF7C3AED),
         'onTap': () {
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(builder: (context) => School_Fees_Structure_And_Balance()),
-          // );
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+            builder: (context) => School_Fees_Structure_And_Balance(
+                 schoolName: 'schoolName',
+                 studentClass: 'studentClass',
+                 studentName: 'StudentName',)),
+          );
         },
       },
     ];
