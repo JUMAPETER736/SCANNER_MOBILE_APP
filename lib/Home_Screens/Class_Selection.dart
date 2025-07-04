@@ -9,6 +9,10 @@ class Class_Selection extends StatefulWidget {
 }
 
 class _Class_SelectionState extends State<Class_Selection> {
+
+  TextEditingController _schoolController = TextEditingController();
+  List<String> filteredSchools = [];
+  bool showSchoolDropdown = false;
   List<String> selectedClasses = [];
   Map<String, List<String>> selectedSubjectsByClass = {};
   String? selectedSchool;
@@ -107,6 +111,38 @@ class _Class_SelectionState extends State<Class_Selection> {
   void initState() {
     super.initState();
     _initializeData();
+
+    // Initialize school controller
+    _schoolController.addListener(() {
+      if (_schoolController.text.isEmpty) {
+        setState(() {
+          selectedSchool = null;
+          selectedClasses.clear();
+          selectedSubjectsByClass.clear();
+        });
+      }
+    });
+
+  }
+
+  @override
+  void dispose() {
+    _schoolController.dispose();
+    super.dispose();
+  }
+
+  void _filterSchools(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        filteredSchools = [];
+        showSchoolDropdown = false;
+      } else {
+        filteredSchools = schools
+            .where((school) => school.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+        showSchoolDropdown = filteredSchools.isNotEmpty;
+      }
+    });
   }
 
   Future<void> _initializeData() async {
@@ -188,6 +224,10 @@ class _Class_SelectionState extends State<Class_Selection> {
 
   Future<void> _checkSavedSelections() async {
     if (currentUserEmail == null) return;
+
+    if (selectedSchool != null) {
+      _schoolController.text = selectedSchool!;
+    }
 
     try {
       DocumentSnapshot doc = await FirebaseFirestore.instance
@@ -413,23 +453,62 @@ class _Class_SelectionState extends State<Class_Selection> {
   }
 
   Widget _buildSchoolDropdown() {
-    return DropdownButtonFormField<String>(
-      value: selectedSchool,
-      decoration: InputDecoration(
-        labelText: 'Select Your School',
-        border: OutlineInputBorder(),
-      ),
-      items: schools.map((school) => DropdownMenuItem(
-        value: school,
-        child: Text(school),
-      )).toList(),
-      onChanged: (value) {
-        setState(() {
-          selectedSchool = value;
-          selectedClasses.clear();
-          selectedSubjectsByClass.clear();
-        });
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: _schoolController,
+          decoration: InputDecoration(
+            labelText: 'Search Your School',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.search),
+            suffixIcon: _schoolController.text.isNotEmpty
+                ? IconButton(
+              icon: Icon(Icons.clear),
+              onPressed: () {
+                _schoolController.clear();
+                _filterSchools('');
+                setState(() {
+                  selectedSchool = null;
+                });
+              },
+            )
+                : null,
+          ),
+          onChanged: (value) {
+            _filterSchools(value);
+          },
+        ),
+        if (showSchoolDropdown)
+          Container(
+            margin: EdgeInsets.only(top: 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: 200),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: filteredSchools.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(filteredSchools[index]),
+                    onTap: () {
+                      setState(() {
+                        selectedSchool = filteredSchools[index];
+                        _schoolController.text = filteredSchools[index];
+                        showSchoolDropdown = false;
+                        selectedClasses.clear();
+                        selectedSubjectsByClass.clear();
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+      ],
     );
   }
 
