@@ -159,7 +159,6 @@ class _Class_SelectionState extends State<Class_Selection> {
     }
   }
 
-  // Get the current user's email
   Future<void> _getCurrentUserEmail() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -169,7 +168,6 @@ class _Class_SelectionState extends State<Class_Selection> {
     }
   }
 
-  // Fetch all subjects that are already taken by other teachers
   Future<void> _fetchUnavailableSubjects() async {
     try {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
@@ -285,18 +283,15 @@ class _Class_SelectionState extends State<Class_Selection> {
     }
   }
 
-  // Get total selected subjects count
   int _getTotalSelectedSubjects() {
     return selectedSubjectsByClass.values
         .fold(0, (total, subjects) => total + subjects.length);
   }
 
-  // Get max subjects allowed per class based on number of selected classes
   int _getMaxSubjectsPerClass() {
     return selectedClasses.length == 1 ? 2 : 1;
   }
 
-  // Get available subjects for a specific class
   List<String> _getAvailableSubjectsForClass(String className) {
     if (selectedSchool == null) return [];
 
@@ -312,7 +307,6 @@ class _Class_SelectionState extends State<Class_Selection> {
     }).toList();
   }
 
-  // Check if a subject is unavailable for a specific class
   bool _isSubjectUnavailableForClass(String className, String subject) {
     if (selectedSchool == null) return false;
 
@@ -395,7 +389,6 @@ class _Class_SelectionState extends State<Class_Selection> {
     }
   }
 
-
   Future<bool?> _showConfirmDialog(String title, String content) {
     return showDialog<bool>(
       context: context,
@@ -421,7 +414,6 @@ class _Class_SelectionState extends State<Class_Selection> {
       ),
     );
   }
-
 
   Widget _buildSchoolSelection() {
     return _buildSection(
@@ -509,44 +501,6 @@ class _Class_SelectionState extends State<Class_Selection> {
             ),
           ),
       ],
-    );
-  }
-
-/// Add this new method for better read-only school field styling
-  Widget _buildReadOnlySchoolField(String text) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue, width: 2), // Blue border to match dropdown
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.withOpacity(0.1),
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.location_on, color: Colors.blueAccent, size: 20),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: Colors.black87,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          if (text != "No school selected")
-            Icon(Icons.check_circle, color: Colors.blue, size: 20),
-        ],
-      ),
     );
   }
 
@@ -1108,9 +1062,6 @@ class _Class_SelectionState extends State<Class_Selection> {
     );
   }
 
-  // Add these methods to your _Class_SelectionState class:
-
-// Missing success and error snackbar methods
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1147,8 +1098,6 @@ class _Class_SelectionState extends State<Class_Selection> {
     );
   }
 
-// Missing build method - add this as the main build method
-  // Replace your build method with this:
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1202,7 +1151,6 @@ class _Class_SelectionState extends State<Class_Selection> {
     );
   }
 
-// Add this helper method to check if selection is complete:
   bool _isSelectionComplete() {
     if (!isSaved) return false;
 
@@ -1221,75 +1169,7 @@ class _Class_SelectionState extends State<Class_Selection> {
 
     return hasValidSelection;
   }
+  
 
-// Add refresh functionality
-  Future<void> _refreshData() async {
-    await _initializeData();
-  }
-
-// Add pull-to-refresh wrapper (optional enhancement)
-  Widget _buildRefreshableBody() {
-    return RefreshIndicator(
-      onRefresh: _refreshData,
-      color: Colors.blueAccent,
-      child: SingleChildScrollView(
-        physics: AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSchoolSelection(),
-            _buildClassSelection(),
-            _buildSubjectSelection(),
-            _buildSelectionSummary(),
-            SizedBox(height: 20),
-            _buildActionButton(),
-            SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-// Enhanced error handling for network issues
-  Future<void> _handleNetworkError(dynamic error) async {
-    String errorMessage = 'An error occurred';
-
-    if (error.toString().contains('network')) {
-      errorMessage = 'Network error. Please check your connection.';
-    } else if (error.toString().contains('permission')) {
-      errorMessage = 'Permission denied. Please check your account access.';
-    } else if (error.toString().contains('timeout')) {
-      errorMessage = 'Request timeout. Please try again.';
-    }
-
-    _showErrorSnackBar(errorMessage);
-  }
-
-// Add validation helper
-  bool _isSelectionValid() {
-    if (selectedSchool == null) return false;
-    if (selectedClasses.isEmpty) return false;
-    int totalSubjects = _getTotalSelectedSubjects();
-    return totalSubjects > 0 && totalSubjects <= 2;
-  }
-
-// Add clear selections method
-  Future<void> _clearSelections() async {
-    bool? confirm = await _showConfirmDialog(
-      'Clear Selections',
-      'Are you sure you want to clear all selections? This action cannot be undone.',
-    );
-
-    if (confirm == true) {
-      setState(() {
-        selectedSchool = null;
-        selectedClasses.clear();
-        selectedSubjectsByClass.clear();
-        isSaved = false;
-      });
-      _showToast('Selections cleared');
-    }
-  }
 
 }
