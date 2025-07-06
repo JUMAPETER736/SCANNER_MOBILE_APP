@@ -1,17 +1,17 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../Log_In_And_Register_Screens/Login_Page.dart';
 
 class School_Fees_Structure_And_Balance extends StatefulWidget {
   static const String id = 'school_fees_structure_and_balance';
 
-  const School_Fees_Structure_And_Balance({
-    Key? key,
+  const School_Fees_Structure_And_Balance({Key? key,
     required String schoolName,
+    required String className,
     required String studentClass,
-    required String studentName,
-  }) : super(key: key);
+    required String studentName}) : super(key: key);
 
   @override
   _School_Fees_Structure_And_BalanceState createState() => _School_Fees_Structure_And_BalanceState();
@@ -19,13 +19,19 @@ class School_Fees_Structure_And_Balance extends StatefulWidget {
 
 class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structure_And_Balance> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  String? _schoolName;
-  String? _studentName;
-  String? _studentClass;
+
+  // Parent login data from ParentDataManager
+  String? schoolName;
+  String? studentName;
+  String? studentClass;
+  String? firstName;
+  String? lastName;
+
   bool _isLoading = true;
   Map<String, dynamic>? _feesData;
-  Map<String, dynamic>? _schoolData; // Added for school information
+  Map<String, dynamic>? _schoolData;
   String? _errorMessage;
+  final ParentDataManager _parentDataManager = ParentDataManager();
 
   @override
   void initState() {
@@ -36,18 +42,26 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
   Future<void> _loadParentData() async {
     try {
       // Load data from ParentDataManager
-      await ParentDataManager().loadFromPreferences();
+      await _parentDataManager.loadFromPreferences();
 
       setState(() {
-        _schoolName = ParentDataManager().schoolName;
-        _studentName = ParentDataManager().studentName;
-        _studentClass = ParentDataManager().studentClass;
+        _isLoading = true;
+        _errorMessage = null;
       });
 
       print('🏫 Parent Data Loaded:');
-      print('School: $_schoolName');
-      print('Student: $_studentName');
-      print('Class: $_studentClass');
+      print('School: ${_parentDataManager.schoolName}');
+      print('Student: ${_parentDataManager.studentName}');
+      print('Class: ${_parentDataManager.studentClass}');
+
+      // Validate required data
+      if (_parentDataManager.schoolName == null || _parentDataManager.schoolName!.isEmpty) {
+        setState(() {
+          _errorMessage = 'School name not available. Please log in again.';
+          _isLoading = false;
+        });
+        return;
+      }
 
       // Load both fees data and school information
       await Future.wait([
@@ -64,7 +78,7 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
   }
 
   Future<void> _loadFeesData() async {
-    if (_schoolName == null || _schoolName!.isEmpty) {
+    if (_parentDataManager.schoolName == null || _parentDataManager.schoolName!.isEmpty) {
       setState(() {
         _errorMessage = 'School name not available';
         _isLoading = false;
@@ -76,7 +90,7 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
       // Fetch fees details from Firestore
       final DocumentSnapshot feesSnapshot = await _firestore
           .collection('Schools')
-          .doc(_schoolName!)
+          .doc(_parentDataManager.schoolName!)
           .collection('School_Information')
           .doc('Fees_Details')
           .get();
@@ -102,7 +116,7 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
   }
 
   Future<void> _loadSchoolData() async {
-    if (_schoolName == null || _schoolName!.isEmpty) {
+    if (_parentDataManager.schoolName == null || _parentDataManager.schoolName!.isEmpty) {
       return;
     }
 
@@ -110,7 +124,7 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
       // Fetch school details from Firestore
       final DocumentSnapshot schoolSnapshot = await _firestore
           .collection('Schools')
-          .doc(_schoolName!)
+          .doc(_parentDataManager.schoolName!)
           .collection('School_Information')
           .doc('School_Details')
           .get();
@@ -140,7 +154,7 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
     try {
       final DocumentReference feesDetailsRef = _firestore
           .collection('Schools')
-          .doc(_schoolName!)
+          .doc(_parentDataManager.schoolName!)
           .collection('School_Information')
           .doc('Fees_Details');
 
@@ -180,11 +194,10 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
   String _getStringValue(dynamic value) {
     if (value == null) return 'Not Available';
     if (value is String) {
-      // Remove the check for empty string and only check for specific "not available" indicators
       if (value.toLowerCase() == 'n/a' || value.toLowerCase() == 'not available') {
         return 'Not Set';
       }
-      return value; // Return the actual value, even if it's an empty string
+      return value;
     }
     return value.toString();
   }
@@ -197,7 +210,6 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
         value.toLowerCase() != 'not available';
   }
 
-  // Helper method to safely get numeric value
   String _getNumericValue(dynamic value) {
     if (value == null) return '0';
     if (value is num) return value.toString();
@@ -211,7 +223,6 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
     return '0';
   }
 
-  // Helper method to get responsive dimensions
   double _getResponsiveValue(BuildContext context, double mobile, double tablet, double desktop) {
     final screenWidth = MediaQuery.of(context).size.width;
     if (screenWidth < 600) {
@@ -223,7 +234,6 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
     }
   }
 
-  // Helper method to check if screen is small
   bool _isSmallScreen(BuildContext context) {
     return MediaQuery.of(context).size.width < 600;
   }
@@ -232,7 +242,6 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
   Widget build(BuildContext context) {
     final isSmall = _isSmallScreen(context);
 
-    // Loading state
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
@@ -260,7 +269,6 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
       );
     }
 
-    // Error state
     if (_errorMessage != null) {
       return Scaffold(
         appBar: AppBar(
@@ -329,7 +337,6 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
       );
     }
 
-    // Main content
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -342,9 +349,9 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
                 fontSize: _getResponsiveValue(context, 18, 20, 22),
               ),
             ),
-            if (!isSmall && _schoolName != null)
+            if (!isSmall && _parentDataManager.schoolName != null)
               Text(
-                _schoolName!,
+                _parentDataManager.schoolName!,
                 style: TextStyle(
                   fontSize: _getResponsiveValue(context, 14, 16, 18),
                   fontWeight: FontWeight.normal,
@@ -384,8 +391,7 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                if (_studentName != null && _studentClass != null)
+                if (_parentDataManager.studentName != null && _parentDataManager.studentClass != null)
                   SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
 
                 // Fees Structure Card
@@ -529,7 +535,6 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
               ),
               SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
               if (_feesData != null) ...[
-                // Bank Transfer Section
                 _buildPaymentSectionHeader('BANK TRANSFER', Icons.account_balance),
                 _buildBankPaymentMethod('BANK NAME', _getStringValue(_feesData!['bank_name'])),
                 _buildBankPaymentMethod('BANK ACCOUNT NAME', _getStringValue(_feesData!['bank_account_name'])),
@@ -537,7 +542,6 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
 
                 SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
 
-                // Mobile Money Section
                 _buildPaymentSectionHeader('MOBILE MONEY', Icons.phone_android),
                 _buildBankPaymentMethod('AIRTEL MONEY', _getStringValue(_feesData!['airtel_money'])),
                 _buildBankPaymentMethod('TNM MPAMBA', _getStringValue(_feesData!['tnm_mpamba'])),
@@ -701,7 +705,6 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
     );
   }
 
-  // Updated _buildBankPaymentMethod method
   Widget _buildBankPaymentMethod(String label, String value) {
     bool isAvailable = _isPaymentMethodAvailable(value);
 
@@ -781,29 +784,5 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
         ],
       ),
     );
-  }
-}
-
-// ParentDataManager class
-class ParentDataManager {
-  static final ParentDataManager _instance = ParentDataManager._internal();
-  factory ParentDataManager() => _instance;
-  ParentDataManager._internal();
-
-  String? schoolName;
-  String? studentName;
-  String? studentClass;
-
-  Future<void> loadFromPreferences() async {
-
-    try {
-      // Example implementation - replace with your actual logic
-      schoolName = "Sample School"; // Load from SharedPreferences
-      studentName = "Sample Student"; // Load from SharedPreferences
-      studentClass = "Grade 10"; // Load from SharedPreferences
-    } catch (e) {
-      print('Error loading preferences: $e');
-      throw e;
-    }
   }
 }

@@ -205,9 +205,12 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
             context,
             MaterialPageRoute(
             builder: (context) => School_Fees_Structure_And_Balance(
-                 schoolName: 'schoolName',
-                 studentClass: 'studentClass',
-                 studentName: 'StudentName',)),
+              schoolName: 'schoolName',
+              className: 'className',
+              studentClass: 'studentClass',
+              studentName: 'StudentName',
+            ),
+            ),
           );
         },
       },

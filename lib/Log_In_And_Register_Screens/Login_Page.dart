@@ -15,6 +15,7 @@ import 'package:scanna/Log_In_And_Register_Screens/Register_Page.dart';
 
 // ==================== PARENT DATA MANAGER ====================
 class ParentDataManager {
+
   static final ParentDataManager _instance = ParentDataManager._internal();
   factory ParentDataManager() => _instance;
   ParentDataManager._internal();
@@ -263,7 +264,11 @@ class _Login_PageState extends State<Login_Page> {
     'Zomba Urban Secondary School',
   ];
 
+  final List<String> classes = ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'];
+
   List<String> filteredSchools = [];
+
+  List<String> filteredClasses = [];
 
   // ==================== LIFECYCLE METHODS ====================
   @override
@@ -721,23 +726,165 @@ class _Login_PageState extends State<Login_Page> {
   }
 
   Widget _buildStudentClassField(BuildContext context) {
-    return _buildStyledTextField(
-      label: 'Class',
-      icon: Icons.class_,
-      obscureText: false,
-      keyboardType: TextInputType.text,
-      hintText: 'e.g. FORM 1',
-      showError: _emptyStudentClassField,
-      errorText: _studentClassErrorMessage,
-      showLabelOnTop: true, // Add this line
-      onChanged: (value) {
-        studentClass = value.toUpperCase();
-        setState(() {
-          _emptyStudentClassField = false;
-          _studentClassErrorMessage = '';
-          _errorMessage = '';
-        });
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min, // Prevent taking up more space than needed
+      children: [
+        // Label at the top
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Text(
+            'Class',
+            style: TextStyle(
+              fontSize: _getResponsiveFontSize(context, 16.0),
+              fontWeight: FontWeight.w600,
+              color: Colors.blueAccent,
+            ),
+          ),
+        ),
+        // TextField with autocomplete
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: TextEditingController(text: studentClass), // Add controller to show selected class
+                onChanged: (value) {
+                  studentClass = value.toUpperCase();
+                  setState(() {
+                    _emptyStudentClassField = false;
+                    _studentClassErrorMessage = '';
+                    _errorMessage = '';
+
+                    // Filter classes based on input
+                    if (value.isNotEmpty) {
+                      filteredClasses = classes
+                          .where((cls) => cls.toLowerCase().contains(value.toLowerCase()))
+                          .take(4) // Limit to 4 suggestions to prevent overflow
+                          .toList();
+                    } else {
+                      filteredClasses = [];
+                    }
+                  });
+                },
+                keyboardType: TextInputType.text,
+                style: TextStyle(fontSize: _getResponsiveFontSize(context, 16.0)),
+                decoration: InputDecoration(
+                  hintText: 'e.g. FORM 1',
+                  hintStyle: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: _getResponsiveFontSize(context, 14.0),
+                  ),
+                  errorText: _emptyStudentClassField ? _studentClassErrorMessage : null,
+                  errorStyle: TextStyle(
+                    color: Colors.red,
+                    fontSize: _getResponsiveFontSize(context, 12.0),
+                  ),
+                  prefixIcon: Container(
+                    margin: EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    child: Icon(Icons.class_, color: Colors.blueAccent, size: _getResponsiveFontSize(context, 20.0)),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.withOpacity(0.05),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                    borderSide: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                    borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                    borderSide: BorderSide(color: Colors.red, width: 1),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                    borderSide: BorderSide(color: Colors.red, width: 2),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                ),
+              ),
+              // Suggestions list - Fixed height container with scrolling
+              if (filteredClasses.isNotEmpty)
+                Container(
+                  height: 160, // Fixed height to prevent overflow
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(15.0),
+                      bottomRight: Radius.circular(15.0),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.2),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: ListView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: filteredClasses.length,
+                    itemBuilder: (context, index) {
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            studentClass = filteredClasses[index];
+                            filteredClasses = []; // Clear suggestions after selection
+                            _emptyStudentClassField = false;
+                            _studentClassErrorMessage = '';
+                            _errorMessage = '';
+                          });
+                          // Unfocus the text field to hide keyboard
+                          FocusScope.of(context).unfocus();
+                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Colors.grey.withOpacity(0.2),
+                                width: 0.5,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            filteredClasses[index],
+                            style: TextStyle(
+                              fontSize: _getResponsiveFontSize(context, 14.0),
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
