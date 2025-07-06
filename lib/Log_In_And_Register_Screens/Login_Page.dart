@@ -539,6 +539,7 @@ class _Login_PageState extends State<Login_Page> {
   Widget _buildSchoolNameField(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min, // Prevent taking up more space than needed
       children: [
         // Label at the top
         Padding(
@@ -566,8 +567,10 @@ class _Login_PageState extends State<Login_Page> {
             ],
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
+                controller: TextEditingController(text: schoolName), // Add controller to show selected school
                 onChanged: (value) {
                   schoolName = value;
                   setState(() {
@@ -579,6 +582,7 @@ class _Login_PageState extends State<Login_Page> {
                     if (value.isNotEmpty) {
                       filteredSchools = availableSchools
                           .where((school) => school.toLowerCase().contains(value.toLowerCase()))
+                          .take(4) // Limit to 4 suggestions to prevent overflow
                           .toList();
                     } else {
                       filteredSchools = [];
@@ -631,9 +635,10 @@ class _Login_PageState extends State<Login_Page> {
                   contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                 ),
               ),
-              // Suggestions list
+              // Suggestions list - Fixed height container with scrolling
               if (filteredSchools.isNotEmpty)
                 Container(
+                  height: 160, // Fixed height to prevent overflow
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
@@ -649,27 +654,40 @@ class _Login_PageState extends State<Login_Page> {
                       ),
                     ],
                   ),
-                  constraints: BoxConstraints(maxHeight: 200),
                   child: ListView.builder(
-                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
                     itemCount: filteredSchools.length,
                     itemBuilder: (context, index) {
-                      return ListTile(
-                        title: Text(
-                          filteredSchools[index],
-                          style: TextStyle(
-                            fontSize: _getResponsiveFontSize(context, 14.0),
-                          ),
-                        ),
+                      return InkWell(
                         onTap: () {
                           setState(() {
                             schoolName = filteredSchools[index];
-                            filteredSchools = [];
+                            filteredSchools = []; // Clear suggestions after selection
                             _emptySchoolNameField = false;
                             _schoolNameErrorMessage = '';
                             _errorMessage = '';
                           });
+                          // Unfocus the text field to hide keyboard
+                          FocusScope.of(context).unfocus();
                         },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Colors.grey.withOpacity(0.2),
+                                width: 0.5,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            filteredSchools[index],
+                            style: TextStyle(
+                              fontSize: _getResponsiveFontSize(context, 14.0),
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
                       );
                     },
                   ),
