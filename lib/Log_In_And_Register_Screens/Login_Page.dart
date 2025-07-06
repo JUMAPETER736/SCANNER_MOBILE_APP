@@ -191,6 +191,80 @@ class _Login_PageState extends State<Login_Page> {
   String _studentNameErrorMessage = '';
   String _studentClassErrorMessage = '';
 
+  final List<String> availableSchools = [
+    'Balaka Secondary School',
+    'Bandawe Boys Secondary School',
+    'Blantyre Secondary School',
+    'Bwaila Secondary School',
+    'Chaminade Boys Secondary School',
+    'Chayamba Secondary School',
+    'Chikwawa Catholic Secondary School',
+    'Chikwawa Secondary School',
+    'Chilumba Boys Secondary School',
+    'Chipasula Secondary School',
+    'Chipoka Secondary School',
+    'Chiradzulu Secondary School',
+    'Chitipa Secondary School',
+    'Dedza Boys Secondary School',
+    'Dowa Secondary School',
+    'Dzenza Secondary School',
+    'Ekwendeni Girls Secondary School',
+    'Euthini Secondary School',
+    'Kasungu Secondary School',
+    'Katoto Secondary School',
+    'Lilongwe Girls Secondary School',
+    'Likoma Secondary School',
+    'Likuni Boys Secondary School',
+    'Likuni Girls Secondary School',
+    'Livingstonia Secondary School',
+    'Luchenza Secondary School',
+    'Ludzi Girls Secondary School',
+    'Madisi Secondary School',
+    'Magawa Secondary School',
+    'Machinga Secondary School',
+    'Mchinji Secondary School',
+    'Mayani Secondary School',
+    'Mbomba Secondary School',
+    'Mitundu Secondary School',
+    'Mikoke Secondary School',
+    'Mzimba Secondary School',
+    'Mzuzu Government Secondary School',
+    'Mwanza Catholic Secondary School',
+    'Mwanza Secondary School',
+    'Namitete Secondary School',
+    'Nankhunda Secondary School',
+    'Neno Secondary School',
+    'Ngabu Secondary School',
+    'Nkhamenya Girls Secondary School',
+    'Nkhatabay Secondary School',
+    'Nkhotakota Secondary School',
+    'Ntcheu Secondary School',
+    'Ntchisi Boys Secondary School',
+    'Our Lady of Wisdom Secondary School',
+    'Phalombe Secondary School',
+    'Providence Secondary School',
+    'Robert Blake Boys Secondary School',
+    'Robert Laws Secondary School',
+    'Rumphi Boys Secondary School',
+    'Salima Secondary School',
+    'St. Charles Lwanga Secondary School',
+    'St. John Bosco Boys Secondary School',
+    'St. Johns Boys Secondary School',
+    'St. Kizito Secondary School',
+    'St. Mary\'s Secondary School',
+    'St. Michael\'s Girls Secondary School',
+    'St. Patrick\'s Secondary School',
+    'St. Pius XII Seminary',
+    'St. Stella Maris Secondary School',
+    'Thyolo Secondary School',
+    'Umbwi Boys Secondary School',
+    'William Murray Boys Secondary School',
+    'Zomba Catholic Secondary School',
+    'Zomba Urban Secondary School',
+  ];
+
+  List<String> filteredSchools = [];
+
   // ==================== LIFECYCLE METHODS ====================
   @override
   void initState() {
@@ -463,23 +537,147 @@ class _Login_PageState extends State<Login_Page> {
   }
 
   Widget _buildSchoolNameField(BuildContext context) {
-    return _buildStyledTextField(
-      label: 'School Name',
-      icon: Icons.school,
-      obscureText: false,
-      keyboardType: TextInputType.text,
-      hintText: 'e.g. Lilongwe Secondary School',
-      showError: _emptySchoolNameField,
-      errorText: _schoolNameErrorMessage,
-      showLabelOnTop: true, // Add this line
-      onChanged: (value) {
-        schoolName = value;
-        setState(() {
-          _emptySchoolNameField = false;
-          _schoolNameErrorMessage = '';
-          _errorMessage = '';
-        });
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Label at the top
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Text(
+            'School Name',
+            style: TextStyle(
+              fontSize: _getResponsiveFontSize(context, 16.0),
+              fontWeight: FontWeight.w600,
+              color: Colors.blueAccent,
+            ),
+          ),
+        ),
+        // TextField with autocomplete
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              TextField(
+                onChanged: (value) {
+                  schoolName = value;
+                  setState(() {
+                    _emptySchoolNameField = false;
+                    _schoolNameErrorMessage = '';
+                    _errorMessage = '';
+
+                    // Filter schools based on input
+                    if (value.isNotEmpty) {
+                      filteredSchools = availableSchools
+                          .where((school) => school.toLowerCase().contains(value.toLowerCase()))
+                          .toList();
+                    } else {
+                      filteredSchools = [];
+                    }
+                  });
+                },
+                keyboardType: TextInputType.text,
+                style: TextStyle(fontSize: _getResponsiveFontSize(context, 16.0)),
+                decoration: InputDecoration(
+                  hintText: 'e.g. Lilongwe Secondary School',
+                  hintStyle: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: _getResponsiveFontSize(context, 14.0),
+                  ),
+                  errorText: _emptySchoolNameField ? _schoolNameErrorMessage : null,
+                  errorStyle: TextStyle(
+                    color: Colors.red,
+                    fontSize: _getResponsiveFontSize(context, 12.0),
+                  ),
+                  prefixIcon: Container(
+                    margin: EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    child: Icon(Icons.school, color: Colors.blueAccent, size: _getResponsiveFontSize(context, 20.0)),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.withOpacity(0.05),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                    borderSide: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                    borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                    borderSide: BorderSide(color: Colors.red, width: 1),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                    borderSide: BorderSide(color: Colors.red, width: 2),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                ),
+              ),
+              // Suggestions list
+              if (filteredSchools.isNotEmpty)
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(15.0),
+                      bottomRight: Radius.circular(15.0),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.2),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  constraints: BoxConstraints(maxHeight: 200),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: filteredSchools.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(
+                          filteredSchools[index],
+                          style: TextStyle(
+                            fontSize: _getResponsiveFontSize(context, 14.0),
+                          ),
+                        ),
+                        onTap: () {
+                          setState(() {
+                            schoolName = filteredSchools[index];
+                            filteredSchools = [];
+                            _emptySchoolNameField = false;
+                            _schoolNameErrorMessage = '';
+                            _errorMessage = '';
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

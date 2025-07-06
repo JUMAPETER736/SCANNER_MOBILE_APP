@@ -24,7 +24,7 @@ class _Class_SelectionState extends State<Class_Selection> {
   };
   String? currentUserEmail;
 
-  final List<String> schools = [
+  final List<String> availableSchools = [
     'Balaka Secondary School',
     'Bandawe Boys Secondary School',
     'Blantyre Secondary School',
@@ -137,7 +137,7 @@ class _Class_SelectionState extends State<Class_Selection> {
         filteredSchools = [];
         showSchoolDropdown = false;
       } else {
-        filteredSchools = schools
+        filteredSchools = availableSchools
             .where((school) => school.toLowerCase().contains(query.toLowerCase()))
             .toList();
         showSchoolDropdown = filteredSchools.isNotEmpty;
@@ -450,9 +450,13 @@ class _Class_SelectionState extends State<Class_Selection> {
       children: [
         TextFormField(
           controller: _schoolController,
+
           decoration: InputDecoration(
             labelText: 'Search Your School',
             border: OutlineInputBorder(),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+            ),
             prefixIcon: Icon(Icons.search),
             suffixIcon: _schoolController.text.isNotEmpty
                 ? IconButton(
@@ -1169,7 +1173,6 @@ class _Class_SelectionState extends State<Class_Selection> {
 
     return hasValidSelection;
   }
-  
 
 
 }
