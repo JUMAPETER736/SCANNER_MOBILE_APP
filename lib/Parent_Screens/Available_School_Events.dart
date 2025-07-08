@@ -55,16 +55,35 @@ class _Available_School_EventsState extends State<Available_School_Events> {
     }
   }
 
-  // Helper method to get responsive dimensions
-  double _getResponsiveValue(BuildContext context, double mobile, double tablet, double desktop) {
+  // Helper method to get responsive font size based on screen width
+  double _getResponsiveFontSize(BuildContext context, double baseSize) {
     final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth < 600) {
-      return mobile;
-    } else if (screenWidth < 1200) {
-      return tablet;
-    } else {
-      return desktop;
-    }
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Calculate scale factor based on screen dimensions
+    // Using a combination of width and height for better responsiveness
+    double scaleFactor = (screenWidth / 375) * 0.7 + (screenHeight / 667) * 0.3;
+
+    // Clamp the scale factor to prevent too small or too large text
+    scaleFactor = scaleFactor.clamp(0.8, 2.0);
+
+    return baseSize * scaleFactor;
+  }
+
+  // Helper method to get responsive padding/margin
+  double _getResponsivePadding(BuildContext context, double baseSize) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    double scaleFactor = screenWidth / 375;
+    scaleFactor = scaleFactor.clamp(0.8, 2.0);
+    return baseSize * scaleFactor;
+  }
+
+  // Helper method to get responsive icon size
+  double _getResponsiveIconSize(BuildContext context, double baseSize) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    double scaleFactor = screenWidth / 375;
+    scaleFactor = scaleFactor.clamp(0.8, 2.2);
+    return baseSize * scaleFactor;
   }
 
   // Helper method to check if screen is small
@@ -106,51 +125,51 @@ class _Available_School_EventsState extends State<Available_School_Events> {
         ),
         body: Center(
           child: Padding(
-            padding: EdgeInsets.all(_getResponsiveValue(context, 16, 24, 32)),
+            padding: EdgeInsets.all(_getResponsivePadding(context, 16)),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                     Icons.error_outline,
-                    size: _getResponsiveValue(context, 60, 80, 100),
+                    size: _getResponsiveIconSize(context, 60),
                     color: Colors.red
                 ),
-                SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
+                SizedBox(height: _getResponsivePadding(context, 16)),
                 Text(
                   'No School Data Found',
                   style: TextStyle(
-                      fontSize: _getResponsiveValue(context, 18, 22, 26),
+                      fontSize: _getResponsiveFontSize(context, 18),
                       fontWeight: FontWeight.bold
                   ),
                 ),
-                SizedBox(height: _getResponsiveValue(context, 8, 12, 16)),
+                SizedBox(height: _getResponsivePadding(context, 8)),
                 Padding(
                   padding: EdgeInsets.symmetric(
-                      horizontal: _getResponsiveValue(context, 16, 32, 48)
+                      horizontal: _getResponsivePadding(context, 16)
                   ),
                   child: Text(
                     'Please login again to access school events',
                     style: TextStyle(
-                        fontSize: _getResponsiveValue(context, 14, 16, 18),
+                        fontSize: _getResponsiveFontSize(context, 14),
                         color: Colors.grey
                     ),
                     textAlign: TextAlign.center,
                   ),
                 ),
-                SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
+                SizedBox(height: _getResponsivePadding(context, 16)),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context);
                   },
                   child: Padding(
                     padding: EdgeInsets.symmetric(
-                        horizontal: _getResponsiveValue(context, 16, 20, 24),
-                        vertical: _getResponsiveValue(context, 8, 10, 12)
+                        horizontal: _getResponsivePadding(context, 16),
+                        vertical: _getResponsivePadding(context, 8)
                     ),
                     child: Text(
                       'Go Back',
                       style: TextStyle(
-                          fontSize: _getResponsiveValue(context, 14, 16, 18)
+                          fontSize: _getResponsiveFontSize(context, 14)
                       ),
                     ),
                   ),
@@ -171,14 +190,14 @@ class _Available_School_EventsState extends State<Available_School_Events> {
               'School Events',
               style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: _getResponsiveValue(context, 18, 20, 22)
+                  fontSize: _getResponsiveFontSize(context, 18)
               ),
             ),
             if (!isSmall) // Hide subtitle on very small screens
               Text(
                 _schoolName!,
                 style: TextStyle(
-                    fontSize: _getResponsiveValue(context, 14, 16, 18),
+                    fontSize: _getResponsiveFontSize(context, 14),
                     fontWeight: FontWeight.normal
                 ),
               ),
@@ -189,7 +208,7 @@ class _Available_School_EventsState extends State<Available_School_Events> {
         actions: [
           IconButton(
             icon: Icon(Icons.refresh),
-            iconSize: _getResponsiveValue(context, 24, 28, 32),
+            iconSize: _getResponsiveIconSize(context, 24),
             onPressed: () {
               setState(() {
                 _loadParentData();
@@ -226,51 +245,51 @@ class _Available_School_EventsState extends State<Available_School_Events> {
             if (snapshot.hasError) {
               return Center(
                 child: Padding(
-                  padding: EdgeInsets.all(_getResponsiveValue(context, 16, 24, 32)),
+                  padding: EdgeInsets.all(_getResponsivePadding(context, 16)),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                           Icons.error_outline,
-                          size: _getResponsiveValue(context, 60, 80, 100),
+                          size: _getResponsiveIconSize(context, 60),
                           color: Colors.red
                       ),
-                      SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
+                      SizedBox(height: _getResponsivePadding(context, 16)),
                       Text(
                         'Error loading events',
                         style: TextStyle(
-                            fontSize: _getResponsiveValue(context, 18, 22, 26),
+                            fontSize: _getResponsiveFontSize(context, 18),
                             color: Colors.red
                         ),
                       ),
-                      SizedBox(height: _getResponsiveValue(context, 8, 12, 16)),
+                      SizedBox(height: _getResponsivePadding(context, 8)),
                       Padding(
                         padding: EdgeInsets.symmetric(
-                            horizontal: _getResponsiveValue(context, 16, 32, 48)
+                            horizontal: _getResponsivePadding(context, 16)
                         ),
                         child: Text(
                           '${snapshot.error}',
                           style: TextStyle(
-                              fontSize: _getResponsiveValue(context, 12, 14, 16),
+                              fontSize: _getResponsiveFontSize(context, 12),
                               color: Colors.grey
                           ),
                           textAlign: TextAlign.center,
                         ),
                       ),
-                      SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
+                      SizedBox(height: _getResponsivePadding(context, 16)),
                       ElevatedButton(
                         onPressed: () {
                           setState(() {});
                         },
                         child: Padding(
                           padding: EdgeInsets.symmetric(
-                              horizontal: _getResponsiveValue(context, 16, 20, 24),
-                              vertical: _getResponsiveValue(context, 8, 10, 12)
+                              horizontal: _getResponsivePadding(context, 16),
+                              vertical: _getResponsivePadding(context, 8)
                           ),
                           child: Text(
                             'Retry',
                             style: TextStyle(
-                                fontSize: _getResponsiveValue(context, 14, 16, 18)
+                                fontSize: _getResponsiveFontSize(context, 14)
                             ),
                           ),
                         ),
@@ -284,33 +303,33 @@ class _Available_School_EventsState extends State<Available_School_Events> {
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
               return Center(
                 child: Padding(
-                  padding: EdgeInsets.all(_getResponsiveValue(context, 16, 24, 32)),
+                  padding: EdgeInsets.all(_getResponsivePadding(context, 16)),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         Icons.event_busy,
-                        size: _getResponsiveValue(context, 80, 100, 120),
+                        size: _getResponsiveIconSize(context, 80),
                         color: Colors.grey.shade400,
                       ),
-                      SizedBox(height: _getResponsiveValue(context, 16, 20, 24)),
+                      SizedBox(height: _getResponsivePadding(context, 16)),
                       Text(
                         'No Upcoming Events',
                         style: TextStyle(
-                          fontSize: _getResponsiveValue(context, 24, 28, 32),
+                          fontSize: _getResponsiveFontSize(context, 24),
                           fontWeight: FontWeight.bold,
                           color: Colors.grey.shade600,
                         ),
                       ),
-                      SizedBox(height: _getResponsiveValue(context, 8, 12, 16)),
+                      SizedBox(height: _getResponsivePadding(context, 8)),
                       Padding(
                         padding: EdgeInsets.symmetric(
-                            horizontal: _getResponsiveValue(context, 16, 32, 48)
+                            horizontal: _getResponsivePadding(context, 16)
                         ),
                         child: Text(
                           'There are no events scheduled for $_schoolName',
                           style: TextStyle(
-                            fontSize: _getResponsiveValue(context, 16, 18, 20),
+                            fontSize: _getResponsiveFontSize(context, 16),
                             color: Colors.grey.shade500,
                           ),
                           textAlign: TextAlign.center,
@@ -336,8 +355,8 @@ class _Available_School_EventsState extends State<Available_School_Events> {
                     crossAxisCount = 2;
                   }
 
-                  double padding = _getResponsiveValue(context, 12, 16, 20);
-                  double cardSpacing = _getResponsiveValue(context, 12, 16, 20);
+                  double padding = _getResponsivePadding(context, 12);
+                  double cardSpacing = _getResponsivePadding(context, 12);
 
                   if (crossAxisCount == 1) {
                     // Single column layout for mobile
@@ -390,14 +409,14 @@ class _Available_School_EventsState extends State<Available_School_Events> {
     return Container(
       margin: EdgeInsets.only(bottom: spacing),
       child: Card(
-        elevation: _getResponsiveValue(context, 4, 6, 8),
+        elevation: _getResponsivePadding(context, 4),
         shadowColor: Colors.blueAccent.withOpacity(0.3),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(_getResponsiveValue(context, 12, 16, 20)),
+          borderRadius: BorderRadius.circular(_getResponsivePadding(context, 12)),
         ),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(_getResponsiveValue(context, 12, 16, 20)),
+            borderRadius: BorderRadius.circular(_getResponsivePadding(context, 12)),
             gradient: LinearGradient(
               colors: isUpcoming
                   ? [Colors.white, Colors.blue.shade50]
@@ -407,7 +426,7 @@ class _Available_School_EventsState extends State<Available_School_Events> {
             ),
           ),
           child: Padding(
-            padding: EdgeInsets.all(_getResponsiveValue(context, 12, 16, 20)),
+            padding: EdgeInsets.all(_getResponsivePadding(context, 12)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -415,18 +434,18 @@ class _Available_School_EventsState extends State<Available_School_Events> {
                 Row(
                   children: [
                     Container(
-                      padding: EdgeInsets.all(_getResponsiveValue(context, 6, 8, 10)),
+                      padding: EdgeInsets.all(_getResponsivePadding(context, 6)),
                       decoration: BoxDecoration(
                         color: isUpcoming ? Colors.blueAccent : Colors.grey,
-                        borderRadius: BorderRadius.circular(_getResponsiveValue(context, 6, 8, 10)),
+                        borderRadius: BorderRadius.circular(_getResponsivePadding(context, 6)),
                       ),
                       child: Icon(
                         _getEventIcon(data['type']),
                         color: Colors.white,
-                        size: _getResponsiveValue(context, 18, 20, 24),
+                        size: _getResponsiveIconSize(context, 18),
                       ),
                     ),
-                    SizedBox(width: _getResponsiveValue(context, 8, 12, 16)),
+                    SizedBox(width: _getResponsivePadding(context, 8)),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -434,29 +453,29 @@ class _Available_School_EventsState extends State<Available_School_Events> {
                           Text(
                             data['title'] ?? 'No Title',
                             style: TextStyle(
-                              fontSize: _getResponsiveValue(context, 16, 18, 20),
+                              fontSize: _getResponsiveFontSize(context, 16),
                               fontWeight: FontWeight.bold,
                               color: isUpcoming ? Colors.black87 : Colors.grey.shade600,
                             ),
                             maxLines: isSmall ? 2 : 3,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(height: _getResponsiveValue(context, 4, 6, 8)),
+                          SizedBox(height: _getResponsivePadding(context, 4)),
                           Container(
                             padding: EdgeInsets.symmetric(
-                                horizontal: _getResponsiveValue(context, 6, 8, 10),
-                                vertical: _getResponsiveValue(context, 3, 4, 5)
+                                horizontal: _getResponsivePadding(context, 6),
+                                vertical: _getResponsivePadding(context, 3)
                             ),
                             decoration: BoxDecoration(
                               color: isUpcoming
                                   ? Colors.blueAccent.shade100
                                   : Colors.grey.shade300,
-                              borderRadius: BorderRadius.circular(_getResponsiveValue(context, 8, 10, 12)),
+                              borderRadius: BorderRadius.circular(_getResponsivePadding(context, 8)),
                             ),
                             child: Text(
                               data['type'] ?? 'Event',
                               style: TextStyle(
-                                fontSize: _getResponsiveValue(context, 10, 12, 14),
+                                fontSize: _getResponsiveFontSize(context, 10),
                                 fontWeight: FontWeight.w500,
                                 color: isUpcoming ? Colors.blue.shade700 : Colors.grey.shade600,
                               ),
@@ -468,17 +487,17 @@ class _Available_School_EventsState extends State<Available_School_Events> {
                     if (!isUpcoming)
                       Container(
                         padding: EdgeInsets.symmetric(
-                            horizontal: _getResponsiveValue(context, 6, 8, 10),
-                            vertical: _getResponsiveValue(context, 3, 4, 5)
+                            horizontal: _getResponsivePadding(context, 6),
+                            vertical: _getResponsivePadding(context, 3)
                         ),
                         decoration: BoxDecoration(
                           color: Colors.red.shade100,
-                          borderRadius: BorderRadius.circular(_getResponsiveValue(context, 8, 10, 12)),
+                          borderRadius: BorderRadius.circular(_getResponsivePadding(context, 8)),
                         ),
                         child: Text(
                           'Past',
                           style: TextStyle(
-                            fontSize: _getResponsiveValue(context, 9, 10, 12),
+                            fontSize: _getResponsiveFontSize(context, 9),
                             fontWeight: FontWeight.bold,
                             color: Colors.red.shade700,
                           ),
@@ -486,27 +505,27 @@ class _Available_School_EventsState extends State<Available_School_Events> {
                       ),
                   ],
                 ),
-                SizedBox(height: _getResponsiveValue(context, 8, 12, 16)),
+                SizedBox(height: _getResponsivePadding(context, 8)),
 
                 // Description
                 Text(
                   data['description'] ?? 'No description',
                   style: TextStyle(
-                    fontSize: _getResponsiveValue(context, 12, 14, 16),
+                    fontSize: _getResponsiveFontSize(context, 12),
                     color: Colors.grey.shade700,
                     height: 1.4,
                   ),
                   maxLines: isSmall ? 2 : 3,
                   overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: _getResponsiveValue(context, 8, 12, 16)),
+                SizedBox(height: _getResponsivePadding(context, 8)),
 
                 // Date and Time Container
                 Container(
-                  padding: EdgeInsets.all(_getResponsiveValue(context, 8, 12, 16)),
+                  padding: EdgeInsets.all(_getResponsivePadding(context, 8)),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(_getResponsiveValue(context, 6, 8, 10)),
+                    borderRadius: BorderRadius.circular(_getResponsivePadding(context, 6)),
                     border: Border.all(color: Colors.grey.shade200),
                   ),
                   child: Column(
@@ -515,10 +534,10 @@ class _Available_School_EventsState extends State<Available_School_Events> {
                         children: [
                           Icon(
                               Icons.calendar_today,
-                              size: _getResponsiveValue(context, 14, 16, 18),
+                              size: _getResponsiveIconSize(context, 14),
                               color: Colors.blueAccent
                           ),
-                          SizedBox(width: _getResponsiveValue(context, 6, 8, 10)),
+                          SizedBox(width: _getResponsivePadding(context, 6)),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -526,7 +545,7 @@ class _Available_School_EventsState extends State<Available_School_Events> {
                                 Text(
                                   '${eventDateTime.day}/${eventDateTime.month}/${eventDateTime.year}',
                                   style: TextStyle(
-                                    fontSize: _getResponsiveValue(context, 12, 14, 16),
+                                    fontSize: _getResponsiveFontSize(context, 12),
                                     fontWeight: FontWeight.w500,
                                     color: Colors.black87,
                                   ),
@@ -535,7 +554,7 @@ class _Available_School_EventsState extends State<Available_School_Events> {
                                   Text(
                                     relativeDate,
                                     style: TextStyle(
-                                      fontSize: _getResponsiveValue(context, 10, 12, 14),
+                                      fontSize: _getResponsiveFontSize(context, 10),
                                       fontWeight: FontWeight.bold,
                                       color: isUpcoming ? Colors.green.shade600 : Colors.orange.shade600,
                                     ),
@@ -546,19 +565,19 @@ class _Available_School_EventsState extends State<Available_School_Events> {
                         ],
                       ),
                       if (!isSmall) ...[
-                        SizedBox(height: _getResponsiveValue(context, 4, 6, 8)),
+                        SizedBox(height: _getResponsivePadding(context, 4)),
                         Row(
                           children: [
                             Icon(
                                 Icons.access_time,
-                                size: _getResponsiveValue(context, 14, 16, 18),
+                                size: _getResponsiveIconSize(context, 14),
                                 color: Colors.blueAccent
                             ),
-                            SizedBox(width: _getResponsiveValue(context, 6, 8, 10)),
+                            SizedBox(width: _getResponsivePadding(context, 6)),
                             Text(
                               TimeOfDay.fromDateTime(eventDateTime).format(context),
                               style: TextStyle(
-                                fontSize: _getResponsiveValue(context, 12, 14, 16),
+                                fontSize: _getResponsiveFontSize(context, 12),
                                 fontWeight: FontWeight.w500,
                                 color: Colors.black87,
                               ),
@@ -569,22 +588,22 @@ class _Available_School_EventsState extends State<Available_School_Events> {
                     ],
                   ),
                 ),
-                SizedBox(height: _getResponsiveValue(context, 6, 8, 10)),
+                SizedBox(height: _getResponsivePadding(context, 6)),
 
                 // Location and Details Row
                 Row(
                   children: [
                     Icon(
                         Icons.location_on,
-                        size: _getResponsiveValue(context, 14, 16, 18),
+                        size: _getResponsiveIconSize(context, 14),
                         color: Colors.grey.shade600
                     ),
-                    SizedBox(width: _getResponsiveValue(context, 6, 8, 10)),
+                    SizedBox(width: _getResponsivePadding(context, 6)),
                     Expanded(
                       child: Text(
                         data['location'] ?? 'No location',
                         style: TextStyle(
-                          fontSize: _getResponsiveValue(context, 12, 14, 16),
+                          fontSize: _getResponsiveFontSize(context, 12),
                           color: Colors.grey.shade600,
                         ),
                         maxLines: 1,
@@ -598,7 +617,7 @@ class _Available_School_EventsState extends State<Available_School_Events> {
                         style: TextStyle(
                           color: Colors.blueAccent,
                           fontWeight: FontWeight.w500,
-                          fontSize: _getResponsiveValue(context, 12, 14, 16),
+                          fontSize: _getResponsiveFontSize(context, 12),
                         ),
                       ),
                     ),
@@ -663,21 +682,21 @@ class _Available_School_EventsState extends State<Available_School_Events> {
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(_getResponsiveValue(context, 12, 16, 20)),
+            borderRadius: BorderRadius.circular(_getResponsivePadding(context, 12)),
           ),
           title: Row(
             children: [
               Icon(
                 _getEventIcon(data['type']),
                 color: Colors.blueAccent,
-                size: _getResponsiveValue(context, 20, 24, 28),
+                size: _getResponsiveIconSize(context, 20),
               ),
-              SizedBox(width: _getResponsiveValue(context, 6, 8, 10)),
+              SizedBox(width: _getResponsivePadding(context, 6)),
               Expanded(
                 child: Text(
                   data['title'] ?? 'Event Details',
                   style: TextStyle(
-                    fontSize: _getResponsiveValue(context, 18, 20, 24),
+                    fontSize: _getResponsiveFontSize(context, 18),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -705,14 +724,14 @@ class _Available_School_EventsState extends State<Available_School_Events> {
               onPressed: () => Navigator.of(context).pop(),
               child: Padding(
                 padding: EdgeInsets.symmetric(
-                    horizontal: _getResponsiveValue(context, 8, 12, 16),
-                    vertical: _getResponsiveValue(context, 4, 6, 8)
+                    horizontal: _getResponsivePadding(context, 8),
+                    vertical: _getResponsivePadding(context, 4)
                 ),
                 child: Text(
                   'Close',
                   style: TextStyle(
                     color: Colors.blueAccent,
-                    fontSize: _getResponsiveValue(context, 14, 16, 18),
+                    fontSize: _getResponsiveFontSize(context, 14),
                   ),
                 ),
               ),
@@ -725,16 +744,16 @@ class _Available_School_EventsState extends State<Available_School_Events> {
 
   Widget _buildDetailRow(String label, String value, IconData icon) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: _getResponsiveValue(context, 6, 8, 10)),
+      padding: EdgeInsets.symmetric(vertical: _getResponsivePadding(context, 6)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
               icon,
-              size: _getResponsiveValue(context, 18, 20, 24),
+              size: _getResponsiveIconSize(context, 18),
               color: Colors.blueAccent
           ),
-          SizedBox(width: _getResponsiveValue(context, 8, 12, 16)),
+          SizedBox(width: _getResponsivePadding(context, 8)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -742,16 +761,16 @@ class _Available_School_EventsState extends State<Available_School_Events> {
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: _getResponsiveValue(context, 12, 14, 16),
+                    fontSize: _getResponsiveFontSize(context, 12),
                     fontWeight: FontWeight.bold,
                     color: Colors.grey.shade600,
                   ),
                 ),
-                SizedBox(height: _getResponsiveValue(context, 2, 4, 6)),
+                SizedBox(height: _getResponsivePadding(context, 2)),
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: _getResponsiveValue(context, 14, 16, 18),
+                    fontSize: _getResponsiveFontSize(context, 14),
                     color: Colors.black87,
                   ),
                 ),

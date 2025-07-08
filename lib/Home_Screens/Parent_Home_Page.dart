@@ -5,6 +5,7 @@ import 'package:scanna/Parent_Screens/Student_Details_View.dart';
 import 'package:scanna/Parent_Screens/Available_School_Events.dart';
 import 'package:scanna/Parent_Screens/Student_Results.dart';
 import 'package:scanna/Parent_Screens/School_Fees_Structure_And_Balance.dart';
+import 'package:scanna/Parent_Screens/Student_Behavior.dart'; // Add this import
 
 User? loggedInUser;
 
@@ -66,42 +67,63 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
     }
   }
 
+  // Helper method to get responsive text size
+  double getResponsiveTextSize(double baseSize, double screenWidth, double screenHeight) {
+    // Calculate scale factor based on both width and height
+    double widthScale = screenWidth / 375; // Base width (iPhone 6/7/8)
+    double heightScale = screenHeight / 667; // Base height (iPhone 6/7/8)
+    double scale = (widthScale + heightScale) / 2;
+
+    // Apply constraints to prevent text from being too small or too large
+    scale = scale.clamp(0.8, 2.0);
+
+    return baseSize * scale;
+  }
+
+  // Helper method to get responsive padding/margin
+  double getResponsiveSize(double baseSize, double screenWidth, double screenHeight) {
+    double widthScale = screenWidth / 375;
+    double heightScale = screenHeight / 667;
+    double scale = (widthScale + heightScale) / 2;
+
+    scale = scale.clamp(0.7, 1.8);
+
+    return baseSize * scale;
+  }
+
   Widget _buildWelcomeSection() {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final orientation = MediaQuery.of(context).orientation;
 
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: screenWidth * 0.05,
-        vertical: screenHeight * 0.02,
+        horizontal: getResponsiveSize(20, screenWidth, screenHeight),
+        vertical: getResponsiveSize(16, screenWidth, screenHeight),
       ),
       child: Row(
         children: [
           Container(
-            width: screenWidth * 0.15,
-            height: screenWidth * 0.15,
-            constraints: BoxConstraints(
-              minWidth: 50,
-              minHeight: 50,
-              maxWidth: 80,
-              maxHeight: 80,
-            ),
+            width: getResponsiveSize(60, screenWidth, screenHeight),
+            height: getResponsiveSize(60, screenWidth, screenHeight),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Colors.blueAccent, Colors.blue],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(screenWidth * 0.075),
+              borderRadius: BorderRadius.circular(
+                getResponsiveSize(30, screenWidth, screenHeight),
+              ),
             ),
             child: Icon(
               Icons.person,
               color: Colors.white,
-              size: screenWidth * 0.08,
+              size: getResponsiveSize(30, screenWidth, screenHeight),
             ),
           ),
-          SizedBox(width: screenWidth * 0.04),
+          SizedBox(width: getResponsiveSize(15, screenWidth, screenHeight)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,16 +132,16 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
                 Text(
                   'Welcome back!',
                   style: TextStyle(
-                    fontSize: screenWidth * 0.04,
+                    fontSize: getResponsiveTextSize(16, screenWidth, screenHeight),
                     color: Colors.blueAccent,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(height: screenHeight * 0.005),
+                SizedBox(height: getResponsiveSize(4, screenWidth, screenHeight)),
                 Text(
                   loggedInUser?.email?.split('@')[0] ?? 'Parent',
                   style: TextStyle(
-                    fontSize: screenWidth * 0.055,
+                    fontSize: getResponsiveTextSize(20, screenWidth, screenHeight),
                     fontWeight: FontWeight.bold,
                     color: Colors.blueAccent,
                   ),
@@ -136,6 +158,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
   Widget _buildQuickActions() {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final orientation = MediaQuery.of(context).orientation;
 
     final actions = [
       {
@@ -196,6 +219,25 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
         },
       },
       {
+        'icon': Icons.psychology_outlined,
+        'title': 'Behavior',
+        'subtitle': 'Conduct & discipline',
+        'color': const Color(0xFFDC2626),
+        'onTap': () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Student_Behavior(
+                schoolName: 'schoolName',
+                className: 'className',
+                studentClass: 'studentClass',
+                studentName: 'StudentName',
+              ),
+            ),
+          );
+        },
+      },
+      {
         'icon': Icons.account_balance_wallet_outlined,
         'title': 'Fees Structure',
         'subtitle': 'Payment & balance',
@@ -204,169 +246,184 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
           Navigator.push(
             context,
             MaterialPageRoute(
-            builder: (context) => School_Fees_Structure_And_Balance(
-              schoolName: 'schoolName',
-              className: 'className',
-              studentClass: 'studentClass',
-              studentName: 'StudentName',
-            ),
+              builder: (context) => School_Fees_Structure_And_Balance(
+                schoolName: 'schoolName',
+                className: 'className',
+                studentClass: 'studentClass',
+                studentName: 'StudentName',
+              ),
             ),
           );
         },
       },
     ];
 
-    // Calculate dynamic spacing based on screen height
-    final availableHeight = screenHeight -
-        kToolbarHeight -
-        MediaQuery.of(context).padding.top -
-        MediaQuery.of(context).padding.bottom -
-        (screenHeight * 0.15); // Welcome section height
-
-    final itemHeight = (availableHeight * 0.8) / actions.length;
-    final minItemHeight = 70.0; // Fixed minimum height in pixels
-    final maxItemHeight = screenHeight * 0.12;
-    final finalItemHeight = itemHeight.clamp(minItemHeight, maxItemHeight);
+    // Calculate optimal layout based on orientation
+    final bool isLandscape = orientation == Orientation.landscape;
 
     return Expanded(
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+        padding: EdgeInsets.symmetric(
+          horizontal: getResponsiveSize(20, screenWidth, screenHeight),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Quick Actions',
               style: TextStyle(
-                fontSize: screenWidth * 0.055,
+                fontSize: getResponsiveTextSize(20, screenWidth, screenHeight),
                 fontWeight: FontWeight.bold,
                 color: const Color(0xFF667eea),
               ),
             ),
-            SizedBox(height: screenHeight * 0.015),
+            SizedBox(height: getResponsiveSize(12, screenWidth, screenHeight)),
             Expanded(
-              child: ListView.separated(
-                physics: const BouncingScrollPhysics(),
-                itemCount: actions.length,
-                separatorBuilder: (context, index) => SizedBox(
-                  height: screenHeight * 0.01,
-                ),
-                itemBuilder: (context, index) {
-                  final action = actions[index];
-                  return AnimatedBuilder(
-                    animation: _fadeAnimation,
-                    builder: (context, child) {
-                      return Transform.translate(
-                        offset: Offset(0, 20 * (1 - _fadeAnimation.value)),
-                        child: Opacity(
-                          opacity: _fadeAnimation.value,
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: action['onTap'] as VoidCallback,
-                              borderRadius: BorderRadius.circular(16),
-                              child: Container(
-                                width: double.infinity,
-                                constraints: BoxConstraints(
-                                  minHeight: finalItemHeight,
-                                ),
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: screenWidth * 0.04,
-                                  vertical: (screenHeight * 0.015).clamp(8.0, 20.0),
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: screenWidth * 0.12,
-                                      height: screenWidth * 0.12,
-                                      constraints: BoxConstraints(
-                                        minWidth: 45,
-                                        minHeight: 45,
-                                        maxWidth: 60,
-                                        maxHeight: 60,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: (action['color'] as Color).withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Icon(
-                                        action['icon'] as IconData,
-                                        color: action['color'] as Color,
-                                        size: screenWidth * 0.06,
-                                      ),
-                                    ),
-                                    SizedBox(width: screenWidth * 0.04),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Flexible(
-                                            child: Text(
-                                              action['title'] as String,
-                                              style: TextStyle(
-                                                fontSize: (screenWidth * 0.044).clamp(14.0, 18.0),
-                                                fontWeight: FontWeight.w600,
-                                                color: const Color(0xFF2D3748),
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                              maxLines: 1,
-                                            ),
-                                          ),
-                                          SizedBox(height: (screenHeight * 0.003).clamp(2.0, 6.0)),
-                                          Flexible(
-                                            child: Text(
-                                              action['subtitle'] as String,
-                                              style: TextStyle(
-                                                fontSize: (screenWidth * 0.035).clamp(12.0, 16.0),
-                                                color: const Color(0xFF667eea),
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                              maxLines: 1,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: screenWidth * 0.04,
-                                      color: const Color(0xFF667eea),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
+              child: isLandscape && screenWidth > 600
+                  ? _buildGridLayout(actions, screenWidth, screenHeight)
+                  : _buildListLayout(actions, screenWidth, screenHeight),
             ),
-            SizedBox(height: screenHeight * 0.02), // Small bottom padding
+            SizedBox(height: getResponsiveSize(16, screenWidth, screenHeight)),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildListLayout(List<Map<String, dynamic>> actions, double screenWidth, double screenHeight) {
+    return ListView.separated(
+      physics: const BouncingScrollPhysics(),
+      itemCount: actions.length,
+      separatorBuilder: (context, index) => SizedBox(
+        height: getResponsiveSize(8, screenWidth, screenHeight),
+      ),
+      itemBuilder: (context, index) {
+        final action = actions[index];
+        return _buildActionCard(action, screenWidth, screenHeight);
+      },
+    );
+  }
+
+  Widget _buildGridLayout(List<Map<String, dynamic>> actions, double screenWidth, double screenHeight) {
+    return GridView.builder(
+      physics: const BouncingScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: getResponsiveSize(12, screenWidth, screenHeight),
+        mainAxisSpacing: getResponsiveSize(12, screenWidth, screenHeight),
+        childAspectRatio: 2.5,
+      ),
+      itemCount: actions.length,
+      itemBuilder: (context, index) {
+        final action = actions[index];
+        return _buildActionCard(action, screenWidth, screenHeight);
+      },
+    );
+  }
+
+  Widget _buildActionCard(Map<String, dynamic> action, double screenWidth, double screenHeight) {
+    return AnimatedBuilder(
+      animation: _fadeAnimation,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, 20 * (1 - _fadeAnimation.value)),
+          child: Opacity(
+            opacity: _fadeAnimation.value,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: action['onTap'] as VoidCallback,
+                borderRadius: BorderRadius.circular(
+                  getResponsiveSize(16, screenWidth, screenHeight),
+                ),
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(
+                    getResponsiveSize(16, screenWidth, screenHeight),
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(
+                      getResponsiveSize(16, screenWidth, screenHeight),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: getResponsiveSize(10, screenWidth, screenHeight),
+                        offset: Offset(0, getResponsiveSize(2, screenWidth, screenHeight)),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: getResponsiveSize(48, screenWidth, screenHeight),
+                        height: getResponsiveSize(48, screenWidth, screenHeight),
+                        decoration: BoxDecoration(
+                          color: (action['color'] as Color).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(
+                            getResponsiveSize(12, screenWidth, screenHeight),
+                          ),
+                        ),
+                        child: Icon(
+                          action['icon'] as IconData,
+                          color: action['color'] as Color,
+                          size: getResponsiveSize(24, screenWidth, screenHeight),
+                        ),
+                      ),
+                      SizedBox(width: getResponsiveSize(16, screenWidth, screenHeight)),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              action['title'] as String,
+                              style: TextStyle(
+                                fontSize: getResponsiveTextSize(16, screenWidth, screenHeight),
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF2D3748),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                            SizedBox(height: getResponsiveSize(2, screenWidth, screenHeight)),
+                            Text(
+                              action['subtitle'] as String,
+                              style: TextStyle(
+                                fontSize: getResponsiveTextSize(14, screenWidth, screenHeight),
+                                color: const Color(0xFF667eea),
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size: getResponsiveSize(16, screenWidth, screenHeight),
+                        color: const Color(0xFF667eea),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -375,7 +432,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.white,
-            fontSize: MediaQuery.of(context).size.width * 0.05,
+            fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
           ),
         ),
         backgroundColor: Colors.blueAccent,
@@ -384,18 +441,24 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
         automaticallyImplyLeading: false,
         actions: [
           Container(
-            margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * 0.04),
+            margin: EdgeInsets.only(
+              right: getResponsiveSize(16, screenWidth, screenHeight),
+            ),
             child: IconButton(
               icon: Container(
-                padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.02),
+                padding: EdgeInsets.all(
+                  getResponsiveSize(8, screenWidth, screenHeight),
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(
+                    getResponsiveSize(12, screenWidth, screenHeight),
+                  ),
                 ),
                 child: Icon(
                   Icons.logout,
                   color: Colors.white,
-                  size: MediaQuery.of(context).size.width * 0.05,
+                  size: getResponsiveSize(20, screenWidth, screenHeight),
                 ),
               ),
               onPressed: _logout,

@@ -59,27 +59,72 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
     }
   }
 
+  // Helper function to calculate adaptive text size based on screen dimensions
+  double _calculateAdaptiveTextSize(double screenWidth, double screenHeight, bool isPortrait) {
+    // Base text size calculation using both width and height
+    double baseSize = (screenWidth + screenHeight) / 2 * 0.02;
+
+    // Apply orientation-specific multipliers
+    if (isPortrait) {
+      // Portrait: slightly smaller text to fit more content
+      baseSize *= 0.85;
+    } else {
+      // Landscape: can afford slightly larger text
+      baseSize *= 1.0;
+    }
+
+    // Clamp to reasonable bounds
+    return baseSize.clamp(10.0, 18.0);
+  }
+
+  // Helper function to calculate adaptive icon size
+  double _calculateAdaptiveIconSize(double screenWidth, double screenHeight, bool isPortrait) {
+    // Base icon size calculation using both width and height
+    double baseSize = (screenWidth + screenHeight) / 2 * 0.04;
+
+    // Apply orientation-specific multipliers
+    if (isPortrait) {
+      baseSize *= 0.8;
+    } else {
+      baseSize *= 1.1;
+    }
+
+    // Clamp to reasonable bounds
+    return baseSize.clamp(20.0, 45.0);
+  }
+
+  // Helper function to calculate adaptive padding
+  double _calculateAdaptivePadding(double screenDimension) {
+    return (screenDimension * 0.02).clamp(8.0, 16.0);
+  }
+
   Widget _buildHome(BuildContext context, User? loggedInUser) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Get screen orientation
+        // Get screen orientation and dimensions
         final orientation = MediaQuery.of(context).orientation;
         final screenWidth = constraints.maxWidth;
         final screenHeight = constraints.maxHeight;
+        final isPortrait = orientation == Orientation.portrait;
+
+        // Calculate adaptive sizes
+        final adaptiveTextSize = _calculateAdaptiveTextSize(screenWidth, screenHeight, isPortrait);
+        final adaptiveIconSize = _calculateAdaptiveIconSize(screenWidth, screenHeight, isPortrait);
+        final adaptivePadding = _calculateAdaptivePadding(screenWidth);
 
         // Determine grid layout based on orientation
         int crossAxisCount;
         double childAspectRatio;
         bool enableScrolling;
 
-        if (orientation == Orientation.portrait) {
+        if (isPortrait) {
           // Portrait: 2 columns with adjusted aspect ratio to fit all cards
           crossAxisCount = 2;
           enableScrolling = false; // No scrolling in portrait
           // Calculate aspect ratio to fit all 8 cards (4 rows) on screen with buffer
-          final availableHeight = screenHeight - (screenHeight * 0.08); // Account for padding and buffer
-          final cardHeight = availableHeight / 4.2; // 4 rows with extra spacing
-          final cardWidth = (screenWidth - (screenWidth * 0.08) - (screenWidth * 0.025)) / 2; // Account for padding and spacing
+          final availableHeight = screenHeight - (screenHeight * 0.08);
+          final cardHeight = availableHeight / 4.2;
+          final cardWidth = (screenWidth - (screenWidth * 0.08) - (screenWidth * 0.025)) / 2;
           childAspectRatio = cardWidth / cardHeight;
         } else {
           // Landscape: 4 columns for better space utilization
@@ -88,18 +133,8 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
           childAspectRatio = 0.8; // Slightly taller cards
         }
 
-        // Calculate responsive dimensions
-        final horizontalPadding = screenWidth * 0.03; // Reduced horizontal padding
-        final verticalPadding = screenHeight * 0.015; // Reduced vertical padding
-        final cardSpacing = screenWidth * 0.02; // Reduced card spacing
-
-        // Calculate responsive sizes - smaller for portrait to fit everything
-        final iconSize = orientation == Orientation.portrait
-            ? (screenWidth * 0.055).clamp(18.0, 32.0) // Further reduced icon size
-            : (screenWidth * 0.05).clamp(25.0, 40.0);
-        final textSize = orientation == Orientation.portrait
-            ? (screenWidth * 0.026).clamp(9.0, 12.0) // Further reduced text size
-            : (screenWidth * 0.025).clamp(10.0, 14.0);
+        // Calculate responsive spacing
+        final cardSpacing = (screenWidth * 0.02).clamp(8.0, 16.0);
 
         // Build the grid widget
         Widget gridWidget = GridView.count(
@@ -107,17 +142,18 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
           crossAxisSpacing: cardSpacing,
           mainAxisSpacing: cardSpacing,
           childAspectRatio: childAspectRatio,
-          shrinkWrap: !enableScrolling, // Shrink only when scrolling is disabled (portrait)
+          shrinkWrap: !enableScrolling,
           physics: enableScrolling
-              ? const AlwaysScrollableScrollPhysics() // Enable scrolling in landscape
-              : const NeverScrollableScrollPhysics(), // Disable scrolling in portrait
+              ? const AlwaysScrollableScrollPhysics()
+              : const NeverScrollableScrollPhysics(),
           children: [
             _buildHomeCard(
               icon: Icons.class_,
               text: 'Select School & Class',
               color: Colors.blueAccent,
-              iconSize: iconSize,
-              textSize: textSize,
+              iconSize: adaptiveIconSize,
+              textSize: adaptiveTextSize,
+              padding: adaptivePadding,
               onTap: () {
                 Navigator.push(
                   context,
@@ -129,8 +165,9 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
               icon: Icons.analytics,
               text: 'Grade Analytics',
               color: Colors.greenAccent,
-              iconSize: iconSize,
-              textSize: textSize,
+              iconSize: adaptiveIconSize,
+              textSize: adaptiveTextSize,
+              padding: adaptivePadding,
               onTap: () {
                 Navigator.push(
                   context,
@@ -142,8 +179,9 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
               icon: Icons.person_add,
               text: 'Add Student',
               color: Colors.orangeAccent,
-              iconSize: iconSize,
-              textSize: textSize,
+              iconSize: adaptiveIconSize,
+              textSize: adaptiveTextSize,
+              padding: adaptivePadding,
               onTap: () {
                 Navigator.push(
                   context,
@@ -155,17 +193,16 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
               icon: Icons.event,
               text: 'School Events',
               color: const Color.fromARGB(255, 59, 61, 60),
-              iconSize: iconSize,
-              textSize: textSize,
+              iconSize: adaptiveIconSize,
+              textSize: adaptiveTextSize,
+              padding: adaptivePadding,
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => Create_Upcoming_School_Event(
                     schoolName: 'schoolName',
                     selectedClass: 'selectedClass',
-
-                  )
-                  ),
+                  )),
                 );
               },
             ),
@@ -173,8 +210,9 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
               icon: Icons.school,
               text: 'Results',
               color: Colors.redAccent,
-              iconSize: iconSize,
-              textSize: textSize,
+              iconSize: adaptiveIconSize,
+              textSize: adaptiveTextSize,
+              padding: adaptivePadding,
               onTap: () {
                 Navigator.push(
                   context,
@@ -186,8 +224,9 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
               icon: Icons.list,
               text: 'Class List',
               color: Colors.purpleAccent,
-              iconSize: iconSize,
-              textSize: textSize,
+              iconSize: adaptiveIconSize,
+              textSize: adaptiveTextSize,
+              padding: adaptivePadding,
               onTap: () {
                 Navigator.push(
                   context,
@@ -201,8 +240,9 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
               icon: Icons.bar_chart,
               text: 'Statistics',
               color: Colors.tealAccent,
-              iconSize: iconSize,
-              textSize: textSize,
+              iconSize: adaptiveIconSize,
+              textSize: adaptiveTextSize,
+              padding: adaptivePadding,
               onTap: () {
                 Navigator.push(
                   context,
@@ -214,8 +254,9 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
               icon: Icons.picture_as_pdf,
               text: 'School Reports PDFs',
               color: Colors.deepOrangeAccent,
-              iconSize: iconSize,
-              textSize: textSize,
+              iconSize: adaptiveIconSize,
+              textSize: adaptiveTextSize,
+              padding: adaptivePadding,
               onTap: () {
                 Navigator.push(
                   context,
@@ -226,12 +267,12 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
           ],
         );
 
-        // Return the grid with proper padding
+        // Return the grid with adaptive padding
         return Container(
           color: Colors.white,
           padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: verticalPadding,
+            horizontal: adaptivePadding,
+            vertical: adaptivePadding * 0.75,
           ),
           child: gridWidget,
         );
@@ -245,6 +286,7 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
     required Color color,
     required double iconSize,
     required double textSize,
+    required double padding,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -256,7 +298,7 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
         ),
         elevation: 4.0,
         child: Padding(
-          padding: const EdgeInsets.all(4.0), // Further reduced padding
+          padding: EdgeInsets.all(padding * 0.5), // Adaptive padding
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -268,11 +310,11 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 1), // Minimal spacing
+              SizedBox(height: padding * 0.2), // Adaptive spacing
               Flexible(
                 flex: 2,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 1.0), // Minimal padding
+                  padding: EdgeInsets.symmetric(horizontal: padding * 0.25),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
@@ -284,6 +326,7 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
                         fontSize: textSize,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
+                        height: 1.1, // Adaptive line height
                       ),
                     ),
                   ),
