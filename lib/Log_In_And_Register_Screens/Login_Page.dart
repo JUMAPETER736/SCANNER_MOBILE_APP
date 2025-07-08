@@ -162,6 +162,9 @@ class _Login_PageState extends State<Login_Page> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final TextEditingController _schoolNameController = TextEditingController();
+  late TextEditingController _studentClassController;
+
 
   String schoolName = '';
   bool _emptySchoolNameField = false;
@@ -275,6 +278,14 @@ class _Login_PageState extends State<Login_Page> {
   void initState() {
     super.initState();
     _checkExistingParentSession();
+    _studentClassController = TextEditingController(text: studentClass);
+  }
+
+  @override
+  void dispose() {
+    _schoolNameController.dispose();
+    _studentClassController.dispose();
+    super.dispose();
   }
 
   @override
@@ -575,7 +586,7 @@ class _Login_PageState extends State<Login_Page> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: TextEditingController(text: schoolName), // Add controller to show selected school
+                controller: _schoolNameController, // Use the persistent controller
                 onChanged: (value) {
                   schoolName = value;
                   setState(() {
@@ -667,6 +678,7 @@ class _Login_PageState extends State<Login_Page> {
                         onTap: () {
                           setState(() {
                             schoolName = filteredSchools[index];
+                            _schoolNameController.text = schoolName; // Update controller text
                             filteredSchools = []; // Clear suggestions after selection
                             _emptySchoolNameField = false;
                             _schoolNameErrorMessage = '';
@@ -759,15 +771,15 @@ class _Login_PageState extends State<Login_Page> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: TextEditingController(text: studentClass), // Add controller to show selected class
+                controller: _studentClassController, // Use persistent controller
                 onChanged: (value) {
-                  studentClass = value.toUpperCase();
                   setState(() {
+                    studentClass = value; // Keep original case as typed by user
                     _emptyStudentClassField = false;
                     _studentClassErrorMessage = '';
                     _errorMessage = '';
 
-                    // Filter classes based on input
+                    // Filter classes based on input for suggestions only
                     if (value.isNotEmpty) {
                       filteredClasses = classes
                           .where((cls) => cls.toLowerCase().contains(value.toLowerCase()))
@@ -843,42 +855,92 @@ class _Login_PageState extends State<Login_Page> {
                       ),
                     ],
                   ),
-                  child: ListView.builder(
-                    padding: EdgeInsets.zero,
-                    itemCount: filteredClasses.length,
-                    itemBuilder: (context, index) {
-                      return InkWell(
-                        onTap: () {
-                          setState(() {
-                            studentClass = filteredClasses[index];
-                            filteredClasses = []; // Clear suggestions after selection
-                            _emptyStudentClassField = false;
-                            _studentClassErrorMessage = '';
-                            _errorMessage = '';
-                          });
-                          // Unfocus the text field to hide keyboard
-                          FocusScope.of(context).unfocus();
-                        },
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                  child: Column(
+                    children: [
+                      // Show suggestions from predefined classes
+                      Expanded(
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          itemCount: filteredClasses.length,
+                          itemBuilder: (context, index) {
+                            return InkWell(
+                              onTap: () {
+                                setState(() {
+                                  studentClass = filteredClasses[index];
+                                  _studentClassController.text = filteredClasses[index]; // Update controller
+                                  filteredClasses = []; // Clear suggestions after selection
+                                  _emptyStudentClassField = false;
+                                  _studentClassErrorMessage = '';
+                                  _errorMessage = '';
+                                });
+                                // Unfocus the text field to hide keyboard
+                                FocusScope.of(context).unfocus();
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: Colors.grey.withOpacity(0.2),
+                                      width: 0.5,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.history,
+                                      size: 16,
+                                      color: Colors.grey[600],
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      filteredClasses[index],
+                                      style: TextStyle(
+                                        fontSize: _getResponsiveFontSize(context, 14.0),
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      // Add a note about custom input
+                      if (studentClass.isNotEmpty && !classes.any((cls) => cls.toLowerCase() == studentClass.toLowerCase()))
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                           decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.1),
                             border: Border(
-                              bottom: BorderSide(
+                              top: BorderSide(
                                 color: Colors.grey.withOpacity(0.2),
                                 width: 0.5,
                               ),
                             ),
                           ),
-                          child: Text(
-                            filteredClasses[index],
-                            style: TextStyle(
-                              fontSize: _getResponsiveFontSize(context, 14.0),
-                              color: Colors.black87,
-                            ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.add_circle_outline,
+                                size: 16,
+                                color: Colors.green[600],
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Use "${studentClass}" as custom class',
+                                style: TextStyle(
+                                  fontSize: _getResponsiveFontSize(context, 12.0),
+                                  color: Colors.green[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      );
-                    },
+                    ],
                   ),
                 ),
             ],
@@ -1114,6 +1176,7 @@ class _Login_PageState extends State<Login_Page> {
     TextInputType? keyboardType,
     bool showLabelOnTop = false, // New parameter
   }) {
+
     if (showLabelOnTop) {
       // Parent mode: Label on top, hint text visible
       return Column(
@@ -1442,7 +1505,7 @@ class _Login_PageState extends State<Login_Page> {
       List<String> nameParts = studentName.toUpperCase().split(' ');
       if (nameParts.length < 2) {
         setState(() {
-          _errorMessage = 'Please enter both first and last name (e.g., "John Doe")';
+          _errorMessage = 'Please enter both first and last name (e.g., "Juma Peter")';
         });
         return null;
       }
@@ -1914,8 +1977,5 @@ class _Login_PageState extends State<Login_Page> {
   }
 
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
+
 }

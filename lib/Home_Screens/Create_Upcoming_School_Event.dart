@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:math';
 
 class Create_Upcoming_School_Event extends StatefulWidget {
   final String schoolName;
@@ -19,15 +20,91 @@ class Create_Upcoming_School_Event extends StatefulWidget {
 
 class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Event> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  String? _teacherSchool; // Add this to store teacher's actual school
+  String? _teacherSchool;
+
+  double getResponsiveTextSize(BuildContext context, double baseSize) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
+
+    // Calculate diagonal screen size for better device detection
+    double diagonal = sqrt(screenWidth * screenWidth + screenHeight * screenHeight);
+
+    // Device type detection
+    bool isTablet = diagonal > 1100; // Tablets typically have diagonal > 1100
+    bool isLargePhone = screenWidth > 400 && screenWidth < 600;
+    bool isSmallPhone = screenWidth <= 400;
+
+    double scaleFactor;
+
+    if (isTablet) {
+      // For tablets: more conservative scaling to prevent oversized text
+      scaleFactor = (screenWidth / 768.0) * 0.85; // 768 is iPad baseline, reduced by 15%
+      scaleFactor = scaleFactor.clamp(0.9, 1.4); // Limit tablet scaling between 90% and 140%
+    } else if (isLargePhone) {
+      // For large phones: moderate scaling
+      scaleFactor = screenWidth / 414.0; // iPhone 6 Plus baseline
+      scaleFactor = scaleFactor.clamp(0.8, 1.2); // Limit scaling between 80% and 120%
+    } else {
+      // For regular/small phones: more aggressive scaling
+      scaleFactor = screenWidth / 375.0; // iPhone 6/7/8 baseline
+      scaleFactor = scaleFactor.clamp(0.7, 1.3); // Allow wider range for small devices
+    }
+
+    return baseSize * scaleFactor;
+  }
+
+  double getResponsiveTextSizeByCategory(BuildContext context, double baseSize, String category) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
+    double diagonal = sqrt(screenWidth * screenWidth + screenHeight * screenHeight);
+
+    bool isTablet = diagonal > 1100;
+    bool isLargePhone = screenWidth > 400 && screenWidth < 600;
+
+    double scaleFactor;
+
+    // Category-specific scaling adjustments
+    double categoryMultiplier = 1.0;
+    switch (category.toLowerCase()) {
+      case 'title':
+      case 'heading':
+        categoryMultiplier = isTablet ? 0.9 : 1.0; // Slightly smaller titles on tablets
+        break;
+      case 'body':
+      case 'content':
+        categoryMultiplier = isTablet ? 0.95 : 1.0; // Slightly smaller body text on tablets
+        break;
+      case 'caption':
+      case 'small':
+        categoryMultiplier = isTablet ? 1.0 : 1.0; // Keep small text consistent
+        break;
+      case 'button':
+        categoryMultiplier = isTablet ? 0.9 : 1.0; // Slightly smaller button text on tablets
+        break;
+      default:
+        categoryMultiplier = 1.0;
+    }
+
+    if (isTablet) {
+      scaleFactor = (screenWidth / 768.0) * 0.85 * categoryMultiplier;
+      scaleFactor = scaleFactor.clamp(0.9, 1.4);
+    } else if (isLargePhone) {
+      scaleFactor = (screenWidth / 414.0) * categoryMultiplier;
+      scaleFactor = scaleFactor.clamp(0.8, 1.2);
+    } else {
+      scaleFactor = (screenWidth / 375.0) * categoryMultiplier;
+      scaleFactor = scaleFactor.clamp(0.7, 1.3);
+    }
+
+    return baseSize * scaleFactor;
+  }
 
   @override
   void initState() {
     super.initState();
-    _getTeacherSchool(); // Fetch teacher's school on init
+    _getTeacherSchool();
   }
 
-  // Add this method to get teacher's school
   Future<void> _getTeacherSchool() async {
     try {
       String? currentUserEmail = FirebaseAuth.instance.currentUser?.email;
@@ -40,7 +117,7 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
         if (teacherDoc.exists) {
           Map<String, dynamic> teacherData = teacherDoc.data() as Map<String, dynamic>;
           setState(() {
-            _teacherSchool = teacherData['school']; // Get teacher's actual school
+            _teacherSchool = teacherData['school'];
           });
         }
       }
@@ -51,14 +128,16 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
 
   @override
   Widget build(BuildContext context) {
-    // Use teacher's actual school instead of widget.schoolName
     String actualSchool = _teacherSchool ?? widget.schoolName;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           'School Events - $actualSchool',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: getResponsiveTextSizeByCategory(context, 18, 'title'),
+          ),
         ),
         backgroundColor: Colors.blueAccent,
         elevation: 0,
@@ -72,10 +151,9 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
           ),
         ),
         child: StreamBuilder<QuerySnapshot>(
-          // Use teacher's actual school for the stream
           stream: _firestore
               .collection('Schools')
-              .doc(actualSchool) // Use teacher's actual school
+              .doc(actualSchool)
               .collection('Upcoming_School_Events')
               .where('dateTime', isGreaterThan: Timestamp.fromDate(DateTime.now().subtract(Duration(days: 7))))
               .orderBy('dateTime', descending: false)
@@ -94,15 +172,25 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.error_outline, size: 60, color: Colors.red),
+                    Icon(
+                        Icons.error_outline,
+                        size: getResponsiveTextSizeByCategory(context, 60, 'title'),
+                        color: Colors.red
+                    ),
                     SizedBox(height: 16),
                     Text(
                       'Error loading events',
-                      style: TextStyle(fontSize: 18, color: Colors.red),
+                      style: TextStyle(
+                          fontSize: getResponsiveTextSizeByCategory(context, 18, 'heading'),
+                          color: Colors.red
+                      ),
                     ),
                     Text(
                       '${snapshot.error}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      style: TextStyle(
+                          fontSize: getResponsiveTextSizeByCategory(context, 12, 'small'),
+                          color: Colors.grey
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -117,14 +205,14 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                   children: [
                     Icon(
                       Icons.event_busy,
-                      size: 80,
+                      size: getResponsiveTextSizeByCategory(context, 80, 'title'),
                       color: Colors.grey.shade400,
                     ),
                     SizedBox(height: 16),
                     Text(
                       'No Events Yet',
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: getResponsiveTextSizeByCategory(context, 24, 'heading'),
                         fontWeight: FontWeight.bold,
                         color: Colors.grey.shade600,
                       ),
@@ -133,7 +221,7 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                     Text(
                       'Create your first event for $actualSchool',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: getResponsiveTextSizeByCategory(context, 16, 'body'),
                         color: Colors.grey.shade500,
                       ),
                       textAlign: TextAlign.center,
@@ -196,7 +284,7 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                                     child: Icon(
                                       _getEventIcon(data['type']),
                                       color: Colors.white,
-                                      size: 20,
+                                      size: getResponsiveTextSizeByCategory(context, 20, 'body'),
                                     ),
                                   ),
                                   SizedBox(width: 12),
@@ -207,7 +295,7 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                                         Text(
                                           data['title'] ?? 'No Title',
                                           style: TextStyle(
-                                            fontSize: 18,
+                                            fontSize: getResponsiveTextSizeByCategory(context, 18, 'title'),
                                             fontWeight: FontWeight.bold,
                                             color: isUpcoming ? Colors.black87 : Colors.grey.shade600,
                                           ),
@@ -224,7 +312,7 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                                           child: Text(
                                             data['type'] ?? 'Event',
                                             style: TextStyle(
-                                              fontSize: 12,
+                                              fontSize: getResponsiveTextSizeByCategory(context, 12, 'small'),
                                               fontWeight: FontWeight.w500,
                                               color: isUpcoming ? Colors.blue.shade700 : Colors.grey.shade600,
                                             ),
@@ -243,7 +331,7 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                                       child: Text(
                                         'Past',
                                         style: TextStyle(
-                                          fontSize: 10,
+                                          fontSize: getResponsiveTextSizeByCategory(context, 10, 'small'),
                                           fontWeight: FontWeight.bold,
                                           color: Colors.red.shade700,
                                         ),
@@ -255,7 +343,7 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                               Text(
                                 data['description'] ?? 'No description',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: getResponsiveTextSizeByCategory(context, 14, 'body'),
                                   color: Colors.grey.shade700,
                                   height: 1.4,
                                 ),
@@ -272,7 +360,11 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.calendar_today, size: 16, color: Colors.blueAccent),
+                                    Icon(
+                                        Icons.calendar_today,
+                                        size: getResponsiveTextSizeByCategory(context, 16, 'body'),
+                                        color: Colors.blueAccent
+                                    ),
                                     SizedBox(width: 8),
                                     Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,7 +372,7 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                                         Text(
                                           '${eventDateTime.day}/${eventDateTime.month}/${eventDateTime.year}',
                                           style: TextStyle(
-                                            fontSize: 14,
+                                            fontSize: getResponsiveTextSizeByCategory(context, 14, 'body'),
                                             fontWeight: FontWeight.w500,
                                             color: Colors.black87,
                                           ),
@@ -289,7 +381,7 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                                           Text(
                                             relativeDate,
                                             style: TextStyle(
-                                              fontSize: 12,
+                                              fontSize: getResponsiveTextSizeByCategory(context, 12, 'small'),
                                               fontWeight: FontWeight.bold,
                                               color: isUpcoming ? Colors.green.shade600 : Colors.orange.shade600,
                                             ),
@@ -297,12 +389,16 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                                       ],
                                     ),
                                     SizedBox(width: 16),
-                                    Icon(Icons.access_time, size: 16, color: Colors.blueAccent),
+                                    Icon(
+                                        Icons.access_time,
+                                        size: getResponsiveTextSizeByCategory(context, 16, 'body'),
+                                        color: Colors.blueAccent
+                                    ),
                                     SizedBox(width: 8),
                                     Text(
                                       TimeOfDay.fromDateTime(eventDateTime).format(context),
                                       style: TextStyle(
-                                        fontSize: 14,
+                                        fontSize: getResponsiveTextSizeByCategory(context, 14, 'body'),
                                         fontWeight: FontWeight.w500,
                                         color: Colors.black87,
                                       ),
@@ -313,13 +409,17 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                               SizedBox(height: 8),
                               Row(
                                 children: [
-                                  Icon(Icons.location_on, size: 16, color: Colors.grey.shade600),
+                                  Icon(
+                                      Icons.location_on,
+                                      size: getResponsiveTextSizeByCategory(context, 16, 'body'),
+                                      color: Colors.grey.shade600
+                                  ),
                                   SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       data['location'] ?? 'No location',
                                       style: TextStyle(
-                                        fontSize: 14,
+                                        fontSize: getResponsiveTextSizeByCategory(context, 14, 'body'),
                                         color: Colors.grey.shade600,
                                       ),
                                     ),
@@ -329,6 +429,7 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                                     child: Text(
                                       'View Details',
                                       style: TextStyle(
+                                        fontSize: getResponsiveTextSizeByCategory(context, 14, 'button'),
                                         color: Colors.blueAccent,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -348,7 +449,6 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
           },
         ),
       ),
-
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateEventDialog(context),
         backgroundColor: Colors.blueAccent,
@@ -356,6 +456,7 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
         label: Text(
           'Create Event',
           style: TextStyle(
+            fontSize: getResponsiveTextSizeByCategory(context, 16, 'button'),
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
@@ -367,17 +468,17 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
 
   IconData _getEventIcon(String? type) {
     switch (type?.toLowerCase()) {
-      case 'Academic':
+      case 'academic':
         return Icons.school;
-      case 'Sports':
+      case 'sports':
         return Icons.sports;
-      case 'Cultural':
+      case 'cultural':
         return Icons.theater_comedy;
-      case 'Meeting':
+      case 'meeting':
         return Icons.groups;
-      case 'Examination':
+      case 'examination':
         return Icons.quiz;
-      case 'Holiday':
+      case 'holiday':
         return Icons.celebration;
       default:
         return Icons.event;
@@ -403,7 +504,7 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
     } else if (difference > 7) {
       return 'In ${difference} days';
     } else {
-      return ''; // For events older than 7 days (won't be shown)
+      return '';
     }
   }
 
@@ -412,7 +513,7 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
       context,
       MaterialPageRoute(
         builder: (context) => CreateEventPage(
-          schoolName: _teacherSchool ?? widget.schoolName, // Use teacher's actual school
+          schoolName: _teacherSchool ?? widget.schoolName,
           selectedClass: widget.selectedClass,
         ),
       ),
@@ -431,13 +532,17 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
           ),
           title: Row(
             children: [
-              Icon(_getEventIcon(data['type']), color: Colors.blueAccent),
+              Icon(
+                _getEventIcon(data['type']),
+                color: Colors.blueAccent,
+                size: getResponsiveTextSizeByCategory(context, 24, 'title'),
+              ),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
                   data['title'] ?? 'Event Details',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: getResponsiveTextSizeByCategory(context, 20, 'title'),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -463,7 +568,10 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 'Close',
-                style: TextStyle(color: Colors.blueAccent),
+                style: TextStyle(
+                  fontSize: getResponsiveTextSizeByCategory(context, 16, 'button'),
+                  color: Colors.blueAccent,
+                ),
               ),
             ),
           ],
@@ -478,7 +586,11 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: Colors.blueAccent),
+          Icon(
+              icon,
+              size: getResponsiveTextSizeByCategory(context, 20, 'body'),
+              color: Colors.blueAccent
+          ),
           SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -487,7 +599,7 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: getResponsiveTextSizeByCategory(context, 14, 'body'),
                     fontWeight: FontWeight.bold,
                     color: Colors.grey.shade600,
                   ),
@@ -496,7 +608,7 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: getResponsiveTextSizeByCategory(context, 16, 'body'),
                     color: Colors.black87,
                   ),
                 ),
@@ -507,9 +619,6 @@ class _Create_Upcoming_School_EventState extends State<Create_Upcoming_School_Ev
       ),
     );
   }
-
-
-
 }
 
 // Create Event Page
@@ -531,7 +640,6 @@ class _CreateEventPageState extends State<CreateEventPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _formKey = GlobalKey<FormState>();
 
-  // Form controllers
   final TextEditingController _eventTitleController = TextEditingController();
   final TextEditingController _eventDescriptionController = TextEditingController();
   final TextEditingController _eventLocationController = TextEditingController();
@@ -540,7 +648,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
   TimeOfDay? _selectedTime;
   String _selectedEventType = 'Academic';
   bool _isLoading = false;
-  String? _teacherSchool; // Add this to store teacher's actual school
+  String? _teacherSchool;
 
   final List<String> _eventTypes = [
     'Academic',
@@ -552,13 +660,59 @@ class _CreateEventPageState extends State<CreateEventPage> {
     'Other'
   ];
 
+  // Add responsive text size functions here too
+  double getResponsiveTextSizeByCategory(BuildContext context, double baseSize, String category) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
+    double diagonal = sqrt(screenWidth * screenWidth + screenHeight * screenHeight);
+
+    bool isTablet = diagonal > 1100;
+    bool isLargePhone = screenWidth > 400 && screenWidth < 600;
+
+    double scaleFactor;
+
+    // Category-specific scaling adjustments
+    double categoryMultiplier = 1.0;
+    switch (category.toLowerCase()) {
+      case 'title':
+      case 'heading':
+        categoryMultiplier = isTablet ? 0.9 : 1.0;
+        break;
+      case 'body':
+      case 'content':
+        categoryMultiplier = isTablet ? 0.95 : 1.0;
+        break;
+      case 'caption':
+      case 'small':
+        categoryMultiplier = isTablet ? 1.0 : 1.0;
+        break;
+      case 'button':
+        categoryMultiplier = isTablet ? 0.9 : 1.0;
+        break;
+      default:
+        categoryMultiplier = 1.0;
+    }
+
+    if (isTablet) {
+      scaleFactor = (screenWidth / 768.0) * 0.85 * categoryMultiplier;
+      scaleFactor = scaleFactor.clamp(0.9, 1.4);
+    } else if (isLargePhone) {
+      scaleFactor = (screenWidth / 414.0) * categoryMultiplier;
+      scaleFactor = scaleFactor.clamp(0.8, 1.2);
+    } else {
+      scaleFactor = (screenWidth / 375.0) * categoryMultiplier;
+      scaleFactor = scaleFactor.clamp(0.7, 1.3);
+    }
+
+    return baseSize * scaleFactor;
+  }
+
   @override
   void initState() {
     super.initState();
-    _getTeacherSchool(); // Fetch teacher's school on init
+    _getTeacherSchool();
   }
 
-  // Add this method to get teacher's school
   Future<void> _getTeacherSchool() async {
     try {
       String? currentUserEmail = FirebaseAuth.instance.currentUser?.email;
@@ -569,12 +723,9 @@ class _CreateEventPageState extends State<CreateEventPage> {
             .get();
 
         if (teacherDoc.exists) {
-          Map<String, dynamic> teacherData = teacherDoc.data() as Map<
-              String,
-              dynamic>;
+          Map<String, dynamic> teacherData = teacherDoc.data() as Map<String, dynamic>;
           setState(() {
-            _teacherSchool =
-            teacherData['school']; // Get teacher's actual school
+            _teacherSchool = teacherData['school'];
           });
         }
       }
@@ -593,14 +744,16 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Use teacher's actual school instead of widget.schoolName
     String actualSchool = _teacherSchool ?? widget.schoolName;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           'Create Event - $actualSchool',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: getResponsiveTextSizeByCategory(context, 18, 'title'),
+          ),
         ),
         backgroundColor: Colors.blueAccent,
         elevation: 0,
@@ -630,14 +783,14 @@ class _CreateEventPageState extends State<CreateEventPage> {
                   children: [
                     Icon(
                       Icons.event,
-                      size: 60,
+                      size: getResponsiveTextSizeByCategory(context, 60, 'title'),
                       color: Colors.blueAccent,
                     ),
                     SizedBox(height: 16),
                     Text(
                       'Create Event for $actualSchool',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: getResponsiveTextSizeByCategory(context, 20, 'title'),
                         fontWeight: FontWeight.bold,
                         color: Colors.blueAccent,
                       ),
@@ -670,7 +823,9 @@ class _CreateEventPageState extends State<CreateEventPage> {
       controller: _eventTitleController,
       decoration: InputDecoration(
         labelText: 'Event Title',
+        labelStyle: TextStyle(fontSize: getResponsiveTextSizeByCategory(context, 16, 'body')),
         hintText: 'Enter event title',
+        hintStyle: TextStyle(fontSize: getResponsiveTextSizeByCategory(context, 14, 'body')),
         prefixIcon: Icon(Icons.title, color: Colors.blueAccent),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -680,10 +835,9 @@ class _CreateEventPageState extends State<CreateEventPage> {
           borderSide: BorderSide(color: Colors.blueAccent, width: 2),
         ),
       ),
+      style: TextStyle(fontSize: getResponsiveTextSizeByCategory(context, 16, 'body')),
       validator: (value) {
-        if (value == null || value
-            .trim()
-            .isEmpty) {
+        if (value == null || value.trim().isEmpty) {
           return 'Please enter an event title';
         }
         return null;
@@ -691,13 +845,24 @@ class _CreateEventPageState extends State<CreateEventPage> {
     );
   }
 
+
+
   Widget _buildEventDescriptionField() {
     return TextFormField(
       controller: _eventDescriptionController,
       maxLines: 3,
+      style: TextStyle(
+        fontSize: getResponsiveTextSizeByCategory(context, 16, 'title'),
+      ),
       decoration: InputDecoration(
         labelText: 'Event Description',
+        labelStyle: TextStyle(
+          fontSize: getResponsiveTextSizeByCategory(context, 16, 'label'),
+        ),
         hintText: 'Enter event description',
+        hintStyle: TextStyle(
+          fontSize: getResponsiveTextSizeByCategory(context, 14, 'body'),
+        ),
         prefixIcon: Icon(Icons.description, color: Colors.blueAccent),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -708,9 +873,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
         ),
       ),
       validator: (value) {
-        if (value == null || value
-            .trim()
-            .isEmpty) {
+        if (value == null || value.trim().isEmpty) {
           return 'Please enter an event description';
         }
         return null;
@@ -721,8 +884,15 @@ class _CreateEventPageState extends State<CreateEventPage> {
   Widget _buildEventTypeDropdown() {
     return DropdownButtonFormField<String>(
       value: _selectedEventType,
+      style: TextStyle(
+        fontSize: getResponsiveTextSizeByCategory(context, 16, 'title'),
+        color: Colors.black,
+      ),
       decoration: InputDecoration(
         labelText: 'Event Type',
+        labelStyle: TextStyle(
+          fontSize: getResponsiveTextSizeByCategory(context, 16, 'label'),
+        ),
         prefixIcon: Icon(Icons.category, color: Colors.blueAccent),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -735,7 +905,12 @@ class _CreateEventPageState extends State<CreateEventPage> {
       items: _eventTypes.map((String type) {
         return DropdownMenuItem<String>(
           value: type,
-          child: Text(type),
+          child: Text(
+            type,
+            style: TextStyle(
+              fontSize: getResponsiveTextSizeByCategory(context, 16, 'title'),
+            ),
+          ),
         );
       }).toList(),
       onChanged: (String? newValue) {
@@ -749,9 +924,18 @@ class _CreateEventPageState extends State<CreateEventPage> {
   Widget _buildEventLocationField() {
     return TextFormField(
       controller: _eventLocationController,
+      style: TextStyle(
+        fontSize: getResponsiveTextSizeByCategory(context, 16, 'title'),
+      ),
       decoration: InputDecoration(
         labelText: 'Event Location',
+        labelStyle: TextStyle(
+          fontSize: getResponsiveTextSizeByCategory(context, 16, 'label'),
+        ),
         hintText: 'Enter event location',
+        hintStyle: TextStyle(
+          fontSize: getResponsiveTextSizeByCategory(context, 14, 'body'),
+        ),
         prefixIcon: Icon(Icons.location_on, color: Colors.blueAccent),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -762,9 +946,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
         ),
       ),
       validator: (value) {
-        if (value == null || value
-            .trim()
-            .isEmpty) {
+        if (value == null || value.trim().isEmpty) {
           return 'Please enter an event location';
         }
         return null;
@@ -793,12 +975,10 @@ class _CreateEventPageState extends State<CreateEventPage> {
                       Text(
                         _selectedDate == null
                             ? 'Select Date'
-                            : '${_selectedDate!.day}/${_selectedDate!
-                            .month}/${_selectedDate!.year}',
+                            : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
                         style: TextStyle(
-                          fontSize: 16,
-                          color: _selectedDate == null ? Colors.grey : Colors
-                              .black,
+                          fontSize: getResponsiveTextSizeByCategory(context, 16, 'title'),
+                          color: _selectedDate == null ? Colors.grey : Colors.black,
                         ),
                       ),
                     ],
@@ -825,9 +1005,8 @@ class _CreateEventPageState extends State<CreateEventPage> {
                             ? 'Select Time'
                             : _selectedTime!.format(context),
                         style: TextStyle(
-                          fontSize: 16,
-                          color: _selectedTime == null ? Colors.grey : Colors
-                              .black,
+                          fontSize: getResponsiveTextSizeByCategory(context, 16, 'title'),
+                          color: _selectedTime == null ? Colors.grey : Colors.black,
                         ),
                       ),
                     ],
@@ -842,7 +1021,10 @@ class _CreateEventPageState extends State<CreateEventPage> {
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(
               'Please select both date and time',
-              style: TextStyle(color: Colors.red, fontSize: 12),
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: getResponsiveTextSizeByCategory(context, 12, 'body'),
+              ),
             ),
           ),
       ],
@@ -861,15 +1043,17 @@ class _CreateEventPageState extends State<CreateEventPage> {
         ),
       )
           : Icon(Icons.save),
-      label: Text(_isLoading ? 'Saving...' : 'Save Event'),
+      label: Text(
+        _isLoading ? 'Saving...' : 'Save Event',
+        style: TextStyle(
+          fontSize: getResponsiveTextSizeByCategory(context, 18, 'button'),
+          fontWeight: FontWeight.bold,
+        ),
+      ),
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.blueAccent,
         foregroundColor: Colors.white,
         padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        textStyle: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -901,7 +1085,12 @@ class _CreateEventPageState extends State<CreateEventPage> {
     if (_selectedDate == null || _selectedTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please select both date and time'),
+          content: Text(
+            'Please select both date and time',
+            style: TextStyle(
+              fontSize: getResponsiveTextSizeByCategory(context, 14, 'title'),
+            ),
+          ),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -929,7 +1118,12 @@ class _CreateEventPageState extends State<CreateEventPage> {
       if (eventDateTime.isBefore(DateTime.now())) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Cannot create event for past date/time'),
+            content: Text(
+              'Cannot create event for past date/time',
+              style: TextStyle(
+                fontSize: getResponsiveTextSizeByCategory(context, 14,'title'),
+              ),
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -957,9 +1151,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
       };
 
       // Generate a unique document ID to avoid conflicts
-      String docId = '${_eventTitleController.text.trim()}_${DateTime
-          .now()
-          .millisecondsSinceEpoch}';
+      String docId = '${_eventTitleController.text.trim()}_${DateTime.now().millisecondsSinceEpoch}';
 
       // Save to Firestore - Using teacher's actual school
       await _firestore
@@ -975,7 +1167,12 @@ class _CreateEventPageState extends State<CreateEventPage> {
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Event saved successfully for $actualSchool!'),
+          content: Text(
+            'Event saved successfully for $actualSchool!',
+            style: TextStyle(
+              fontSize: getResponsiveTextSizeByCategory(context, 14, 'body'),
+            ),
+          ),
           backgroundColor: Colors.green,
         ),
       );
@@ -985,7 +1182,12 @@ class _CreateEventPageState extends State<CreateEventPage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error saving event: $e'),
+          content: Text(
+            'Error saving event: $e',
+            style: TextStyle(
+              fontSize: getResponsiveTextSizeByCategory(context, 14, 'body'),
+            ),
+          ),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -1016,7 +1218,12 @@ class _CreateEventPageState extends State<CreateEventPage> {
         if (selectedDateTime.isBefore(now)) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Cannot select past time for today'),
+              content: Text(
+                'Cannot select past time for today',
+                style: TextStyle(
+                  fontSize: getResponsiveTextSizeByCategory(context, 14, 'body'),
+                ),
+              ),
               backgroundColor: Colors.redAccent,
             ),
           );
@@ -1030,7 +1237,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
     }
   }
 
-  
+
   void _clearForm() {
     _eventTitleController.clear();
     _eventDescriptionController.clear();
