@@ -9,7 +9,6 @@ class Class_Selection extends StatefulWidget {
 }
 
 class _Class_SelectionState extends State<Class_Selection> {
-
   TextEditingController _schoolController = TextEditingController();
   List<String> filteredSchools = [];
   bool showSchoolDropdown = false;
@@ -20,8 +19,7 @@ class _Class_SelectionState extends State<Class_Selection> {
   bool isLoading = false;
 
   // Track unavailable subjects by school and class
-  Map<String, Map<String, List<String>>> unavailableSubjectsBySchoolAndClass = {
-  };
+  Map<String, Map<String, List<String>>> unavailableSubjectsBySchoolAndClass = {};
   String? currentUserEmail;
 
   final List<String> availableSchools = [
@@ -99,12 +97,10 @@ class _Class_SelectionState extends State<Class_Selection> {
   final List<String> classes = ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'];
 
   final Map<String, List<String>> classSubjects = {
-
     'FORM 1': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'GEOGRAPHY', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
     'FORM 2': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'GEOGRAPHY', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
     'FORM 3': ['ADDITIONAL MATHEMATICS', 'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'GEOGRAPHY', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
     'FORM 4': ['ADDITIONAL MATHEMATICS', 'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'GEOGRAPHY', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
-
   };
 
   @override
@@ -122,7 +118,6 @@ class _Class_SelectionState extends State<Class_Selection> {
         });
       }
     });
-
   }
 
   @override
@@ -214,8 +209,7 @@ class _Class_SelectionState extends State<Class_Selection> {
     if (!unavailableSubjectsBySchoolAndClass[school]!.containsKey(className)) {
       unavailableSubjectsBySchoolAndClass[school]![className] = [];
     }
-    if (!unavailableSubjectsBySchoolAndClass[school]![className]!.contains(
-        subject)) {
+    if (!unavailableSubjectsBySchoolAndClass[school]![className]!.contains(subject)) {
       unavailableSubjectsBySchoolAndClass[school]![className]!.add(subject);
     }
   }
@@ -274,8 +268,7 @@ class _Class_SelectionState extends State<Class_Selection> {
         String className = selectedClasses[i];
         int subjectsForThisClass = subjectsPerClass + (i < remainder ? 1 : 0);
 
-        for (int j = 0; j < subjectsForThisClass &&
-            subjectIndex < subjects.length; j++) {
+        for (int j = 0; j < subjectsForThisClass && subjectIndex < subjects.length; j++) {
           selectedSubjectsByClass[className]!.add(subjects[subjectIndex]);
           subjectIndex++;
         }
@@ -284,8 +277,7 @@ class _Class_SelectionState extends State<Class_Selection> {
   }
 
   int _getTotalSelectedSubjects() {
-    return selectedSubjectsByClass.values
-        .fold(0, (total, subjects) => total + subjects.length);
+    return selectedSubjectsByClass.values.fold(0, (total, subjects) => total + subjects.length);
   }
 
   int _getMaxSubjectsPerClass() {
@@ -296,14 +288,11 @@ class _Class_SelectionState extends State<Class_Selection> {
     if (selectedSchool == null) return [];
 
     List<String> allSubjects = classSubjects[className] ?? [];
-    List<
-        String> unavailableSubjects = unavailableSubjectsBySchoolAndClass[selectedSchool]?[className] ??
-        [];
+    List<String> unavailableSubjects = unavailableSubjectsBySchoolAndClass[selectedSchool]?[className] ?? [];
     List<String> currentUserSubjects = selectedSubjectsByClass[className] ?? [];
 
     return allSubjects.where((subject) {
-      return !unavailableSubjects.contains(subject) ||
-          currentUserSubjects.contains(subject);
+      return !unavailableSubjects.contains(subject) || currentUserSubjects.contains(subject);
     }).toList();
   }
 
@@ -313,8 +302,7 @@ class _Class_SelectionState extends State<Class_Selection> {
     List<String> currentUserSubjects = selectedSubjectsByClass[className] ?? [];
     if (currentUserSubjects.contains(subject)) return false;
 
-    return unavailableSubjectsBySchoolAndClass[selectedSchool]?[className]
-        ?.contains(subject) ?? false;
+    return unavailableSubjectsBySchoolAndClass[selectedSchool]?[className]?.contains(subject) ?? false;
   }
 
   Future<void> _saveSelection() async {
@@ -390,27 +378,111 @@ class _Class_SelectionState extends State<Class_Selection> {
   }
 
   Future<bool?> _showConfirmDialog(String title, String content) {
+    // Get screen size for responsive text scaling
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
+    final double textScaleFactor = screenWidth < 360 ? 0.9 : (screenWidth > 600 ? 1.2 : 1.0);
+
     return showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red, // Set Cancel text to red
-            ),
-            child: Text('Cancel'),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        elevation: 8,
+        backgroundColor: Colors.grey[100],
+        child: Container(
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.blue, // Set Confirm text to blue
-            ),
-            child: Text('Confirm'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title with icon
+              Row(
+                children: [
+                  Icon(
+                    Icons.edit,
+                    color: Colors.blueAccent,
+                    size: 28 * textScaleFactor,
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: Colors.blueAccent,
+                      fontSize: 22 * textScaleFactor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              // Content
+              Text(
+                content,
+                style: TextStyle(
+                  color: Colors.blue.shade600,
+                  fontSize: 16 * textScaleFactor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 24),
+              // Action buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      backgroundColor: Colors.red.shade100,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: Colors.red.shade600,
+                        fontSize: 16 * textScaleFactor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      backgroundColor: Colors.blueAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      'Confirm',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16 * textScaleFactor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -430,7 +502,6 @@ class _Class_SelectionState extends State<Class_Selection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-
         SizedBox(height: 3),
         Text(
           schoolName,
@@ -450,7 +521,6 @@ class _Class_SelectionState extends State<Class_Selection> {
       children: [
         TextFormField(
           controller: _schoolController,
-
           decoration: InputDecoration(
             labelText: 'Search Your School',
             border: OutlineInputBorder(),
@@ -551,9 +621,7 @@ class _Class_SelectionState extends State<Class_Selection> {
     }
 
     return Column(
-      children: selectedClasses.map((className) =>
-          _buildSubjectSelectionForClass(className)
-      ).toList(),
+      children: selectedClasses.map((className) => _buildSubjectSelectionForClass(className)).toList(),
     );
   }
 
@@ -585,17 +653,13 @@ class _Class_SelectionState extends State<Class_Selection> {
                   color: Colors.blueAccent,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(className, style: TextStyle(color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold)),
+                child: Text(className, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
               ),
               SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Subjects (${selectedSubjects.length}/$maxSubjectsPerClass)',
-                  style: TextStyle(color: Colors.blueAccent,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold),
+                  style: TextStyle(color: Colors.blueAccent, fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -605,59 +669,48 @@ class _Class_SelectionState extends State<Class_Selection> {
             selectedClasses.length == 1
                 ? 'Max 2 subjects for single class'
                 : 'Max 1 subject per class (2 classes selected)',
-            style: TextStyle(color: Colors.blue,
-                fontSize: 14,
-                fontStyle: FontStyle.italic),
+            style: TextStyle(color: Colors.blue, fontSize: 14, fontStyle: FontStyle.italic),
           ),
           SizedBox(height: 16),
-
           if (isSaved)
-            _buildReadOnlyField(selectedSubjects.isNotEmpty
-                ? selectedSubjects.join(', ')
-                : 'No subjects selected')
+            _buildReadOnlyField(selectedSubjects.isNotEmpty ? selectedSubjects.join(', ') : 'No subjects selected')
+          else if (availableSubjects.isEmpty)
+            _buildWarningCard('All subjects for this class are already assigned')
           else
-            if (availableSubjects.isEmpty)
-              _buildWarningCard(
-                  'All subjects for this class are already assigned')
-            else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: availableSubjects.map((subject) {
-                  bool isSelected = selectedSubjects.contains(subject);
-                  bool isUnavailable = _isSubjectUnavailableForClass(
-                      className, subject);
-                  bool canSelect = !isUnavailable &&
-                      (isSelected ||
-                          (selectedSubjects.length < maxSubjectsPerClass &&
-                              totalSelected < 2));
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: availableSubjects.map((subject) {
+                bool isSelected = selectedSubjects.contains(subject);
+                bool isUnavailable = _isSubjectUnavailableForClass(className, subject);
+                bool canSelect = !isUnavailable &&
+                    (isSelected || (selectedSubjects.length < maxSubjectsPerClass && totalSelected < 2));
 
-                  return _buildSubjectChip(
-                    subject: subject,
-                    isSelected: isSelected,
-                    isUnavailable: isUnavailable,
-                    canSelect: canSelect,
-                    onTap: () {
-                      setState(() {
-                        if (isSelected) {
-                          selectedSubjects.remove(subject);
-                        } else {
-                          selectedSubjects.add(subject);
-                        }
-                        selectedSubjectsByClass[className] = selectedSubjects;
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
+                return _buildSubjectChip(
+                  subject: subject,
+                  isSelected: isSelected,
+                  isUnavailable: isUnavailable,
+                  canSelect: canSelect,
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        selectedSubjects.remove(subject);
+                      } else {
+                        selectedSubjects.add(subject);
+                      }
+                      selectedSubjectsByClass[className] = selectedSubjects;
+                    });
+                  },
+                );
+              }).toList(),
+            ),
         ],
       ),
     );
   }
 
   Widget _buildSelectionSummary() {
-    if (!isSaved &&
-        (selectedClasses.isEmpty || _getTotalSelectedSubjects() == 0)) {
+    if (!isSaved && (selectedClasses.isEmpty || _getTotalSelectedSubjects() == 0)) {
       return SizedBox.shrink();
     }
 
@@ -670,9 +723,7 @@ class _Class_SelectionState extends State<Class_Selection> {
         children: [
           Text(
             'Total Subjects: ${_getTotalSelectedSubjects()}/2',
-            style: TextStyle(color: Colors.blue,
-                fontSize: 18,
-                fontWeight: FontWeight.w600),
+            style: TextStyle(color: Colors.blue, fontSize: 18, fontWeight: FontWeight.w600),
           ),
           SizedBox(height: 12),
           ...selectedClasses.map((className) {
@@ -688,18 +739,13 @@ class _Class_SelectionState extends State<Class_Selection> {
                       color: Colors.blue,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(className, style: TextStyle(color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold)),
+                    child: Text(className, style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      subjects.isNotEmpty
-                          ? subjects.join(', ')
-                          : 'No subjects selected',
-                      style: TextStyle(color: Colors.blue,
-                          fontSize: 16),
+                      subjects.isNotEmpty ? subjects.join(', ') : 'No subjects selected',
+                      style: TextStyle(color: Colors.blue, fontSize: 16),
                     ),
                   ),
                 ],
@@ -736,16 +782,12 @@ class _Class_SelectionState extends State<Class_Selection> {
             children: [
               Icon(icon, color: color.shade600, size: 28),
               SizedBox(width: 12),
-              Text(title, style: TextStyle(color: color.shade600,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold)),
+              Text(title, style: TextStyle(color: color.shade600, fontSize: 24, fontWeight: FontWeight.bold)),
             ],
           ),
           if (subtitle != null) ...[
             SizedBox(height: 8),
-            Text(subtitle, style: TextStyle(color: color.shade600,
-                fontSize: 14,
-                fontStyle: FontStyle.italic)),
+            Text(subtitle, style: TextStyle(color: color.shade600, fontSize: 14, fontStyle: FontStyle.italic)),
           ],
           SizedBox(height: 16),
           child,
@@ -763,8 +805,7 @@ class _Class_SelectionState extends State<Class_Selection> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade300),
       ),
-      child: Text(text, style: TextStyle(
-          color: Colors.black87, fontSize: 16, fontWeight: FontWeight.w500)),
+      child: Text(text, style: TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.w500)),
     );
   }
 
@@ -790,9 +831,7 @@ class _Class_SelectionState extends State<Class_Selection> {
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : (canSelect
-                ? color.shade600
-                : Colors.grey),
+            color: isSelected ? Colors.white : (canSelect ? color.shade600 : Colors.grey),
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -813,16 +852,12 @@ class _Class_SelectionState extends State<Class_Selection> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.blue
-              : (canSelect ? Colors.white : Colors.grey.shade100),
+          color: isSelected ? Colors.blue : (canSelect ? Colors.white : Colors.grey.shade100),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected
                 ? Colors.blue
-                : (isUnavailable
-                ? Colors.blue
-                : (canSelect ? Colors.blue : Colors.grey.shade300)),
+                : (isUnavailable ? Colors.blue : (canSelect ? Colors.blue : Colors.grey.shade300)),
             width: 1.5,
           ),
         ),
@@ -834,10 +869,7 @@ class _Class_SelectionState extends State<Class_Selection> {
               style: TextStyle(
                 color: isSelected
                     ? Colors.white
-                    : (isUnavailable
-                    ? Colors.blue
-                    : (canSelect ? Colors.blue : Colors.grey
-                    .shade600)),
+                    : (isUnavailable ? Colors.blue : (canSelect ? Colors.blue : Colors.grey.shade600)),
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
@@ -871,9 +903,7 @@ class _Class_SelectionState extends State<Class_Selection> {
           SizedBox(height: 16),
           Text(
             'Please select a school and at least one class first',
-            style: TextStyle(color: Colors.red,
-                fontSize: 18,
-                fontWeight: FontWeight.w500),
+            style: TextStyle(color: Colors.red, fontSize: 18, fontWeight: FontWeight.w500),
             textAlign: TextAlign.center,
           ),
         ],
@@ -894,8 +924,7 @@ class _Class_SelectionState extends State<Class_Selection> {
         children: [
           Icon(Icons.warning, color: Colors.red.shade600),
           SizedBox(width: 12),
-          Expanded(child: Text(message,
-              style: TextStyle(color: Colors.red.shade600, fontSize: 16))),
+          Expanded(child: Text(message, style: TextStyle(color: Colors.red.shade600, fontSize: 16))),
         ],
       ),
     );
@@ -1173,6 +1202,4 @@ class _Class_SelectionState extends State<Class_Selection> {
 
     return hasValidSelection;
   }
-
-
 }

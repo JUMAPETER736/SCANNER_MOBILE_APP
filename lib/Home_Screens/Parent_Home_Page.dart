@@ -5,7 +5,7 @@ import 'package:scanna/Parent_Screens/Student_Details_View.dart';
 import 'package:scanna/Parent_Screens/Available_School_Events.dart';
 import 'package:scanna/Parent_Screens/Student_Results.dart';
 import 'package:scanna/Parent_Screens/School_Fees_Structure_And_Balance.dart';
-import 'package:scanna/Parent_Screens/Student_Behavior.dart'; // Add this import
+import 'package:scanna/Parent_Screens/Student_Behavior.dart';
 
 User? loggedInUser;
 
