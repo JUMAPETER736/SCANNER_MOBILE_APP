@@ -330,9 +330,7 @@ class _Student_DetailsState extends State<Student_Details> {
         .collection('Student_Details')
         .doc(_studentFullName);
 
-    batch.set(studentRef, {
-      'timestamp': FieldValue.serverTimestamp(),
-    });
+
 
     // 4. Personal information
     final DocumentReference personalInfoRef = studentRef
@@ -351,7 +349,23 @@ class _Student_DetailsState extends State<Student_Details> {
       'timestamp': FieldValue.serverTimestamp(),
     });
 
-    // 5. Student subjects
+    // 5. Student Behaviours document
+    final DocumentReference behavioursRef = studentRef
+        .collection('Personal_Information')
+        .doc('Student_Behaviours');
+
+    batch.set(behavioursRef, {
+      'conduct': 'N/A',
+      'class_participation': 'N/A',
+      'punctuality': 'N/A',
+      'disciplinary_records': [],
+      'behavior_notes': '',
+      'createdBy': _loggedInUser?.email ?? '',
+      'createdAt': FieldValue.serverTimestamp(),
+      'lastUpdated': FieldValue.serverTimestamp(),
+    });
+
+    // 6. Student subjects
     for (String subject in _defaultSubjects[_selectedClass]!) {
       final DocumentReference subjectRef = studentRef
           .collection('Student_Subjects')
@@ -363,7 +377,7 @@ class _Student_DetailsState extends State<Student_Details> {
       });
     }
 
-    // 6. Total marks document
+    // 7. Total marks document
     final DocumentReference totalMarksRef = studentRef
         .collection('TOTAL_MARKS')
         .doc('Marks');
@@ -375,7 +389,7 @@ class _Student_DetailsState extends State<Student_Details> {
       'Teacher_Total_Marks': '0',
     });
 
-    // 7. Results remarks document
+    // 8. Results remarks document
     final DocumentReference resultsRemarksRef = studentRef
         .collection('TOTAL_MARKS')
         .doc('Results_Remarks');
@@ -385,12 +399,12 @@ class _Student_DetailsState extends State<Student_Details> {
       'Head_Teacher_Remark': 'N/A',
     });
 
-    // 8. Academic Performance Structure
+    // 9. Academic Performance Structure
     await _createAcademicPerformanceStructure(batch, studentRef);
 
     try {
       await batch.commit();
-      print("Student, school information, and fees structure saved successfully!");
+      print("Student, school information, fees structure, and behaviours saved successfully!");
     } catch (e) {
       print("Error saving data: $e");
       throw e;
@@ -875,53 +889,53 @@ class _Student_DetailsState extends State<Student_Details> {
     String? Function(String?)? validator,
   }) {
     return Container(
-        decoration: BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-    boxShadow: const [
-    BoxShadow(
-    color: Colors.black12,
-    blurRadius: 6,
-    offset: Offset(0, 2),
-    ),
-    ],
-    ),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
 
-    child: DropdownButtonFormField<String>(
-    value: value,
-    decoration: InputDecoration(
-      labelText: labelText,
-      labelStyle: const TextStyle(color: Colors.blueAccent),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: labelText,
+          labelStyle: const TextStyle(color: Colors.blueAccent),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        items: items.map<DropdownMenuItem<String>>((String item) {
+          return DropdownMenuItem<String>(
+            value: item,
+            child: Text(item),
+          );
+        }).toList(),
+        onChanged: onChanged,
+        validator: validator,
+        dropdownColor: Colors.white,
+        style: const TextStyle(
+          color: Colors.black,
+          fontSize: 16,
+        ),
+        icon: const Icon(
+          Icons.arrow_drop_down,
+          color: Colors.blueAccent,
+        ),
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      filled: true,
-      fillColor: Colors.white,
-    ),
-      items: items.map<DropdownMenuItem<String>>((String item) {
-        return DropdownMenuItem<String>(
-          value: item,
-          child: Text(item),
-        );
-      }).toList(),
-      onChanged: onChanged,
-      validator: validator,
-      dropdownColor: Colors.white,
-      style: const TextStyle(
-        color: Colors.black,
-        fontSize: 16,
-      ),
-      icon: const Icon(
-        Icons.arrow_drop_down,
-        color: Colors.blueAccent,
-      ),
-    ),
     );
   }
 }
