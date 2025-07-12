@@ -258,28 +258,32 @@ class _Student_DetailsState extends State<Student_Details> {
   Future<void> _saveStudentToFirestore(String schoolName) async {
     final WriteBatch batch = _firestore.batch();
 
-    // Create School Information document (if it doesn't exist)
+    // Check if School Information document exists, only create if it doesn't
     final DocumentReference schoolInfoRef = _firestore
         .collection('Schools')
         .doc(schoolName)
         .collection('School_Information')
         .doc('School_Details');
 
-    batch.set(schoolInfoRef, {
-      'Telephone': '',
-      'Email': '',
-      'account': '',
-      'nextTermDate': '',
-      'boxNumber': 0,
-      'schoolLocation': '',
-      'School_Fees': '',
-      'School_Bank_Account': '',
-      'Next_Term_Opening_Date': '',
-      'createdAt': FieldValue.serverTimestamp(),
-      'lastUpdated': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true)); // merge: true prevents overwriting existing data
+    final DocumentSnapshot schoolInfoSnapshot = await schoolInfoRef.get();
+    if (!schoolInfoSnapshot.exists) {
+      // Only create school information if it doesn't exist
+      batch.set(schoolInfoRef, {
+        'Telephone': '',
+        'Email': '',
+        'account': '',
+        'nextTermDate': '',
+        'boxNumber': 0,
+        'schoolLocation': '',
+        'School_Fees': '',
+        'School_Bank_Account': '',
+        'Next_Term_Opening_Date': '',
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+    }
 
-    // Create Fees_Details document (if it doesn't exist)
+    // Check if Fees_Details document exists, only create if it doesn't
     final DocumentReference feesDetailsRef = _firestore
         .collection('Schools')
         .doc(schoolName)
@@ -288,6 +292,7 @@ class _Student_DetailsState extends State<Student_Details> {
 
     final DocumentSnapshot feesDetailsSnapshot = await feesDetailsRef.get();
     if (!feesDetailsSnapshot.exists) {
+      // Only create fees details if it doesn't exist
       batch.set(feesDetailsRef, {
         'tuition_fee': 0,
         'development_fee': 0,
@@ -307,7 +312,7 @@ class _Student_DetailsState extends State<Student_Details> {
         'tnm_mpamba': 'N/A',
         'createdAt': FieldValue.serverTimestamp(),
         'lastUpdated': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      });
     }
 
     // Main student document
