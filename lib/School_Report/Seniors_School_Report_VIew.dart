@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'Seniors_School_Report_PDF.dart';
 
-
 class Seniors_School_Report_View extends StatefulWidget {
   final String studentClass;
   final String studentFullName;
@@ -58,46 +57,34 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     _fetchStudentDataWithTimeout();
   }
 
-  // Method to determine current term based on date
   String getCurrentTerm() {
     DateTime now = DateTime.now();
     int currentMonth = now.month;
     int currentDay = now.day;
 
-    // TERM ONE: 1 Sept - 31 Dec
     if ((currentMonth == 9 && currentDay >= 1) ||
         (currentMonth >= 10 && currentMonth <= 12)) {
       return 'ONE';
-    }
-    // TERM TWO: 2 Jan - 20 April
-    else if ((currentMonth == 1 && currentDay >= 2) ||
+    } else if ((currentMonth == 1 && currentDay >= 2) ||
         (currentMonth >= 2 && currentMonth <= 3) ||
         (currentMonth == 4 && currentDay <= 20)) {
       return 'TWO';
-    }
-    // TERM THREE: 25 April - 30 July
-    else if ((currentMonth == 4 && currentDay >= 25) ||
+    } else if ((currentMonth == 4 && currentDay >= 25) ||
         (currentMonth >= 5 && currentMonth <= 7)) {
       return 'THREE';
-    }
-    // Default to ONE if date falls outside defined terms
-    else {
+    } else {
       return 'ONE';
     }
   }
 
-  // Method to get academic year
   String getAcademicYear() {
     DateTime now = DateTime.now();
     int currentYear = now.year;
     int currentMonth = now.month;
 
-    // Academic year starts in September
     if (currentMonth >= 9) {
-      // If current month is Sept-Dec, academic year is current year to next year
       return '$currentYear/${currentYear + 1}';
     } else {
-      // If current month is Jan-Aug, academic year is previous year to current year
       return '${currentYear - 1}/$currentYear';
     }
   }
@@ -110,6 +97,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           setState(() {
             isLoading = false;
             hasError = true;
+            errorMessage = 'Request timed out. Please check your connection.';
           });
         },
       );
@@ -122,7 +110,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
-  // Updated _fetchStudentData method with the missing call to _fetchSeniorStudentRemarks
   Future<void> _fetchStudentData() async {
     User? user = _auth.currentUser;
     if (user == null) {
@@ -139,7 +126,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     userEmail = user.email;
 
     try {
-      // Get user document
       final userDoc = await _firestore.collection('Teachers_Details').doc(userEmail).get();
 
       if (!userDoc.exists) {
@@ -184,14 +170,13 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
       final String basePath = 'Schools/$teacherSchool/Classes/$studentClass/Student_Details/$studentFullName';
 
-      // Execute all data fetching operations in parallel - ADDED _fetchSeniorStudentRemarks here
       await Future.wait([
         _fetchSchoolInfo(teacherSchool),
         fetchStudentSubjects(basePath),
         fetchTotalMarks(basePath),
         _updateTotalStudentsCount(teacherSchool, studentClass),
         _fetchSubjectStats(teacherSchool, studentClass),
-        _fetchSeniorStudentRemarks(basePath), // ADD THIS LINE - This was missing!
+        _fetchSeniorStudentRemarks(basePath),
       ]);
 
       if (mounted) {
@@ -211,63 +196,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
-  // Add this method to your _Seniors_School_Report_ViewState class
-  Future<void> _fetchSubjectStats(String school, String studentClass) async {
-    try {
-      // Fetch subject averages from the new Class_Performance structure
-      final subjectStatsSnapshot = await _firestore
-          .collection('Schools/$school/Classes/$studentClass/Class_Performance/Subject_Performance/Subjects')
-          .get();
-
-      Map<String, dynamic> stats = {};
-
-      for (var doc in subjectStatsSnapshot.docs) {
-        final data = doc.data();
-        final subjectName = data['Subject_Name'] ?? doc.id;
-
-        stats[subjectName] = {
-          'average': (data['Subject_Average'] as num?)?.toDouble() ?? 0.0,
-          'totalStudents': (data['Total_Students'] as num?)?.toInt() ?? 0,
-          'totalPass': (data['Total_Pass'] as num?)?.toInt() ?? 0,
-          'totalFail': (data['Total_Fail'] as num?)?.toInt() ?? 0,
-          'passRate': (data['Pass_Rate'] as num?)?.toDouble() ?? 0.0,
-        };
-      }
-
-      // If no data found in new structure, try the old structure as fallback
-      if (stats.isEmpty) {
-        final oldStatsDoc = await _firestore
-            .doc('Schools/$school/Classes/$studentClass/Class_Statistics/subject_averages')
-            .get();
-
-        if (oldStatsDoc.exists) {
-          final data = oldStatsDoc.data() as Map<String, dynamic>;
-          // Transform old structure to match new structure if needed
-          for (var entry in data.entries) {
-            if (entry.value is Map<String, dynamic>) {
-              stats[entry.key] = {
-                'average': (entry.value['average'] as num?)?.toDouble() ?? 0.0,
-                'totalStudents': (entry.value['totalStudents'] as num?)?.toInt() ?? 0,
-                'totalPass': (entry.value['totalPass'] as num?)?.toInt() ?? 0,
-                'totalFail': (entry.value['totalFail'] as num?)?.toInt() ?? 0,
-                'passRate': (entry.value['passRate'] as num?)?.toDouble() ?? 0.0,
-              };
-            }
-          }
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          subjectStats = stats;
-        });
-      }
-    } catch (e) {
-      print("Error fetching subject statistics: $e");
-    }
-  }
-
-// _fetchSchoolInfo method to fetch from the new path structure
   Future<void> _fetchSchoolInfo(String school) async {
     try {
       DocumentSnapshot schoolInfoDoc = await _firestore
@@ -297,6 +225,58 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         schoolBankAccount = 'N/A';
         nextTermOpeningDate = 'N/A';
       });
+    }
+  }
+
+  Future<void> _fetchSubjectStats(String school, String studentClass) async {
+    try {
+      final subjectStatsSnapshot = await _firestore
+          .collection('Schools/$school/Classes/$studentClass/Class_Performance/Subject_Performance/Subjects')
+          .get();
+
+      Map<String, dynamic> stats = {};
+
+      for (var doc in subjectStatsSnapshot.docs) {
+        final data = doc.data();
+        final subjectName = data['Subject_Name'] ?? doc.id;
+
+        stats[subjectName] = {
+          'average': (data['Subject_Average'] as num?)?.toDouble() ?? 0.0,
+          'totalStudents': (data['Total_Students'] as num?)?.toInt() ?? 0,
+          'totalPass': (data['Total_Pass'] as num?)?.toInt() ?? 0,
+          'totalFail': (data['Total_Fail'] as num?)?.toInt() ?? 0,
+          'passRate': (data['Pass_Rate'] as num?)?.toDouble() ?? 0.0,
+        };
+      }
+
+      if (stats.isEmpty) {
+        final oldStatsDoc = await _firestore
+            .doc('Schools/$school/Classes/$studentClass/Class_Statistics/subject_averages')
+            .get();
+
+        if (oldStatsDoc.exists) {
+          final data = oldStatsDoc.data() as Map<String, dynamic>;
+          for (var entry in data.entries) {
+            if (entry.value is Map<String, dynamic>) {
+              stats[entry.key] = {
+                'average': (entry.value['average'] as num?)?.toDouble() ?? 0.0,
+                'totalStudents': (entry.value['totalStudents'] as num?)?.toInt() ?? 0,
+                'totalPass': (entry.value['totalPass'] as num?)?.toInt() ?? 0,
+                'totalFail': (entry.value['totalFail'] as num?)?.toInt() ?? 0,
+                'passRate': (entry.value['passRate'] as num?)?.toDouble() ?? 0.0,
+              };
+            }
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          subjectStats = stats;
+        });
+      }
+    } catch (e) {
+      print("Error fetching subject statistics: $e");
     }
   }
 
@@ -347,8 +327,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           });
         }
       }
-
-      print("Total Students: $Total_Class_Students_Number");
     } catch (e) {
       print('Error updating total students count: $e');
     }
@@ -413,14 +391,13 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
 
         setState(() {
           totalMarks = data;
-          studentTotalMarks = safeParse(data['Student_Total_Marks']);
+          studentTotalMarks = safeParse(data['preterTotal_Marks']);
           teacherTotalMarks = safeParse(data['Teacher_Total_Marks']) == 0
               ? (subjects.where((s) => s['hasGrade'] == true).length * 100)
               : safeParse(data['Teacher_Total_Marks']);
           studentPosition = safeParse(data['Student_Class_Position']);
           aggregatePoints = safeParse(data['Best_Six_Total_Points']);
           aggregatePosition = safeParse(data['Aggregate_Position']);
-          // Use the total from Firestore if available
           if (data['Total_Class_Students_Number'] != null) {
             Total_Class_Students_Number = safeParse(data['Total_Class_Students_Number']);
           }
@@ -428,7 +405,6 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           msceStatus = data['MSCE_Status']?.toString() ?? '';
           msceMessage = data['MSCE_Message']?.toString() ?? '';
         });
-
       }
     } catch (e) {
       print("Error fetching total marks: $e");
@@ -441,14 +417,12 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
         msceMessage = '';
         aggregatePoints = 0;
         aggregatePosition = 0;
-        // Clear remarks on error - will be handled by the senior check method
         formTeacherRemarks = '';
         headTeacherRemarks = '';
       });
     }
   }
 
-// Helper method to fetch student remarks - This method was defined but never called!
   Future<void> _fetchSeniorStudentRemarks(String basePath) async {
     try {
       final remarksDoc = await _firestore
@@ -462,12 +436,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           formTeacherRemarks = remarksData['Form_Teacher_Remark']?.toString() ?? 'N/A';
           headTeacherRemarks = remarksData['Head_Teacher_Remark']?.toString() ?? 'N/A';
         });
-
-        // Add debug prints to verify data is being fetched
-        print("Form Teacher Remarks fetched: $formTeacherRemarks");
-        print("Head Teacher Remarks fetched: $headTeacherRemarks");
       } else {
-        print("Remarks document does not exist at path: $basePath/TOTAL_MARKS/Results_Remarks");
         setState(() {
           formTeacherRemarks = 'N/A';
           headTeacherRemarks = 'N/A';
@@ -522,361 +491,609 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
     }
   }
 
-  Widget _buildSchoolHeader() {
-    return Column(
-      children: [
-        Text(
-          (schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase(),
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-
-        Text(
-          'Tel: ${schoolPhone ?? 'N/A'}',
-          style: TextStyle(fontSize: 14),
-          textAlign: TextAlign.center,
-        ),
-        Text(
-          'Email: ${schoolEmail ?? 'N/A'}',
-          style: TextStyle(fontSize: 14),
-          textAlign: TextAlign.center,
-        ),
-        SizedBox(height: 10),
-        Text(
-          'P.O. BOX ${boxNumber ?? 0}, ${schoolLocation?.toUpperCase() ?? 'N/A'}',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        SizedBox(height: 16),
-        Text(
-          '${getAcademicYear()} '
-              '${widget.studentClass} END OF TERM ${getCurrentTerm()} STUDENT\'S PROGRESS REPORT',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        SizedBox(height: 16),
-      ],
-    );
+  double _getResponsiveFontSize(BuildContext context, {required double baseSize}) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scaleFactor = screenWidth / 360; // Based on standard mobile width
+    return baseSize * scaleFactor.clamp(0.8, 1.2);
   }
 
-  Widget _buildStudentInfo() {
+  double _getResponsivePadding(BuildContext context, {required double basePadding}) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scaleFactor = screenWidth / 360;
+    return basePadding * scaleFactor.clamp(0.8, 1.2);
+  }
+
+  Widget _buildSchoolHeader(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: EdgeInsets.symmetric(
+        vertical: _getResponsivePadding(context, basePadding: 8),
+        horizontal: _getResponsivePadding(context, basePadding: 16),
+      ),
+      child: Column(
         children: [
-          Expanded(
-            flex: 4,
-            child: Text('NAME OF STUDENT: ${widget.studentFullName}'),
-          ),
-          Expanded(
-            flex: 3,
-            child: Row(
-              children: [
-                Text('POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}'),
-                SizedBox(width: 10),
-                Text('OUT OF: ${Total_Class_Students_Number > 0 ? Total_Class_Students_Number :
-                (subjects.isNotEmpty ? subjects.first['totalStudents'] ?? 'N/A' : 'N/A')}'),
-              ],
+          Text(
+            (schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase(),
+            style: TextStyle(
+              fontSize: _getResponsiveFontSize(context, baseSize: 18),
+              fontWeight: FontWeight.bold,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-          Expanded(
-            flex: 2,
-            child: Text('CLASS: ${widget.studentClass}'),
+          Text(
+            'Tel: ${schoolPhone ?? 'N/A'}',
+            style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 14)),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
+          Text(
+            'Email: ${schoolEmail ?? 'N/A'}',
+            style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 14)),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(height: _getResponsivePadding(context, basePadding: 10)),
+          Text(
+            'P.O. BOX ${boxNumber ?? 0}, ${schoolLocation?.toUpperCase() ?? 'N/A'}',
+            style: TextStyle(
+              fontSize: _getResponsiveFontSize(context, baseSize: 16),
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(height: _getResponsivePadding(context, basePadding: 16)),
+          Text(
+            '${getAcademicYear()} ${widget.studentClass} END OF TERM ${getCurrentTerm()} STUDENT\'S PROGRESS REPORT',
+            style: TextStyle(
+              fontSize: _getResponsiveFontSize(context, baseSize: 16),
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(height: _getResponsivePadding(context, basePadding: 16)),
         ],
       ),
     );
   }
 
-  // Update your _buildReportTable method to display the class averages
-  Widget _buildReportTable() {
+  Widget _buildStudentInfo(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.all(16),
-      child: Table(
-        border: TableBorder.all(),
-        columnWidths: {
-          0: FlexColumnWidth(3),
-          1: FlexColumnWidth(1.5),
-          2: FlexColumnWidth(1),
-          3: FlexColumnWidth(1.5),
-          4: FlexColumnWidth(1.5),
-          5: FlexColumnWidth(1.5),
-          6: FlexColumnWidth(3),
-        },
-        children: [
-          TableRow(
-            decoration: BoxDecoration(color: Colors.grey[300]),
+      padding: EdgeInsets.symmetric(
+        horizontal: _getResponsivePadding(context, basePadding: 16),
+        vertical: _getResponsivePadding(context, basePadding: 8),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isSmallScreen = constraints.maxWidth < 400;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _tableCell('SUBJECT', isHeader: true),
-              _tableCell('MARKS %', isHeader: true),
-              _tableCell('POINTS', isHeader: true),
-              _tableCell('CLASS AVERAGE', isHeader: true),
-              _tableCell('POSITION', isHeader: true),
-              _tableCell('OUT OF', isHeader: true),
-              _tableCell('TEACHERS\' COMMENTS', isHeader: true),
+              if (isSmallScreen)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'NAME: ${widget.studentFullName}',
+                      style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 14)),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: _getResponsivePadding(context, basePadding: 8)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}',
+                            style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 14)),
+                          ),
+                        ),
+                        SizedBox(width: _getResponsivePadding(context, basePadding: 10)),
+                        Expanded(
+                          child: Text(
+                            'OUT OF: ${Total_Class_Students_Number > 0 ? Total_Class_Students_Number : (subjects.isNotEmpty ? subjects.first['totalStudents'] ?? 'N/A' : 'N/A')}',
+                            style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 14)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: _getResponsivePadding(context, basePadding: 8)),
+                    Text(
+                      'CLASS: ${widget.studentClass}',
+                      style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 14)),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: Text(
+                        'NAME OF STUDENT: ${widget.studentFullName}',
+                        style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 14)),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}',
+                              style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 14)),
+                            ),
+                          ),
+                          SizedBox(width: _getResponsivePadding(context, basePadding: 10)),
+                          Expanded(
+                            child: Text(
+                              'OUT OF: ${Total_Class_Students_Number > 0 ? Total_Class_Students_Number : (subjects.isNotEmpty ? subjects.first['totalStudents'] ?? 'N/A' : 'N/A')}',
+                              style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 14)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        'CLASS: ${widget.studentClass}',
+                        style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 14)),
+                      ),
+                    ),
+                  ],
+                ),
+              SizedBox(height: _getResponsivePadding(context, basePadding: 16)),
             ],
-          ),
-          ...subjects.map((subj) {
-            final subjectName = subj['subject'] ?? 'Unknown';
-            final hasGrade = subj['hasGrade'] as bool? ?? true;
-            final score = subj['score'] as int? ?? 0;
-            final grade = hasGrade ? (subj['gradeLetter']?.toString().isNotEmpty == true
-                ? subj['gradeLetter']
-                : Seniors_Grade(score)) : '';
-            final remark = hasGrade ? getRemark(grade) : 'Doesn\'t take';
-            final points = hasGrade ? getPoints(grade) : '';
-
-            // Get class average from subjectStats - UPDATED THIS PART
-            final subjectStat = subjectStats[subjectName];
-            final avg = subjectStat != null ?
-            (subjectStat['average'] as double).round() : 0;
-
-            final subjectPosition = subj['position'] as int? ?? 0;
-            final totalStudentsForSubject = subj['totalStudents'] as int? ?? 0;
-
-            return TableRow(
-              children: [
-                _tableCell(subjectName),
-                _tableCell(hasGrade ? score.toString() : ''),
-                _tableCell(points),
-                _tableCell(hasGrade && avg > 0 ? avg.toString() : ''), // UPDATED THIS LINE
-                _tableCell(hasGrade && subjectPosition > 0 ? subjectPosition.toString() : ''),
-                _tableCell(hasGrade && totalStudentsForSubject > 0 ? totalStudentsForSubject.toString() : ''),
-                _tableCell(remark),
-              ],
-            );
-          }).toList(),
-        ],
+          );
+        },
       ),
     );
   }
 
-  Widget _tableCell(String text, {bool isHeader = false}) {
+  Widget _buildReportTable(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.all(4),
+      padding: EdgeInsets.all(_getResponsivePadding(context, basePadding: 16)),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final columnWidths = constraints.maxWidth < 400
+              ? {
+            0: FlexColumnWidth(2.5),
+            1: FlexColumnWidth(1.2),
+            2: FlexColumnWidth(0.8),
+            3: FlexColumnWidth(1.2),
+            4: FlexColumnWidth(1),
+            5: FlexColumnWidth(1),
+            6: FlexColumnWidth(2),
+          }
+              : {
+            0: FlexColumnWidth(3),
+            1: FlexColumnWidth(1.5),
+            2: FlexColumnWidth(1),
+            3: FlexColumnWidth(1.5),
+            4: FlexColumnWidth(1.5),
+            5: FlexColumnWidth(1.5),
+            6: FlexColumnWidth(3),
+          };
+
+          return Table(
+            border: TableBorder.all(),
+            columnWidths: columnWidths,
+            children: [
+              TableRow(
+                decoration: BoxDecoration(color: Colors.grey[300]),
+                children: [
+                  _tableCell(context, 'SUBJECT', isHeader: true),
+                  _tableCell(context, 'MARKS %', isHeader: true),
+                  _tableCell(context, 'POINTS', isHeader: true),
+                  _tableCell(context, 'CLASS AVG', isHeader: true),
+                  _tableCell(context, 'POS', isHeader: true),
+                  _tableCell(context, 'OUT OF', isHeader: true),
+                  _tableCell(context, 'COMMENTS', isHeader: true),
+                ],
+              ),
+              ...subjects.map((subj) {
+                final subjectName = subj['subject'] ?? 'Unknown';
+                final hasGrade = subj['hasGrade'] as bool? ?? true;
+                final score = subj['score'] as int? ?? 0;
+                final grade = hasGrade ? (subj['gradeLetter']?.toString().isNotEmpty == true
+                    ? subj['gradeLetter']
+                    : Seniors_Grade(score)) : '';
+                final remark = hasGrade ? getRemark(grade) : 'Doesn\'t take';
+                final points = hasGrade ? getPoints(grade) : '';
+                final subjectStat = subjectStats[subjectName];
+                final avg = subjectStat != null ? (subjectStat['average'] as double).round() : 0;
+                final subjectPosition = subj['position'] as int? ?? 0;
+                final totalStudentsForSubject = subj['totalStudents'] as int? ?? 0;
+
+                return TableRow(
+                  children: [
+                    _tableCell(context, subjectName),
+                    _tableCell(context, hasGrade ? score.toString() : ''),
+                    _tableCell(context, points),
+                    _tableCell(context, hasGrade && avg > 0 ? avg.toString() : ''),
+                    _tableCell(context, hasGrade && subjectPosition > 0 ? subjectPosition.toString() : ''),
+                    _tableCell(context, hasGrade && totalStudentsForSubject > 0 ? totalStudentsForSubject.toString() : ''),
+                    _tableCell(context, remark),
+                  ],
+                );
+              }).toList(),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _tableCell(BuildContext context, String text, {bool isHeader = false}) {
+    return Padding(
+      padding: EdgeInsets.all(_getResponsivePadding(context, basePadding: 4)),
       child: Text(
         text,
         style: TextStyle(
           fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
-          fontSize: isHeader ? 14 : 12,
+          fontSize: _getResponsiveFontSize(context, baseSize: isHeader ? 14 : 12),
         ),
         textAlign: TextAlign.center,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
 
-  Widget _buildAggregateSection() {
+  Widget _buildAggregateSection(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(
+        horizontal: _getResponsivePadding(context, basePadding: 16),
+        vertical: _getResponsivePadding(context, basePadding: 8),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('(Best 6 subjects)', style: TextStyle(fontStyle: FontStyle.italic)),
-          SizedBox(height: 8),
+          Text(
+            '(Best 6 subjects)',
+            style: TextStyle(
+              fontStyle: FontStyle.italic,
+              fontSize: _getResponsiveFontSize(context, baseSize: 14),
+            ),
+          ),
+          SizedBox(height: _getResponsivePadding(context, basePadding: 8)),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('AGGREGATE POINTS: $aggregatePoints'),
+              Text(
+                'AGGREGATE POINTS: $aggregatePoints',
+                style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 14)),
+              ),
             ],
           ),
-          SizedBox(height: 8),
+          SizedBox(height: _getResponsivePadding(context, basePadding: 8)),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('RESULT: $msceStatus'),
+              Text(
+                'RESULT: $msceStatus',
+                style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 14)),
+              ),
             ],
           ),
-          SizedBox(height: 16),
+          SizedBox(height: _getResponsivePadding(context, basePadding: 16)),
         ],
       ),
     );
   }
 
-  Widget _buildGradingKey() {
+  Widget _buildGradingKey(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(
+        horizontal: _getResponsivePadding(context, basePadding: 16),
+        vertical: _getResponsivePadding(context, basePadding: 8),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'MSCE GRADING KEY FOR ${(schoolName ?? 'UNKNOWN SECONDARY SCHOOL').toUpperCase()}',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: _getResponsiveFontSize(context, baseSize: 16),
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(height: 8),
-          Table(
-            border: TableBorder.all(),
-            columnWidths: {
-              0: FlexColumnWidth(2),
-              1: FlexColumnWidth(1),
-              2: FlexColumnWidth(1),
-              3: FlexColumnWidth(1),
-              4: FlexColumnWidth(1),
-              5: FlexColumnWidth(1),
-              6: FlexColumnWidth(1),
-              7: FlexColumnWidth(1),
-              8: FlexColumnWidth(1),
-              9: FlexColumnWidth(1),
+          SizedBox(height: _getResponsivePadding(context, basePadding: 8)),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columnWidths = constraints.maxWidth < 400
+                  ? {
+                0: FlexColumnWidth(1.5),
+                1: FlexColumnWidth(0.8),
+                2: FlexColumnWidth(0.8),
+                3: FlexColumnWidth(0.8),
+                4: FlexColumnWidth(0.8),
+                5: FlexColumnWidth(0.8),
+                6: FlexColumnWidth(0.8),
+                7: FlexColumnWidth(0.8),
+                8: FlexColumnWidth(0.8),
+                9: FlexColumnWidth(0.8),
+              }
+                  : {
+                0: FlexColumnWidth(2),
+                1: FlexColumnWidth(1),
+                2: FlexColumnWidth(1),
+                3: FlexColumnWidth(1),
+                4: FlexColumnWidth(1),
+                5: FlexColumnWidth(1),
+                6: FlexColumnWidth(1),
+                7: FlexColumnWidth(1),
+                8: FlexColumnWidth(1),
+                9: FlexColumnWidth(1),
+              };
+
+              return Table(
+                border: TableBorder.all(),
+                columnWidths: columnWidths,
+                children: [
+                  TableRow(
+                    decoration: BoxDecoration(color: Colors.grey[300]),
+                    children: [
+                      _tableCell(context, 'Mark Range', isHeader: true),
+                      _tableCell(context, '100-90', isHeader: true),
+                      _tableCell(context, '89-80', isHeader: true),
+                      _tableCell(context, '79-75', isHeader: true),
+                      _tableCell(context, '74-70', isHeader: true),
+                      _tableCell(context, '69-65', isHeader: true),
+                      _tableCell(context, '64-60', isHeader: true),
+                      _tableCell(context, '59-55', isHeader: true),
+                      _tableCell(context, '54-50', isHeader: true),
+                      _tableCell(context, '0-49', isHeader: true),
+                    ],
+                  ),
+                  TableRow(
+                    children: [
+                      _tableCell(context, 'Points', isHeader: true),
+                      _tableCell(context, '1', isHeader: true),
+                      _tableCell(context, '2', isHeader: true),
+                      _tableCell(context, '3', isHeader: true),
+                      _tableCell(context, '4', isHeader: true),
+                      _tableCell(context, '5', isHeader: true),
+                      _tableCell(context, '6', isHeader: true),
+                      _tableCell(context, '7', isHeader: true),
+                      _tableCell(context, '8', isHeader: true),
+                      _tableCell(context, '9', isHeader: true),
+                    ],
+                  ),
+                  TableRow(
+                    children: [
+                      _tableCell(context, 'Interpretation', isHeader: true),
+                      _tableCell(context, 'Distinction', isHeader: true),
+                      _tableCell(context, 'Distinction', isHeader: true),
+                      _tableCell(context, 'Strong Credit', isHeader: true),
+                      _tableCell(context, 'Strong Credit', isHeader: true),
+                      _tableCell(context, 'Credit', isHeader: true),
+                      _tableCell(context, 'Weak Credit', isHeader: true),
+                      _tableCell(context, 'Pass', isHeader: true),
+                      _tableCell(context, 'Weak Pass', isHeader: true),
+                      _tableCell(context, 'Fail', isHeader: true),
+                    ],
+                  ),
+                ],
+              );
             },
-            children: [
-              TableRow(
-                decoration: BoxDecoration(color: Colors.grey[300]),
-                children: [
-                  _tableCell('Mark Range', isHeader: true),
-                  _tableCell('100-90', isHeader: true),
-                  _tableCell('89-80', isHeader: true),
-                  _tableCell('79-75', isHeader: true),
-                  _tableCell('74-70', isHeader: true),
-                  _tableCell('69-65', isHeader: true),
-                  _tableCell('64-60', isHeader: true),
-                  _tableCell('59-55', isHeader: true),
-                  _tableCell('54-50', isHeader: true),
-                  _tableCell('0-49', isHeader: true),
-                ],
-              ),
-              TableRow(
-                children: [
-                  _tableCell('Points', isHeader: true),
-                  _tableCell('1', isHeader: true),
-                  _tableCell('2', isHeader: true),
-                  _tableCell('3', isHeader: true),
-                  _tableCell('4', isHeader: true),
-                  _tableCell('5', isHeader: true),
-                  _tableCell('6', isHeader: true),
-                  _tableCell('7', isHeader: true),
-                  _tableCell('8', isHeader: true),
-                  _tableCell('9', isHeader: true),
-                ],
-              ),
-              TableRow(
-                children: [
-                  _tableCell('Interpretation', isHeader: true),
-                  _tableCell('Distinction', isHeader: true),
-                  _tableCell('Distinction', isHeader: true),
-                  _tableCell('Strong Credit', isHeader: true),
-                  _tableCell('Strong Credit', isHeader: true),
-                  _tableCell('Credit', isHeader: true),
-                  _tableCell('Weak Credit', isHeader: true),
-                  _tableCell('Pass', isHeader: true),
-                  _tableCell('Weak Pass', isHeader: true),
-                  _tableCell('Fail', isHeader: true),
-                ],
-              ),
-            ],
           ),
-          SizedBox(height: 16),
+          SizedBox(height: _getResponsivePadding(context, basePadding: 16)),
         ],
       ),
     );
   }
 
-  Widget _buildRemarksSection() {
+  Widget _buildRemarksSection(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(
+        horizontal: _getResponsivePadding(context, basePadding: 16),
+        vertical: _getResponsivePadding(context, basePadding: 8),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Form Teacher\'s Remarks: ${formTeacherRemarks ?? 'N/A'}',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: _getResponsiveFontSize(context, baseSize: 14),
+            ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(height: 8),
+          SizedBox(height: _getResponsivePadding(context, basePadding: 8)),
           Text(
             'Head Teacher\'s Remarks: ${headTeacherRemarks ?? 'N/A'}',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: _getResponsiveFontSize(context, baseSize: 14),
+            ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(height: 8),
+          SizedBox(height: _getResponsivePadding(context, basePadding: 8)),
           Text(
             'School Fees: ${schoolFees ?? 'N/A'}',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: _getResponsiveFontSize(context, baseSize: 14),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(height: 8),
+          SizedBox(height: _getResponsivePadding(context, basePadding: 8)),
           Text(
             'School Bank Account: ${schoolBankAccount ?? 'N/A'}',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: _getResponsiveFontSize(context, baseSize: 14),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(height: 8),
+          SizedBox(height: _getResponsivePadding(context, basePadding: 8)),
           Text(
             'Next Term Opening Date: ${nextTermOpeningDate ?? 'N/A'}',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: _getResponsiveFontSize(context, baseSize: 14),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(height: 16),
+          SizedBox(height: _getResponsivePadding(context, basePadding: 16)),
         ],
       ),
     );
   }
 
   Future<void> _printDocument() async {
-    final pdfGenerator = Seniors_School_Report_PDF(
-      schoolName: schoolName,
-      schoolPhone: schoolPhone,
-      schoolEmail: schoolEmail,
-      formTeacherRemarks: formTeacherRemarks,
-      headTeacherRemarks: headTeacherRemarks,
-      studentFullName: widget.studentFullName,
-      studentClass: widget.studentClass,
-      subjects: subjects,
-      subjectStats: subjectStats,
-      subjectPositions: subjectPositions,
-      totalStudentsPerSubject: totalStudentsPerSubject,
-      aggregatePoints: aggregatePoints,
-      aggregatePosition: aggregatePosition,
-      schoolFees: schoolFees,
-      schoolBankAccount: schoolBankAccount,
-      nextTermOpeningDate: nextTermOpeningDate,
-      Total_Class_Students_Number: Total_Class_Students_Number,
-      studentTotalMarks: studentTotalMarks,
-      teacherTotalMarks: teacherTotalMarks,
-      studentPosition: studentPosition,
-      boxNumber: boxNumber,
-      schoolLocation: schoolLocation,
+    try {
+      final pdfGenerator = Seniors_School_Report_PDF(
+        schoolName: schoolName,
+        schoolPhone: schoolPhone,
+        schoolEmail: schoolEmail,
+        formTeacherRemarks: formTeacherRemarks,
+        headTeacherRemarks: headTeacherRemarks,
+        studentFullName: widget.studentFullName,
+        studentClass: widget.studentClass,
+        subjects: subjects,
+        subjectStats: subjectStats,
+        subjectPositions: subjectPositions,
+        totalStudentsPerSubject: totalStudentsPerSubject,
+        aggregatePoints: aggregatePoints,
+        aggregatePosition: aggregatePosition,
+        schoolFees: schoolFees,
+        schoolBankAccount: schoolBankAccount,
+        nextTermOpeningDate: nextTermOpeningDate,
+        Total_Class_Students_Number: Total_Class_Students_Number,
+        studentTotalMarks: studentTotalMarks,
+        teacherTotalMarks: teacherTotalMarks,
+        studentPosition: studentPosition,
+        boxNumber: boxNumber,
+        schoolLocation: schoolLocation,
+      );
 
-
-
-    );
-
-    await pdfGenerator.generateAndPrint();
+      await pdfGenerator.generateAndPrint();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error generating PDF: ${e.toString()}')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (errorMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage!)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage!),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
         setState(() => errorMessage = null);
       });
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Progress Report'),
-        backgroundColor: Colors.grey[300], // Light gray color
+        title: Text(
+          'Progress Report',
+          style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 20)),
+        ),
+        backgroundColor: Colors.grey[300],
         actions: [
           IconButton(
-            icon: Icon(Icons.print),
+            icon: Icon(Icons.print, size: _getResponsiveFontSize(context, baseSize: 24)),
             onPressed: _printDocument,
           ),
         ],
       ),
       body: isLoading
           ? Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+            ),
+            SizedBox(height: _getResponsivePadding(context, basePadding: 16)),
+            Text(
+              'Loading student report...',
+              style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 16)),
+            ),
+          ],
+        ),
+      )
+          : hasError
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: _getResponsiveFontSize(context, baseSize: 64),
+              color: Colors.red,
+            ),
+            SizedBox(height: _getResponsivePadding(context, basePadding: 16)),
+            Text(
+              'Error Loading Report',
+              style: TextStyle(
+                fontSize: _getResponsiveFontSize(context, baseSize: 18),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: _getResponsivePadding(context, basePadding: 8)),
+            Text(
+              errorMessage ?? 'An unknown error occurred',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: _getResponsiveFontSize(context, baseSize: 14),
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: _getResponsivePadding(context, basePadding: 16)),
+            ElevatedButton(
+              onPressed: _fetchStudentData,
+              child: Text(
+                'Try Again',
+                style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 14)),
+              ),
+            ),
+          ],
         ),
       )
           : RefreshIndicator(
         onRefresh: _fetchStudentData,
         child: SingleChildScrollView(
+          padding: EdgeInsets.all(_getResponsivePadding(context, basePadding: 8)),
           physics: AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.all(8),
           child: Column(
             children: [
-              _buildSchoolHeader(),
-              _buildStudentInfo(),
-              _buildReportTable(),
-              _buildAggregateSection(),
-              _buildGradingKey(),
-              _buildRemarksSection(),
+              _buildSchoolHeader(context),
+              _buildStudentInfo(context),
+              _buildReportTable(context),
+              _buildAggregateSection(context),
+              _buildGradingKey(context),
+              _buildRemarksSection(context),
+              SizedBox(height: _getResponsivePadding(context, basePadding: 20)),
             ],
           ),
         ),
