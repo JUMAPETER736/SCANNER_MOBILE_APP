@@ -94,19 +94,18 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
   Widget _buildWelcomeSection() {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    final orientation = MediaQuery.of(context).orientation;
 
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         horizontal: getResponsiveSize(20, screenWidth, screenHeight),
-        vertical: getResponsiveSize(16, screenWidth, screenHeight),
+        vertical: getResponsiveSize(12, screenWidth, screenHeight),
       ),
       child: Row(
         children: [
           Container(
-            width: getResponsiveSize(60, screenWidth, screenHeight),
-            height: getResponsiveSize(60, screenWidth, screenHeight),
+            width: getResponsiveSize(50, screenWidth, screenHeight),
+            height: getResponsiveSize(50, screenWidth, screenHeight),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Colors.blueAccent, Colors.blue],
@@ -114,13 +113,13 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(
-                getResponsiveSize(30, screenWidth, screenHeight),
+                getResponsiveSize(25, screenWidth, screenHeight),
               ),
             ),
             child: Icon(
               Icons.person,
               color: Colors.white,
-              size: getResponsiveSize(30, screenWidth, screenHeight),
+              size: getResponsiveSize(25, screenWidth, screenHeight),
             ),
           ),
           SizedBox(width: getResponsiveSize(15, screenWidth, screenHeight)),
@@ -132,16 +131,16 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
                 Text(
                   'Welcome back!',
                   style: TextStyle(
-                    fontSize: getResponsiveTextSize(16, screenWidth, screenHeight),
+                    fontSize: getResponsiveTextSize(14, screenWidth, screenHeight),
                     color: Colors.blueAccent,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(height: getResponsiveSize(4, screenWidth, screenHeight)),
+                SizedBox(height: getResponsiveSize(2, screenWidth, screenHeight)),
                 Text(
                   loggedInUser?.email?.split('@')[0] ?? 'Parent',
                   style: TextStyle(
-                    fontSize: getResponsiveTextSize(20, screenWidth, screenHeight),
+                    fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
                     fontWeight: FontWeight.bold,
                     color: Colors.blueAccent,
                   ),
@@ -273,52 +272,101 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
             Text(
               'Quick Actions',
               style: TextStyle(
-                fontSize: getResponsiveTextSize(20, screenWidth, screenHeight),
+                fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
                 fontWeight: FontWeight.bold,
                 color: const Color(0xFF667eea),
               ),
             ),
-            SizedBox(height: getResponsiveSize(12, screenWidth, screenHeight)),
+            SizedBox(height: getResponsiveSize(8, screenWidth, screenHeight)),
             Expanded(
               child: isLandscape && screenWidth > 600
                   ? _buildGridLayout(actions, screenWidth, screenHeight)
-                  : _buildListLayout(actions, screenWidth, screenHeight),
+                  : _buildColumnLayout(actions, screenWidth, screenHeight),
             ),
-            SizedBox(height: getResponsiveSize(16, screenWidth, screenHeight)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildListLayout(List<Map<String, dynamic>> actions, double screenWidth, double screenHeight) {
-    return ListView.separated(
-      physics: const BouncingScrollPhysics(),
-      itemCount: actions.length,
-      separatorBuilder: (context, index) => SizedBox(
-        height: getResponsiveSize(8, screenWidth, screenHeight),
-      ),
-      itemBuilder: (context, index) {
-        final action = actions[index];
-        return _buildActionCard(action, screenWidth, screenHeight);
-      },
+  Widget _buildColumnLayout(List<Map<String, dynamic>> actions, double screenWidth, double screenHeight) {
+    return Column(
+      children: actions.map((action) {
+        return Expanded(
+          child: Container(
+            margin: EdgeInsets.only(
+              bottom: getResponsiveSize(6, screenWidth, screenHeight),
+            ),
+            child: _buildActionCard(action, screenWidth, screenHeight),
+          ),
+        );
+      }).toList(),
     );
   }
 
   Widget _buildGridLayout(List<Map<String, dynamic>> actions, double screenWidth, double screenHeight) {
-    return GridView.builder(
-      physics: const BouncingScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: getResponsiveSize(12, screenWidth, screenHeight),
-        mainAxisSpacing: getResponsiveSize(12, screenWidth, screenHeight),
-        childAspectRatio: 2.5,
-      ),
-      itemCount: actions.length,
-      itemBuilder: (context, index) {
-        final action = actions[index];
-        return _buildActionCard(action, screenWidth, screenHeight);
-      },
+    return Column(
+      children: [
+        // First row with 2 cards
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  margin: EdgeInsets.only(
+                    right: getResponsiveSize(6, screenWidth, screenHeight),
+                    bottom: getResponsiveSize(6, screenWidth, screenHeight),
+                  ),
+                  child: _buildActionCard(actions[0], screenWidth, screenHeight),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  margin: EdgeInsets.only(
+                    left: getResponsiveSize(6, screenWidth, screenHeight),
+                    bottom: getResponsiveSize(6, screenWidth, screenHeight),
+                  ),
+                  child: _buildActionCard(actions[1], screenWidth, screenHeight),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Second row with 2 cards
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  margin: EdgeInsets.only(
+                    right: getResponsiveSize(6, screenWidth, screenHeight),
+                    bottom: getResponsiveSize(6, screenWidth, screenHeight),
+                  ),
+                  child: _buildActionCard(actions[2], screenWidth, screenHeight),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  margin: EdgeInsets.only(
+                    left: getResponsiveSize(6, screenWidth, screenHeight),
+                    bottom: getResponsiveSize(6, screenWidth, screenHeight),
+                  ),
+                  child: _buildActionCard(actions[3], screenWidth, screenHeight),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Third row with 1 card centered
+        Expanded(
+          child: Container(
+            margin: EdgeInsets.only(
+              bottom: getResponsiveSize(6, screenWidth, screenHeight),
+            ),
+            child: _buildActionCard(actions[4], screenWidth, screenHeight),
+          ),
+        ),
+      ],
     );
   }
 
@@ -335,22 +383,23 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
               child: InkWell(
                 onTap: action['onTap'] as VoidCallback,
                 borderRadius: BorderRadius.circular(
-                  getResponsiveSize(16, screenWidth, screenHeight),
+                  getResponsiveSize(12, screenWidth, screenHeight),
                 ),
                 child: Container(
                   width: double.infinity,
+                  height: double.infinity,
                   padding: EdgeInsets.all(
-                    getResponsiveSize(16, screenWidth, screenHeight),
+                    getResponsiveSize(12, screenWidth, screenHeight),
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(
-                      getResponsiveSize(16, screenWidth, screenHeight),
+                      getResponsiveSize(12, screenWidth, screenHeight),
                     ),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.05),
-                        blurRadius: getResponsiveSize(10, screenWidth, screenHeight),
+                        blurRadius: getResponsiveSize(8, screenWidth, screenHeight),
                         offset: Offset(0, getResponsiveSize(2, screenWidth, screenHeight)),
                       ),
                     ],
@@ -358,21 +407,21 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
                   child: Row(
                     children: [
                       Container(
-                        width: getResponsiveSize(48, screenWidth, screenHeight),
-                        height: getResponsiveSize(48, screenWidth, screenHeight),
+                        width: getResponsiveSize(40, screenWidth, screenHeight),
+                        height: getResponsiveSize(40, screenWidth, screenHeight),
                         decoration: BoxDecoration(
                           color: (action['color'] as Color).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(
-                            getResponsiveSize(12, screenWidth, screenHeight),
+                            getResponsiveSize(10, screenWidth, screenHeight),
                           ),
                         ),
                         child: Icon(
                           action['icon'] as IconData,
                           color: action['color'] as Color,
-                          size: getResponsiveSize(24, screenWidth, screenHeight),
+                          size: getResponsiveSize(20, screenWidth, screenHeight),
                         ),
                       ),
-                      SizedBox(width: getResponsiveSize(16, screenWidth, screenHeight)),
+                      SizedBox(width: getResponsiveSize(12, screenWidth, screenHeight)),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,7 +431,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
                             Text(
                               action['title'] as String,
                               style: TextStyle(
-                                fontSize: getResponsiveTextSize(16, screenWidth, screenHeight),
+                                fontSize: getResponsiveTextSize(14, screenWidth, screenHeight),
                                 fontWeight: FontWeight.w600,
                                 color: const Color(0xFF2D3748),
                               ),
@@ -393,7 +442,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
                             Text(
                               action['subtitle'] as String,
                               style: TextStyle(
-                                fontSize: getResponsiveTextSize(14, screenWidth, screenHeight),
+                                fontSize: getResponsiveTextSize(12, screenWidth, screenHeight),
                                 color: const Color(0xFF667eea),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -405,7 +454,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
                       ),
                       Icon(
                         Icons.arrow_forward_ios,
-                        size: getResponsiveSize(16, screenWidth, screenHeight),
+                        size: getResponsiveSize(14, screenWidth, screenHeight),
                         color: const Color(0xFF667eea),
                       ),
                     ],
