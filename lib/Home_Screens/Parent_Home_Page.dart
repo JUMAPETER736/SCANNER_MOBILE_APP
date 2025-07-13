@@ -468,7 +468,6 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
     );
   }
 
-  @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
@@ -479,8 +478,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
         title: Text(
           'Parent Portal',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: Colors.black,
             fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
           ),
         ),
@@ -489,29 +487,9 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
-          Container(
-            margin: EdgeInsets.only(
-              right: getResponsiveSize(16, screenWidth, screenHeight),
-            ),
-            child: IconButton(
-              icon: Container(
-                padding: EdgeInsets.all(
-                  getResponsiveSize(8, screenWidth, screenHeight),
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(
-                    getResponsiveSize(12, screenWidth, screenHeight),
-                  ),
-                ),
-                child: Icon(
-                  Icons.logout,
-                  color: Colors.white,
-                  size: getResponsiveSize(20, screenWidth, screenHeight),
-                ),
-              ),
-              onPressed: _logout,
-            ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.black),
+            onPressed: _logout,
           ),
         ],
         flexibleSpace: Container(
@@ -535,4 +513,5 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
       ),
     );
   }
+
 }
