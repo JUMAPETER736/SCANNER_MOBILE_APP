@@ -31,6 +31,10 @@ class _Student_Name_ListState extends State<Student_Name_List> {
   List<Map<String, dynamic>> studentDetails = [];
   int _totalClassStudentsNumber = 0;
 
+  // Current academic year and term
+  String _currentAcademicYear = '';
+  String _currentTerm = '';
+
   // Auto-refresh timer
   Timer? _refreshTimer;
 
@@ -40,6 +44,8 @@ class _Student_Name_ListState extends State<Student_Name_List> {
   @override
   void initState() {
     super.initState();
+    _currentAcademicYear = _getCurrentAcademicYear();
+    _currentTerm = _getCurrentTerm();
     _checkTeacherSelection();
     _startAutoRefresh();
   }
@@ -49,6 +55,32 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     _refreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  // ========== HELPER METHODS ==========
+
+  // Get current academic year (placeholder, replace with your actual logic)
+  String _getCurrentAcademicYear() {
+    // Assuming format like "2024-2025"
+    final currentYear = DateTime.now().year;
+    return '$currentYear-${currentYear + 1}';
+  }
+
+  // Get current term (placeholder, replace with your actual logic)
+  String _getCurrentTerm() {
+    final DateTime now = DateTime.now();
+    final int month = now.month;
+    final int day = now.day;
+
+    if (month >= 9 || month == 12) {
+      return 'TERM_ONE';
+    } else if (month >= 1 && (month < 3 || (month == 3 && day <= 20))) {
+      return 'TERM_TWO';
+    } else if (month >= 4 && month <= 8) {
+      return 'TERM_THREE';
+    } else {
+      return 'TERM_ONE';
+    }
   }
 
   // ========== INITIALIZATION METHODS ==========
@@ -103,26 +135,30 @@ class _Student_Name_ListState extends State<Student_Name_List> {
       var snapshot = await _firestore
           .collection('Schools')
           .doc(teacherSchool)
+          .collection('Academic_Year')
+          .doc(_currentAcademicYear)
           .collection('Classes')
           .doc(selectedClass)
-          .collection('Student_Details')
+          .collection(_currentTerm)
+          .doc('Term_Informations')
+          .collection('Class_List')
           .get();
 
       List<Map<String, dynamic>> loadedStudents = [];
 
       for (int index = 0; index < snapshot.docs.length; index++) {
         var studentDoc = snapshot.docs[index];
-        var registeredInfoDoc = await studentDoc.reference
+        var personalInfoDoc = await studentDoc.reference
             .collection('Personal_Information')
-            .doc('Registered_Information')
+            .doc('Student_Details')
             .get();
 
-        if (registeredInfoDoc.exists) {
-          var data = registeredInfoDoc.data() as Map<String, dynamic>;
-          var firstName = data['firstName'] ?? 'N/A';
-          var lastName = data['lastName'] ?? 'N/A';
-          var studentGender = data['studentGender'] ?? 'N/A';
-          var fullName = '$lastName $firstName';
+        if (personalInfoDoc.exists) {
+          var data = personalInfoDoc.data() as Map<String, dynamic>;
+          var firstName = data['First_Name'] ?? 'N/A';
+          var lastName = data['Last_Name'] ?? 'N/A';
+          var studentGender = data['Student_Gender'] ?? 'N/A';
+          var fullName = data['Full_Name'] ?? '$lastName $firstName';
 
           loadedStudents.add({
             'index': index,
@@ -162,16 +198,21 @@ class _Student_Name_ListState extends State<Student_Name_List> {
       final DocumentReference classInfoRef = _firestore
           .collection('Schools')
           .doc(teacherSchool)
+          .collection('Academic_Year')
+          .doc(_currentAcademicYear)
           .collection('Classes')
           .doc(selectedClass)
-          .collection('Class_Info')
-          .doc('Info');
+          .collection(_currentTerm)
+          .doc('Term_Informations')
+          .collection('Term_Informations')
+          .doc('Class_Information');
 
       await classInfoRef.set({
-        'totalStudents': _totalClassStudentsNumber,
-        'lastUpdated': FieldValue.serverTimestamp(),
-        'className': selectedClass,
-        'school': teacherSchool,
+        'Total_Students': _totalClassStudentsNumber,
+        'Last_Updated': FieldValue.serverTimestamp(),
+        'Class_Name': selectedClass,
+        'Academic_Year': _currentAcademicYear,
+        'Term_Name': _currentTerm,
       }, SetOptions(merge: true));
 
       debugPrint('Total students count updated: $_totalClassStudentsNumber');
@@ -262,7 +303,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Name of Students',
+          '$_currentTerm $selectedClass',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.blueAccent,
@@ -281,7 +322,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     return AppBar(
       title: _hasSelectedCriteria
           ? Text(
-        '$teacherSchool',
+        '$_currentTerm $selectedClass',
         style: TextStyle(fontWeight: FontWeight.bold),
       )
           : Text(
@@ -296,7 +337,6 @@ class _Student_Name_ListState extends State<Student_Name_List> {
           icon: Icon(Icons.search),
           onPressed: () => _showSearchDialog(context),
         ),
-
       ]
           : [],
     );
@@ -480,7 +520,6 @@ class _Student_Name_ListState extends State<Student_Name_List> {
       ),
     );
   }
-
 
   /// Build student list view
   Widget _buildStudentListView() {

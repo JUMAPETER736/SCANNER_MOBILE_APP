@@ -257,6 +257,7 @@ class _Student_DetailsState extends State<Student_Details> {
     return teacherDetails['school'] as String;
   }
 
+
   Future<void> _saveStudentToFirestore(String schoolName) async {
     final WriteBatch batch = _firestore.batch();
     final String currentAcademicYear = _getCurrentAcademicYear();
@@ -480,7 +481,7 @@ class _Student_DetailsState extends State<Student_Details> {
       Map<String, Map<String, String>> termDates,
       ) async {
 
-    // Create the student document under Class_List
+    // Create the student document under Class_List - EMPTY DOCUMENT (no fields)
     final DocumentReference studentRef = _firestore
         .collection('Schools')
         .doc(schoolName)
@@ -493,32 +494,11 @@ class _Student_DetailsState extends State<Student_Details> {
         .collection('Class_List')
         .doc(_studentFullName);
 
-    // Set basic student information for the term
-    batch.set(studentRef, {
-      'Student_Name': _studentFullName,
-      'Student_ID': _studentID!,
-      'Student_Class': _selectedClass!,
-      'Term_Name': term,
-      'Term_Status': termStatus,
-      'Start_Date': termDates[term]!['start_date'],
-      'End_Date': termDates[term]!['end_date'],
-      'Term_Academic_Year': currentAcademicYear,
-      'Created_At': FieldValue.serverTimestamp(),
-      'Last_Updated': FieldValue.serverTimestamp(),
-    });
+    // Create empty student document (no fields directly on the student document)
+    // This will create the document but with no fields at the root level
 
-    // Create Student_Behaviors under student
-    batch.set(studentRef.collection('Student_Behaviors').doc('Behavior_Record'), {
-      'Conduct': 'N/A',
-      'Class_Participation': 'N/A',
-      'Punctuality': 'N/A',
-      'Disciplinary_Records': [],
-      'Behavior_Notes': '',
-      'Term_Name': term,
-      'Created_By': _loggedInUser?.email ?? '',
-      'Created_At': FieldValue.serverTimestamp(),
-      'Last_Updated': FieldValue.serverTimestamp(),
-    });
+    // Create Student_Behaviors under student with subject-specific behaviors
+    await _createStudentBehaviors(batch, studentRef, term);
 
     // Create Personal_Information under student
     batch.set(studentRef.collection('Personal_Information').doc('Student_Details'), {
@@ -573,6 +553,48 @@ class _Student_DetailsState extends State<Student_Details> {
 
     // Create Academic_Performance under student with term results
     await _createStudentAcademicPerformance(batch, studentRef, term);
+  }
+
+  // NEW METHOD: Create Student_Behaviors with subject-specific behaviors
+  Future<void> _createStudentBehaviors(
+      WriteBatch batch,
+      DocumentReference studentRef,
+      String term,
+      ) async {
+
+    // Create general behavior record
+    batch.set(studentRef.collection('Student_Behaviors').doc('General_Behavior'), {
+      'Overall_Conduct': 'N/A',
+      'Class_Participation': 'N/A',
+      'Punctuality': 'N/A',
+      'Disciplinary_Records': [],
+      'General_Behavior_Notes': '',
+      'Term_Name': term,
+      'Created_By': _loggedInUser?.email ?? '',
+      'Created_At': FieldValue.serverTimestamp(),
+      'Last_Updated': FieldValue.serverTimestamp(),
+    });
+
+    // Create behavior record for each subject
+    for (String subject in _defaultSubjects[_selectedClass]!) {
+      batch.set(studentRef.collection('Student_Behaviors').doc(subject), {
+        'Subject_Name': subject,
+        'Subject_Participation': 'N/A', // Excellent, Good, Fair, Poor
+        'Homework_Completion': 'N/A', // Always, Usually, Sometimes, Rarely
+        'Class_Attention': 'N/A', // Very Attentive, Attentive, Distracted, Very Distracted
+        'Assignment_Submission': 'N/A', // On Time, Late, Never
+        'Subject_Interest': 'N/A', // Very Interested, Interested, Not Interested
+        'Cooperation_Level': 'N/A', // Excellent, Good, Fair, Poor
+        'Subject_Behavior_Notes': '',
+        'Teacher_Remarks': '',
+        'Improvement_Areas': [],
+        'Strengths': [],
+        'Term_Name': term,
+        'Created_By': _loggedInUser?.email ?? '',
+        'Created_At': FieldValue.serverTimestamp(),
+        'Last_Updated': FieldValue.serverTimestamp(),
+      });
+    }
   }
 
   Future<void> _createStudentAcademicPerformance(
@@ -655,78 +677,459 @@ class _Student_DetailsState extends State<Student_Details> {
     });
   }
 
-  String _getTermStatus(String term, Map<String, Map<String, String>> termDates, String currentAcademicYear) {
-    final String currentTerm = _getCurrentTerm();
-    final DateTime now = DateTime.now();
-
-    if (term == currentTerm) return 'In Progress';
+  // NEW METHOD: Auto-advance students to next term
+  Future<void> _autoAdvanceToNextTerm(String schoolName, String currentAcademicYear, String completedTerm) async {
     try {
-      final DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-      final DateTime termEndDate = dateFormat.parse(termDates[term]!['end_date']!);
-      return now.isAfter(termEndDate) ? 'Completed' : 'Not Started';
-    } catch (e) {
-      return 'Not Started';
-    }
-  }
-
-  int _calculateDaysRemaining(String endDate) {
-    try {
-      final DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-      final DateTime termEndDate = dateFormat.parse(endDate);
-      final DateTime now = DateTime.now();
-      final int daysRemaining = termEndDate.difference(now).inDays;
-      return daysRemaining > 0 ? daysRemaining : 0;
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  Future<void> _updateTotalStudentsCountOnSave(String school, String studentClass) async {
-    try {
-      final String currentAcademicYear = _getCurrentAcademicYear();
-      final String currentTerm = _getCurrentTerm();
-
-      final DocumentReference classInfoRef = _firestore
-          .collection('Schools')
-          .doc(school)
-          .collection('Academic_Year')
-          .doc(currentAcademicYear)
-          .collection('Classes')
-          .doc(studentClass)
-          .collection(currentTerm)
-          .doc('Term_Informations')
-          .collection('Term_Informations')
-          .doc('Class_Information');
-
-      final DocumentSnapshot classInfoDoc = await classInfoRef.get();
-      if (classInfoDoc.exists) {
-        final Map<String, dynamic> classData = classInfoDoc.data() as Map<String, dynamic>;
-        final int currentCount = classData['Total_Students'] ?? 0;
-        final int newCount = currentCount + 1;
-
-        await classInfoRef.update({
-          'Total_Students': newCount,
-          'Last_Updated': FieldValue.serverTimestamp(),
-        });
-
-        if (mounted) setState(() => _totalClassStudentsNumber = newCount);
+      final String nextTerm = _getNextTerm(completedTerm);
+      if (nextTerm.isEmpty) {
+        // If no next term, advance to next academic year
+        await _autoAdvanceToNextAcademicYear(schoolName, currentAcademicYear);
+        return;
       }
-    } catch (e) {
-      debugPrint('Error updating total students count: $e');
-    }
-  }
 
-  // Helper method to update teacher names in Class_Information Subjects_Offered
-  Future<void> _updateSubjectTeacher(String schoolName, String className, String term, String subject, String teacherName) async {
-    try {
-      final String currentAcademicYear = _getCurrentAcademicYear();
-
-      // Update in Class_Information
-      final DocumentReference classInfoRef = _firestore
+      // Get all classes
+      final QuerySnapshot classesSnapshot = await _firestore
           .collection('Schools')
           .doc(schoolName)
           .collection('Academic_Year')
           .doc(currentAcademicYear)
+          .collection('Classes')
+          .get();
+
+      final WriteBatch batch = _firestore.batch();
+
+      for (QueryDocumentSnapshot classDoc in classesSnapshot.docs) {
+        final String className = classDoc.id;
+
+        // Get all students from completed term
+        final QuerySnapshot studentsSnapshot = await _firestore
+            .collection('Schools')
+            .doc(schoolName)
+            .collection('Academic_Year')
+            .doc(currentAcademicYear)
+            .collection('Classes')
+            .doc(className)
+            .collection(completedTerm)
+            .doc('Term_Informations')
+            .collection('Class_List')
+            .get();
+
+        for (QueryDocumentSnapshot studentDoc in studentsSnapshot.docs) {
+          final String studentName = studentDoc.id;
+
+          // Copy student data to next term with empty performance data
+          await _copyStudentToNextTerm(batch, schoolName, currentAcademicYear, className, studentName, completedTerm, nextTerm);
+        }
+      }
+
+      await batch.commit();
+      debugPrint('Successfully advanced students from $completedTerm to $nextTerm');
+    } catch (e) {
+      debugPrint('Error advancing to next term: $e');
+    }
+  }
+
+  // NEW METHOD: Copy student data to next term
+  Future<void> _copyStudentToNextTerm(
+      WriteBatch batch,
+      String schoolName,
+      String currentAcademicYear,
+      String className,
+      String studentName,
+      String fromTerm,
+      String toTerm,
+      ) async {
+
+    final DocumentReference fromStudentRef = _firestore
+        .collection('Schools')
+        .doc(schoolName)
+        .collection('Academic_Year')
+        .doc(currentAcademicYear)
+        .collection('Classes')
+        .doc(className)
+        .collection(fromTerm)
+        .doc('Term_Informations')
+        .collection('Class_List')
+        .doc(studentName);
+
+    final DocumentReference toStudentRef = _firestore
+        .collection('Schools')
+        .doc(schoolName)
+        .collection('Academic_Year')
+        .doc(currentAcademicYear)
+        .collection('Classes')
+        .doc(className)
+        .collection(toTerm)
+        .doc('Term_Informations')
+        .collection('Class_List')
+        .doc(studentName);
+
+    // Copy Personal Information (unchanged)
+    final DocumentSnapshot personalInfoDoc = await fromStudentRef.collection('Personal_Information').doc('Student_Details').get();
+    if (personalInfoDoc.exists) {
+      final Map<String, dynamic> personalData = personalInfoDoc.data() as Map<String, dynamic>;
+      personalData['Term_Name'] = toTerm;
+      personalData['Last_Updated'] = FieldValue.serverTimestamp();
+      batch.set(toStudentRef.collection('Personal_Information').doc('Student_Details'), personalData);
+    }
+
+    // Copy Student_Behaviors (reset to N/A for new term)
+    final QuerySnapshot behaviorDocs = await fromStudentRef.collection('Student_Behaviors').get();
+    for (QueryDocumentSnapshot behaviorDoc in behaviorDocs.docs) {
+      final Map<String, dynamic> behaviorData = behaviorDoc.data() as Map<String, dynamic>;
+
+      // Reset all behavior values to N/A for new term
+      if (behaviorDoc.id == 'General_Behavior') {
+        behaviorData['Overall_Conduct'] = 'N/A';
+        behaviorData['Class_Participation'] = 'N/A';
+        behaviorData['Punctuality'] = 'N/A';
+        behaviorData['Disciplinary_Records'] = [];
+        behaviorData['General_Behavior_Notes'] = '';
+      } else {
+        behaviorData['Subject_Participation'] = 'N/A';
+        behaviorData['Homework_Completion'] = 'N/A';
+        behaviorData['Class_Attention'] = 'N/A';
+        behaviorData['Assignment_Submission'] = 'N/A';
+        behaviorData['Subject_Interest'] = 'N/A';
+        behaviorData['Cooperation_Level'] = 'N/A';
+        behaviorData['Subject_Behavior_Notes'] = '';
+        behaviorData['Teacher_Remarks'] = '';
+        behaviorData['Improvement_Areas'] = [];
+        behaviorData['Strengths'] = [];
+      }
+
+      behaviorData['Term_Name'] = toTerm;
+      behaviorData['Last_Updated'] = FieldValue.serverTimestamp();
+      batch.set(toStudentRef.collection('Student_Behaviors').doc(behaviorDoc.id), behaviorData);
+    }
+
+    // Copy Student_Subjects (reset grades and marks)
+    final QuerySnapshot subjectDocs = await fromStudentRef.collection('Student_Subjects').get();
+    for (QueryDocumentSnapshot subjectDoc in subjectDocs.docs) {
+      final Map<String, dynamic> subjectData = subjectDoc.data() as Map<String, dynamic>;
+
+      // Reset performance data
+      subjectData['Subject_Grade'] = 'N/A';
+      subjectData['Marks_Obtained'] = 0;
+      subjectData['Total_Marks'] = 0;
+      subjectData['Percentage'] = 0.0;
+      subjectData['Term_Name'] = toTerm;
+      subjectData['Last_Updated'] = FieldValue.serverTimestamp();
+
+      batch.set(toStudentRef.collection('Student_Subjects').doc(subjectDoc.id), subjectData);
+    }
+
+    // Copy Total_Marks (reset to default values)
+    final DocumentSnapshot totalMarksDoc = await fromStudentRef.collection('Total_Marks').doc('Marks_Summary').get();
+    if (totalMarksDoc.exists) {
+      final Map<String, dynamic> totalMarksData = totalMarksDoc.data() as Map<String, dynamic>;
+
+      // Reset all performance data
+      totalMarksData['Aggregate_Grade'] = 'N/A';
+      totalMarksData['Best_Six_Total_Points'] = 0;
+      totalMarksData['Student_Total_Marks'] = '0';
+      totalMarksData['Teacher_Total_Marks'] = '0';
+      totalMarksData['Total_Marks_Obtained'] = 0;
+      totalMarksData['Total_Possible_Marks'] = 0;
+      totalMarksData['Overall_Percentage'] = 0.0;
+      totalMarksData['Class_Position'] = 0;
+      totalMarksData['Subjects_Passed'] = 0;
+      totalMarksData['Subjects_Failed'] = 0;
+      totalMarksData['Form_Teacher_Remark'] = 'N/A';
+      totalMarksData['Head_Teacher_Remark'] = 'N/A';
+      totalMarksData['Term_Name'] = toTerm;
+      totalMarksData['Last_Updated'] = FieldValue.serverTimestamp();
+
+      batch.set(toStudentRef.collection('Total_Marks').doc('Marks_Summary'), totalMarksData);
+    }
+
+    // Copy Academic_Performance (keep previous terms' data, reset current term)
+    final QuerySnapshot performanceDocs = await fromStudentRef.collection('Academic_Performance').get();
+    for (QueryDocumentSnapshot performanceDoc in performanceDocs.docs) {
+      final Map<String, dynamic> performanceData = performanceDoc.data() as Map<String, dynamic>;
+      performanceData['Current_Term'] = toTerm;
+      performanceData['Last_Updated'] = FieldValue.serverTimestamp();
+
+      batch.set(toStudentRef.collection('Academic_Performance').doc(performanceDoc.id), performanceData);
+    }
+  }
+
+  // NEW METHOD: Auto-advance students to next academic year
+  Future<void> _autoAdvanceToNextAcademicYear(String schoolName, String currentAcademicYear) async {
+    try {
+      final String nextAcademicYear = _getNextAcademicYear(currentAcademicYear);
+
+      // Get all classes
+      final QuerySnapshot classesSnapshot = await _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Academic_Year')
+          .doc(currentAcademicYear)
+          .collection('Classes')
+          .get();
+
+      final WriteBatch batch = _firestore.batch();
+
+      for (QueryDocumentSnapshot classDoc in classesSnapshot.docs) {
+        final String currentClass = classDoc.id;
+        final String nextClass = _getNextClass(currentClass);
+
+        // Skip FORM 4 students as they graduate
+        if (nextClass.isEmpty) {
+          debugPrint('FORM 4 students graduated, not advancing further');
+          continue;
+        }
+
+        // Get all students from TERM_THREE (last term of academic year)
+        final QuerySnapshot studentsSnapshot = await _firestore
+            .collection('Schools')
+            .doc(schoolName)
+            .collection('Academic_Year')
+            .doc(currentAcademicYear)
+            .collection('Classes')
+            .doc(currentClass)
+            .collection('TERM_THREE')
+            .doc('Term_Informations')
+            .collection('Class_List')
+            .get();
+
+        for (QueryDocumentSnapshot studentDoc in studentsSnapshot.docs) {
+          final String studentName = studentDoc.id;
+
+          // Copy student to next class in next academic year
+          await _copyStudentToNextAcademicYear(batch, schoolName, currentAcademicYear, nextAcademicYear, currentClass, nextClass, studentName);
+        }
+      }
+
+      await batch.commit();
+      debugPrint('Successfully advanced students to next academic year: $nextAcademicYear');
+    } catch (e) {
+      debugPrint('Error advancing to next academic year: $e');
+    }
+  }
+
+  // COMPLETE THE _copyStudentToNextAcademicYear METHOD (the missing part)
+  Future<void> _copyStudentToNextAcademicYear(
+      WriteBatch batch,
+      String schoolName,
+      String currentAcademicYear,
+      String nextAcademicYear,
+      String currentClass,
+      String nextClass,
+      String studentName,
+      ) async {
+
+    final DocumentReference fromStudentRef = _firestore
+        .collection('Schools')
+        .doc(schoolName)
+        .collection('Academic_Year')
+        .doc(currentAcademicYear)
+        .collection('Classes')
+        .doc(currentClass)
+        .collection('TERM_THREE')
+        .doc('Term_Informations')
+        .collection('Class_List')
+        .doc(studentName);
+
+    // Create student in all three terms of next academic year
+    for (String term in ['TERM_ONE', 'TERM_TWO', 'TERM_THREE']) {
+      final DocumentReference toStudentRef = _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Academic_Year')
+          .doc(nextAcademicYear)
+          .collection('Classes')
+          .doc(nextClass)
+          .collection(term)
+          .doc('Term_Informations')
+          .collection('Class_List')
+          .doc(studentName);
+
+      // Copy and update Personal Information
+      final DocumentSnapshot personalInfoDoc = await fromStudentRef.collection('Personal_Information').doc('Student_Details').get();
+      if (personalInfoDoc.exists) {
+        final Map<String, dynamic> personalData = personalInfoDoc.data() as Map<String, dynamic>;
+        personalData['Student_Class'] = nextClass;
+        personalData['Term_Name'] = term;
+        personalData['Last_Updated'] = FieldValue.serverTimestamp();
+        batch.set(toStudentRef.collection('Personal_Information').doc('Student_Details'), personalData);
+      }
+
+      // Create fresh Student_Behaviors for new class subjects
+      await _createStudentBehaviors(batch, toStudentRef, term);
+
+      // Create fresh Student_Subjects for new class
+      final CollectionReference subjectsRef = toStudentRef.collection('Student_Subjects');
+      for (String subject in _defaultSubjects[nextClass]!) {
+        batch.set(subjectsRef.doc(subject), {
+          'Subject_Name': subject,
+          'Subject_Grade': 'N/A',
+          'Marks_Obtained': 0,
+          'Total_Marks': 0,
+          'Percentage': 0.0,
+          'Teacher_Assigned': 'N/A',
+          'Term_Name': term,
+          'Created_At': FieldValue.serverTimestamp(),
+          'Last_Updated': FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Create fresh Total_Marks
+      batch.set(toStudentRef.collection('Total_Marks').doc('Marks_Summary'), {
+        'Aggregate_Grade': 'N/A',
+        'Best_Six_Total_Points': 0,
+        'Student_Total_Marks': '0',
+        'Teacher_Total_Marks': '0',
+        'Total_Marks_Obtained': 0,
+        'Total_Possible_Marks': 0,
+        'Overall_Percentage': 0.0,
+        'Class_Position': 0,
+        'Subjects_Passed': 0,
+        'Subjects_Failed': 0,
+        'Form_Teacher_Remark': 'N/A',
+        'Head_Teacher_Remark': 'N/A',
+        'Term_Name': term,
+        'Created_At': FieldValue.serverTimestamp(),
+        'Last_Updated': FieldValue.serverTimestamp(),
+      });
+
+      // Create fresh Academic_Performance
+      await _createStudentAcademicPerformance(batch, toStudentRef, term);
+    }
+  }
+
+  // HELPER METHODS YOU NEED TO ADD
+
+  // Get next term
+  String _getNextTerm(String currentTerm) {
+    switch (currentTerm) {
+      case 'TERM_ONE':
+        return 'TERM_TWO';
+      case 'TERM_TWO':
+        return 'TERM_THREE';
+      case 'TERM_THREE':
+        return ''; // No next term, advance to next academic year
+      default:
+        return '';
+    }
+  }
+
+  // Get next academic year
+  String _getNextAcademicYear(String currentAcademicYear) {
+    // Assuming academic year format is like "2024-2025"
+    final List<String> years = currentAcademicYear.split('-');
+    if (years.length == 2) {
+      final int startYear = int.parse(years[0]) + 1;
+      final int endYear = int.parse(years[1]) + 1;
+      return '$startYear-$endYear';
+    }
+    return currentAcademicYear; // Return current if format is unexpected
+  }
+
+  // Get next class (Form progression)
+  String _getNextClass(String currentClass) {
+    switch (currentClass) {
+      case 'FORM 1':
+        return 'FORM 2';
+      case 'FORM 2':
+        return 'FORM 3';
+      case 'FORM 3':
+        return 'FORM 4';
+      case 'FORM 4':
+        return ''; // No next class, students graduate
+      default:
+        return '';
+    }
+  }
+
+  // CREATE NEXT ACADEMIC YEAR STRUCTURE IF IT DOESN'T EXIST
+  Future<void> _createNextAcademicYearStructure(String schoolName, String nextAcademicYear) async {
+    final WriteBatch batch = _firestore.batch();
+    final Map<String, Map<String, String>> termDates = _getTermDates(nextAcademicYear);
+
+    // Create School Information for next academic year
+    final DocumentReference schoolInfoRef = _firestore
+        .collection('Schools')
+        .doc(schoolName)
+        .collection('Academic_Year')
+        .doc(nextAcademicYear)
+        .collection('School_Information')
+        .doc('School_Details');
+
+    if (!(await schoolInfoRef.get()).exists) {
+      batch.set(schoolInfoRef, {
+        'Upcoming_School_Events': [],
+        'Telephone': '',
+        'Email': '',
+        'Account': '',
+        'Next_Term_Date': '',
+        'Box_Number': 0,
+        'School_Location': '',
+        'School_Fees': '',
+        'School_Bank_Account': '',
+        'Next_Term_Opening_Date': '',
+        'Created_At': FieldValue.serverTimestamp(),
+        'Last_Updated': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Create Fees Details for next academic year
+    final DocumentReference feesDetailsRef = _firestore
+        .collection('Schools')
+        .doc(schoolName)
+        .collection('Academic_Year')
+        .doc(nextAcademicYear)
+        .collection('School_Information')
+        .doc('Fees_Details');
+
+    if (!(await feesDetailsRef.get()).exists) {
+      batch.set(feesDetailsRef, {
+        'Tuition_Fee': 0,
+        'Development_Fee': 0,
+        'Library_Fee': 0,
+        'Sports_Fee': 0,
+        'Laboratory_Fee': 0,
+        'Other_Fees': 0,
+        'Total_Fees': 0,
+        'Bank_Account_Number': '',
+        'Amount_Paid': 0,
+        'Next_Payment_Due': '',
+        'Bank_Name': 'N/A',
+        'Bank_Account_Name': 'N/A',
+        'Airtel_Money': 'N/A',
+        'TNM_Mpamba': 'N/A',
+        'Created_At': FieldValue.serverTimestamp(),
+        'Last_Updated': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Create class structures for all forms in next academic year
+    for (String className in ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4']) {
+      await _createClassStructureForNextYear(batch, schoolName, nextAcademicYear, className, termDates);
+    }
+
+    await batch.commit();
+  }
+
+  // CREATE CLASS STRUCTURE FOR NEXT ACADEMIC YEAR
+  Future<void> _createClassStructureForNextYear(
+      WriteBatch batch,
+      String schoolName,
+      String nextAcademicYear,
+      String className,
+      Map<String, Map<String, String>> termDates,
+      ) async {
+
+    // Create each term structure for the class
+    for (String term in ['TERM_ONE', 'TERM_TWO', 'TERM_THREE']) {
+      final String termStatus = _getTermStatus(term, termDates, nextAcademicYear);
+
+      // Create Class_Information
+      final DocumentReference classInfoRef = _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Academic_Year')
+          .doc(nextAcademicYear)
           .collection('Classes')
           .doc(className)
           .collection(term)
@@ -734,17 +1137,56 @@ class _Student_DetailsState extends State<Student_Details> {
           .collection('Term_Informations')
           .doc('Class_Information');
 
-      await classInfoRef.update({
-        'Subjects_Offered.$subject': teacherName,
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
+      if (!(await classInfoRef.get()).exists) {
+        Map<String, String> subjectsWithTeachers = {};
+        for (String subject in _defaultSubjects[className]!) {
+          subjectsWithTeachers[subject] = 'N/A';
+        }
 
-      // Update in Teacher_Details
+        batch.set(classInfoRef, {
+          'Class_Name': className,
+          'Class_Teacher': 'N/A',
+          'Total_Students': 0,
+          'Subjects_Offered': subjectsWithTeachers,
+          'Academic_Year': nextAcademicYear,
+          'Term_Name': term,
+          'Created_At': FieldValue.serverTimestamp(),
+          'Last_Updated': FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Create Class_Performance
+      final DocumentReference classPerformanceRef = _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Academic_Year')
+          .doc(nextAcademicYear)
+          .collection('Classes')
+          .doc(className)
+          .collection(term)
+          .doc('Term_Informations')
+          .collection('Term_Informations')
+          .doc('Class_Performance');
+
+      if (!(await classPerformanceRef.get()).exists) {
+        batch.set(classPerformanceRef, {
+          'Total_Students': 0,
+          'Average_Performance': 0.0,
+          'Best_Student': 'N/A',
+          'Class_Teacher': 'N/A',
+          'Subjects_Offered': _defaultSubjects[className]!,
+          'Term_Name': term,
+          'Created_At': FieldValue.serverTimestamp(),
+          'Last_Updated': FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Create Teacher_Details
       final DocumentReference teacherDetailsRef = _firestore
           .collection('Schools')
           .doc(schoolName)
           .collection('Academic_Year')
-          .doc(currentAcademicYear)
+          .doc(nextAcademicYear)
           .collection('Classes')
           .doc(className)
           .collection(term)
@@ -752,14 +1194,119 @@ class _Student_DetailsState extends State<Student_Details> {
           .collection('Term_Informations')
           .doc('Teacher_Details');
 
-      await teacherDetailsRef.update({
-        'Subject_Teachers.$subject': teacherName,
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
+      if (!(await teacherDetailsRef.get()).exists) {
+        Map<String, String> subjectTeachers = {};
+        for (String subject in _defaultSubjects[className]!) {
+          subjectTeachers[subject] = 'N/A';
+        }
 
-    } catch (e) {
-      debugPrint('Error updating subject teacher: $e');
+        batch.set(teacherDetailsRef, {
+          'Form_Teacher': 'N/A',
+          'Subject_Teachers': subjectTeachers,
+          'Teacher_Contacts': {},
+          'Teacher_Remarks': '',
+          'Term_Name': term,
+          'Created_At': FieldValue.serverTimestamp(),
+          'Last_Updated': FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Create Term_Status
+      final DocumentReference termStatusRef = _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Academic_Year')
+          .doc(nextAcademicYear)
+          .collection('Classes')
+          .doc(className)
+          .collection(term)
+          .doc('Term_Informations')
+          .collection('Term_Informations')
+          .doc('Term_Status');
+
+      if (!(await termStatusRef.get()).exists) {
+        batch.set(termStatusRef, {
+          'Term_Name': term,
+          'Term_Status': termStatus,
+          'Start_Date': termDates[term]!['start_date'],
+          'End_Date': termDates[term]!['end_date'],
+          'Academic_Year': nextAcademicYear,
+          'Current_Term': _getCurrentTerm(),
+          'Is_Active': termStatus == 'In Progress',
+          'Is_Completed': termStatus == 'Completed',
+          'Days_Remaining': _calculateDaysRemaining(termDates[term]!['end_date']!),
+          'Created_At': FieldValue.serverTimestamp(),
+          'Last_Updated': FieldValue.serverTimestamp(),
+        });
+      }
     }
+  }
+
+  // UPDATED _autoAdvanceToNextAcademicYear METHOD (to create structure first)
+  Future<void> _autoAdvanceToNextAcademicYear(String schoolName, String currentAcademicYear) async {
+    try {
+      final String nextAcademicYear = _getNextAcademicYear(currentAcademicYear);
+
+      // Create next academic year structure first
+      await _createNextAcademicYearStructure(schoolName, nextAcademicYear);
+
+      // Get all classes
+      final QuerySnapshot classesSnapshot = await _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Academic_Year')
+          .doc(currentAcademicYear)
+          .collection('Classes')
+          .get();
+
+      final WriteBatch batch = _firestore.batch();
+
+      for (QueryDocumentSnapshot classDoc in classesSnapshot.docs) {
+        final String currentClass = classDoc.id;
+        final String nextClass = _getNextClass(currentClass);
+
+        // Skip FORM 4 students as they graduate
+        if (nextClass.isEmpty) {
+          debugPrint('FORM 4 students graduated, not advancing further');
+          continue;
+        }
+
+        // Get all students from TERM_THREE (last term of academic year)
+        final QuerySnapshot studentsSnapshot = await _firestore
+            .collection('Schools')
+            .doc(schoolName)
+            .collection('Academic_Year')
+            .doc(currentAcademicYear)
+            .collection('Classes')
+            .doc(currentClass)
+            .collection('TERM_THREE')
+            .doc('Term_Informations')
+            .collection('Class_List')
+            .get();
+
+        for (QueryDocumentSnapshot studentDoc in studentsSnapshot.docs) {
+          final String studentName = studentDoc.id;
+
+          // Copy student to next class in next academic year
+          await _copyStudentToNextAcademicYear(batch, schoolName, currentAcademicYear, nextAcademicYear, currentClass, nextClass, studentName);
+        }
+      }
+
+      await batch.commit();
+      debugPrint('Successfully advanced students to next academic year: $nextAcademicYear');
+    } catch (e) {
+      debugPrint('Error advancing to next academic year: $e');
+    }
+  }
+
+  // METHOD TO MANUALLY TRIGGER TERM END (for testing purposes)
+  Future<void> manuallyEndTerm(String schoolName, String academicYear, String termToEnd) async {
+    await _autoAdvanceToNextTerm(schoolName, academicYear, termToEnd);
+  }
+
+  // METHOD TO MANUALLY TRIGGER ACADEMIC YEAR END (for testing purposes)
+  Future<void> manuallyEndAcademicYear(String schoolName, String academicYear) async {
+    await _autoAdvanceToNextAcademicYear(schoolName, academicYear);
   }
 
   // MARK: - UI Helper Methods
