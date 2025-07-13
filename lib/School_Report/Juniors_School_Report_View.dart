@@ -418,28 +418,87 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
       padding: EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 4,
-                child: Text('NAME OF STUDENT: ${widget.studentFullName}'),
-              ),
-              Expanded(
-                flex: 4,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // Calculate responsive font size based on screen width
+              double baseFontSize = constraints.maxWidth > 600 ? 14 : 12;
+              double responsiveFontSize = constraints.maxWidth < 400 ? 10 : baseFontSize;
+
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Text('POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}'),
-                    SizedBox(width: 10),
-                    Text('OUT OF: ${totalStudents > 0 ? totalStudents : 'N/A'}'),
+                    // Student Name
+                    Container(
+                      constraints: BoxConstraints(
+                        minWidth: constraints.maxWidth * 0.4,
+                        maxWidth: constraints.maxWidth * 0.5,
+                      ),
+                      child: Text(
+                        'NAME OF STUDENT: ${widget.studentFullName}',
+                        style: TextStyle(
+                          fontSize: responsiveFontSize,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+
+                    SizedBox(width: 20),
+
+                    // Position
+                    Container(
+                      constraints: BoxConstraints(
+                        minWidth: constraints.maxWidth * 0.12,
+                      ),
+                      child: Text(
+                        'POSITION: ${studentPosition > 0 ? studentPosition : 'N/A'}',
+                        style: TextStyle(
+                          fontSize: responsiveFontSize,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(width: 15),
+
+                    // Out of
+                    Container(
+                      constraints: BoxConstraints(
+                        minWidth: constraints.maxWidth * 0.12,
+                      ),
+                      child: Text(
+                        'OUT OF: ${totalStudents > 0 ? totalStudents : 'N/A'}',
+                        style: TextStyle(
+                          fontSize: responsiveFontSize,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(width: 15),
+
+                    // Class
+                    Container(
+                      constraints: BoxConstraints(
+                        minWidth: constraints.maxWidth * 0.15,
+                      ),
+                      child: Text(
+                        'CLASS: ${widget.studentClass}',
+                        style: TextStyle(
+                          fontSize: responsiveFontSize,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(width: 15),
+                    
                   ],
                 ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text('CLASS: ${widget.studentClass}'),
-              ),
-            ],
+              );
+            },
           ),
           SizedBox(height: 16),
         ],
