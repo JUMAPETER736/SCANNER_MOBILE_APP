@@ -325,6 +325,72 @@ class _Student_DetailsState extends State<Student_Details> {
     await batch.commit();
   }
 
+  // MARK: - Database Operations Helper Methods
+  Future<void> _updateTotalStudentsCountOnSave(String schoolName, String className) async {
+    final String currentAcademicYear = _getCurrentAcademicYear();
+
+    for (String term in ['TERM_ONE', 'TERM_TWO', 'TERM_THREE']) {
+      final DocumentReference classInfoRef = _firestore
+          .collection('Schools')
+          .doc(schoolName)
+          .collection('Academic_Year')
+          .doc(currentAcademicYear)
+          .collection('Classes')
+          .doc(className)
+          .collection(term)
+          .doc('Term_Informations')
+          .collection('Term_Informations')
+          .doc('Class_Information');
+
+      await _firestore.runTransaction((transaction) async {
+        final DocumentSnapshot snapshot = await transaction.get(classInfoRef);
+        int currentCount = 0;
+
+        if (snapshot.exists) {
+          currentCount = snapshot.get('Total_Students') ?? 0;
+        }
+
+        transaction.set(
+          classInfoRef,
+          {'Total_Students': currentCount + 1},
+          SetOptions(merge: true),
+        );
+      });
+    }
+  }
+
+  String _getTermStatus(String term, Map<String, Map<String, String>> termDates, String academicYear) {
+    final DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+    final DateTime now = DateTime.now();
+
+    try {
+      final DateTime startDate = dateFormat.parse(termDates[term]!['start_date']!);
+      final DateTime endDate = dateFormat.parse(termDates[term]!['end_date']!);
+
+      if (now.isBefore(startDate)) {
+        return 'Not Started';
+      } else if (now.isAfter(endDate)) {
+        return 'Completed';
+      } else {
+        return 'In Progress';
+      }
+    } catch (e) {
+      return 'Not Started';
+    }
+  }
+
+  int _calculateDaysRemaining(String endDate) {
+    try {
+      final DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+      final DateTime end = dateFormat.parse(endDate);
+      final DateTime now = DateTime.now();
+      final difference = end.difference(now).inDays;
+      return difference > 0 ? difference : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
   Future<void> _createTermBasedStructure(
       WriteBatch batch,
       String schoolName,
@@ -854,59 +920,6 @@ class _Student_DetailsState extends State<Student_Details> {
     }
   }
 
-  // NEW METHOD: Auto-advance students to next academic year
-  Future<void> _autoAdvanceToNextAcademicYear(String schoolName, String currentAcademicYear) async {
-    try {
-      final String nextAcademicYear = _getNextAcademicYear(currentAcademicYear);
-
-      // Get all classes
-      final QuerySnapshot classesSnapshot = await _firestore
-          .collection('Schools')
-          .doc(schoolName)
-          .collection('Academic_Year')
-          .doc(currentAcademicYear)
-          .collection('Classes')
-          .get();
-
-      final WriteBatch batch = _firestore.batch();
-
-      for (QueryDocumentSnapshot classDoc in classesSnapshot.docs) {
-        final String currentClass = classDoc.id;
-        final String nextClass = _getNextClass(currentClass);
-
-        // Skip FORM 4 students as they graduate
-        if (nextClass.isEmpty) {
-          debugPrint('FORM 4 students graduated, not advancing further');
-          continue;
-        }
-
-        // Get all students from TERM_THREE (last term of academic year)
-        final QuerySnapshot studentsSnapshot = await _firestore
-            .collection('Schools')
-            .doc(schoolName)
-            .collection('Academic_Year')
-            .doc(currentAcademicYear)
-            .collection('Classes')
-            .doc(currentClass)
-            .collection('TERM_THREE')
-            .doc('Term_Informations')
-            .collection('Class_List')
-            .get();
-
-        for (QueryDocumentSnapshot studentDoc in studentsSnapshot.docs) {
-          final String studentName = studentDoc.id;
-
-          // Copy student to next class in next academic year
-          await _copyStudentToNextAcademicYear(batch, schoolName, currentAcademicYear, nextAcademicYear, currentClass, nextClass, studentName);
-        }
-      }
-
-      await batch.commit();
-      debugPrint('Successfully advanced students to next academic year: $nextAcademicYear');
-    } catch (e) {
-      debugPrint('Error advancing to next academic year: $e');
-    }
-  }
 
   // COMPLETE THE _copyStudentToNextAcademicYear METHOD (the missing part)
   Future<void> _copyStudentToNextAcademicYear(
