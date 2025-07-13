@@ -494,7 +494,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
                     ),
 
                     SizedBox(width: 15),
-                    
+
                   ],
                 ),
               );
