@@ -17,6 +17,40 @@ class _Student_DetailsState extends State<Student_Details> {
   // Constants
   static const List<String> _classes = ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'];
   static const List<String> _genders = ['Male', 'Female'];
+
+  // Form and Firebase instances
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Text controllers
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
+
+  // School Information
+  String? schoolFees;
+  String? schoolBankAccount;
+  String? nextTermOpeningDate;
+  String? userEmail;
+  String? schoolName;
+  String? schoolPhone;
+  String? schoolEmail;
+  String? formTeacherRemarks;
+  String? headTeacherRemarks;
+  int boxNumber = 0;
+  String schoolLocation = 'N/A';
+
+  // State variables
+  String? _selectedClass;
+  String? _selectedGender;
+  String? _studentID;
+  String? _generatedQRCode;
+  String? _studentFullName;
+  User? _loggedInUser;
+  int _totalClassStudentsNumber = 0;
+
+  // Default subjects for each form
   static const Map<String, List<String>> _defaultSubjects = {
     'FORM 1': [
       'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA',
@@ -35,28 +69,10 @@ class _Student_DetailsState extends State<Student_Details> {
     ],
     'FORM 4': [
       'ADDITIONAL MATHEMATICS', 'AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY',
-      'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'GEOGRAPHY', 'HISTORY',
-      'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'
+      'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'GEOGRAPHY',
+      'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'
     ],
   };
-
-  // Form and Firebase instances
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  // Text controllers
-  final TextEditingController _firstNameController = TextEditingController();
-  final TextEditingController _lastNameController = TextEditingController();
-  final TextEditingController _dobController = TextEditingController();
-
-  // State variables
-  String? _selectedClass;
-  String? _selectedGender;
-  String? _studentID;
-  String? _generatedQRCode;
-  String? _studentFullName;
-  User? _loggedInUser;
 
   @override
   void initState() {
@@ -76,94 +92,82 @@ class _Student_DetailsState extends State<Student_Details> {
   void _getCurrentUser() {
     final user = _auth.currentUser;
     if (user != null) {
-      setState(() {
-        _loggedInUser = user;
-      });
+      _loggedInUser = user;
     }
   }
 
   // MARK: - Academic Year Helper Methods
   String _getCurrentAcademicYear() {
     final DateTime now = DateTime.now();
-    final int currentYear = now.year;
-    final int currentMonth = now.month;
-    return currentMonth >= 9
-        ? '${currentYear}_${currentYear + 1}'
-        : '${currentYear - 1}_$currentYear';
+    int startYear, endYear;
+
+    if (now.month >= 9) {
+      // September onwards = start of new academic year
+      startYear = now.year;
+      endYear = now.year + 1;
+    } else {
+      // January to August = continuation of academic year that started previous year
+      startYear = now.year - 1;
+      endYear = now.year;
+    }
+
+    return '${startYear}_$endYear';
   }
 
   String _getCurrentTerm() {
     final DateTime now = DateTime.now();
-    final int currentMonth = now.month;
-    if (currentMonth >= 9 && currentMonth <= 12) {
+    final int month = now.month;
+    final int day = now.day;
+
+    if (month >= 9 || month == 12) {
       return 'TERM_ONE';
-    } else if (currentMonth >= 1 && currentMonth <= 4) {
+    } else if (month >= 1 && (month < 3 || (month == 3 && day <= 20))) {
       return 'TERM_TWO';
-    } else {
+    } else if (month >= 4 && month <= 8) {
       return 'TERM_THREE';
+    } else {
+      return 'TERM_ONE'; // Default fallback
     }
   }
 
   Map<String, Map<String, String>> _getTermDates(String academicYear) {
-    final List<String> yearParts = academicYear.split('_');
-    final int startYear = int.parse(yearParts[0]);
-    final int endYear = int.parse(yearParts[1]);
+    final List<String> years = academicYear.split('_');
+    final int startYear = int.parse(years[0]);
+    final int endYear = int.parse(years[1]);
+
     return {
       'TERM_ONE': {
-        'start_date': '$startYear-09-01',
-        'end_date': '$startYear-12-15',
+        'start_date': '01-09-$startYear',
+        'end_date': '31-12-$startYear',
       },
       'TERM_TWO': {
-        'start_date': '$endYear-01-15',
-        'end_date': '$endYear-04-30',
+        'start_date': '01-01-$endYear',
+        'end_date': '20-03-$endYear',
       },
       'TERM_THREE': {
-        'start_date': '$endYear-05-15',
-        'end_date': '$endYear-08-31',
+        'start_date': '01-04-$endYear',
+        'end_date': '30-08-$endYear',
       },
     };
   }
 
-  String _getTermStatus(String term, Map<String, Map<String, String>> termDates) {
-    final DateTime now = DateTime.now();
-    final String endDateStr = termDates[term]!['end_date']!;
-    final DateTime endDate = DateTime.parse(endDateStr);
-    final String currentTerm = _getCurrentTerm();
-    if (term == currentTerm) {
-      return 'In Progress';
-    } else if (now.isAfter(endDate)) {
-      return 'Completed';
-    } else {
-      return 'Upcoming';
-    }
-  }
-
-  int _calculateDaysRemaining(String endDateStr) {
-    final DateTime now = DateTime.now();
-    final DateTime endDate = DateTime.parse(endDateStr);
-    return now.isAfter(endDate) ? 0 : endDate.difference(now).inDays;
-  }
-
   // MARK: - Utility Methods
-  String _generateStudentID() {
-    final DateTime now = DateTime.now();
-    final String year = now.year.toString();
-    final String month = now.month.toString().padLeft(2, '0');
-    final String day = now.day.toString().padLeft(2, '0');
-    final String hour = now.hour.toString().padLeft(2, '0');
-    final String minute = now.minute.toString().padLeft(2, '0');
-    final String second = now.second.toString().padLeft(2, '0');
-    return 'STU_${year}${month}${day}_${hour}${minute}${second}';
+  String _generateRandomStudentID() {
+    final Random random = Random();
+    final int id = 100000 + random.nextInt(900000);
+    return id.toString();
   }
 
   int _calculateAge(String dob) {
     try {
       final DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-      final DateTime birthDate = dateFormat.parseStrict(dob);
+      final DateTime birthDate = dateFormat.parse(dob);
       final DateTime currentDate = DateTime.now();
       int age = currentDate.year - birthDate.year;
+
       if (currentDate.month < birthDate.month ||
-          (currentDate.month == birthDate.month && currentDate.day < birthDate.day)) {
+          (currentDate.month == birthDate.month &&
+              currentDate.day < birthDate.day)) {
         age--;
       }
       return age;
@@ -174,10 +178,10 @@ class _Student_DetailsState extends State<Student_Details> {
 
   // MARK: - Validation Methods
   String? _validateName(String? value, String fieldName) {
-    if (value == null || value.trim().isEmpty) {
+    if (value == null || value.isEmpty) {
       return 'Please enter the student\'s $fieldName';
     }
-    if (value.trim().length < 2) {
+    if (value.length < 2) {
       return '$fieldName must be at least 2 characters';
     }
     return null;
@@ -198,24 +202,29 @@ class _Student_DetailsState extends State<Student_Details> {
   }
 
   String? _validateDateOfBirth(String? value) {
-    if (value == null || value.trim().isEmpty) {
+    if (value == null || value.isEmpty) {
       return 'Please enter the student\'s Date of Birth';
     }
+
     if (!RegExp(r'^\d{2}-\d{2}-\d{4}$').hasMatch(value)) {
       return 'Please enter date in DD-MM-YYYY format';
     }
+
     try {
       final DateFormat dateFormat = DateFormat('dd-MM-yyyy');
       final DateTime dob = dateFormat.parseStrict(value);
+
       if (dob.isAfter(DateTime.now())) {
         return 'Date of Birth cannot be in the future';
       }
+
       if (DateTime.now().year - dob.year > 100) {
         return 'Please enter a valid Date of Birth';
       }
     } catch (e) {
       return 'Please enter a valid Date of Birth (DD-MM-YYYY)';
     }
+
     return null;
   }
 
@@ -225,19 +234,15 @@ class _Student_DetailsState extends State<Student_Details> {
 
     try {
       _showLoadingDialog();
-      _studentFullName =
-      '${_lastNameController.text.trim().toUpperCase()} ${_firstNameController.text.trim().toUpperCase()}';
-      _studentID = _generateStudentID();
-      final String schoolName = await _getSchoolName();
-      final String currentAcademicYear = _getCurrentAcademicYear();
-      final Map<String, Map<String, String>> termDates = _getTermDates(currentAcademicYear);
 
-      final WriteBatch batch = _firestore.batch();
-      await _initializeSchoolInfo(batch, schoolName, currentAcademicYear);
-      await _initializeFeesDetails(batch, schoolName, currentAcademicYear);
-      await _createTermBasedStructure(batch, schoolName, currentAcademicYear, termDates);
-      await _updateTotalStudentsCountOnSave(batch, schoolName, _selectedClass!);
-      await batch.commit();
+      _studentFullName = '${_lastNameController.text.trim().toUpperCase()}'
+          ' ${_firstNameController.text.trim().toUpperCase()}';
+      _studentID = _generateRandomStudentID();
+
+      final String schoolName = await _getSchoolName();
+
+      await _saveStudentToFirestore(schoolName);
+      await _updateTotalStudentsCountOnSave(schoolName, _selectedClass!);
 
       setState(() {
         _generatedQRCode = _studentID;
@@ -245,7 +250,7 @@ class _Student_DetailsState extends State<Student_Details> {
 
       _hideLoadingDialog();
       _showSuccessMessage();
-      _cleanupControllers();
+
     } catch (e) {
       _hideLoadingDialog();
       _showErrorMessage(e.toString());
@@ -254,866 +259,315 @@ class _Student_DetailsState extends State<Student_Details> {
 
   Future<String> _getSchoolName() async {
     final teacherEmail = _loggedInUser?.email;
-    if (teacherEmail == null) throw Exception('No logged-in user');
     final teacherDetails = await _firestore
         .collection('Teachers_Details')
         .doc(teacherEmail)
         .get();
-    if (!teacherDetails.exists) throw Exception('Teacher details not found');
+
+    if (!teacherDetails.exists) {
+      throw Exception('Teacher details not found');
+    }
+
     return teacherDetails['school'] as String;
   }
 
-  Future<void> _initializeSchoolInfo(WriteBatch batch, String schoolName, String currentAcademicYear) async {
+  Future<void> _saveStudentToFirestore(String schoolName) async {
+    final WriteBatch batch = _firestore.batch();
+
+    // 1. School Information Document
     final DocumentReference schoolInfoRef = _firestore
         .collection('Schools')
         .doc(schoolName)
-        .collection('Academic_Year')
-        .doc(currentAcademicYear)
         .collection('School_Information')
         .doc('School_Details');
 
-    if (!(await schoolInfoRef.get()).exists) {
-      batch.set(schoolInfoRef, {
-        'Upcoming_School_Events': [],
-        'Telephone': '',
-        'Email': '',
-        'Account': '',
-        'Next_Term_Date': '',
-        'Box_Number': 0,
-        'School_Location': '',
-        'School_Fees': '',
-        'School_Bank_Account': '',
-        'Next_Term_Opening_Date': '',
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
+    batch.set(schoolInfoRef, {
+      'Telephone': '',
+      'Email': '',
+      'boxNumber': 0,
+      'schoolLocation': '',
+      'School_Fees': '',
+      'School_Bank_Account': '',
+      'Next_Term_Opening_Date': '',
+      'createdAt': FieldValue.serverTimestamp(),
+      'lastUpdated': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
 
-  Future<void> _initializeFeesDetails(WriteBatch batch, String schoolName, String currentAcademicYear) async {
+    // 2. Fees Details Document (updated with new fields)
     final DocumentReference feesDetailsRef = _firestore
         .collection('Schools')
         .doc(schoolName)
-        .collection('Academic_Year')
-        .doc(currentAcademicYear)
         .collection('School_Information')
         .doc('Fees_Details');
 
-    if (!(await feesDetailsRef.get()).exists) {
-      batch.set(feesDetailsRef, {
-        'Tuition_Fee': 0,
-        'Development_Fee': 0,
-        'Library_Fee': 0,
-        'Sports_Fee': 0,
-        'Laboratory_Fee': 0,
-        'Other_Fees': 0,
-        'Total_Fees': 0,
-        'Bank_Account_Number': '',
-        'Amount_Paid': 0,
-        'Next_Payment_Due': '',
-        'Bank_Name': 'N/A',
-        'Bank_Account_Name': 'N/A',
-        'Airtel_Money': 'N/A',
-        'TNM_Mpamba': 'N/A',
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
+    batch.set(feesDetailsRef, {
+      'tuition_fee': 0,
+      'development_fee': 0,
+      'library_fee': 0,
+      'sports_fee': 0,
+      'laboratory_fee': 0,
+      'other_fees': 0,
+      'total_fees': 0,
+      'bank_account_number': '',
+      'amount_paid': 0,
+      'outstanding_balance': 0,
+      'next_payment_due': '',
+      'bank_name': 'N/A',
+      'bank_account_name': 'N/A',
+      'bank_account_number': 'N/A',
+      'airtel_money': 'N/A',
+      'tnm_mpamba': 'N/A',
+      'createdAt': FieldValue.serverTimestamp(),
+      'lastUpdated': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
 
-  Future<void> _createTermBasedStructure(
-      WriteBatch batch, String schoolName, String currentAcademicYear, Map<String, Map<String, String>> termDates) async {
-    for (String term in ['TERM_ONE', 'TERM_TWO', 'TERM_THREE']) {
-      final String termStatus = _getTermStatus(term, termDates);
-      await _createTermInformations(batch, schoolName, currentAcademicYear, term, termStatus, termDates);
-      await _createClassList(batch, schoolName, currentAcademicYear, term, termStatus, termDates);
-    }
-  }
-
-  Future<void> _createTermInformations(WriteBatch batch, String schoolName, String currentAcademicYear, String term,
-      String termStatus, Map<String, Map<String, String>> termDates) async {
-    await _createClassInformation(batch, schoolName, currentAcademicYear, term);
-    await _createClassPerformance(batch, schoolName, currentAcademicYear, term);
-    await _createTeacherDetails(batch, schoolName, currentAcademicYear, term);
-    await _createTermStatus(batch, schoolName, currentAcademicYear, term, termStatus, termDates);
-  }
-
-  Future<void> _createClassInformation(WriteBatch batch, String schoolName, String currentAcademicYear, String term) async {
-    final DocumentReference classInfoRef = _firestore
-        .collection('Schools')
-        .doc(schoolName)
-        .collection('Academic_Year')
-        .doc(currentAcademicYear)
-        .collection('Classes')
-        .doc(_selectedClass)
-        .collection(term)
-        .doc('Term_Informations')
-        .collection('Term_Informations')
-        .doc('Class_Information');
-
-    if (!(await classInfoRef.get()).exists) {
-      Map<String, String> subjectsWithTeachers = {
-        for (String subject in _defaultSubjects[_selectedClass]!) subject: 'N/A'
-      };
-      batch.set(classInfoRef, {
-        'Class_Name': _selectedClass,
-        'Class_Teacher': 'N/A',
-        'Total_Students': 0,
-        'Subjects_Offered': subjectsWithTeachers,
-        'Academic_Year': currentAcademicYear,
-        'Term_Name': term,
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
-
-  Future<void> _createClassPerformance(WriteBatch batch, String schoolName, String currentAcademicYear, String term) async {
-    final DocumentReference classPerformanceRef = _firestore
-        .collection('Schools')
-        .doc(schoolName)
-        .collection('Academic_Year')
-        .doc(currentAcademicYear)
-        .collection('Classes')
-        .doc(_selectedClass)
-        .collection(term)
-        .doc('Term_Informations')
-        .collection('Term_Informations')
-        .doc('Class_Performance');
-
-    if (!(await classPerformanceRef.get()).exists) {
-      batch.set(classPerformanceRef, {
-        'Total_Students': 0,
-        'Average_Performance': 0.0,
-        'Best_Student': 'N/A',
-        'Class_Teacher': 'N/A',
-        'Subjects_Offered': _defaultSubjects[_selectedClass],
-        'Term_Name': term,
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
-
-  Future<void> _createTeacherDetails(WriteBatch batch, String schoolName, String currentAcademicYear, String term) async {
-    final DocumentReference teacherDetailsRef = _firestore
-        .collection('Schools')
-        .doc(schoolName)
-        .collection('Academic_Year')
-        .doc(currentAcademicYear)
-        .collection('Classes')
-        .doc(_selectedClass)
-        .collection(term)
-        .doc('Term_Informations')
-        .collection('Term_Informations')
-        .doc('Teacher_Details');
-
-    if (!(await teacherDetailsRef.get()).exists) {
-      Map<String, String> subjectTeachers = {
-        for (String subject in _defaultSubjects[_selectedClass]!) subject: 'N/A'
-      };
-      batch.set(teacherDetailsRef, {
-        'Form_Teacher': 'N/A',
-        'Subject_Teachers': subjectTeachers,
-        'Teacher_Contacts': {},
-        'Teacher_Remarks': '',
-        'Term_Name': term,
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
-
-  Future<void> _createTermStatus(WriteBatch batch, String schoolName, String currentAcademicYear, String term,
-      String termStatus, Map<String, Map<String, String>> termDates) async {
-    final DocumentReference termStatusRef = _firestore
-        .collection('Schools')
-        .doc(schoolName)
-        .collection('Academic_Year')
-        .doc(currentAcademicYear)
-        .collection('Classes')
-        .doc(_selectedClass)
-        .collection(term)
-        .doc('Term_Informations')
-        .collection('Term_Informations')
-        .doc('Term_Status');
-
-    if (!(await termStatusRef.get()).exists) {
-      batch.set(termStatusRef, {
-        'Term_Name': term,
-        'Term_Status': termStatus,
-        'Start_Date': termDates[term]!['start_date'],
-        'End_Date': termDates[term]!['end_date'],
-        'Academic_Year': currentAcademicYear,
-        'Current_Term': _getCurrentTerm(),
-        'Is_Active': termStatus == 'In Progress',
-        'Is_Completed': termStatus == 'Completed',
-        'Days_Remaining': _calculateDaysRemaining(termDates[term]!['end_date']!),
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
-
-  Future<void> _createClassList(WriteBatch batch, String schoolName, String currentAcademicYear, String term,
-      String termStatus, Map<String, Map<String, String>> termDates) async {
+    // 3. Main student document
     final DocumentReference studentRef = _firestore
         .collection('Schools')
         .doc(schoolName)
-        .collection('Academic_Year')
-        .doc(currentAcademicYear)
         .collection('Classes')
         .doc(_selectedClass)
-        .collection(term)
-        .doc('Term_Informations')
-        .collection('Class_List')
+        .collection('Student_Details')
         .doc(_studentFullName);
 
-    await _createPersonalInformation(batch, studentRef, term);
-    await _createStudentBehaviors(batch, studentRef, term);
-    await _createStudentSubjects(batch, studentRef, term);
-    await _createEndOfTerm(batch, studentRef, term);
-    await _createMidTerm(batch, studentRef, term);
-    await _createTest(batch, studentRef, term);
-    await _createTotalMarks(batch, studentRef, term);
-    await _createStudentAcademicPerformance(batch, studentRef, term);
-  }
-
-  Future<void> _createPersonalInformation(WriteBatch batch, DocumentReference studentRef, String term) async {
-    batch.set(studentRef.collection('Personal_Information').doc('Student_Details'), {
-      'First_Name': _firstNameController.text.trim().toUpperCase(),
-      'Last_Name': _lastNameController.text.trim().toUpperCase(),
-      'Full_Name': _studentFullName,
-      'Student_Class': _selectedClass,
-      'Student_DOB': _dobController.text.trim(),
-      'Student_Age': _calculateAge(_dobController.text.trim()).toString(),
-      'Student_Gender': _selectedGender,
-      'Student_ID': _studentID,
-      'Term_Name': term,
-      'Created_By': _loggedInUser?.email ?? '',
-      'Created_At': FieldValue.serverTimestamp(),
-      'Last_Updated': FieldValue.serverTimestamp(),
-    });
-  }
-
-  Future<void> _createStudentBehaviors(WriteBatch batch, DocumentReference studentRef, String term) async {
-    batch.set(studentRef.collection('Student_Behaviors').doc('General_Behavior'), {
-      'Overall_Conduct': 'N/A',
-      'Class_Participation': 'N/A',
-      'Punctuality': 'N/A',
-      'Disciplinary_Records': [],
-      'General_Behavior_Notes': '',
-      'Term_Name': term,
-      'Created_By': _loggedInUser?.email ?? '',
-      'Created_At': FieldValue.serverTimestamp(),
-      'Last_Updated': FieldValue.serverTimestamp(),
+    batch.set(studentRef, {
+      'timestamp': FieldValue.serverTimestamp(),
     });
 
-    for (String subject in _defaultSubjects[_selectedClass]!) {
-      batch.set(studentRef.collection('Student_Behaviors').doc(subject), {
-        'Subject_Name': subject,
-        'Subject_Participation': 'N/A',
-        'Homework_Completion': 'N/A',
-        'Class_Attention': 'N/A',
-        'Assignment_Submission': 'N/A',
-        'Subject_Interest': 'N/A',
-        'Cooperation_Level': 'N/A',
-        'Subject_Behavior_Notes': '',
-        'Teacher_Remarks': '',
-        'Improvement_Areas': [],
-        'Strengths': [],
-        'Term_Name': term,
-        'Created_By': _loggedInUser?.email ?? '',
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
+    // 4. Personal information
+    final DocumentReference personalInfoRef = studentRef
+        .collection('Personal_Information')
+        .doc('Registered_Information');
 
-  Future<void> _createStudentSubjects(WriteBatch batch, DocumentReference studentRef, String term) async {
-    final CollectionReference subjectsRef = studentRef.collection('Student_Subjects');
-    for (String subject in _defaultSubjects[_selectedClass]!) {
-      batch.set(subjectsRef.doc(subject), {
-        'Subject_Name': subject,
-        'Subject_Grade': 'N/A',
-        'Marks_Obtained': 0,
-        'Total_Marks': 0,
-        'Percentage': 0.0,
-        'Teacher_Assigned': 'N/A',
-        'Term_Name': term,
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
+    batch.set(personalInfoRef, {
+      'firstName': _firstNameController.text.trim().toUpperCase(),
+      'lastName': _lastNameController.text.trim().toUpperCase(),
+      'studentClass': _selectedClass!,
+      'studentDOB': _dobController.text.trim(),
+      'studentAge': _calculateAge(_dobController.text.trim()).toString(),
+      'studentGender': _selectedGender!,
+      'studentID': _studentID!,
+      'createdBy': _loggedInUser?.email ?? '',
+      'timestamp': FieldValue.serverTimestamp(),
+    });
 
-  Future<void> _createEndOfTerm(WriteBatch batch, DocumentReference studentRef, String term) async {
-    final CollectionReference endOfTermRef = studentRef.collection('End_of_Term');
+    // 5. Student subjects
     for (String subject in _defaultSubjects[_selectedClass]!) {
-      batch.set(endOfTermRef.doc(subject), {
+      final DocumentReference subjectRef = studentRef
+          .collection('Student_Subjects')
+          .doc(subject);
+
+      batch.set(subjectRef, {
         'Subject_Name': subject,
         'Subject_Grade': 'N/A',
-        'Marks_Obtained': 0,
-        'Total_Marks': 0,
-        'Percentage': 0.0,
-        'Teacher_Assigned': 'N/A',
-        'Exam_Date': '',
-        'Comments': '',
-        'Term_Name': term,
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
       });
     }
-  }
 
-  Future<void> _createMidTerm(WriteBatch batch, DocumentReference studentRef, String term) async {
-    final CollectionReference midTermRef = studentRef.collection('Mid_Term');
-    for (String subject in _defaultSubjects[_selectedClass]!) {
-      batch.set(midTermRef.doc(subject), {
-        'Subject_Name': subject,
-        'Subject_Grade': 'N/A',
-        'Marks_Obtained': 0,
-        'Total_Marks': 0,
-        'Percentage': 0.0,
-        'Teacher_Assigned': 'N/A',
-        'Exam_Date': '',
-        'Comments': '',
-        'Term_Name': term,
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
+    // 6. Total marks document
+    final DocumentReference totalMarksRef = studentRef
+        .collection('TOTAL_MARKS')
+        .doc('Marks');
 
-  Future<void> _createTest(WriteBatch batch, DocumentReference studentRef, String term) async {
-    final CollectionReference testRef = studentRef.collection('Test');
-    for (String subject in _defaultSubjects[_selectedClass]!) {
-      batch.set(testRef.doc(subject), {
-        'Subject_Name': subject,
-        'Subject_Grade': 'N/A',
-        'Marks_Obtained': 0,
-        'Total_Marks': 0,
-        'Percentage': 0.0,
-        'Teacher_Assigned': 'N/A',
-        'Test_Date': '',
-        'Test_Type': 'Regular Test',
-        'Comments': '',
-        'Term_Name': term,
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
-
-  Future<void> _createTotalMarks(WriteBatch batch, DocumentReference studentRef, String term) async {
-    batch.set(studentRef.collection('Total_Marks').doc('Marks_Summary'), {
+    batch.set(totalMarksRef, {
       'Aggregate_Grade': 'N/A',
       'Best_Six_Total_Points': 0,
       'Student_Total_Marks': '0',
       'Teacher_Total_Marks': '0',
-      'Total_Marks_Obtained': 0,
-      'Total_Possible_Marks': 0,
-      'Overall_Percentage': 0.0,
-      'Class_Position': 0,
-      'Subjects_Passed': 0,
-      'Subjects_Failed': 0,
+    });
+
+    // 7. Results remarks document
+    final DocumentReference resultsRemarksRef = studentRef
+        .collection('TOTAL_MARKS')
+        .doc('Results_Remarks');
+
+    batch.set(resultsRemarksRef, {
       'Form_Teacher_Remark': 'N/A',
       'Head_Teacher_Remark': 'N/A',
-      'Term_Name': term,
-      'Created_At': FieldValue.serverTimestamp(),
-      'Last_Updated': FieldValue.serverTimestamp(),
     });
-  }
 
-  Future<void> _createStudentAcademicPerformance(WriteBatch batch, DocumentReference studentRef, String currentTerm) async {
-    final CollectionReference academicPerformanceRef = studentRef.collection('Academic_Performance');
-    final Map<String, dynamic> performanceTemplate = {
-      'Overall_Grade': 'N/A',
-      'Overall_Percentage': 0.0,
-      'Class_Ranking': 0,
-      'Subjects_Count': _defaultSubjects[_selectedClass]!.length,
-      'Passed_Subjects': 0,
-      'Failed_Subjects': 0,
-      'Best_Subject': 'N/A',
-      'Weakest_Subject': 'N/A',
-      'Improvement_Areas': [],
-      'Strengths': [],
-      'Teacher_Recommendations': '',
-      'Parent_Feedback': '',
-      'Subject_Grades': {},
-      'Subject_Marks': {},
-      'Total_Marks_Obtained': 0,
-      'Total_Possible_Marks': 0,
-      'Current_Term': currentTerm,
-      'Created_At': FieldValue.serverTimestamp(),
-      'Last_Updated': FieldValue.serverTimestamp(),
-    };
+    // 8. Academic Performance Structure
+    await _createAcademicPerformanceStructure(batch, studentRef);
 
-    for (var termResult in [
-      {'Term_Name': 'TERM ONE', 'doc_id': 'TERM_ONE_RESULTS'},
-      {'Term_Name': 'TERM TWO', 'doc_id': 'TERM_TWO_RESULTS'},
-      {'Term_Name': 'TERM THREE', 'doc_id': 'TERM_THREE_RESULTS'},
-    ]) {
-      Map<String, dynamic> termData = Map.from(performanceTemplate);
-      termData['Term_Name'] = termResult['Term_Name'];
-      batch.set(academicPerformanceRef.doc(termResult['doc_id']), termData);
+    try {
+      await batch.commit();
+      print("Student, school information, and fees structure saved successfully!");
+    } catch (e) {
+      print("Error saving data: $e");
+      throw e;
     }
   }
 
-  Future<void> _updateTotalStudentsCountOnSave(WriteBatch batch, String schoolName, String className) async {
+  // MARK: - Academic Performance Structure Creation (Updated to reference existing data)
+  Future<void> _createAcademicPerformanceStructure(WriteBatch batch, DocumentReference studentRef) async {
     final String currentAcademicYear = _getCurrentAcademicYear();
+    final Map<String, Map<String, String>> termDates = _getTermDates(currentAcademicYear);
+
+    // Create Academic_Performance document
+    final DocumentReference academicPerformanceRef = studentRef
+        .collection('Academic_Performance')
+        .doc(currentAcademicYear);
+
+    batch.set(academicPerformanceRef, {
+      'academic_year': currentAcademicYear,
+      'created_at': FieldValue.serverTimestamp(),
+      'last_updated': FieldValue.serverTimestamp(),
+      // References to existing collections
+      'personal_info_ref': 'Personal_Information/Registered_Information',
+      'subjects_ref': 'Student_Subjects',
+      'total_marks_ref': 'TOTAL_MARKS',
+    });
+
+    // Create structure for each term
     for (String term in ['TERM_ONE', 'TERM_TWO', 'TERM_THREE']) {
+      final DocumentReference termRef = academicPerformanceRef
+          .collection(term)
+          .doc('Term_Info');
+
+      batch.set(termRef, {
+        'term_name': term,
+        'start_date': termDates[term]!['start_date'],
+        'end_date': termDates[term]!['end_date'],
+        'term_status': 'Not Started',
+        'created_at': FieldValue.serverTimestamp(),
+        // Reference to existing Student_Subjects collection for marks
+        'subjects_collection_ref': '../../Student_Subjects',
+        'total_marks_ref': '../../TOTAL_MARKS',
+      });
+
+      // Create term-specific marks tracking (references existing subjects)
+      final DocumentReference termMarksRef = termRef
+          .collection('Term_Marks')
+          .doc('Marks_Summary');
+
+      batch.set(termMarksRef, {
+        'term_name': term,
+        // This will reference the Student_Subjects collection for individual subject marks
+        'subjects_source': 'Student_Subjects', // Points to existing collection
+        'marks_entered': false,
+        'marks_verified': false,
+        'last_updated': FieldValue.serverTimestamp(),
+        'updated_by': _loggedInUser?.email ?? 'system',
+      });
+
+      // Create term summary (calculations based on existing data)
+      final DocumentReference termSummaryRef = termRef
+          .collection('Term_Summary')
+          .doc('Summary');
+
+      batch.set(termSummaryRef, {
+        'total_marks': 0,
+        'average_marks': 0.0,
+        'total_subjects': _defaultSubjects[_selectedClass]!.length,
+        'subjects_passed': 0,
+        'subjects_failed': 0,
+        'overall_grade': 'N/A',
+        'class_position': 0,
+        'form_teacher_remarks': 'N/A',
+        'head_teacher_remarks': 'N/A',
+        'term_completed': false,
+        'completion_date': null,
+        'last_updated': FieldValue.serverTimestamp(),
+        // References for calculations
+        'calculated_from_subjects': 'Student_Subjects',
+        'total_marks_source': 'TOTAL_MARKS',
+      });
+
+      // Create attendance structure for each term
+      final DocumentReference attendanceRef = termRef
+          .collection('Attendance')
+          .doc('Attendance_Summary');
+
+      batch.set(attendanceRef, {
+        'total_school_days': 0,
+        'days_present': 0,
+        'days_absent': 0,
+        'attendance_percentage': 0.0,
+        'late_arrivals': 0,
+        'early_departures': 0,
+        'last_updated': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Create Academic Year Summary
+    final DocumentReference yearSummaryRef = academicPerformanceRef
+        .collection('Year_Summary')
+        .doc('Academic_Summary');
+
+    batch.set(yearSummaryRef, {
+      'academic_year': currentAcademicYear,
+      'total_terms': 3,
+      'completed_terms': 0,
+      'overall_average': 0.0,
+      'best_term': 'N/A',
+      'weakest_term': 'N/A',
+      'year_grade': 'N/A',
+      'promoted_to_next_class': false,
+      'promotion_status': 'Pending',
+      'year_completed': false,
+      'completion_date': null,
+      'last_updated': FieldValue.serverTimestamp(),
+      // References for year-end calculations
+      'personal_info_source': 'Personal_Information',
+      'subjects_source': 'Student_Subjects',
+      'total_marks_source': 'TOTAL_MARKS',
+    });
+
+    print("Academic Performance structure created for academic year: $currentAcademicYear");
+    print("Structure references existing collections: Personal_Information, Student_Subjects, TOTAL_MARKS");
+  }
+
+  Future<void> _updateTotalStudentsCountOnSave(String school, String studentClass) async {
+    try {
       final DocumentReference classInfoRef = _firestore
           .collection('Schools')
-          .doc(schoolName)
-          .collection('Academic_Year')
-          .doc(currentAcademicYear)
+          .doc(school)
           .collection('Classes')
-          .doc(className)
-          .collection(term)
-          .doc('Term_Informations')
-          .collection('Term_Informations')
-          .doc('Class_Information');
+          .doc(studentClass)
+          .collection('Class_Info')
+          .doc('Info');
 
-      batch.update(classInfoRef, {
-        'Total_Students': FieldValue.increment(1),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
+      final DocumentSnapshot classInfoDoc = await classInfoRef.get();
 
-  // MARK: - Copy Operations
-  Future<void> _copyStudentToNextAcademicYear(
-      String schoolName, String currentAcademicYear, String currentClass, String studentName) async {
-    try {
-      _showLoadingDialog();
-      final String nextAcademicYear = _getNextAcademicYear(currentAcademicYear);
-      final String? nextClass = _getNextClass(currentClass);
-      if (nextClass == null) {
-        _hideLoadingDialog();
-        _showErrorMessage('No next class available for $currentClass');
-        return;
+      if (classInfoDoc.exists) {
+        final Map<String, dynamic> classData = classInfoDoc.data() as Map<String, dynamic>;
+        final int currentCount = classData['totalStudents'] ?? 0;
+        final int newCount = currentCount + 1;
+
+        await classInfoRef.update({
+          'totalStudents': newCount,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          setState(() {
+            _totalClassStudentsNumber = newCount;
+          });
+        }
+      } else {
+        final QuerySnapshot studentsSnapshot = await _firestore
+            .collection('Schools')
+            .doc(school)
+            .collection('Classes')
+            .doc(studentClass)
+            .collection('Student_Details')
+            .get();
+
+        final int totalCount = studentsSnapshot.docs.length;
+
+        await classInfoRef.set({
+          'totalStudents': totalCount,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          setState(() {
+            _totalClassStudentsNumber = totalCount;
+          });
+        }
       }
-
-      final WriteBatch batch = _firestore.batch();
-      await _initializeSchoolInfo(batch, schoolName, nextAcademicYear);
-      await _initializeFeesDetails(batch, schoolName, nextAcademicYear);
-      final Map<String, Map<String, String>> termDates = _getTermDates(nextAcademicYear);
-
-      final DocumentReference fromStudentRef = _getStudentReference(
-          schoolName, currentAcademicYear, currentClass, 'TERM_THREE', studentName);
-      final DocumentReference toStudentRef = _getStudentReference(
-          schoolName, nextAcademicYear, nextClass, 'TERM_ONE', studentName);
-
-      await _createPersonalInformationForNewYear(batch, fromStudentRef, toStudentRef, nextClass);
-      await _createStudentBehaviorsForNewYear(batch, toStudentRef, nextClass);
-      await _createStudentSubjectsForNewYear(batch, toStudentRef, nextClass, 'TERM_ONE');
-      await _createEndOfTermForNewYear(batch, toStudentRef, nextClass, 'TERM_ONE');
-      await _createMidTermForNewYear(batch, toStudentRef, nextClass, 'TERM_ONE');
-      await _createTestForNewYear(batch, toStudentRef, nextClass, 'TERM_ONE');
-      await _createTotalMarksForNewYear(batch, toStudentRef);
-      await _createStudentAcademicPerformance(batch, toStudentRef, 'TERM_ONE');
-      await _updateTotalStudentsCountOnSave(batch, schoolName, nextClass);
-
-      await batch.commit();
-      _hideLoadingDialog();
-      _showSuccessMessage();
     } catch (e) {
-      _hideLoadingDialog();
-      _showErrorMessage('Error copying student to next academic year: $e');
+      debugPrint('Error updating total students count on save: $e');
     }
-  }
-
-  Future<void> _copyClassListToNextTerm(
-      String schoolName, String academicYear, String className, String fromTerm) async {
-    try {
-      _showLoadingDialog();
-      final String? toTerm = _getNextTerm(fromTerm);
-      if (toTerm == null) {
-        _hideLoadingDialog();
-        _showErrorMessage('No next term available for $fromTerm');
-        return;
-      }
-
-      final WriteBatch batch = _firestore.batch();
-      final Map<String, Map<String, String>> termDates = _getTermDates(academicYear);
-      final String termStatus = _getTermStatus(toTerm, termDates);
-
-      // Initialize term structure for the next term
-      await _createClassInformation(batch, schoolName, academicYear, toTerm);
-      await _createClassPerformance(batch, schoolName, academicYear, toTerm);
-      await _createTeacherDetails(batch, schoolName, academicYear, toTerm);
-      await _createTermStatus(batch, schoolName, academicYear, toTerm, termStatus, termDates);
-
-      // Get all students in the current term's class list
-      final QuerySnapshot studentDocs = await _firestore
-          .collection('Schools')
-          .doc(schoolName)
-          .collection('Academic_Year')
-          .doc(academicYear)
-          .collection('Classes')
-          .doc(className)
-          .collection(fromTerm)
-          .doc('Term_Informations')
-          .collection('Class_List')
-          .get();
-
-      for (QueryDocumentSnapshot studentDoc in studentDocs.docs) {
-        final String studentName = studentDoc.id;
-        final DocumentReference fromStudentRef = _getStudentReference(
-            schoolName, academicYear, className, fromTerm, studentName);
-        final DocumentReference toStudentRef = _getStudentReference(
-            schoolName, academicYear, className, toTerm, studentName);
-
-        await _copyPersonalInformation(batch, fromStudentRef, toStudentRef, toTerm);
-        await _copyStudentBehaviors(batch, fromStudentRef, toStudentRef, toTerm);
-        await _copyAndResetSubjectCollection(batch, fromStudentRef, toStudentRef, 'Student_Subjects', toTerm);
-        await _copyAndResetSubjectCollection(batch, fromStudentRef, toStudentRef, 'End_of_Term', toTerm);
-        await _copyAndResetSubjectCollection(batch, fromStudentRef, toStudentRef, 'Mid_Term', toTerm);
-        await _copyAndResetSubjectCollection(batch, fromStudentRef, toStudentRef, 'Test', toTerm);
-        await _copyTotalMarks(batch, fromStudentRef, toStudentRef, toTerm);
-        await _copyAcademicPerformance(batch, fromStudentRef, toStudentRef, toTerm);
-      }
-
-      await _updateTotalStudentsCountOnSave(batch, schoolName, className);
-      await batch.commit();
-      _hideLoadingDialog();
-      _showSuccessMessage();
-    } catch (e) {
-      _hideLoadingDialog();
-      _showErrorMessage('Error copying class list to next term: $e');
-    }
-  }
-
-// Helper methods for copy operations
-  String _getNextAcademicYear(String currentAcademicYear) {
-    final List<String> years = currentAcademicYear.split('_');
-    final int startYear = int.parse(years[0]);
-    return '${startYear + 1}_${startYear + 2}';
-  }
-
-  String? _getNextClass(String currentClass) {
-    switch (currentClass) {
-      case 'FORM 1':
-        return 'FORM 2';
-      case 'FORM 2':
-        return 'FORM 3';
-      case 'FORM 3':
-        return 'FORM 4';
-      case 'FORM 4':
-        return null; // No next class for FORM 4
-      default:
-        return null;
-    }
-  }
-
-  String? _getNextTerm(String currentTerm) {
-    switch (currentTerm) {
-      case 'TERM_ONE':
-        return 'TERM_TWO';
-      case 'TERM_TWO':
-        return 'TERM_THREE';
-      case 'TERM_THREE':
-        return null; // No next term in the same academic year
-      default:
-        return null;
-    }
-  }
-
-  Future<void> _copyPersonalInformation(
-      WriteBatch batch, DocumentReference fromStudentRef, DocumentReference toStudentRef, String toTerm) async {
-    final DocumentSnapshot personalInfoDoc =
-    await fromStudentRef.collection('Personal_Information').doc('Student_Details').get();
-    if (personalInfoDoc.exists) {
-      final Map<String, dynamic> personalData = personalInfoDoc.data() as Map<String, dynamic>;
-      personalData['Term_Name'] = toTerm;
-      personalData['Last_Updated'] = FieldValue.serverTimestamp();
-      batch.set(toStudentRef.collection('Personal_Information').doc('Student_Details'), personalData);
-    }
-  }
-
-  Future<void> _createPersonalInformationForNewYear(
-      WriteBatch batch, DocumentReference fromStudentRef, DocumentReference toStudentRef, String nextClass) async {
-    final DocumentSnapshot personalInfoDoc =
-    await fromStudentRef.collection('Personal_Information').doc('Student_Details').get();
-    if (personalInfoDoc.exists) {
-      final Map<String, dynamic> personalData = personalInfoDoc.data() as Map<String, dynamic>;
-      personalData['Student_Class'] = nextClass;
-      personalData['Term_Name'] = 'TERM_ONE';
-      personalData['Last_Updated'] = FieldValue.serverTimestamp();
-      batch.set(toStudentRef.collection('Personal_Information').doc('Student_Details'), personalData);
-    }
-  }
-
-  Future<void> _copyStudentBehaviors(
-      WriteBatch batch, DocumentReference fromStudentRef, DocumentReference toStudentRef, String toTerm) async {
-    final QuerySnapshot behaviorDocs = await fromStudentRef.collection('Student_Behaviors').get();
-    for (QueryDocumentSnapshot behaviorDoc in behaviorDocs.docs) {
-      final Map<String, dynamic> behaviorData = behaviorDoc.data() as Map<String, dynamic>;
-      _resetBehaviorData(behaviorData, behaviorDoc.id, toTerm);
-      batch.set(toStudentRef.collection('Student_Behaviors').doc(behaviorDoc.id), behaviorData);
-    }
-  }
-
-  Future<void> _createStudentBehaviorsForNewYear(
-      WriteBatch batch, DocumentReference toStudentRef, String nextClass) async {
-    batch.set(toStudentRef.collection('Student_Behaviors').doc('General_Behavior'), {
-      'Overall_Conduct': 'N/A',
-      'Class_Participation': 'N/A',
-      'Punctuality': 'N/A',
-      'Disciplinary_Records': [],
-      'General_Behavior_Notes': '',
-      'Term_Name': 'TERM_ONE',
-      'Created_By': _loggedInUser?.email ?? '',
-      'Created_At': FieldValue.serverTimestamp(),
-      'Last_Updated': FieldValue.serverTimestamp(),
-    });
-
-    for (String subject in _defaultSubjects[nextClass]!) {
-      batch.set(toStudentRef.collection('Student_Behaviors').doc(subject), {
-        'Subject_Name': subject,
-        'Subject_Participation': 'N/A',
-        'Homework_Completion': 'N/A',
-        'Class_Attention': 'N/A',
-        'Assignment_Submission': 'N/A',
-        'Subject_Interest': 'N/A',
-        'Cooperation_Level': _loggedInUser?.email ?? '',
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
-
-  Future<void> _copyAndResetSubjectCollection(WriteBatch batch, DocumentReference fromStudentRef,
-      DocumentReference toStudentRef, String collectionName, String toTerm) async {
-    final QuerySnapshot subjectDocs = await fromStudentRef.collection(collectionName).get();
-    for (QueryDocumentSnapshot subjectDoc in subjectDocs.docs) {
-      final Map<String, dynamic> subjectData = subjectDoc.data() as Map<String, dynamic>;
-      _resetSubjectData(subjectData, collectionName, toTerm);
-      batch.set(toStudentRef.collection(collectionName).doc(subjectDoc.id), subjectData);
-    }
-  }
-
-  Future<void> _createStudentSubjectsForNewYear(
-      WriteBatch batch, DocumentReference studentRef, String nextClass, String term) async {
-    final CollectionReference subjectsRef = studentRef.collection('Student_Subjects');
-    for (String subject in _defaultSubjects[nextClass]!) {
-      batch.set(subjectsRef.doc(subject), {
-        'Subject_Name': subject,
-        'Subject_Grade': 'N/A',
-        'Marks_Obtained': 0,
-        'Total_Marks': 0,
-        'Percentage': 0.0,
-        'Teacher_Assigned': 'N/A',
-        'Term_Name': term,
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
-
-  Future<void> _createEndOfTermForNewYear(
-      WriteBatch batch, DocumentReference studentRef, String nextClass, String term) async {
-    final CollectionReference endOfTermRef = studentRef.collection('End_of_Term');
-    for (String subject in _defaultSubjects[nextClass]!) {
-      batch.set(endOfTermRef.doc(subject), {
-        'Subject_Name': subject,
-        'Subject_Grade': 'N/A',
-        'Marks_Obtained': 0,
-        'Total_Marks': 0,
-        'Percentage': 0.0,
-        'Teacher_Assigned': 'N/A',
-        'Exam_Date': '',
-        'Comments': '',
-        'Term_Name': term,
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
-
-  Future<void> _createMidTermForNewYear(
-      WriteBatch batch, DocumentReference studentRef, String nextClass, String term) async {
-    final CollectionReference midTermRef = studentRef.collection('Mid_Term');
-    for (String subject in _defaultSubjects[nextClass]!) {
-      batch.set(midTermRef.doc(subject), {
-        'Subject_Name': subject,
-        'Subject_Grade': 'N/A',
-        'Marks_Obtained': 0,
-        'Total_Marks': 0,
-        'Percentage': 0.0,
-        'Teacher_Assigned': 'N/A',
-        'Exam_Date': '',
-        'Comments': '',
-        'Term_Name': term,
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
-
-  Future<void> _createTestForNewYear(
-      WriteBatch batch, DocumentReference studentRef, String nextClass, String term) async {
-    final CollectionReference testRef = studentRef.collection('Test');
-    for (String subject in _defaultSubjects[nextClass]!) {
-      batch.set(testRef.doc(subject), {
-        'Subject_Name': subject,
-        'Subject_Grade': 'N/A',
-        'Marks_Obtained': 0,
-        'Total_Marks': 0,
-        'Percentage': 0.0,
-        'Teacher_Assigned': 'N/A',
-        'Test_Date': '',
-        'Test_Type': 'Regular Test',
-        'Comments': '',
-        'Term_Name': term,
-        'Created_At': FieldValue.serverTimestamp(),
-        'Last_Updated': FieldValue.serverTimestamp(),
-      });
-    }
-  }
-
-  Future<void> _createTotalMarksForNewYear(WriteBatch batch, DocumentReference studentRef) async {
-    batch.set(studentRef.collection('Total_Marks').doc('Marks_Summary'), {
-      'Aggregate_Grade': 'N/A',
-      'Best_Six_Total_Points': 0,
-      'Student_Total_Marks': '0',
-      'Teacher_Total_Marks': '0',
-      'Total_Marks_Obtained': 0,
-      'Total_Possible_Marks': 0,
-      'Overall_Percentage': 0.0,
-      'Class_Position': 0,
-      'Subjects_Passed': 0,
-      'Subjects_Failed': 0,
-      'Form_Teacher_Remark': 'N/A',
-      'Head_Teacher_Remark': 'N/A',
-      'Term_Name': 'TERM_ONE',
-      'Created_At': FieldValue.serverTimestamp(),
-      'Last_Updated': FieldValue.serverTimestamp(),
-    });
-  }
-
-  Future<void> _copyTotalMarks(
-      WriteBatch batch, DocumentReference fromStudentRef, DocumentReference toStudentRef, String toTerm) async {
-    final DocumentSnapshot totalMarksDoc =
-    await fromStudentRef.collection('Total_Marks').doc('Marks_Summary').get();
-    if (totalMarksDoc.exists) {
-      final Map<String, dynamic> totalMarksData = totalMarksDoc.data() as Map<String, dynamic>;
-      totalMarksData['Aggregate_Grade'] = 'N/A';
-      totalMarksData['Best_Six_Total_Points'] = 0;
-      totalMarksData['Student_Total_Marks'] = '0';
-      totalMarksData['Teacher_Total_Marks'] = '0';
-      totalMarksData['Total_Marks_Obtained'] = 0;
-      totalMarksData['Total_Possible_Marks'] = 0;
-      totalMarksData['Overall_Percentage'] = 0.0;
-      totalMarksData['Class_Position'] = 0;
-      totalMarksData['Subjects_Passed'] = 0;
-      totalMarksData['Subjects_Failed'] = 0;
-      totalMarksData['Form_Teacher_Remark'] = 'N/A';
-      totalMarksData['Head_Teacher_Remark'] = 'N/A';
-      totalMarksData['Term_Name'] = toTerm;
-      totalMarksData['Last_Updated'] = FieldValue.serverTimestamp();
-      batch.set(toStudentRef.collection('Total_Marks').doc('Marks_Summary'), totalMarksData);
-    }
-  }
-
-  Future<void> _copyAcademicPerformance(
-      WriteBatch batch, DocumentReference fromStudentRef, DocumentReference toStudentRef, String toTerm) async {
-    final QuerySnapshot academicDocs = await fromStudentRef.collection('Academic_Performance').get();
-    for (QueryDocumentSnapshot academicDoc in academicDocs.docs) {
-      final Map<String, dynamic> academicData = academicDoc.data() as Map<String, dynamic>;
-      academicData['Overall_Grade'] = 'N/A';
-      academicData['Overall_Percentage'] = 0.0;
-      academicData['Class_Ranking'] = 0;
-      academicData['Passed_Subjects'] = 0;
-      academicData['Failed_Subjects'] = 0;
-      academicData['Best_Subject'] = 'N/A';
-      academicData['Weakest_Subject'] = 'N/A';
-      academicData['Improvement_Areas'] = [];
-      academicData['Strengths'] = [];
-      academicData['Teacher_Recommendations'] = '';
-      academicData['Parent_Feedback'] = '';
-      academicData['Subject_Grades'] = {};
-      academicData['Subject_Marks'] = {};
-      academicData['Total_Marks_Obtained'] = 0;
-      academicData['Total_Possible_Marks'] = 0;
-      academicData['Current_Term'] = toTerm;
-      academicData['Last_Updated'] = FieldValue.serverTimestamp();
-      batch.set(toStudentRef.collection('Academic_Performance').doc(academicDoc.id), academicData);
-    }
-  }
-
-  void _resetBehaviorData(Map<String, dynamic> behaviorData, String docId, String termName) {
-    if (docId == 'General_Behavior') {
-      behaviorData['Overall_Conduct'] = 'N/A';
-      behaviorData['Class_Participation'] = 'N/A';
-      behaviorData['Punctuality'] = 'N/A';
-      behaviorData['Disciplinary_Records'] = [];
-      behaviorData['General_Behavior_Notes'] = '';
-    } else {
-      behaviorData['Subject_Participation'] = 'N/A';
-      behaviorData['Homework_Completion'] = 'N/A';
-      behaviorData['Class_Attention'] = 'N/A';
-      behaviorData['Assignment_Submission'] = 'N/A';
-      behaviorData['Subject_Interest'] = 'N/A';
-      behaviorData['Cooperation_Level'] = 'N/A';
-      behaviorData['Subject_Behavior_Notes'] = '';
-      behaviorData['Teacher_Remarks'] = '';
-      behaviorData['Improvement_Areas'] = [];
-      behaviorData['Strengths'] = [];
-    }
-    behaviorData['Term_Name'] = termName;
-    behaviorData['Last_Updated'] = FieldValue.serverTimestamp();
-  }
-
-  void _resetSubjectData(Map<String, dynamic> subjectData, String collectionName, String toTerm) {
-    subjectData['Subject_Grade'] = 'N/A';
-    subjectData['Marks_Obtained'] = 0;
-    subjectData['Total_Marks'] = 0;
-    subjectData['Percentage'] = 0.0;
-    subjectData['Teacher_Assigned'] = 'N/A';
-    subjectData['Term_Name'] = toTerm;
-    subjectData['Last_Updated'] = FieldValue.serverTimestamp();
-    switch (collectionName) {
-      case 'End_of_Term':
-      case 'Mid_Term':
-        subjectData['Exam_Date'] = '';
-        subjectData['Comments'] = '';
-        break;
-      case 'Test':
-        subjectData['Test_Date'] = '';
-        subjectData['Test_Type'] = 'Regular Test';
-        subjectData['Comments'] = '';
-        break;
-    }
-  }
-
-  DocumentReference _getStudentReference(
-      String schoolName, String academicYear, String className, String term, String studentName) {
-    return _firestore
-        .collection('Schools')
-        .doc(schoolName)
-        .collection('Academic_Year')
-        .doc(academicYear)
-        .collection('Classes')
-        .doc(className)
-        .collection(term)
-        .doc('Term_Informations')
-        .collection('Class_List')
-        .doc(studentName);
-  }
-
-  void _cleanupControllers() {
-    _firstNameController.clear();
-    _lastNameController.clear();
-    _dobController.clear();
-    setState(() {
-      _selectedGender = null;
-      _selectedClass = null;
-      _generatedQRCode = null;
-      _studentID = null;
-      _studentFullName = null;
-    });
   }
 
   // MARK: - UI Helper Methods
@@ -1123,16 +577,16 @@ class _Student_DetailsState extends State<Student_Details> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return const Center(
-          child: CircularProgressIndicator(color: Colors.blue),
+          child: CircularProgressIndicator(
+            color: Colors.blue,
+          ),
         );
       },
     );
   }
 
   void _hideLoadingDialog() {
-    if (Navigator.canPop(context)) {
-      Navigator.of(context).pop();
-    }
+    Navigator.of(context).pop();
   }
 
   void _showSuccessMessage() {
@@ -1168,7 +622,10 @@ class _Student_DetailsState extends State<Student_Details> {
     return AppBar(
       title: const Text(
         'Enter Student Details',
-        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
       ),
       centerTitle: true,
       backgroundColor: Colors.blueAccent,
@@ -1258,13 +715,18 @@ class _Student_DetailsState extends State<Student_Details> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
               elevation: 2,
             ),
             onPressed: () => Navigator.of(context).pop(),
             child: const Text(
               'Cancel',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
@@ -1275,13 +737,18 @@ class _Student_DetailsState extends State<Student_Details> {
               backgroundColor: Colors.blueAccent,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
               elevation: 2,
             ),
             onPressed: _saveStudentDetails,
             child: const Text(
               'Save & Generate QR Code',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
@@ -1292,18 +759,29 @@ class _Student_DetailsState extends State<Student_Details> {
 
   Widget _buildQRCodeSection() {
     if (_generatedQRCode == null) return const SizedBox.shrink();
+
     return Column(
       children: [
         const Text(
           'QR Code Generated Successfully!',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blueAccent,
+          ),
         ),
         const SizedBox(height: 20),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(15),
-            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))],
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -1323,7 +801,11 @@ class _Student_DetailsState extends State<Student_Details> {
                 ),
                 child: Text(
                   'Student ID: $_studentID',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
                 ),
               ),
             ],
@@ -1332,7 +814,11 @@ class _Student_DetailsState extends State<Student_Details> {
         const SizedBox(height: 20),
         Text(
           'Save this QR code for student identification',
-          style: TextStyle(fontSize: 14, color: Colors.grey[600], fontStyle: FontStyle.italic),
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            fontStyle: FontStyle.italic,
+          ),
         ),
       ],
     );
@@ -1349,7 +835,13 @@ class _Student_DetailsState extends State<Student_Details> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2))],
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: TextFormField(
         controller: controller,
@@ -1359,7 +851,10 @@ class _Student_DetailsState extends State<Student_Details> {
         decoration: InputDecoration(
           labelText: labelText,
           labelStyle: const TextStyle(color: Colors.blueAccent),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
@@ -1383,14 +878,24 @@ class _Student_DetailsState extends State<Student_Details> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2))],
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
+
       child: DropdownButtonFormField<String>(
         value: value,
         decoration: InputDecoration(
           labelText: labelText,
           labelStyle: const TextStyle(color: Colors.blueAccent),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
@@ -1400,25 +905,45 @@ class _Student_DetailsState extends State<Student_Details> {
           fillColor: Colors.white,
         ),
         items: items.map<DropdownMenuItem<String>>((String item) {
-          return DropdownMenuItem<String>(value: item, child: Text(item));
+          return DropdownMenuItem<String>(
+            value: item,
+            child: Text(item),
+          );
         }).toList(),
         onChanged: onChanged,
         validator: validator,
         dropdownColor: Colors.white,
-        style: const TextStyle(color: Colors.black, fontSize: 16),
-        icon: const Icon(Icons.arrow_drop_down, color: Colors.blueAccent),
+        style: const TextStyle(
+          color: Colors.black,
+          fontSize: 16,
+        ),
+        icon: const Icon(
+          Icons.arrow_drop_down,
+          color: Colors.blueAccent,
+        ),
       ),
     );
   }
 }
 
+// Date Input Formatter Class
 class _DateInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    String text = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
+    String text = newValue.text;
+
+    // Remove any non-digit characters
+    text = text.replaceAll(RegExp(r'[^0-9]'), '');
+
+    // Limit to 8 digits (DDMMYYYY)
     if (text.length > 8) {
       text = text.substring(0, 8);
     }
+
+    // Format the text with dashes
     String formattedText = '';
     for (int i = 0; i < text.length; i++) {
       if (i == 2 || i == 4) {
@@ -1426,6 +951,7 @@ class _DateInputFormatter extends TextInputFormatter {
       }
       formattedText += text[i];
     }
+
     return TextEditingValue(
       text: formattedText,
       selection: TextSelection.collapsed(offset: formattedText.length),
