@@ -15,8 +15,6 @@ class _Class_SelectionState extends State<Class_Selection> {
   List<String> selectedClasses = [];
   Map<String, List<String>> selectedSubjectsByClass = {};
   String? selectedSchool;
-  String? selectedTerm; // New state for selected term
-  bool isFormTeacher = false; // New state for form teacher checkbox
   bool isSaved = false;
   bool isLoading = false;
 
@@ -97,7 +95,6 @@ class _Class_SelectionState extends State<Class_Selection> {
   ];
 
   final List<String> classes = ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'];
-  final List<String> terms = ['TERM_ONE', 'TERM_TWO', 'TERM_THREE'];
 
   final Map<String, List<String>> classSubjects = {
     'FORM 1': ['AGRICULTURE', 'BIBLE KNOWLEDGE', 'BIOLOGY', 'CHEMISTRY', 'CHICHEWA', 'COMPUTER SCIENCE', 'ENGLISH', 'GEOGRAPHY', 'HISTORY', 'HOME ECONOMICS', 'LIFE & SOCIAL', 'MATHEMATICS', 'PHYSICS'],
@@ -118,8 +115,6 @@ class _Class_SelectionState extends State<Class_Selection> {
           selectedSchool = null;
           selectedClasses.clear();
           selectedSubjectsByClass.clear();
-          selectedTerm = null; // Clear term when school is cleared
-          isFormTeacher = false; // Reset form teacher checkbox
         });
       }
     });
@@ -170,23 +165,7 @@ class _Class_SelectionState extends State<Class_Selection> {
 
   Future<void> _fetchUnavailableSubjects() async {
     try {
-      if (currentUserEmail == null) return;
-
-      // Get the teacher's school to query the correct Teachers_Details subcollection
-      final teacherDoc = await FirebaseFirestore.instance
-          .collection('Schools')
-          .doc(selectedSchool ?? 'Bwaila Secondary School') // Fallback to provided school
-          .collection('Teachers_Details')
-          .doc(currentUserEmail)
-          .get();
-
-      String schoolName = teacherDoc.exists && teacherDoc.data()?['school'] != null
-          ? teacherDoc['school'] as String
-          : selectedSchool ?? 'Bwaila Secondary School';
-
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-          .collection('Schools')
-          .doc(schoolName)
           .collection('Teachers_Details')
           .get();
 
@@ -243,10 +222,7 @@ class _Class_SelectionState extends State<Class_Selection> {
     }
 
     try {
-      // Get the teacher's document from the Schools collection
       DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection('Schools')
-          .doc(selectedSchool ?? 'Bwaila Secondary School') // Fallback to provided school
           .collection('Teachers_Details')
           .doc(currentUserEmail)
           .get();
@@ -256,8 +232,6 @@ class _Class_SelectionState extends State<Class_Selection> {
 
         setState(() {
           selectedSchool = data['school'];
-          selectedTerm = data['term']; // Load saved term
-          isFormTeacher = data['isFormTeacher'] ?? false; // Load form teacher status
 
           if (data.containsKey('classes')) {
             selectedClasses = List<String>.from(data['classes']);
@@ -331,11 +305,6 @@ class _Class_SelectionState extends State<Class_Selection> {
     return unavailableSubjectsBySchoolAndClass[selectedSchool]?[className]?.contains(subject) ?? false;
   }
 
-  String _getCurrentAcademicYear() {
-    // Use fixed academic year from provided Firestore path
-    return '2024_2025';
-  }
-
   Future<void> _saveSelection() async {
     if (currentUserEmail == null) {
       _showToast("User not authenticated");
@@ -345,11 +314,6 @@ class _Class_SelectionState extends State<Class_Selection> {
     // Validation
     if (selectedSchool == null) {
       _showToast("Please select a school first");
-      return;
-    }
-
-    if (selectedTerm == null) {
-      _showToast("Please select a term");
       return;
     }
 
@@ -378,64 +342,15 @@ class _Class_SelectionState extends State<Class_Selection> {
         allSelectedSubjects.addAll(subjects);
       });
 
-      final String currentAcademicYear = _getCurrentAcademicYear();
-      final WriteBatch batch = FirebaseFirestore.instance.batch();
-
-      // Update Teachers_Details under the selected school
-      final teacherDocRef = FirebaseFirestore.instance
-          .collection('Schools')
-          .doc(selectedSchool)
+      await FirebaseFirestore.instance
           .collection('Teachers_Details')
-          .doc(currentUserEmail);
-
-      batch.set(teacherDocRef, {
+          .doc(currentUserEmail)
+          .set({
         'school': selectedSchool,
-        'term': selectedTerm,
-        'isFormTeacher': isFormTeacher,
         'classes': selectedClasses,
         'subjects': allSelectedSubjects,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-
-      // Update the Schools/Academic_Year/Classes structure for each selected class
-      for (String className in selectedClasses) {
-        // Initialize Subject_Teachers map with "N/A" for all subjects
-        Map<String, String> subjectTeachers = {};
-        for (String subject in classSubjects[className] ?? []) {
-          subjectTeachers[subject] = selectedSubjectsByClass[className]?.contains(subject) ?? false
-              ? currentUserEmail!
-              : "N/A";
-        }
-
-        final classInfoRef = FirebaseFirestore.instance
-            .collection('Schools')
-            .doc(selectedSchool)
-            .collection('Academic_Year')
-            .doc(currentAcademicYear)
-            .collection('Classes')
-            .doc(className)
-            .collection(selectedTerm!)
-            .doc('Term_Informations')
-            .collection('Term_Informations')
-            .doc('Teacher_Details');
-
-        batch.set(
-          classInfoRef,
-          {
-            'Subject_Teachers': subjectTeachers,
-            'Form_Teacher': isFormTeacher ? currentUserEmail : 'N/A',
-            'Teacher_Contacts': {'N/A': 'N/A'}, // Default as per provided structure
-            'Teacher_Remarks': '', // Default as per provided structure
-            'Term_Name': selectedTerm,
-            'Created_At': FieldValue.serverTimestamp(),
-            'Last_Updated': FieldValue.serverTimestamp(),
-          },
-          SetOptions(merge: true),
-        );
-      }
-
-      // Commit the batch
-      await batch.commit();
 
       setState(() => isSaved = true);
 
@@ -463,7 +378,9 @@ class _Class_SelectionState extends State<Class_Selection> {
   }
 
   Future<bool?> _showConfirmDialog(String title, String content) {
+    // Get screen size for responsive text scaling
     final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
     final double textScaleFactor = screenWidth < 360 ? 0.9 : (screenWidth > 600 ? 1.2 : 1.0);
 
     return showDialog<bool>(
@@ -490,6 +407,7 @@ class _Class_SelectionState extends State<Class_Selection> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Title with icon
               Row(
                 children: [
                   Icon(
@@ -509,6 +427,7 @@ class _Class_SelectionState extends State<Class_Selection> {
                 ],
               ),
               SizedBox(height: 16),
+              // Content
               Text(
                 content,
                 style: TextStyle(
@@ -518,6 +437,7 @@ class _Class_SelectionState extends State<Class_Selection> {
                 ),
               ),
               SizedBox(height: 24),
+              // Action buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -616,8 +536,6 @@ class _Class_SelectionState extends State<Class_Selection> {
                 _filterSchools('');
                 setState(() {
                   selectedSchool = null;
-                  selectedTerm = null; // Clear term when school is cleared
-                  isFormTeacher = false; // Reset form teacher checkbox
                 });
               },
             )
@@ -649,8 +567,6 @@ class _Class_SelectionState extends State<Class_Selection> {
                         showSchoolDropdown = false;
                         selectedClasses.clear();
                         selectedSubjectsByClass.clear();
-                        selectedTerm = null; // Clear term when school changes
-                        isFormTeacher = false; // Reset form teacher checkbox
                       });
                     },
                   );
@@ -659,68 +575,6 @@ class _Class_SelectionState extends State<Class_Selection> {
             ),
           ),
       ],
-    );
-  }
-
-  Widget _buildTermSelection() {
-    return _buildSection(
-      title: 'Term Selection',
-      subtitle: 'Select the academic term',
-      icon: Icons.calendar_today,
-      color: Colors.blue,
-      child: isSaved
-          ? _buildReadOnlyField(selectedTerm ?? 'No term selected')
-          : DropdownButtonFormField<String>(
-        value: selectedTerm,
-        decoration: InputDecoration(
-          border: OutlineInputBorder(),
-          focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.blueAccent, width: 2),
-          ),
-          labelText: 'Select Term',
-        ),
-        items: terms.map((term) {
-          return DropdownMenuItem<String>(
-            value: term,
-            child: Text(term.replaceAll('_', ' ')),
-          );
-        }).toList(),
-        onChanged: selectedSchool == null
-            ? null
-            : (value) {
-          setState(() {
-            selectedTerm = value;
-          });
-        },
-        validator: (value) => value == null ? 'Please select a term' : null,
-      ),
-    );
-  }
-
-  Widget _buildFormTeacherCheckbox() {
-    return _buildSection(
-      title: 'Form Teacher',
-      subtitle: 'Check if you are the form teacher for the selected class',
-      icon: Icons.person,
-      color: Colors.blue,
-      child: isSaved
-          ? _buildReadOnlyField(isFormTeacher ? 'Form Teacher' : 'Not Form Teacher')
-          : CheckboxListTile(
-        title: Text(
-          'I am the Form Teacher',
-          style: TextStyle(color: Colors.blue.shade600, fontSize: 16),
-        ),
-        value: isFormTeacher,
-        onChanged: selectedSchool == null || selectedClasses.isEmpty
-            ? null
-            : (value) {
-          setState(() {
-            isFormTeacher = value ?? false;
-          });
-        },
-        activeColor: Colors.blueAccent,
-        checkColor: Colors.white,
-      ),
     );
   }
 
@@ -748,7 +602,6 @@ class _Class_SelectionState extends State<Class_Selection> {
                 if (isSelected) {
                   selectedClasses.remove(className);
                   selectedSubjectsByClass.remove(className);
-                  isFormTeacher = false; // Reset form teacher if class is deselected
                 } else {
                   selectedClasses.add(className);
                   selectedSubjectsByClass[className] = [];
@@ -763,7 +616,7 @@ class _Class_SelectionState extends State<Class_Selection> {
   }
 
   Widget _buildSubjectSelection() {
-    if (selectedClasses.isEmpty || selectedSchool == null || selectedTerm == null) {
+    if (selectedClasses.isEmpty || selectedSchool == null) {
       return _buildEmptyState();
     }
 
@@ -868,16 +721,6 @@ class _Class_SelectionState extends State<Class_Selection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Term: ${selectedTerm?.replaceAll('_', ' ') ?? 'Not selected'}',
-            style: TextStyle(color: Colors.blue, fontSize: 18, fontWeight: FontWeight.w600),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Form Teacher: ${isFormTeacher ? 'Yes' : 'No'}',
-            style: TextStyle(color: Colors.blue, fontSize: 18, fontWeight: FontWeight.w600),
-          ),
-          SizedBox(height: 8),
           Text(
             'Total Subjects: ${_getTotalSelectedSubjects()}/2',
             style: TextStyle(color: Colors.blue, fontSize: 18, fontWeight: FontWeight.w600),
@@ -1049,7 +892,7 @@ class _Class_SelectionState extends State<Class_Selection> {
         color: Colors.grey[50],
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(color: Colors.black, blurRadius: 8, offset: Offset(0, 4))
+          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4))
         ],
       ),
       padding: const EdgeInsets.all(20.0),
@@ -1059,7 +902,7 @@ class _Class_SelectionState extends State<Class_Selection> {
           Icon(Icons.info_outline, color: Colors.grey.shade600, size: 48),
           SizedBox(height: 16),
           Text(
-            'Please select a school, term, and at least one class first',
+            'Please select a school and at least one class first',
             style: TextStyle(color: Colors.red, fontSize: 18, fontWeight: FontWeight.w500),
             textAlign: TextAlign.center,
           ),
@@ -1206,7 +1049,6 @@ class _Class_SelectionState extends State<Class_Selection> {
 
     // Show save button when not saved
     bool canSave = selectedSchool != null &&
-        selectedTerm != null &&
         selectedClasses.isNotEmpty &&
         totalSubjects > 0 &&
         totalSubjects <= 2;
@@ -1321,18 +1163,18 @@ class _Class_SelectionState extends State<Class_Selection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // School selection
+            // Always show school selection
             _buildSchoolSelection(),
-            // Term selection
-            _buildTermSelection(),
-            // Form teacher checkbox
-            _buildFormTeacherCheckbox(),
-            // Class selection (only if selection is incomplete)
+
+            // Only show class selection if conditions are not met
             if (!_isSelectionComplete()) _buildClassSelection(),
-            // Subject selection (only if selection is incomplete)
+
+            // Only show subject selection if conditions are not met
             if (!_isSelectionComplete()) _buildSubjectSelection(),
-            // Selection summary
+
+            // Always show selection summary
             _buildSelectionSummary(),
+
             SizedBox(height: 20),
             _buildActionButton(),
             SizedBox(height: 20),
@@ -1358,6 +1200,6 @@ class _Class_SelectionState extends State<Class_Selection> {
           selectedSubjectsByClass.values.every((subjects) => subjects.length == 1);
     }
 
-    return hasValidSelection && selectedTerm != null;
+    return hasValidSelection;
   }
 }

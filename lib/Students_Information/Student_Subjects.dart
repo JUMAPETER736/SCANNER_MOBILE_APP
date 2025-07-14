@@ -23,46 +23,17 @@ class _Student_SubjectsState extends State<Student_Subjects> {
   List<String> _userClasses = [];
   Map<String, String> _subjectGrades = {}; // Cache grades
   bool isLoading = true;
-  String _currentAcademicYear = '';
-  String _currentTerm = '';
 
   // Class performance data storage
   Map<String, dynamic> classPerformance = {};
   Map<String, dynamic> subjectPerformance = {};
 
-  @override
-  void initState() {
-    super.initState();
-    _currentAcademicYear = _getCurrentAcademicYear();
-    _currentTerm = _getCurrentTerm();
-    _fetchSubjects();
-  }
-
-  // Get current academic year (placeholder, replace with your actual logic)
-  String _getCurrentAcademicYear() {
-    // Assuming format like "2024-2025"
-    final currentYear = DateTime.now().year;
-    return '$currentYear-${currentYear + 1}';
-  }
-
-  // Get current term (placeholder, replace with your actual logic)
-  String _getCurrentTerm() {
-    // Should return "TERM_ONE", "TERM_TWO", or "TERM_THREE"
-    final month = DateTime.now().month;
-    if (month >= 1 && month <= 4) return 'TERM_ONE';
-    if (month >= 5 && month <= 8) return 'TERM_TWO';
-    return 'TERM_THREE';
-  }
-
   Future<void> _fetchSubjects() async {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) {
-        setState(() => isLoading = false);
-        return;
-      }
+      if (currentUser == null) return;
 
-      // Fetch teacher details to get school name and assigned subjects/classes
+      // Use a single query to get teacher details
       final userDoc = await _firestore
           .collection('Teachers_Details')
           .doc(currentUser.email)
@@ -77,21 +48,20 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       String schoolName = userData['school'] ?? '';
       String className = widget.studentClass;
 
-      // Fetch user's subjects and classes
+      // Fetch user's subjects and classes in parallel
       List<String> userSubjectsList = List<String>.from(userData['subjects'] ?? []);
       List<String> userClassesList = List<String>.from(userData['classes'] ?? []);
 
-      // Fetch student's subjects from the new Firestore path
+      // Use batch operations for better performance
+      final batch = _firestore.batch();
+
+      // Get specific student's subjects directly instead of querying all students
       final studentSubjectsRef = _firestore
           .collection('Schools')
           .doc(schoolName)
-          .collection('Academic_Year')
-          .doc(_currentAcademicYear)
           .collection('Classes')
           .doc(className)
-          .collection(_currentTerm)
-          .doc('Term_Informations')
-          .collection('Class_List')
+          .collection('Student_Details')
           .doc(widget.studentName)
           .collection('Student_Subjects');
 
@@ -100,7 +70,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       Set<String> subjectsSet = {};
       Map<String, String> gradesMap = {};
 
-      // Process student's subjects and grades
+      // Process student's subjects and grades in a single loop
       for (var doc in studentSubjectsSnapshot.docs) {
         String subjectName = doc['Subject_Name']?.toString() ?? doc.id;
         String grade = doc['Subject_Grade']?.toString() ?? '';
@@ -108,6 +78,32 @@ class _Student_SubjectsState extends State<Student_Subjects> {
         subjectsSet.add(subjectName);
         if (grade.isNotEmpty) {
           gradesMap[subjectName] = grade;
+        }
+      }
+
+      // If no subjects found for this student, fetch from class level (fallback)
+      if (subjectsSet.isEmpty) {
+        final classRef = _firestore
+            .collection('Schools')
+            .doc(schoolName)
+            .collection('Classes')
+            .doc(className)
+            .collection('Student_Details');
+
+        final classSnapshot = await classRef.limit(5).get(); // Limit to improve performance
+
+        for (var studentDoc in classSnapshot.docs) {
+          final subjectSnapshot = await studentDoc.reference
+              .collection('Student_Subjects')
+              .limit(10) // Limit subjects per student
+              .get();
+
+          for (var subjectDoc in subjectSnapshot.docs) {
+            subjectsSet.add(subjectDoc['Subject_Name']?.toString() ?? subjectDoc.id);
+          }
+
+          // Break after finding some subjects to improve performance
+          if (subjectsSet.isNotEmpty) break;
         }
       }
 
@@ -176,13 +172,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
         final gradeRef = _firestore
             .collection('Schools')
             .doc(schoolName)
-            .collection('Academic_Year')
-            .doc(_currentAcademicYear)
             .collection('Classes')
             .doc(className)
-            .collection(_currentTerm)
-            .doc('Term_Informations')
-            .collection('Class_List')
+            .collection('Student_Details')
             .doc(widget.studentName)
             .collection('Student_Subjects')
             .doc(subject);
@@ -211,15 +203,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       print("Starting Student Subject Positioning calculation...");
 
       final studentsSnapshot = await _firestore
-          .collection('Schools')
-          .doc(schoolName)
-          .collection('Academic_Year')
-          .doc(_currentAcademicYear)
-          .collection('Classes')
-          .doc(className)
-          .collection(_currentTerm)
-          .doc('Term_Informations')
-          .collection('Class_List')
+          .collection('Schools/$schoolName/Classes/$className/Student_Details')
           .get();
 
       Map<String, List<int>> marksPerSubject = {};
@@ -229,13 +213,13 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       for (var studentDoc in studentsSnapshot.docs) {
         final studentName = studentDoc.id;
 
-        final subjectsSnapshot = await studentDoc.reference
-            .collection('Student_Subjects')
+        final subjectsSnapshot = await _firestore
+            .collection('Schools/$schoolName/Classes/$className/Student_Details/$studentName/Student_Subjects')
             .get();
 
         for (var subjectDoc in subjectsSnapshot.docs) {
           final data = subjectDoc.data();
-          final subjectName = data['Subject_Name']?.toString() ?? subjectDoc.id;
+          final subjectName = data['Subject_Name'] ?? subjectDoc.id;
           final gradeStr = data['Subject_Grade']?.toString() ?? 'N/A';
 
           // Skip students who don't take the subject (N/A grades)
@@ -281,18 +265,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
           // Update the position in Firestore for each student
           try {
             await _firestore
-                .collection('Schools')
-                .doc(schoolName)
-                .collection('Academic_Year')
-                .doc(_currentAcademicYear)
-                .collection('Classes')
-                .doc(className)
-                .collection(_currentTerm)
-                .doc('Term_Informations')
-                .collection('Class_List')
-                .doc(currentStudentName)
-                .collection('Student_Subjects')
-                .doc(subjectName)
+                .doc('Schools/$schoolName/Classes/$className/Student_Details/$currentStudentName/Student_Subjects/$subjectName')
                 .update({
               'Subject_Position': currentPosition,
               'Total_Students_Subject': studentList.length, // Only count students who actually take the subject
@@ -312,6 +285,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       print("Error in Subject Positioning Calculations: $e");
     }
   }
+
 
   Map<String, dynamic> calculateMSCEAggregate(List<int> subjectPoints) {
     if (subjectPoints.length < 6) {
@@ -349,20 +323,16 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     };
   }
 
-  // Method to process student data and calculate totals
+// Method to process student data and calculate totals
   Future<void> _processStudentData(String schoolName, String className, String studentName) async {
     try {
       // Get student's subjects and grades
       final subjectsSnapshot = await _firestore
           .collection('Schools')
           .doc(schoolName)
-          .collection('Academic_Year')
-          .doc(_currentAcademicYear)
           .collection('Classes')
           .doc(className)
-          .collection(_currentTerm)
-          .doc('Term_Informations')
-          .collection('Class_List')
+          .collection('Student_Details')
           .doc(studentName)
           .collection('Student_Subjects')
           .get();
@@ -382,9 +352,10 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     }
   }
 
-  // Process junior student data
+// Process junior student data
   Future<void> _processJuniorStudent(
-      String schoolName, String className, String studentName, QuerySnapshot subjectsSnapshot) async {
+      String schoolName, String className,
+      String studentName, QuerySnapshot subjectsSnapshot) async {
     try {
       int totalMarks = 0;
       int totalPossibleMarks = 0;
@@ -419,18 +390,15 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       DocumentReference marksRef = _firestore
           .collection('Schools')
           .doc(schoolName)
-          .collection('Academic_Year')
-          .doc(_currentAcademicYear)
           .collection('Classes')
           .doc(className)
-          .collection(_currentTerm)
-          .doc('Term_Informations')
-          .collection('Class_List')
+          .collection('Student_Details')
           .doc(studentName)
           .collection('TOTAL_MARKS')
           .doc('Marks');
 
       Map<String, dynamic> updateData = {
+
         'Student_Total_Marks': totalMarks,
         'Teacher_Total_Marks': totalPossibleMarks,
         'JCE_Status': jceStatus,
@@ -444,9 +412,13 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     }
   }
 
-  // Process senior student data
+// Process senior student data
   Future<void> _processSeniorStudent(
-      String schoolName, String className, String studentName, QuerySnapshot subjectsSnapshot) async {
+      String schoolName,
+      String className,
+      String studentName,
+      QuerySnapshot subjectsSnapshot) async {
+
     try {
       List<int> subjectPoints = [];
 
@@ -484,13 +456,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       DocumentReference marksRef = _firestore
           .collection('Schools')
           .doc(schoolName)
-          .collection('Academic_Year')
-          .doc(_currentAcademicYear)
           .collection('Classes')
           .doc(className)
-          .collection(_currentTerm)
-          .doc('Term_Informations')
-          .collection('Class_List')
+          .collection('Student_Details')
           .doc(studentName)
           .collection('TOTAL_MARKS')
           .doc('Marks');
@@ -509,7 +477,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     }
   }
 
-  // Method to process all students in the class (for comprehensive calculation)
+// Method to process all students in the class (for comprehensive calculation)
   Future<void> _processAllStudentsInClass(String schoolName, String className) async {
     try {
       print("Processing all Students in Class $className...");
@@ -517,13 +485,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       final studentsSnapshot = await _firestore
           .collection('Schools')
           .doc(schoolName)
-          .collection('Academic_Year')
-          .doc(_currentAcademicYear)
           .collection('Classes')
           .doc(className)
-          .collection(_currentTerm)
-          .doc('Term_Informations')
-          .collection('Class_List')
+          .collection('Student_Details')
           .get();
 
       // Process each student
@@ -587,7 +551,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     }
   }
 
-  // Method to calculate class performance metrics
+
+
+// Method to calculate class performance metrics
   Future<void> _calculateClassPerformance(String schoolName, String className) async {
     try {
       print("Calculating Class Performance for $className...");
@@ -595,13 +561,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       final studentsSnapshot = await _firestore
           .collection('Schools')
           .doc(schoolName)
-          .collection('Academic_Year')
-          .doc(_currentAcademicYear)
           .collection('Classes')
           .doc(className)
-          .collection(_currentTerm)
-          .doc('Term_Informations')
-          .collection('Class_List')
+          .collection('Student_Details')
           .get();
 
       bool isSenior = className.toUpperCase() == 'FORM 3' || className.toUpperCase() == 'FORM 4';
@@ -621,13 +583,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
         final marksDoc = await _firestore
             .collection('Schools')
             .doc(schoolName)
-            .collection('Academic_Year')
-            .doc(_currentAcademicYear)
             .collection('Classes')
             .doc(className)
-            .collection(_currentTerm)
-            .doc('Term_Informations')
-            .collection('Class_List')
+            .collection('Student_Details')
             .doc(studentName)
             .collection('TOTAL_MARKS')
             .doc('Marks')
@@ -655,13 +613,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
         final subjectsSnapshot = await _firestore
             .collection('Schools')
             .doc(schoolName)
-            .collection('Academic_Year')
-            .doc(_currentAcademicYear)
             .collection('Classes')
             .doc(className)
-            .collection(_currentTerm)
-            .doc('Term_Informations')
-            .collection('Class_List')
+            .collection('Student_Details')
             .doc(studentName)
             .collection('Student_Subjects')
             .get();
@@ -761,7 +715,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     }
   }
 
-  // Method to save class performance data to Firestore
+// Method to save class performance data to Firestore
   Future<void> _saveClassPerformanceToFirestore(String schoolName, String className) async {
     try {
       print("Saving Class Performance to Firestore...");
@@ -770,10 +724,10 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       if (currentUser == null) return;
 
       String userEmail = currentUser.email ?? '';
-      String basePath = 'Schools/$schoolName/Academic_Year/$_currentAcademicYear/Classes/$className/$_currentTerm/Term_Informations';
+      String basePath = 'Schools/$schoolName/Classes/$className';
 
-      // Save class summary
-      await _firestore.doc('$basePath/Class_Information').set({
+      // Save class summary - FIXED: Added proper document ID
+      await _firestore.doc('$basePath/Class_Performance/Class_Summary').set({
         'Total_Students': classPerformance['totalStudents'],
         'Class_Pass_Rate': classPerformance['classPassRate'],
         'Total_Class_Passed': classPerformance['totalClassPassed'],
@@ -782,7 +736,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
         'updatedBy': userEmail,
       }, SetOptions(merge: true));
 
-      // Save each subject's performance
+      // Save each subject's performance - FIXED: Proper document path
       for (String subject in subjectPerformance.keys) {
         var subjectData = subjectPerformance[subject];
 
@@ -793,13 +747,11 @@ class _Student_SubjectsState extends State<Student_Subjects> {
         await _firestore
             .collection('Schools')
             .doc(schoolName)
-            .collection('Academic_Year')
-            .doc(_currentAcademicYear)
             .collection('Classes')
             .doc(className)
-            .collection(_currentTerm)
-            .doc('Term_Informations')
-            .collection('Subject_Performance')
+            .collection('Class_Performance')
+            .doc('Subject_Performance')
+            .collection('Subjects')
             .doc(cleanSubjectName)
             .set({
           'Subject_Name': subject,
@@ -807,7 +759,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
           'Total_Pass': subjectData['totalPass'],
           'Total_Fail': subjectData['totalFail'],
           'Pass_Rate': subjectData['passRate'],
-          'Subject_Average': subjectData['subjectAverage'],
+          'Subject_Average': subjectData['subjectAverage'], // FIXED: This was missing
           'lastUpdated': FieldValue.serverTimestamp(),
           'updatedBy': userEmail,
         }, SetOptions(merge: true));
@@ -820,7 +772,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     }
   }
 
-  // Method to run complete class performance calculation and save
+// Method to run complete class performance calculation and save
   Future<void> _runCompleteClassPerformanceCalculation(String schoolName, String className) async {
     try {
       print("Running Complete Class Performance Analysis...");
@@ -838,7 +790,8 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     }
   }
 
-  // Update grade method
+  // Replace your existing _updateGrade method with this updated version
+
   Future<void> _updateGrade(String subject) async {
     String newGrade = '';
     String errorMessage = '';
@@ -967,25 +920,17 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                     final studentRefNormal = _firestore
                         .collection('Schools')
                         .doc(schoolName)
-                        .collection('Academic_Year')
-                        .doc(_currentAcademicYear)
                         .collection('Classes')
                         .doc(className)
-                        .collection(_currentTerm)
-                        .doc('Term_Informations')
-                        .collection('Class_List')
+                        .collection('Student_Details')
                         .doc(studentName);
 
                     final studentRefReversed = _firestore
                         .collection('Schools')
                         .doc(schoolName)
-                        .collection('Academic_Year')
-                        .doc(_currentAcademicYear)
                         .collection('Classes')
                         .doc(className)
-                        .collection(_currentTerm)
-                        .doc('Term_Informations')
-                        .collection('Class_List')
+                        .collection('Student_Details')
                         .doc(reversedName);
 
                     final studentSnapshotNormal = await studentRefNormal.get();
@@ -1072,7 +1017,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                     await _runCompleteClassPerformanceCalculation(schoolName, className);
                     print("Class performance calculation completed!");
 
-                    // 4. Update student remarks based on performance
+                    // 4. *** NEW: Update student remarks based on performance ***
                     await _updateRemarksForAllStudents(schoolName, className);
                     print("Student remarks updated successfully!");
 
@@ -1112,10 +1057,17 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     );
   }
 
-  // Method to generate performance-based remarks
+
+// Method to generate performance-based remarks
   Map<String, String> _generatePerformanceRemarks(
-      String className, Map<String, String> subjectGrades,
-      {int? totalMarks, int? bestSixPoints, String? academicStatus}) {
+      String className,
+      Map<String, String> subjectGrades,
+      {int? totalMarks,
+        int? bestSixPoints,
+        String? academicStatus})
+
+  {
+
     bool isSenior = className.toUpperCase() == 'FORM 3' || className.toUpperCase() == 'FORM 4';
     bool isJunior = className.toUpperCase() == 'FORM 1' || className.toUpperCase() == 'FORM 2';
 
@@ -1234,7 +1186,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     };
   }
 
-  // Method to update student remarks based on current performance
+// Method to update student remarks based on current performance
   Future<void> _updateStudentRemarks(String schoolName, String className, String studentName) async {
     try {
       print("Updating remarks for student: $studentName");
@@ -1243,13 +1195,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       final subjectsSnapshot = await _firestore
           .collection('Schools')
           .doc(schoolName)
-          .collection('Academic_Year')
-          .doc(_currentAcademicYear)
           .collection('Classes')
           .doc(className)
-          .collection(_currentTerm)
-          .doc('Term_Informations')
-          .collection('Class_List')
+          .collection('Student_Details')
           .doc(studentName)
           .collection('Student_Subjects')
           .get();
@@ -1258,13 +1206,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       final marksDoc = await _firestore
           .collection('Schools')
           .doc(schoolName)
-          .collection('Academic_Year')
-          .doc(_currentAcademicYear)
           .collection('Classes')
           .doc(className)
-          .collection(_currentTerm)
-          .doc('Term_Informations')
-          .collection('Class_List')
+          .collection('Student_Details')
           .doc(studentName)
           .collection('TOTAL_MARKS')
           .doc('Marks')
@@ -1312,13 +1256,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       final remarksRef = _firestore
           .collection('Schools')
           .doc(schoolName)
-          .collection('Academic_Year')
-          .doc(_currentAcademicYear)
           .collection('Classes')
           .doc(className)
-          .collection(_currentTerm)
-          .doc('Term_Informations')
-          .collection('Class_List')
+          .collection('Student_Details')
           .doc(studentName)
           .collection('TOTAL_MARKS')
           .doc('Results_Remarks');
@@ -1336,7 +1276,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
     }
   }
 
-  // Method to update remarks for all students in class
+// Method to update remarks for all students in class
   Future<void> _updateRemarksForAllStudents(String schoolName, String className) async {
     try {
       print("Updating remarks for all students in $className...");
@@ -1344,13 +1284,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       final studentsSnapshot = await _firestore
           .collection('Schools')
           .doc(schoolName)
-          .collection('Academic_Year')
-          .doc(_currentAcademicYear)
           .collection('Classes')
           .doc(className)
-          .collection(_currentTerm)
-          .doc('Term_Informations')
-          .collection('Class_List')
+          .collection('Student_Details')
           .get();
 
       List<Future<void>> remarkUpdates = [];
@@ -1369,6 +1305,12 @@ class _Student_SubjectsState extends State<Student_Subjects> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _fetchSubjects();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -1382,7 +1324,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       body: isLoading
           ? const Center(
         child: CircularProgressIndicator(
-          color: Colors.blueAccent,
+          color: Colors.blueAccent, // Changed to blue color
           strokeWidth: 3.0,
         ),
       )

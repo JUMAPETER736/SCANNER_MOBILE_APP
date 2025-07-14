@@ -31,10 +31,6 @@ class _Student_Name_ListState extends State<Student_Name_List> {
   List<Map<String, dynamic>> studentDetails = [];
   int _totalClassStudentsNumber = 0;
 
-  // Current academic year and term
-  String _currentAcademicYear = '';
-  String _currentTerm = '';
-
   // Auto-refresh timer
   Timer? _refreshTimer;
 
@@ -44,8 +40,6 @@ class _Student_Name_ListState extends State<Student_Name_List> {
   @override
   void initState() {
     super.initState();
-    _currentAcademicYear = _getCurrentAcademicYear();
-    _currentTerm = _getCurrentTerm();
     _checkTeacherSelection();
     _startAutoRefresh();
   }
@@ -57,42 +51,9 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     super.dispose();
   }
 
-  // ========== HELPER METHODS ==========
-
-  String _getCurrentAcademicYear() {
-    final DateTime now = DateTime.now();
-    final int currentYear = now.year;
-    final int currentMonth = now.month;
-
-    if (currentMonth >= 9) {
-      return '${currentYear}_${currentYear + 1}';
-    } else {
-      return '${currentYear - 1}_${currentYear}';
-    }
-  }
-
-  String _getCurrentTerm() {
-    final DateTime now = DateTime.now();
-    final int month = now.month;
-    final int day = now.day;
-
-    if (month >= 9 || month == 12) {
-      return 'TERM_ONE';
-    } else if (month >= 1 && (month < 3 || (month == 3 && day <= 20))) {
-      return 'TERM_TWO';
-    } else if (month >= 4 && month <= 8) {
-      return 'TERM_THREE';
-    } else {
-      return 'TERM_ONE';
-    }
-  }
-
-  String _getFormattedTerm() {
-    return _currentTerm.replaceAll('_', ' ');
-  }
-
   // ========== INITIALIZATION METHODS ==========
 
+  /// Check if teacher has selected school and classes
   void _checkTeacherSelection() async {
     if (widget.loggedInUser != null) {
       try {
@@ -103,58 +64,27 @@ class _Student_Name_ListState extends State<Student_Name_List> {
 
         if (teacherSnapshot.exists) {
           var teacherData = teacherSnapshot.data() as Map<String, dynamic>;
-          var school = teacherData['school']?.toString().trim();
+          var school = teacherData['school'];
           var classes = teacherData['classes'] as List<dynamic>? ?? [];
 
-          debugPrint('Teacher school from Firestore: "$school"');
-          debugPrint('Teacher classes: $classes');
-
-          if (school != null && school.isNotEmpty && classes.isNotEmpty) {
+          if (school != null && classes.isNotEmpty) {
             setState(() {
               teacherSchool = school;
               teacherClasses = List<String>.from(classes);
               selectedClass = classes[0];
               _hasSelectedCriteria = true;
             });
+            // Load initial student data
             await _loadStudentData();
-          } else {
-            debugPrint('Invalid school or classes: school="$school", classes=$classes');
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Teacher profile is incomplete. Please contact admin.'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-          }
-        } else {
-          debugPrint('Teacher document does not exist for ${widget.loggedInUser!.email}');
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Teacher profile not found. Please contact admin.'),
-                backgroundColor: Colors.red,
-              ),
-            );
           }
         }
       } catch (e) {
         debugPrint('Error checking teacher selection: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error loading teacher profile: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
       }
-    } else {
-      debugPrint('No logged-in user');
     }
   }
 
+  /// Start auto-refresh timer for real-time updates
   void _startAutoRefresh() {
     _refreshTimer = Timer.periodic(Duration(seconds: 10), (timer) {
       if (_searchQuery.isEmpty && mounted && _hasSelectedCriteria) {
@@ -165,123 +95,45 @@ class _Student_Name_ListState extends State<Student_Name_List> {
 
   // ========== DATA LOADING METHODS ==========
 
-  Future<void> _debugFirestorePath() async {
+  /// Load student data from Firestore
+  Future<void> _loadStudentData() async {
     if (teacherSchool == null || selectedClass == null) return;
 
     try {
-      debugPrint('=== DEBUG: Checking Firestore path ===');
-      var classListSnapshot = await _firestore
-          .collection('Schools')
-          .doc(teacherSchool)
-          .collection('Academic_Year')
-          .doc(_currentAcademicYear)
-          .collection('Classes')
-          .doc(selectedClass)
-          .collection(_currentTerm)
-          .doc('Term_Informations')
-          .collection('Class_List')
-          .get();
-      debugPrint('Class_List collection has ${classListSnapshot.docs.length} documents');
-      for (var doc in classListSnapshot.docs) {
-        debugPrint('Student document ID: ${doc.id}');
-      }
-    } catch (e) {
-      debugPrint('Error in debug path: $e');
-    }
-  }
-
-  Future<void> _loadStudentData() async {
-    if (teacherSchool == null || selectedClass == null) {
-      debugPrint('Cannot load data: teacherSchool or selectedClass is null');
-      return;
-    }
-
-    try {
-      String path = 'Schools/$teacherSchool/Academic_Year/$_currentAcademicYear/Classes/$selectedClass/$_currentTerm/Term_Informations/Class_List';
-      debugPrint('Loading students from path: $path');
-      debugPrint('School: $teacherSchool');
-      debugPrint('Academic Year: $_currentAcademicYear');
-      debugPrint('Class: $selectedClass');
-      debugPrint('Term: $_currentTerm');
-
       var snapshot = await _firestore
           .collection('Schools')
           .doc(teacherSchool)
-          .collection('Academic_Year')
-          .doc(_currentAcademicYear)
           .collection('Classes')
           .doc(selectedClass)
-          .collection(_currentTerm)
-          .doc('Term_Informations')
-          .collection('Class_List')
-          .orderBy('Full_Name')
+          .collection('Student_Details')
           .get();
 
-      debugPrint('Number of documents found: ${snapshot.docs.length}');
-
       List<Map<String, dynamic>> loadedStudents = [];
-      List<Future> personalInfoFutures = [];
 
       for (int index = 0; index < snapshot.docs.length; index++) {
         var studentDoc = snapshot.docs[index];
-        debugPrint('Processing student document: ${studentDoc.id}');
-        personalInfoFutures.add(
-          studentDoc.reference
-              .collection('Personal_Information')
-              .doc('Student_Details')
-              .get()
-              .then((personalInfoDoc) {
-            if (personalInfoDoc.exists) {
-              debugPrint('Personal info found for ${studentDoc.id}');
-              var data = personalInfoDoc.data() as Map<String, dynamic>;
-              var firstName = data['First_Name'] ?? 'N/A';
-              var lastName = data['Last_Name'] ?? 'N/A';
-              var studentGender = data['Student_Gender'] ?? 'N/A';
-              var fullName = data['Full_Name'] ?? '$firstName $lastName';
-              var studentID = data['Student_ID'] ?? studentDoc.id;
+        var registeredInfoDoc = await studentDoc.reference
+            .collection('Personal_Information')
+            .doc('Registered_Information')
+            .get();
 
-              return {
-                'index': index,
-                'firstName': firstName,
-                'lastName': lastName,
-                'fullName': fullName,
-                'studentGender': studentGender,
-                'docId': studentID,
-              };
-            } else {
-              debugPrint('No personal info for ${studentDoc.id}, using document ID as name');
-              var studentName = studentDoc.id;
-              var nameParts = studentName.split(' ');
+        if (registeredInfoDoc.exists) {
+          var data = registeredInfoDoc.data() as Map<String, dynamic>;
+          var firstName = data['firstName'] ?? 'N/A';
+          var lastName = data['lastName'] ?? 'N/A';
+          var studentGender = data['studentGender'] ?? 'N/A';
+          var fullName = '$lastName $firstName';
 
-              return {
-                'index': index,
-                'firstName': nameParts.isNotEmpty ? nameParts.first : studentName,
-                'lastName': nameParts.length > 1 ? nameParts.skip(1).join(' ') : '',
-                'fullName': studentName,
-                'studentGender': 'N/A',
-                'docId': studentName,
-              };
-            }
-          }).catchError((e) {
-            debugPrint('Error loading student ${studentDoc.id}: $e');
-            var studentName = studentDoc.id;
-            var nameParts = studentName.split(' ');
-
-            return {
-              'index': index,
-              'firstName': nameParts.isNotEmpty ? nameParts.first : studentName,
-              'lastName': nameParts.length > 1 ? nameParts.skip(1).join(' ') : '',
-              'fullName': studentName,
-              'studentGender': 'N/A',
-              'docId': studentName,
-            };
-          }),
-        );
+          loadedStudents.add({
+            'index': index,
+            'firstName': firstName,
+            'lastName': lastName,
+            'fullName': fullName,
+            'studentGender': studentGender,
+            'docId': studentDoc.id,
+          });
+        }
       }
-
-      loadedStudents = await Future.wait(personalInfoFutures) as List<Map<String, dynamic>>;
-
-      debugPrint('Total students loaded: ${loadedStudents.length}');
 
       if (mounted) {
         setState(() {
@@ -295,30 +147,14 @@ class _Student_Name_ListState extends State<Student_Name_List> {
         });
       }
 
+      // Update total students count in Firestore
       await _updateTotalStudentsCount();
-    } on FirebaseException catch (e) {
-      debugPrint('Firebase error loading student data: ${e.code} - ${e.message}');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading students: ${e.message ?? "Firestore error"}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     } catch (e) {
       debugPrint('Error loading student data: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading students. Please try again.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
 
+  /// Update total students count in Firestore
   Future<void> _updateTotalStudentsCount() async {
     if (teacherSchool == null || selectedClass == null) return;
 
@@ -326,21 +162,16 @@ class _Student_Name_ListState extends State<Student_Name_List> {
       final DocumentReference classInfoRef = _firestore
           .collection('Schools')
           .doc(teacherSchool)
-          .collection('Academic_Year')
-          .doc(_currentAcademicYear)
           .collection('Classes')
           .doc(selectedClass)
-          .collection(_currentTerm)
-          .doc('Term_Informations')
-          .collection('Term_Informations')
-          .doc('Class_Information');
+          .collection('Class_Info')
+          .doc('Info');
 
       await classInfoRef.set({
-        'Total_Students': _totalClassStudentsNumber,
-        'Last_Updated': FieldValue.serverTimestamp(),
-        'Class_Name': selectedClass,
-        'Academic_Year': _currentAcademicYear,
-        'Term_Name': _currentTerm,
+        'totalStudents': _totalClassStudentsNumber,
+        'lastUpdated': FieldValue.serverTimestamp(),
+        'className': selectedClass,
+        'school': teacherSchool,
       }, SetOptions(merge: true));
 
       debugPrint('Total students count updated: $_totalClassStudentsNumber');
@@ -351,6 +182,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
 
   // ========== SEARCH METHODS ==========
 
+  /// Perform search on student list
   void performSearch(String searchQuery) {
     setState(() {
       _searchQuery = searchQuery.trim();
@@ -387,6 +219,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     });
   }
 
+  /// Clear search and reset to show all students
   void _clearSearch() {
     setState(() {
       _searchQuery = '';
@@ -396,6 +229,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     });
   }
 
+  /// Handle class selection change
   void _onClassSelected(String classItem) {
     setState(() {
       selectedClass = classItem;
@@ -423,48 +257,35 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     );
   }
 
+  /// Build scaffold for when no user is logged in
   Widget _buildNoUserScaffold() {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Students List',
+          'Name of Students',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.blueAccent,
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.person_off,
-              size: 80,
-              color: Colors.red.withOpacity(0.7),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'No user is logged in.',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.red,
-              ),
-            ),
-          ],
+        child: Text(
+          'No user is logged in.',
+          style: TextStyle(fontSize: 16),
         ),
       ),
     );
   }
 
+  /// Build app bar
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       title: _hasSelectedCriteria
           ? Text(
-        '${_getFormattedTerm()} $selectedClass ',
+        '$teacherSchool',
         style: TextStyle(fontWeight: FontWeight.bold),
       )
           : Text(
-        'Students List',
+        'Name of Students',
         style: TextStyle(fontWeight: FontWeight.bold),
       ),
       centerTitle: true,
@@ -475,11 +296,13 @@ class _Student_Name_ListState extends State<Student_Name_List> {
           icon: Icon(Icons.search),
           onPressed: () => _showSearchDialog(context),
         ),
+
       ]
           : [],
     );
   }
 
+  /// Build main body
   Widget _buildBody() {
     return Container(
       decoration: BoxDecoration(
@@ -494,6 +317,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     );
   }
 
+  /// Build content when no class is selected
   Widget _buildNoSelectionContent() {
     return Center(
       child: Column(
@@ -506,19 +330,11 @@ class _Student_Name_ListState extends State<Student_Name_List> {
           ),
           SizedBox(height: 20),
           Text(
-            'Please select a class first',
+            'Please select Class First',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.blueAccent,
-            ),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'School: ${teacherSchool ?? 'Not selected'}',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black54,
             ),
           ),
         ],
@@ -526,6 +342,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     );
   }
 
+  /// Build main content with class selection and student list
   Widget _buildMainContent() {
     return Column(
       children: [
@@ -537,6 +354,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     );
   }
 
+  /// Build class selector buttons
   Widget _buildClassSelector() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -552,9 +370,6 @@ class _Student_Name_ListState extends State<Student_Name_List> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: isSelected ? Colors.blue : Colors.grey[300],
                 foregroundColor: isSelected ? Colors.white : Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
               ),
               child: Text(
                 classItem,
@@ -567,6 +382,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     );
   }
 
+  /// Build search information display
   Widget _buildSearchInfo() {
     if (_searchQuery.isEmpty) return SizedBox.shrink();
 
@@ -600,6 +416,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     );
   }
 
+  /// Build student list
   Widget _buildStudentList() {
     return FutureBuilder(
       future: allStudentDetails.isEmpty ? _loadStudentData() : null,
@@ -613,15 +430,12 @@ class _Student_Name_ListState extends State<Student_Name_List> {
           return _buildNoStudentsFound();
         }
 
-        if (_noSearchResults) {
-          return _buildNoSearchResults();
-        }
-
         return _buildStudentListView();
       },
     );
   }
 
+  /// Build loading indicator
   Widget _buildLoadingIndicator() {
     return Center(
       child: Column(
@@ -642,6 +456,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     );
   }
 
+  /// Build no students found message
   Widget _buildNoStudentsFound() {
     return Center(
       child: Column(
@@ -650,65 +465,24 @@ class _Student_Name_ListState extends State<Student_Name_List> {
           Icon(
             Icons.group_off,
             size: 80,
-            color: Colors.orange.withOpacity(0.7),
-          ),
-          SizedBox(height: 20),
-          Text(
-            'No students found in this class.',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.orange,
-            ),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Class: $selectedClass',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black54,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNoSearchResults() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.search_off,
-            size: 80,
             color: Colors.red.withOpacity(0.7),
           ),
           SizedBox(height: 20),
           Text(
-            'No students found for "$_searchQuery"',
+            'No Student Found.',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.red,
             ),
           ),
-          SizedBox(height: 10),
-          TextButton(
-            onPressed: _clearSearch,
-            child: Text(
-              'Clear Search',
-              style: TextStyle(
-                color: Colors.blue,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
+
+  /// Build student list view
   Widget _buildStudentListView() {
     return RefreshIndicator(
       onRefresh: _loadStudentData,
@@ -721,6 +495,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     );
   }
 
+  /// Build individual student card
   Widget _buildStudentCard(Map<String, dynamic> student) {
     return Card(
       elevation: 3,
@@ -737,7 +512,6 @@ class _Student_Name_ListState extends State<Student_Name_List> {
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 12,
             ),
           ),
         ),
@@ -749,32 +523,21 @@ class _Student_Name_ListState extends State<Student_Name_List> {
             color: Colors.blueAccent,
           ),
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Gender: ${student['studentGender']}',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Colors.black54,
-              ),
-            ),
-            Text(
-              'Student ID: ${student['docId']}',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey,
-              ),
-            ),
-          ],
+        subtitle: Text(
+          'Gender: ${student['studentGender']}',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: Colors.black54,
+          ),
         ),
-        trailing: Icon(Icons.arrow_forward_ios, color: Colors.blueAccent, size: 18),
+        trailing: Icon(Icons.arrow_forward, color: Colors.blueAccent),
         onTap: () => _navigateToStudentSubjects(student),
       ),
     );
   }
 
+  /// Navigate to student subjects page
   void _navigateToStudentSubjects(Map<String, dynamic> student) {
     Navigator.push(
       context,
@@ -787,6 +550,9 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     );
   }
 
+  // ========== DIALOG METHODS ==========
+
+  /// Show search dialog
   void _showSearchDialog(BuildContext context) {
     TextEditingController localSearchController =
     TextEditingController(text: _searchController.text);
@@ -837,13 +603,6 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                     },
                   ),
                   SizedBox(height: 10),
-                  Text(
-                    'Total students: $_totalClassStudentsNumber',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
                 ],
               ),
               actions: [
