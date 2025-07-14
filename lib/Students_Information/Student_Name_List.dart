@@ -499,7 +499,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
     return AppBar(
       title: _hasSelectedCriteria
           ? Text(
-        '${_getFormattedTerm()} $selectedClass ($_totalClassStudentsNumber)',
+        '${_getFormattedTerm()} $selectedClass ',
         style: TextStyle(fontWeight: FontWeight.bold),
       )
           : Text(
@@ -514,10 +514,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
           icon: Icon(Icons.search),
           onPressed: () => _showSearchDialog(context),
         ),
-        IconButton(
-          icon: Icon(Icons.refresh),
-          onPressed: _loadStudentData,
-        ),
+
       ]
           : [],
     );
