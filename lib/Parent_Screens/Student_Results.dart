@@ -704,6 +704,8 @@ class _Student_ResultsState extends State<Student_Results> {
     );
   }
 
+  // Replace your _buildSubjectsTable method with this:
+
   Widget _buildSubjectsTable(List<Map<String, dynamic>> subjects) {
     if (subjects.isEmpty) {
       return Text('No subjects data available');
@@ -732,14 +734,19 @@ class _Student_ResultsState extends State<Student_Results> {
         ...subjects.map((subject) {
           String grade = subject['gradeLetter'] ?? 'F';
           String comment = _getRemarkFromGrade(grade);
-          int position = subject['position'] ?? 0;
-          int totalStudents = subject['totalStudents'] ?? 0;
-          String positionText = totalStudents > 0 ? '$position/$totalStudents' : 'N/A';
+
+          // Handle position and totalStudents as strings
+          String position = subject['position'].toString();
+          String totalStudents = subject['totalStudents'].toString();
+
+          String positionText = (position != 'N/A' && totalStudents != 'N/A')
+              ? '$position/$totalStudents'
+              : 'N/A';
 
           return TableRow(
             children: [
               _tableCell(subject['subject'] ?? 'Unknown'),
-              _tableCell(subject['score']?.toString() ?? '0'),
+              _tableCell(subject['score'].toString()),
               _tableCell(grade),
               _tableCell(positionText),
               _tableCell(comment),
