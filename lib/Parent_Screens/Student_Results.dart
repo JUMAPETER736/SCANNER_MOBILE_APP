@@ -96,8 +96,6 @@ class _Student_ResultsState extends State<Student_Results> {
     }
   }
 
-// Replace your _fetchStudentAcademicYears method with this updated version:
-
   Future<void> _fetchStudentAcademicYears() async {
     try {
       setState(() => isLoading = true);
@@ -135,21 +133,14 @@ class _Student_ResultsState extends State<Student_Results> {
             DocumentSnapshot studentDoc = await _firestore.doc(studentPath).get();
 
             if (studentDoc.exists) {
-              print('✅ Found student $_studentName in $formClass for year $year');
-
               // Fetch all terms for this class and year in parallel
               Map<String, dynamic> classResults = await _fetchTermsForClassOptimized(year, formClass, studentPath);
               if (classResults.isNotEmpty) {
                 yearResults[formClass] = classResults;
-                print('📊 Added results for $formClass in year $year: ${classResults.keys}');
-              } else {
-                print('⚠️ No term data found for $formClass in year $year');
               }
-            } else {
-              print('❌ Student $_studentName not found in $formClass for year $year');
             }
           } catch (e) {
-            print("❌ Error checking student in $formClass for $year: $e");
+            print("Error checking student in $formClass for $year: $e");
           }
         }).toList();
 
@@ -166,18 +157,11 @@ class _Student_ResultsState extends State<Student_Results> {
         Map<String, Map<String, dynamic>> data = yearResult[year];
         if (data.isNotEmpty) {
           allResults[year] = data;
-          print('📅 Added year $year with classes: ${data.keys}');
         }
       }
 
       List<String> availableYears = allResults.keys.toList();
       availableYears.sort((a, b) => b.compareTo(a)); // Most recent first
-
-      print('🎯 Final results summary:');
-      print('Available years: $availableYears');
-      for (String year in availableYears) {
-        print('  Year $year: ${allResults[year]?.keys ?? []}');
-      }
 
       setState(() {
         availableAcademicYears = availableYears;
@@ -185,311 +169,13 @@ class _Student_ResultsState extends State<Student_Results> {
         isLoading = false;
       });
     } catch (e) {
-      print("❌ Error fetching academic years: $e");
+      print("Error fetching academic years: $e");
       setState(() {
         isLoading = false;
         hasError = true;
         errorMessage = 'Error fetching student results: ${e.toString()}';
       });
     }
-  }
-
-// Replace your _buildTermsRow method with this updated version:
-
-  Widget _buildTermsRow(String academicYear) {
-    if (!academicYearResults.containsKey(academicYear)) {
-      return SizedBox.shrink();
-    }
-
-    Map<String, Map<String, dynamic>> yearData = academicYearResults[academicYear]!;
-
-    // Get all available terms from all classes for this year
-    Set<String> allTerms = {};
-
-    for (String className in yearData.keys) {
-      Map<String, dynamic> classData = yearData[className]!;
-      allTerms.addAll(classData.keys);
-    }
-
-    List<String> availableTerms = allTerms.toList();
-    availableTerms.sort();
-
-    if (availableTerms.isEmpty) {
-      return SizedBox.shrink();
-    }
-
-    return Container(
-      margin: EdgeInsets.only(left: 16, right: 16, bottom: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: availableTerms.map((term) {
-          bool isSelected = selectedTerm == term;
-          return Expanded(
-            child: Container(
-              margin: EdgeInsets.symmetric(horizontal: 4),
-              child: InkWell(
-                onTap: () {
-                  setState(() {
-                    selectedTerm = isSelected ? null : term;
-                  });
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.blueAccent : Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.blueAccent,
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    _formatTermName(term),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isSelected ? Colors.white : Colors.blueAccent,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-// Replace your _buildTermDetails method with this updated version:
-
-  Widget _buildTermDetails() {
-    if (selectedAcademicYear == null || selectedTerm == null ||
-        !academicYearResults.containsKey(selectedAcademicYear)) {
-      return SizedBox.shrink();
-    }
-
-    Map<String, Map<String, dynamic>> yearData = academicYearResults[selectedAcademicYear]!;
-
-    // Find the class that has data for the selected term
-    String? selectedClass;
-    Map<String, dynamic>? termData;
-
-    for (String className in yearData.keys) {
-      Map<String, dynamic> classData = yearData[className]!;
-      if (classData.containsKey(selectedTerm)) {
-        selectedClass = className;
-        termData = classData[selectedTerm]!;
-        break;
-      }
-    }
-
-    if (selectedClass == null || termData == null) {
-      return Container(
-        margin: EdgeInsets.all(16),
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 2,
-              blurRadius: 5,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            'No data available for ${_formatTermName(selectedTerm!)}',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
-          ),
-        ),
-      );
-    }
-
-    List<Map<String, dynamic>> subjects = List<Map<String, dynamic>>.from(termData['subjects'] ?? []);
-    Map<String, dynamic> totalMarks = termData['totalMarks'] ?? {};
-    Map<String, dynamic> remarks = termData['remarks'] ?? {};
-
-    return Container(
-      margin: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.blueAccent,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  '${_formatTermName(selectedTerm!)} RESULTS',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '${_formatAcademicYear(selectedAcademicYear!)} • $selectedClass',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-          Container(
-            color: Colors.white,
-            padding: EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildSubjectsTable(subjects),
-                SizedBox(height: 16),
-                _buildSummaryInfo(totalMarks),
-                SizedBox(height: 16),
-                _buildRemarksSection(remarks),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-// Add this method to display class information in the academic years list:
-
-  Widget _buildAcademicYearsList() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 12),
-            child: Text(
-              'Academic Years:',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.blueAccent,
-              ),
-            ),
-          ),
-          ...availableAcademicYears.map((year) {
-            bool isExpanded = expandedAcademicYear == year;
-
-            // Get classes for this year
-            Map<String, Map<String, dynamic>> yearData = academicYearResults[year] ?? {};
-            List<String> classes = yearData.keys.toList();
-            classes.sort();
-
-            return Column(
-              children: [
-                Container(
-                  margin: EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blueAccent, width: 1),
-                    color: Colors.white,
-                  ),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () {
-                      setState(() {
-                        if (expandedAcademicYear == year) {
-                          expandedAcademicYear = null;
-                          selectedTerm = null;
-                        } else {
-                          expandedAcademicYear = year;
-                          selectedAcademicYear = year;
-                          selectedTerm = null;
-                        }
-                      });
-                    },
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today,
-                                color: Colors.blueAccent,
-                                size: 20,
-                              ),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  _formatAcademicYear(year),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.blueAccent,
-                                  ),
-                                ),
-                              ),
-                              Icon(
-                                isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                                color: Colors.blueAccent,
-                              ),
-                            ],
-                          ),
-                          if (classes.isNotEmpty) ...[
-                            SizedBox(height: 8),
-                            Row(
-                              children: [
-                                SizedBox(width: 32),
-                                Expanded(
-                                  child: Text(
-                                    'Classes: ${classes.join(', ')}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                if (isExpanded) _buildTermsRow(year),
-              ],
-            );
-          }).toList(),
-        ],
-      ),
-    );
   }
 
   Future<Map<String, dynamic>> _fetchTermsForClassOptimized(String academicYear, String className, String studentPath) async {
@@ -791,6 +477,227 @@ class _Student_ResultsState extends State<Student_Results> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAcademicYearsList() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 12),
+            child: Text(
+              'Academic Years:',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blueAccent,
+              ),
+            ),
+          ),
+          ...availableAcademicYears.map((year) {
+            bool isExpanded = expandedAcademicYear == year;
+            return Column(
+              children: [
+                Container(
+                  margin: EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blueAccent, width: 1),
+                    color: Colors.white,
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      setState(() {
+                        if (expandedAcademicYear == year) {
+                          expandedAcademicYear = null;
+                          selectedTerm = null;
+                        } else {
+                          expandedAcademicYear = year;
+                          selectedAcademicYear = year;
+                          selectedTerm = null;
+                        }
+                      });
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            color: Colors.blueAccent,
+                            size: 20,
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _formatAcademicYear(year),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.blueAccent,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                            color: Colors.blueAccent,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                if (isExpanded) _buildTermsRow(year),
+              ],
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTermsRow(String academicYear) {
+    if (!academicYearResults.containsKey(academicYear)) {
+      return SizedBox.shrink();
+    }
+
+    Map<String, Map<String, dynamic>> yearData = academicYearResults[academicYear]!;
+    String firstClassName = yearData.keys.first;
+    Map<String, dynamic> classData = yearData[firstClassName]!;
+
+    List<String> availableTerms = classData.keys.toList();
+    availableTerms.sort();
+
+    return Container(
+      margin: EdgeInsets.only(left: 16, right: 16, bottom: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: availableTerms.map((term) {
+          bool isSelected = selectedTerm == term;
+          return Expanded(
+            child: Container(
+              margin: EdgeInsets.symmetric(horizontal: 4),
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    selectedTerm = isSelected ? null : term;
+                  });
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.blueAccent : Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.blueAccent,
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    _formatTermName(term),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? Colors.white : Colors.blueAccent,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildTermDetails() {
+    if (selectedAcademicYear == null || selectedTerm == null ||
+        !academicYearResults.containsKey(selectedAcademicYear)) {
+      return SizedBox.shrink();
+    }
+
+    Map<String, Map<String, dynamic>> yearData = academicYearResults[selectedAcademicYear]!;
+    String firstClassName = yearData.keys.first;
+    Map<String, dynamic> classData = yearData[firstClassName]!;
+
+    if (!classData.containsKey(selectedTerm)) {
+      return SizedBox.shrink();
+    }
+
+    Map<String, dynamic> termData = classData[selectedTerm]!;
+    List<Map<String, dynamic>> subjects = List<Map<String, dynamic>>.from(termData['subjects'] ?? []);
+    Map<String, dynamic> totalMarks = termData['totalMarks'] ?? {};
+    Map<String, dynamic> remarks = termData['remarks'] ?? {};
+
+    return Container(
+      margin: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.3),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blueAccent,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  '${_formatTermName(selectedTerm!)} RESULTS',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 4),
+                Text(
+                  _formatAcademicYear(selectedAcademicYear!),
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          Container(
+            color: Colors.white,
+            padding: EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _buildSubjectsTable(subjects),
+                SizedBox(height: 16),
+                _buildSummaryInfo(totalMarks),
+                SizedBox(height: 16),
+                _buildRemarksSection(remarks),
+              ],
+            ),
           ),
         ],
       ),
