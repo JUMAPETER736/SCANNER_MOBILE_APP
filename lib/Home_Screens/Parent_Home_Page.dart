@@ -3,7 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Login_Page.dart';
 import 'package:scanna/Parent_Screens/Student_Details_View.dart';
 import 'package:scanna/Parent_Screens/Available_School_Events.dart';
-import 'package:scanna/Parent_Screens/Student_Results.dart';
+import 'package:scanna/Parent_Screens/Junior_Student_Results.dart';
+import 'package:scanna/Parent_Screens/Senior_Student_Results.dart';
 import 'package:scanna/Parent_Screens/School_Fees_Structure_And_Balance.dart';
 import 'package:scanna/Parent_Screens/Student_Behavior.dart';
 
@@ -207,7 +208,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => Student_Results(
+              builder: (context) => Junior_Student_Results(
                 schoolName: 'schoolName',
                 className: 'className',
                 studentClass: 'studentClass',
