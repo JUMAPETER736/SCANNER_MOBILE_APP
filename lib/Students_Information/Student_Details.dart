@@ -130,6 +130,19 @@ class _Student_DetailsState extends State<Student_Details> {
     }
   }
 
+  // Helper method to check if a term is in the past
+  bool _isTermInPast(String term) {
+    final String currentTerm = _getCurrentTerm();
+
+    // Define term order
+    const List<String> termOrder = ['TERM_ONE', 'TERM_TWO', 'TERM_THREE'];
+
+    final int currentTermIndex = termOrder.indexOf(currentTerm);
+    final int checkTermIndex = termOrder.indexOf(term);
+
+    return checkTermIndex < currentTermIndex;
+  }
+
   Map<String, Map<String, String>> _getTermDates(String academicYear) {
     final List<String> years = academicYear.split('_');
     final int startYear = int.parse(years[0]);
@@ -397,7 +410,7 @@ class _Student_DetailsState extends State<Student_Details> {
     }
   }
 
-  // MARK: - Academic Performance Structure Creation (Updated to reference existing data)
+  // MARK: - Academic Performance Structure Creation (Updated to initialize past terms with N/A)
   Future<void> _createAcademicPerformanceStructure(WriteBatch batch, DocumentReference studentRef) async {
     final String currentAcademicYear = _getCurrentAcademicYear();
     final Map<String, Map<String, String>> termDates = _getTermDates(currentAcademicYear);
@@ -419,6 +432,8 @@ class _Student_DetailsState extends State<Student_Details> {
 
     // Create structure for each term
     for (String term in ['TERM_ONE', 'TERM_TWO', 'TERM_THREE']) {
+      final bool isPastTerm = _isTermInPast(term);
+
       final DocumentReference termRef = academicPerformanceRef
           .collection(term)
           .doc('Term_Info');
@@ -427,45 +442,65 @@ class _Student_DetailsState extends State<Student_Details> {
         'term_name': term,
         'start_date': termDates[term]!['start_date'],
         'end_date': termDates[term]!['end_date'],
-        'term_status': 'Not Started',
+        'term_status': isPastTerm ? 'Completed' : 'Not Started',
         'created_at': FieldValue.serverTimestamp(),
         // Reference to existing Student_Subjects collection for marks
         'subjects_collection_ref': '../../Student_Subjects',
         'total_marks_ref': '../../TOTAL_MARKS',
       });
 
-      // Create term-specific marks tracking (references existing subjects)
+      // Create term-specific marks tracking
       final DocumentReference termMarksRef = termRef
           .collection('Term_Marks')
           .doc('Marks_Summary');
 
       batch.set(termMarksRef, {
         'term_name': term,
-        // This will reference the Student_Subjects collection for individual subject marks
-        'subjects_source': 'Student_Subjects', // Points to existing collection
-        'marks_entered': false,
-        'marks_verified': false,
+        'subjects_source': 'Student_Subjects',
+        'marks_entered': isPastTerm,
+        'marks_verified': isPastTerm,
         'last_updated': FieldValue.serverTimestamp(),
-        'updated_by': _loggedInUser?.email ?? 'system',
+        'updated_by': isPastTerm ? 'system' : (_loggedInUser?.email ?? 'system'),
       });
 
-      // Create term summary (calculations based on existing data)
+      // Create individual subject marks for past terms
+      if (isPastTerm) {
+        for (String subject in _defaultSubjects[_selectedClass]!) {
+          final DocumentReference subjectMarksRef = termMarksRef
+              .collection('Subject_Marks')
+              .doc(subject);
+
+          batch.set(subjectMarksRef, {
+            'subject_name': subject,
+            'marks_obtained': 'N/A',
+            'total_marks': 'N/A',
+            'percentage': 'N/A',
+            'grade': 'N/A',
+            'remarks': 'N/A',
+            'teacher_comment': 'N/A',
+            'last_updated': FieldValue.serverTimestamp(),
+            'updated_by': 'system',
+          });
+        }
+      }
+
+      // Create term summary
       final DocumentReference termSummaryRef = termRef
           .collection('Term_Summary')
           .doc('Summary');
 
       batch.set(termSummaryRef, {
-        'total_marks': 0,
-        'average_marks': 0.0,
+        'total_marks': isPastTerm ? 'N/A' : 0,
+        'average_marks': isPastTerm ? 'N/A' : 0.0,
         'total_subjects': _defaultSubjects[_selectedClass]!.length,
-        'subjects_passed': 0,
-        'subjects_failed': 0,
+        'subjects_passed': isPastTerm ? 'N/A' : 0,
+        'subjects_failed': isPastTerm ? 'N/A' : 0,
         'overall_grade': 'N/A',
-        'class_position': 0,
+        'class_position': isPastTerm ? 'N/A' : 0,
         'form_teacher_remarks': 'N/A',
         'head_teacher_remarks': 'N/A',
-        'term_completed': false,
-        'completion_date': null,
+        'term_completed': isPastTerm,
+        'completion_date': isPastTerm ? termDates[term]!['end_date'] : null,
         'last_updated': FieldValue.serverTimestamp(),
         // References for calculations
         'calculated_from_subjects': 'Student_Subjects',
@@ -478,14 +513,31 @@ class _Student_DetailsState extends State<Student_Details> {
           .doc('Attendance_Summary');
 
       batch.set(attendanceRef, {
-        'total_school_days': 0,
-        'days_present': 0,
-        'days_absent': 0,
-        'attendance_percentage': 0.0,
-        'late_arrivals': 0,
-        'early_departures': 0,
+        'total_school_days': isPastTerm ? 'N/A' : 0,
+        'days_present': isPastTerm ? 'N/A' : 0,
+        'days_absent': isPastTerm ? 'N/A' : 0,
+        'attendance_percentage': isPastTerm ? 'N/A' : 0.0,
+        'late_arrivals': isPastTerm ? 'N/A' : 0,
+        'early_departures': isPastTerm ? 'N/A' : 0,
         'last_updated': FieldValue.serverTimestamp(),
       });
+
+      // Create detailed attendance records for past terms
+      if (isPastTerm) {
+        final DocumentReference attendanceDetailsRef = attendanceRef
+            .collection('Attendance_Details')
+            .doc('Daily_Records');
+
+        batch.set(attendanceDetailsRef, {
+          'term_name': term,
+          'attendance_records': 'N/A',
+          'daily_attendance': 'N/A',
+          'weekly_summary': 'N/A',
+          'monthly_summary': 'N/A',
+          'notes': 'Records not available for past terms',
+          'last_updated': FieldValue.serverTimestamp(),
+        });
+      }
     }
 
     // Create Academic Year Summary
@@ -496,8 +548,8 @@ class _Student_DetailsState extends State<Student_Details> {
     batch.set(yearSummaryRef, {
       'academic_year': currentAcademicYear,
       'total_terms': 3,
-      'completed_terms': 0,
-      'overall_average': 0.0,
+      'completed_terms': 2, // TERM_ONE and TERM_TWO are completed
+      'overall_average': 'N/A',
       'best_term': 'N/A',
       'weakest_term': 'N/A',
       'year_grade': 'N/A',
@@ -510,9 +562,11 @@ class _Student_DetailsState extends State<Student_Details> {
       'personal_info_source': 'Personal_Information',
       'subjects_source': 'Student_Subjects',
       'total_marks_source': 'TOTAL_MARKS',
+      'past_terms_note': 'TERM_ONE and TERM_TWO marks initialized with N/A values',
     });
 
     print("Academic Performance structure created for academic year: $currentAcademicYear");
+    print("Past terms (TERM_ONE and TERM_TWO) initialized with N/A values");
     print("Structure references existing collections: Personal_Information, Student_Subjects, TOTAL_MARKS");
   }
 
@@ -762,57 +816,58 @@ class _Student_DetailsState extends State<Student_Details> {
 
     return Column(
       children: [
-        const Text(
-          'QR Code Generated Successfully!',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.blueAccent,
-          ),
-        ),
-        const SizedBox(height: 20),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 8,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              BarcodeWidget(
-                barcode: Barcode.qrCode(),
-                data: _generatedQRCode!,
-                width: 200,
-                height: 200,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'Student ID: $_studentID',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        Text(
+      const Text(
+      'QR Code Generated Successfully!',
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Colors.blueAccent,
+      ),
+    ),
+    const SizedBox(height: 20),
+    Container(
+    decoration: BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(15),
+    boxShadow: const [
+    BoxShadow(
+    color: Colors.black26,
+    blurRadius: 8,
+    offset: Offset(0, 4),
+    ),
+    ],
+    ),
+    padding: const EdgeInsets.all(20),
+    child: Column(
+    children: [
+    BarcodeWidget(
+    barcode: Barcode.qrCode(),
+    data: _generatedQRCode!,
+    width: 200,
+    height: 200,
+    ),
+    const SizedBox(height: 16),
+    Container(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    decoration: BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(8),
+    ),
+    child: Text(
+    'Student ID: $_studentID',
+    style: const TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.bold,
+    color: Colors.black,
+    ),
+    ),
+    ),
+    ],
+    ),
+    ),
+    const SizedBox(height: 20),
+    Text(
+
           'Save this QR code for student identification',
           style: TextStyle(
             fontSize: 14,
