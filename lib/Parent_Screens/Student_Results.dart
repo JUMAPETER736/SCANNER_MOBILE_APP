@@ -186,17 +186,38 @@ class _Student_ResultsState extends State<Student_Results> {
 
       // Use Future.wait to fetch all terms in parallel
       List<Future<Map<String, dynamic>>> termFutures = terms.map((term) async {
-        String termPath = '$studentPath/Academic_Performance/$academicYear/$term/Term_Info';
+        // Check if Academic_Performance structure exists for this academic year
+        String academicPerformancePath = '$studentPath/Academic_Performance/$academicYear';
 
         try {
-          // Quick check if term exists
+          // First check if the academic performance document exists
+          DocumentSnapshot academicPerfDoc = await _firestore.doc(academicPerformancePath).get();
+
+          if (academicPerfDoc.exists) {
+            // Check if the term collection exists
+            String termPath = '$academicPerformancePath/$term/Term_Info';
+            DocumentSnapshot termDoc = await _firestore.doc(termPath).get();
+
+            if (termDoc.exists) {
+              // Term exists, fetch the data
+              Map<String, dynamic> termData = await _fetchTermDataOptimized(studentPath, academicYear, term);
+              if (termData.isNotEmpty) {
+                return {term: termData};
+              }
+            }
+          }
+
+          // If Academic_Performance doesn't exist, check the old structure
+          String oldTermPath = '$studentPath/Academic_Performance/$academicYear/$term/Term_Info';
           DocumentSnapshot termSummaryDoc = await _firestore
-              .doc('$termPath/Term_Summary/Summary')
+              .doc('$oldTermPath/Term_Summary/Summary')
               .get();
 
           if (termSummaryDoc.exists) {
             Map<String, dynamic> termData = await _fetchTermDataOptimized(studentPath, academicYear, term);
-            return {term: termData};
+            if (termData.isNotEmpty) {
+              return {term: termData};
+            }
           }
         } catch (e) {
           print("Error checking term $term: $e");
@@ -226,18 +247,21 @@ class _Student_ResultsState extends State<Student_Results> {
     Map<String, dynamic> termData = {};
 
     try {
-      String termPath = '$studentPath/Academic_Performance/$academicYear/$term/Term_Info';
+      // Try the new Academic_Performance structure first
+      String newTermPath = '$studentPath/Academic_Performance/$academicYear/$term/Term_Info';
 
       // Use Future.wait to fetch all data in parallel
       List<Future<dynamic>> dataFutures = [
-        // Fetch subjects
+        // Fetch subjects from Student_Subjects collection
         _firestore.collection('$studentPath/Student_Subjects').get(),
-        // Fetch term summary
-        _firestore.doc('$termPath/Term_Summary/Summary').get(),
+        // Try to fetch from new structure first
+        _firestore.doc('$newTermPath/Term_Summary/Summary').get(),
         // Fetch total marks
         _firestore.doc('$studentPath/TOTAL_MARKS/Marks').get(),
         // Fetch remarks
         _firestore.doc('$studentPath/TOTAL_MARKS/Results_Remarks').get(),
+        // Try to fetch term marks from new structure
+        _firestore.doc('$newTermPath/Term_Marks/Marks_Summary').get(),
       ];
 
       List<dynamic> results = await Future.wait(dataFutures);
@@ -246,58 +270,99 @@ class _Student_ResultsState extends State<Student_Results> {
       DocumentSnapshot termSummaryDoc = results[1] as DocumentSnapshot;
       DocumentSnapshot totalMarksDoc = results[2] as DocumentSnapshot;
       DocumentSnapshot remarksDoc = results[3] as DocumentSnapshot;
+      DocumentSnapshot termMarksDoc = results[4] as DocumentSnapshot;
+
+      // If new structure doesn't exist, try old structure
+      if (!termSummaryDoc.exists) {
+        String oldTermPath = '$studentPath/Academic_Performance/$academicYear/$term/Term_Info';
+        termSummaryDoc = await _firestore.doc('$oldTermPath/Term_Summary/Summary').get();
+      }
 
       // Process subjects with proper position data
       List<Map<String, dynamic>> subjects = [];
       for (var doc in subjectsSnapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
+
+        // Handle both numeric and string values for scores
         int score = 0;
-        if (data['Subject_Grade'] != null && data['Subject_Grade'] != 'N/A') {
-          score = double.tryParse(data['Subject_Grade'].toString())?.round() ?? 0;
+        String scoreStr = data['Subject_Grade']?.toString() ?? 'N/A';
+
+        if (scoreStr != 'N/A' && scoreStr.isNotEmpty) {
+          score = double.tryParse(scoreStr)?.round() ?? 0;
         }
 
         // Get position data from the document
-        int position = data['Subject_Position'] ?? 0;
-        int totalStudents = data['Total_Students_Subject'] ?? 0;
-        String gradeLetter = data['Grade_Letter'] ?? _getGradeFromPercentage(score.toDouble());
+        int position = 0;
+        if (data['Subject_Position'] != null && data['Subject_Position'].toString() != 'N/A') {
+          position = int.tryParse(data['Subject_Position'].toString()) ?? 0;
+        }
+
+        int totalStudents = 0;
+        if (data['Total_Students_Subject'] != null && data['Total_Students_Subject'].toString() != 'N/A') {
+          totalStudents = int.tryParse(data['Total_Students_Subject'].toString()) ?? 0;
+        }
+
+        String gradeLetter = data['Grade_Letter'] ?? 'N/A';
+        if (gradeLetter == 'N/A' && scoreStr != 'N/A') {
+          gradeLetter = _getGradeFromPercentage(score.toDouble());
+        }
 
         subjects.add({
           'subject': data['Subject_Name'] ?? doc.id,
-          'score': score,
-          'position': position,
-          'totalStudents': totalStudents,
+          'score': scoreStr == 'N/A' ? 'N/A' : score,
+          'position': position == 0 ? 'N/A' : position,
+          'totalStudents': totalStudents == 0 ? 'N/A' : totalStudents,
           'gradeLetter': gradeLetter,
         });
       }
 
-      // Process other data
+      // Process term summary data
       Map<String, dynamic> termSummary = {};
       if (termSummaryDoc.exists) {
-        termSummary = termSummaryDoc.data() as Map<String, dynamic>;
+        final data = termSummaryDoc.data() as Map<String, dynamic>;
+        termSummary = data;
       }
 
+      // Process total marks data
       Map<String, dynamic> totalMarks = {};
       if (totalMarksDoc.exists) {
-        totalMarks = totalMarksDoc.data() as Map<String, dynamic>;
+        final data = totalMarksDoc.data() as Map<String, dynamic>;
+        totalMarks = data;
       }
 
+      // Process remarks data
       Map<String, dynamic> remarks = {};
       if (remarksDoc.exists) {
-        remarks = remarksDoc.data() as Map<String, dynamic>;
+        final data = remarksDoc.data() as Map<String, dynamic>;
+        remarks = data;
       }
 
+      // Process term marks data if available
+      Map<String, dynamic> termMarks = {};
+      if (termMarksDoc.exists) {
+        final data = termMarksDoc.data() as Map<String, dynamic>;
+        termMarks = data;
+      }
+
+      // Combine all marks data
       Map<String, dynamic> combinedMarks = {
         ...totalMarks,
         ...termSummary,
+        ...termMarks,
       };
 
-      termData = {
-        'subjects': subjects,
-        'totalMarks': combinedMarks,
-        'remarks': remarks,
-      };
+      // Only include terms that have some data (even if N/A)
+      if (subjects.isNotEmpty || termSummary.isNotEmpty || totalMarks.isNotEmpty || remarks.isNotEmpty) {
+        termData = {
+          'subjects': subjects,
+          'totalMarks': combinedMarks,
+          'remarks': remarks,
+        };
+      }
     } catch (e) {
       print("Error fetching term data for $term: $e");
+      // Return empty map on error
+      return {};
     }
 
     return termData;
