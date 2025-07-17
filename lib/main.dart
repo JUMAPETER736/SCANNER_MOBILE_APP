@@ -24,15 +24,16 @@ class MyApp extends StatelessWidget {
       ),
       debugShowCheckedModeBanner: false,
       initialRoute: '/Login_Page',
-      routes: {
-        '/Login_Page': (context) => Login_Page(),
-        '/Register_Page': (context) => Register_Page(),
-        '/Forgot_Password': (context) => Forgot_Password(),
-        '/Teacher_Home_Page': (context) => Teacher_Home_Page(),
-      },
       onGenerateRoute: (settings) {
-        // Only handle routes that need arguments
         switch (settings.name) {
+          case '/Login_Page':
+            return MaterialPageRoute(builder: (context) => Login_Page());
+          case '/Register_Page':
+            return MaterialPageRoute(builder: (context) => Register_Page());
+          case '/Forgot_Password':
+            return MaterialPageRoute(builder: (context) => Forgot_Password());
+          case '/Teacher_Home_Page':
+            return MaterialPageRoute(builder: (context) => Teacher_Home_Page());
           case '/Parent_Main_Home_Page':
             final args = settings.arguments as Map<String, String>?;
             return MaterialPageRoute(
