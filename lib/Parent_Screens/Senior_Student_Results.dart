@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -74,11 +72,6 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
         _studentClass = ParentDataManager().studentClass;
       });
 
-      print('🎓 Parent Data Loaded for Results:');
-      print('School: $_schoolName');
-      print('Student: $_studentName');
-      print('Class: $_studentClass');
-
       if (_schoolName == null || _schoolName!.isEmpty) {
         setState(() {
           isLoading = false;
@@ -87,7 +80,6 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
         });
         return;
       }
-
     } catch (e) {
       print('❌ Error loading parent data: $e');
       setState(() {
@@ -102,7 +94,6 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
     try {
       setState(() => isLoading = true);
 
-      // Optimize: Use fewer years and batch requests
       List<String> years = [];
       DateTime now = DateTime.now();
       int currentYear = now.year;
@@ -111,31 +102,25 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
         currentYear -= 1;
       }
 
-      // Check only current and previous 2 academic years for faster loading
       for (int i = 0; i < 3; i++) {
         int year = currentYear - i;
         String academicYear = "${year}_${year + 1}";
         years.add(academicYear);
       }
 
-      // Optimize: Use batch operations and parallel requests
       Map<String, Map<String, Map<String, dynamic>>> allResults = {};
       List<String> formClasses = ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'];
 
-      // Use Future.wait for parallel processing
       List<Future<Map<String, dynamic>>> yearFutures = years.map((year) async {
         Map<String, Map<String, dynamic>> yearResults = {};
 
-        // Process all form classes in parallel for each year
         List<Future<void>> classFutures = formClasses.map((formClass) async {
           String studentPath = 'Schools/$_schoolName/Classes/$formClass/Student_Details/$_studentName';
 
           try {
-            // Check if student exists in this class
             DocumentSnapshot studentDoc = await _firestore.doc(studentPath).get();
 
             if (studentDoc.exists) {
-              // Fetch all terms for this class and year in parallel
               Map<String, dynamic> classResults = await _fetchTermsForClassOptimized(year, formClass, studentPath);
               if (classResults.isNotEmpty) {
                 yearResults[formClass] = classResults;
@@ -150,10 +135,8 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
         return {year: yearResults};
       }).toList();
 
-      // Wait for all years to complete
       List<Map<String, dynamic>> yearResults = await Future.wait(yearFutures);
 
-      // Combine results
       for (var yearResult in yearResults) {
         String year = yearResult.keys.first;
         Map<String, Map<String, dynamic>> data = yearResult[year];
@@ -163,7 +146,7 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
       }
 
       List<String> availableYears = allResults.keys.toList();
-      availableYears.sort((a, b) => b.compareTo(a)); // Most recent first
+      availableYears.sort((a, b) => b.compareTo(a));
 
       setState(() {
         availableAcademicYears = availableYears;
@@ -186,22 +169,17 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
     try {
       List<String> terms = ['TERM_ONE', 'TERM_TWO', 'TERM_THREE'];
 
-      // Use Future.wait to fetch all terms in parallel
       List<Future<Map<String, dynamic>>> termFutures = terms.map((term) async {
-        // Check if Academic_Performance structure exists for this academic year
         String academicPerformancePath = '$studentPath/Academic_Performance/$academicYear';
 
         try {
-          // First check if the academic performance document exists
           DocumentSnapshot academicPerfDoc = await _firestore.doc(academicPerformancePath).get();
 
           if (academicPerfDoc.exists) {
-            // Check if the term collection exists
             String termPath = '$academicPerformancePath/$term/Term_Info';
             DocumentSnapshot termDoc = await _firestore.doc(termPath).get();
 
             if (termDoc.exists) {
-              // Term exists, fetch the data
               Map<String, dynamic> termData = await _fetchTermDataOptimized(studentPath, academicYear, term);
               if (termData.isNotEmpty) {
                 return {term: termData};
@@ -209,11 +187,8 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
             }
           }
 
-          // If Academic_Performance doesn't exist, check the old structure
           String oldTermPath = '$studentPath/Academic_Performance/$academicYear/$term/Term_Info';
-          DocumentSnapshot termSummaryDoc = await _firestore
-              .doc('$oldTermPath/Term_Summary/Summary')
-              .get();
+          DocumentSnapshot termSummaryDoc = await _firestore.doc('$oldTermPath/Term_Summary/Summary').get();
 
           if (termSummaryDoc.exists) {
             Map<String, dynamic> termData = await _fetchTermDataOptimized(studentPath, academicYear, term);
@@ -249,21 +224,11 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
     Map<String, dynamic> termData = {};
 
     try {
-      // Try the new Academic_Performance structure first
-      String newTermPath = '$studentPath/Academic_Performance/$academicYear/$term/Term_Info';
-
-      // Use Future.wait to fetch all data in parallel
       List<Future<dynamic>> dataFutures = [
-        // Fetch subjects from Student_Subjects collection
         _firestore.collection('$studentPath/Student_Subjects').get(),
-        // Try to fetch from new structure first
-        _firestore.doc('$newTermPath/Term_Summary/Summary').get(),
-        // Fetch total marks
+        _firestore.doc('$studentPath/Academic_Performance/$academicYear/$term/Term_Info/Term_Summary/Summary').get(),
         _firestore.doc('$studentPath/TOTAL_MARKS/Marks').get(),
-        // Fetch remarks
         _firestore.doc('$studentPath/TOTAL_MARKS/Results_Remarks').get(),
-        // Try to fetch term marks from new structure
-        _firestore.doc('$newTermPath/Term_Marks/Marks_Summary').get(),
       ];
 
       List<dynamic> results = await Future.wait(dataFutures);
@@ -272,28 +237,20 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
       DocumentSnapshot termSummaryDoc = results[1] as DocumentSnapshot;
       DocumentSnapshot totalMarksDoc = results[2] as DocumentSnapshot;
       DocumentSnapshot remarksDoc = results[3] as DocumentSnapshot;
-      DocumentSnapshot termMarksDoc = results[4] as DocumentSnapshot;
 
-      // If new structure doesn't exist, try old structure
-      if (!termSummaryDoc.exists) {
-        String oldTermPath = '$studentPath/Academic_Performance/$academicYear/$term/Term_Info';
-        termSummaryDoc = await _firestore.doc('$oldTermPath/Term_Summary/Summary').get();
-      }
-
-      // Process subjects with proper position data
       List<Map<String, dynamic>> subjects = [];
       for (var doc in subjectsSnapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
 
-        // Handle both numeric and string values for scores
         int score = 0;
         String scoreStr = data['Subject_Grade']?.toString() ?? 'N/A';
-
         if (scoreStr != 'N/A' && scoreStr.isNotEmpty) {
           score = double.tryParse(scoreStr)?.round() ?? 0;
         }
 
-        // Get position data from the document
+        String gradePoint = data['Grade_Point']?.toString() ?? _getSeniorsGrade(score);
+        String remark = data['Grade_Remark'] ?? _getSeniorsRemark(gradePoint);
+
         int position = 0;
         if (data['Subject_Position'] != null && data['Subject_Position'].toString() != 'N/A') {
           position = int.tryParse(data['Subject_Position'].toString()) ?? 0;
@@ -304,70 +261,84 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
           totalStudents = int.tryParse(data['Total_Students_Subject'].toString()) ?? 0;
         }
 
-        String gradeLetter = data['Grade_Letter'] ?? 'N/A';
-        if (gradeLetter == 'N/A' && scoreStr != 'N/A') {
-          gradeLetter = _getGradeFromPercentage(score.toDouble());
-        }
-
         subjects.add({
           'subject': data['Subject_Name'] ?? doc.id,
           'score': scoreStr == 'N/A' ? 'N/A' : score,
+          'gradePoint': gradePoint,
+          'remark': remark,
           'position': position == 0 ? 'N/A' : position,
           'totalStudents': totalStudents == 0 ? 'N/A' : totalStudents,
-          'gradeLetter': gradeLetter,
         });
       }
 
-      // Process term summary data
+      Map<String, dynamic> totalMarks = {};
+      if (totalMarksDoc.exists) {
+        final data = totalMarksDoc.data() as Map<String, dynamic>;
+        totalMarks = {
+          'Best_Six_Total_Points': data['Best_Six_Total_Points']?.toString() ?? 'N/A',
+          'Student_Total_Marks': data['Student_Total_Marks']?.toString() ?? 'N/A',
+          'Teacher_Total_Marks': data['Teacher_Total_Marks']?.toString() ?? 'N/A',
+          'Student_Class_Position': data['Student_Class_Position']?.toString() ?? 'N/A',
+          'Total_Class_Students_Number': data['Total_Class_Students_Number']?.toString() ?? 'N/A',
+        };
+      }
+
+      Map<String, dynamic> remarks = {};
+      if (remarksDoc.exists) {
+        final data = remarksDoc.data() as Map<String, dynamic>;
+        remarks = {
+          'Aggregate_Grade': data['Aggregate_Grade'] ?? 'N/A',
+          'MSCE_Message': data['MSCE_Message'] ?? 'N/A',
+          'MSCE_Status': data['MSCE_Status'] ?? 'N/A',
+        };
+      }
+
       Map<String, dynamic> termSummary = {};
       if (termSummaryDoc.exists) {
         final data = termSummaryDoc.data() as Map<String, dynamic>;
         termSummary = data;
       }
 
-      // Process total marks data
-      Map<String, dynamic> totalMarks = {};
-      if (totalMarksDoc.exists) {
-        final data = totalMarksDoc.data() as Map<String, dynamic>;
-        totalMarks = data;
-      }
-
-      // Process remarks data
-      Map<String, dynamic> remarks = {};
-      if (remarksDoc.exists) {
-        final data = remarksDoc.data() as Map<String, dynamic>;
-        remarks = data;
-      }
-
-      // Process term marks data if available
-      Map<String, dynamic> termMarks = {};
-      if (termMarksDoc.exists) {
-        final data = termMarksDoc.data() as Map<String, dynamic>;
-        termMarks = data;
-      }
-
-      // Combine all marks data
-      Map<String, dynamic> combinedMarks = {
-        ...totalMarks,
-        ...termSummary,
-        ...termMarks,
-      };
-
-      // Only include terms that have some data (even if N/A)
       if (subjects.isNotEmpty || termSummary.isNotEmpty || totalMarks.isNotEmpty || remarks.isNotEmpty) {
         termData = {
           'subjects': subjects,
-          'totalMarks': combinedMarks,
+          'totalMarks': totalMarks,
           'remarks': remarks,
+          'termSummary': termSummary,
         };
       }
     } catch (e) {
       print("Error fetching term data for $term: $e");
-      // Return empty map on error
       return {};
     }
 
     return termData;
+  }
+
+  String _getSeniorsGrade(int score) {
+    if (score >= 90) return '1';
+    if (score >= 80) return '2';
+    if (score >= 75) return '3';
+    if (score >= 70) return '4';
+    if (score >= 65) return '5';
+    if (score >= 60) return '6';
+    if (score >= 55) return '7';
+    if (score >= 50) return '8';
+    return '9';
+  }
+
+  String _getSeniorsRemark(String grade) {
+    switch (grade) {
+      case '1': return 'Distinction';
+      case '2': return 'Distinction';
+      case '3': return 'Strong Credit';
+      case '4': return 'Strong Credit';
+      case '5': return 'Credit';
+      case '6': return 'Weak Credit';
+      case '7': return 'Pass';
+      case '8': return 'Weak Pass';
+      default: return 'Fail';
+    }
   }
 
   String _formatAcademicYearForDisplay(String year) {
@@ -382,24 +353,6 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
 
   String _formatAcademicYear(String year) {
     return _formatAcademicYearForDisplay(year);
-  }
-
-  String _getGradeFromPercentage(double percentage) {
-    if (percentage >= 85) return 'A';
-    if (percentage >= 75) return 'B';
-    if (percentage >= 65) return 'C';
-    if (percentage >= 50) return 'D';
-    return 'F';
-  }
-
-  String _getRemarkFromGrade(String grade) {
-    switch (grade) {
-      case 'A': return 'EXCELLENT';
-      case 'B': return 'VERY GOOD';
-      case 'C': return 'GOOD';
-      case 'D': return 'PASS';
-      default: return 'FAIL';
-    }
   }
 
   String _formatTermName(String term) {
@@ -695,7 +648,7 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
               children: [
                 _buildSubjectsTable(subjects),
                 SizedBox(height: 16),
-                _buildSummaryInfo(totalMarks),
+                _buildSummaryInfo(totalMarks, remarks),
                 SizedBox(height: 16),
                 _buildRemarksSection(remarks),
               ],
@@ -705,8 +658,6 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
       ),
     );
   }
-
-  // Replace your _buildSubjectsTable method with this:
 
   Widget _buildSubjectsTable(List<Map<String, dynamic>> subjects) {
     if (subjects.isEmpty) {
@@ -730,17 +681,14 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
             _tableCell('MARKS %', isHeader: true),
             _tableCell('GRADE', isHeader: true),
             _tableCell('POSITION', isHeader: true),
-            _tableCell('COMMENT', isHeader: true),
+            _tableCell('REMARK', isHeader: true),
           ],
         ),
         ...subjects.map((subject) {
-          String grade = subject['gradeLetter'] ?? 'F';
-          String comment = _getRemarkFromGrade(grade);
-
-          // Handle position and totalStudents as strings
+          String gradePoint = subject['gradePoint'] ?? '9';
+          String remark = subject['remark'] ?? _getSeniorsRemark(gradePoint);
           String position = subject['position'].toString();
           String totalStudents = subject['totalStudents'].toString();
-
           String positionText = (position != 'N/A' && totalStudents != 'N/A')
               ? '$position/$totalStudents'
               : 'N/A';
@@ -749,9 +697,9 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
             children: [
               _tableCell(subject['subject'] ?? 'Unknown'),
               _tableCell(subject['score'].toString()),
-              _tableCell(grade),
+              _tableCell(gradePoint),
               _tableCell(positionText),
-              _tableCell(comment),
+              _tableCell(remark),
             ],
           );
         }).toList(),
@@ -759,7 +707,7 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
     );
   }
 
-  Widget _buildSummaryInfo(Map<String, dynamic> totalMarks) {
+  Widget _buildSummaryInfo(Map<String, dynamic> totalMarks, Map<String, dynamic> remarks) {
     return Container(
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -777,29 +725,36 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Best_Sixt_Total_Points: ${totalMarks['Student_Total_Marks'] ?? 0}'),
-              Text('Position: ${totalMarks['Student_Class_Position'] ?? 'N/A'}'),
+              Text('Best Six Total Points: ${totalMarks['Best_Six_Total_Points'] ?? 'N/A'}'),
+              Text('Position: ${totalMarks['Student_Class_Position'] ?? 'N/A'}/${totalMarks['Total_Class_Students_Number'] ?? 'N/A'}'),
             ],
           ),
+          SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Average Grade: ${totalMarks['Average_Grade_Letter'] ?? 'N/A'}'),
-              Text('Out of: ${totalMarks['Total_Class_Students_Number'] ?? 'N/A'}'),
+              Text('Total Marks: ${totalMarks['Student_Total_Marks'] ?? 'N/A'}'),
+              Text('Teacher Total Marks: ${totalMarks['Teacher_Total_Marks'] ?? 'N/A'}'),
             ],
           ),
+          SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Average %: ${totalMarks['Average_Percentage']?.toStringAsFixed(1) ?? 'N/A'}'),
+              Text('Aggregate Grade: ${remarks['Aggregate_Grade'] ?? 'N/A'}'),
               Text(
-                'Status: ${totalMarks['JCE_Status'] ?? 'N/A'}',
+                'MSCE Status: ${remarks['MSCE_Status'] ?? 'N/A'}',
                 style: TextStyle(
-                  color: (totalMarks['JCE_Status'] == 'PASS') ? Colors.green : Colors.red,
+                  color: (remarks['MSCE_Status'] == 'PASS') ? Colors.green : Colors.red,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
+          ),
+          SizedBox(height: 8),
+          Text(
+            'MSCE Message: ${remarks['MSCE_Message'] ?? 'N/A'}',
+            style: TextStyle(fontSize: 14),
           ),
         ],
       ),
