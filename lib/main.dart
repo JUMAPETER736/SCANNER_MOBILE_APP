@@ -20,33 +20,39 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
-        fontFamily: 'Abel',
+        //platform: TargetPlatform.android, // Forces Android behavior
+        fontFamily: 'Abel', // Sets the font family
       ),
       debugShowCheckedModeBanner: false,
-      initialRoute: '/Login_Page',
+      initialRoute: Login_Page.id,
+      routes: {
+        Register_Page.id: (context) => Register_Page(),
+        Login_Page.id: (context) => Login_Page(),
+        Forgot_Password.id: (context) => Forgot_Password(),
+        Teacher_Home_Page.id: (context) => Teacher_Home_Page(),
+        // Remove Parent_Home_Page from routes since it needs parameters
+      },
       onGenerateRoute: (settings) {
-        switch (settings.name) {
-          case '/Login_Page':
-            return MaterialPageRoute(builder: (context) => Login_Page());
-          case '/Register_Page':
-            return MaterialPageRoute(builder: (context) => Register_Page());
-          case '/Forgot_Password':
-            return MaterialPageRoute(builder: (context) => Forgot_Password());
-          case '/Teacher_Home_Page':
-            return MaterialPageRoute(builder: (context) => Teacher_Home_Page());
-          case '/Parent_Main_Home_Page':
-            final args = settings.arguments as Map<String, String>?;
-            return MaterialPageRoute(
-              builder: (context) => Parent_Home_Page(
-                schoolName: args?['schoolName'] ?? '',
-                className: args?['className'] ?? '',
-                studentClass: args?['studentClass'] ?? '',
-                studentName: args?['studentName'] ?? '',
-              ),
-            );
-          default:
-            return MaterialPageRoute(builder: (context) => NotFoundPage());
+        // Handle parameterized routes
+        if (settings.name == Parent_Home_Page.id) {
+          final args = settings.arguments as Map<String, dynamic>?;
+          final schoolName = args?['schoolName'] as String? ?? 'Default School';
+          final className = args?['className'] as String? ?? 'Default Class';
+          final studentClass = args?['studentClass'] as String? ?? 'Default Student Class';
+          final studentName = args?['studentName'] as String? ?? 'Default Student Name';
+          return MaterialPageRoute(
+            builder: (context) => Parent_Home_Page(
+              schoolName: schoolName,
+              className: className,
+              studentClass: studentClass,
+              studentName: studentName,
+            ),
+          );
         }
+        return null;
+      },
+      onUnknownRoute: (settings) {
+        return MaterialPageRoute(builder: (context) => NotFoundPage());
       },
     );
   }
