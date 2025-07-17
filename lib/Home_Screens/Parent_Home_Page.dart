@@ -12,6 +12,18 @@ User? loggedInUser;
 
 class Parent_Home_Page extends StatefulWidget {
   static String id = '/Parent_Main_Home_Page';
+  final String schoolName;
+  final String className;
+  final String studentClass;
+  final String studentName;
+
+  const Parent_Home_Page({
+    Key? key,
+    required this.schoolName,
+    required this.className,
+    required this.studentClass,
+    required this.studentName,
+  }) : super(key: key);
 
   @override
   _Parent_Home_PageState createState() => _Parent_Home_PageState();
@@ -21,6 +33,10 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
   final _auth = FirebaseAuth.instance;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+
+  // Define class categories
+  static const List<String> _juniorClasses = ['FORM 1', 'FORM 2'];
+  static const List<String> _seniorClasses = ['FORM 3', 'FORM 4'];
 
   void getCurrentUser() async {
     try {
@@ -68,16 +84,46 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
     }
   }
 
+  // Helper method to determine if student is in junior class
+  bool _isJuniorClass(String studentClass) {
+    return _juniorClasses.contains(studentClass);
+  }
+
+  // Helper method to navigate to appropriate results screen
+  void _navigateToResults() {
+    if (_isJuniorClass(widget.studentClass)) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Junior_Student_Results(
+            schoolName: widget.schoolName,
+            className: widget.className,
+            studentClass: widget.studentClass,
+            studentName: widget.studentName,
+          ),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Senior_Student_Results(
+            schoolName: widget.schoolName,
+            className: widget.className,
+            studentClass: widget.studentClass,
+            studentName: widget.studentName,
+          ),
+        ),
+      );
+    }
+  }
+
   // Helper method to get responsive text size
   double getResponsiveTextSize(double baseSize, double screenWidth, double screenHeight) {
-    // Calculate scale factor based on both width and height
-    double widthScale = screenWidth / 375; // Base width (iPhone 6/7/8)
-    double heightScale = screenHeight / 667; // Base height (iPhone 6/7/8)
+    double widthScale = screenWidth / 375;
+    double heightScale = screenHeight / 667;
     double scale = (widthScale + heightScale) / 2;
-
-    // Apply constraints to prevent text from being too small or too large
     scale = scale.clamp(0.8, 2.0);
-
     return baseSize * scale;
   }
 
@@ -86,9 +132,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
     double widthScale = screenWidth / 375;
     double heightScale = screenHeight / 667;
     double scale = (widthScale + heightScale) / 2;
-
     scale = scale.clamp(0.7, 1.8);
-
     return baseSize * scale;
   }
 
@@ -139,7 +183,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
                 ),
                 SizedBox(height: getResponsiveSize(2, screenWidth, screenHeight)),
                 Text(
-                  loggedInUser?.email?.split('@')[0] ?? 'Parent',
+                  widget.studentName.isNotEmpty ? widget.studentName : (loggedInUser?.email?.split('@')[0] ?? 'Parent'),
                   style: TextStyle(
                     fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
                     fontWeight: FontWeight.bold,
@@ -147,6 +191,17 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (widget.studentClass.isNotEmpty) ...[
+                  SizedBox(height: getResponsiveSize(2, screenWidth, screenHeight)),
+                  Text(
+                    widget.studentClass,
+                    style: TextStyle(
+                      fontSize: getResponsiveTextSize(12, screenWidth, screenHeight),
+                      color: Colors.blueAccent.withOpacity(0.7),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -171,10 +226,10 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
             context,
             MaterialPageRoute(
               builder: (context) => Student_Details_View(
-                schoolName: 'schoolName',
-                className: 'className',
-                studentClass: 'studentClass',
-                studentName: 'StudentName',
+                schoolName: widget.schoolName,
+                className: widget.className,
+                studentClass: widget.studentClass,
+                studentName: widget.studentName,
               ),
             ),
           );
@@ -190,10 +245,10 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
             context,
             MaterialPageRoute(
               builder: (context) => Available_School_Events(
-                schoolName: 'schoolName',
-                className: 'className',
-                studentClass: 'studentClass',
-                studentName: 'StudentName',
+                schoolName: widget.schoolName,
+                className: widget.className,
+                studentClass: widget.studentClass,
+                studentName: widget.studentName,
               ),
             ),
           );
@@ -202,21 +257,9 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
       {
         'icon': Icons.assessment_outlined,
         'title': 'Results',
-        'subtitle': 'Academic performance',
+        'subtitle': _isJuniorClass(widget.studentClass) ? 'Junior Results' : 'Senior Results',
         'color': const Color(0xFFEA580C),
-        'onTap': () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => Junior_Student_Results(
-                schoolName: 'schoolName',
-                className: 'className',
-                studentClass: 'studentClass',
-                studentName: 'StudentName',
-              ),
-            ),
-          );
-        },
+        'onTap': _navigateToResults,
       },
       {
         'icon': Icons.psychology_outlined,
@@ -228,10 +271,10 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
             context,
             MaterialPageRoute(
               builder: (context) => Student_Behavior(
-                schoolName: 'schoolName',
-                className: 'className',
-                studentClass: 'studentClass',
-                studentName: 'StudentName',
+                schoolName: widget.schoolName,
+                className: widget.className,
+                studentClass: widget.studentClass,
+                studentName: widget.studentName,
               ),
             ),
           );
@@ -247,10 +290,10 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
             context,
             MaterialPageRoute(
               builder: (context) => School_Fees_Structure_And_Balance(
-                schoolName: 'schoolName',
-                className: 'className',
-                studentClass: 'studentClass',
-                studentName: 'StudentName',
+                schoolName: widget.schoolName,
+                className: widget.className,
+                studentClass: widget.studentClass,
+                studentName: widget.studentName,
               ),
             ),
           );
@@ -258,7 +301,6 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
       },
     ];
 
-    // Calculate optimal layout based on orientation
     final bool isLandscape = orientation == Orientation.landscape;
 
     return Expanded(
@@ -270,13 +312,28 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Quick Actions',
-              style: TextStyle(
-                fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF667eea),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Quick Actions',
+                  style: TextStyle(
+                    fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF667eea),
+                  ),
+                ),
+                if (widget.schoolName.isNotEmpty)
+                  Text(
+                    widget.schoolName,
+                    style: TextStyle(
+                      fontSize: getResponsiveTextSize(12, screenWidth, screenHeight),
+                      color: const Color(0xFF667eea).withOpacity(0.7),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
             ),
             SizedBox(height: getResponsiveSize(8, screenWidth, screenHeight)),
             Expanded(
@@ -308,7 +365,6 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
   Widget _buildGridLayout(List<Map<String, dynamic>> actions, double screenWidth, double screenHeight) {
     return Column(
       children: [
-        // First row with 2 cards
         Expanded(
           child: Row(
             children: [
@@ -333,7 +389,6 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
             ],
           ),
         ),
-        // Second row with 2 cards
         Expanded(
           child: Row(
             children: [
@@ -358,7 +413,6 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
             ],
           ),
         ),
-        // Third row with 1 card centered
         Expanded(
           child: Container(
             margin: EdgeInsets.only(
@@ -469,6 +523,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
     );
   }
 
+  @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
@@ -479,8 +534,9 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
         title: Text(
           'Parent Portal',
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.white,
             fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
+            fontWeight: FontWeight.w600,
           ),
         ),
         backgroundColor: Colors.blueAccent,
@@ -489,8 +545,9 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.black),
+            icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: _logout,
+            tooltip: 'Logout',
           ),
         ],
         flexibleSpace: Container(
@@ -514,5 +571,4 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
       ),
     );
   }
-
 }
