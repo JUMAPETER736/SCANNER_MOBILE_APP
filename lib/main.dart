@@ -20,20 +20,34 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
-        //platform: TargetPlatform.android, // Forces Android behavior
-        fontFamily: 'Abel', // Sets the font family
+        fontFamily: 'Abel',
       ),
       debugShowCheckedModeBanner: false,
       initialRoute: Login_Page.id,
-      routes: {
-        Register_Page.id: (context) => Register_Page(),
-        Login_Page.id: (context) => Login_Page(),
-        Forgot_Password.id: (context) => Forgot_Password(),
-        Teacher_Home_Page.id: (context) => Teacher_Home_Page(),
-        Parent_Home_Page.id: (context) => Parent_Home_Page(),
-      },
-      onUnknownRoute: (settings) {
-        return MaterialPageRoute(builder: (context) => NotFoundPage());
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case '/Register_Page':
+            return MaterialPageRoute(builder: (context) => Register_Page());
+          case '/Login_Page':
+            return MaterialPageRoute(builder: (context) => Login_Page());
+          case '/Forgot_Password':
+            return MaterialPageRoute(builder: (context) => Forgot_Password());
+          case '/Teacher_Home_Page':
+            return MaterialPageRoute(builder: (context) => Teacher_Home_Page());
+          case '/Parent_Main_Home_Page':
+          // Extract arguments for Parent_Home_Page
+            final args = settings.arguments as Map<String, String>?;
+            return MaterialPageRoute(
+              builder: (context) => Parent_Home_Page(
+                schoolName: args?['schoolName'] ?? '',
+                className: args?['className'] ?? '',
+                studentClass: args?['studentClass'] ?? '',
+                studentName: args?['studentName'] ?? '',
+              ),
+            );
+          default:
+            return MaterialPageRoute(builder: (context) => NotFoundPage());
+        }
       },
     );
   }

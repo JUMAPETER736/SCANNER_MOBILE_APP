@@ -287,54 +287,7 @@ class _Student_DetailsState extends State<Student_Details> {
   Future<void> _saveStudentToFirestore(String schoolName) async {
     final WriteBatch batch = _firestore.batch();
 
-    // 1. School Information Document
-    final DocumentReference schoolInfoRef = _firestore
-        .collection('Schools')
-        .doc(schoolName)
-        .collection('School_Information')
-        .doc('School_Details');
-
-    batch.set(schoolInfoRef, {
-      'Telephone': '',
-      'Email': '',
-      'boxNumber': 0,
-      'schoolLocation': '',
-      'School_Fees': '',
-      'School_Bank_Account': '',
-      'Next_Term_Opening_Date': '',
-      'createdAt': FieldValue.serverTimestamp(),
-      'lastUpdated': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-
-    // 2. Fees Details Document (updated with new fields)
-    final DocumentReference feesDetailsRef = _firestore
-        .collection('Schools')
-        .doc(schoolName)
-        .collection('School_Information')
-        .doc('Fees_Details');
-
-    batch.set(feesDetailsRef, {
-      'tuition_fee': 0,
-      'development_fee': 0,
-      'library_fee': 0,
-      'sports_fee': 0,
-      'laboratory_fee': 0,
-      'other_fees': 0,
-      'total_fees': 0,
-      'bank_account_number': '',
-      'amount_paid': 0,
-      'outstanding_balance': 0,
-      'next_payment_due': '',
-      'bank_name': 'N/A',
-      'bank_account_name': 'N/A',
-      'bank_account_number': 'N/A',
-      'airtel_money': 'N/A',
-      'tnm_mpamba': 'N/A',
-      'createdAt': FieldValue.serverTimestamp(),
-      'lastUpdated': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-
-    // 3. Main student document
+    // Main student document
     final DocumentReference studentRef = _firestore
         .collection('Schools')
         .doc(schoolName)
@@ -347,7 +300,7 @@ class _Student_DetailsState extends State<Student_Details> {
       'timestamp': FieldValue.serverTimestamp(),
     });
 
-    // 4. Personal information
+    // Personal information
     final DocumentReference personalInfoRef = studentRef
         .collection('Personal_Information')
         .doc('Registered_Information');
@@ -364,7 +317,7 @@ class _Student_DetailsState extends State<Student_Details> {
       'timestamp': FieldValue.serverTimestamp(),
     });
 
-    // 5. Student subjects
+    // Student subjects
     for (String subject in _defaultSubjects[_selectedClass]!) {
       final DocumentReference subjectRef = studentRef
           .collection('Student_Subjects')
@@ -376,7 +329,7 @@ class _Student_DetailsState extends State<Student_Details> {
       });
     }
 
-    // 6. Total marks document
+    // Total marks document
     final DocumentReference totalMarksRef = studentRef
         .collection('TOTAL_MARKS')
         .doc('Marks');
@@ -388,7 +341,7 @@ class _Student_DetailsState extends State<Student_Details> {
       'Teacher_Total_Marks': '0',
     });
 
-    // 7. Results remarks document
+    // Results remarks document
     final DocumentReference resultsRemarksRef = studentRef
         .collection('TOTAL_MARKS')
         .doc('Results_Remarks');
@@ -398,21 +351,22 @@ class _Student_DetailsState extends State<Student_Details> {
       'Head_Teacher_Remark': 'N/A',
     });
 
-    // 8. Academic Performance Structure
+    // Academic Performance Structure
     await _createAcademicPerformanceStructure(batch, studentRef);
 
     try {
       await batch.commit();
-      print("Student, school information, and fees structure saved successfully!");
+      print("Student data saved successfully!");
     } catch (e) {
-      print("Error saving data: $e");
+      print("Error saving student data: $e");
       throw e;
     }
   }
 
-  // MARK: - Academic Performance Structure Creation (Updated to initialize past terms with N/A)
+// MARK: - Academic Performance Structure Creation (Updated to include Student Fees)
   Future<void> _createAcademicPerformanceStructure(WriteBatch batch, DocumentReference studentRef) async {
     final String currentAcademicYear = _getCurrentAcademicYear();
+    final String currentTerm = _getCurrentTerm();
     final Map<String, Map<String, String>> termDates = _getTermDates(currentAcademicYear);
 
     // Create Academic_Performance document
@@ -433,6 +387,7 @@ class _Student_DetailsState extends State<Student_Details> {
     // Create structure for each term
     for (String term in ['TERM_ONE', 'TERM_TWO', 'TERM_THREE']) {
       final bool isPastTerm = _isTermInPast(term);
+      final bool isCurrentTerm = term == currentTerm;
 
       final DocumentReference termRef = academicPerformanceRef
           .collection(term)
@@ -442,12 +397,127 @@ class _Student_DetailsState extends State<Student_Details> {
         'term_name': term,
         'start_date': termDates[term]!['start_date'],
         'end_date': termDates[term]!['end_date'],
-        'term_status': isPastTerm ? 'Completed' : 'Not Started',
+        'term_status': isPastTerm ? 'Completed' : isCurrentTerm ? 'Current' : 'Not Started',
         'created_at': FieldValue.serverTimestamp(),
         // Reference to existing Student_Subjects collection for marks
         'subjects_collection_ref': '../../Student_Subjects',
         'total_marks_ref': '../../TOTAL_MARKS',
       });
+
+      // Create Student_Behavior document inside Term_Info
+      final DocumentReference studentBehaviorRef = termRef
+          .collection('Student_Behavior')
+          .doc('Behavior_Records');
+
+      batch.set(studentBehaviorRef, {
+        'conduct': isPastTerm ? 'N/A' : 'N/A',
+        'class_participation': isPastTerm ? 'N/A' : 'N/A',
+        'punctuality': isPastTerm ? 'N/A' : 'N/A',
+        'disciplinary_records': isPastTerm ? [] : [],
+        'behavior_notes': isPastTerm ? 'N/A' : 'N/A',
+        'term_name': term,
+        'academic_year': currentAcademicYear,
+        'last_updated': FieldValue.serverTimestamp(),
+        'updated_by': isPastTerm ? 'system' : (_loggedInUser?.email ?? 'system'),
+        'behavior_status': isPastTerm ? 'Past Term - No Records' : 'Not Evaluated',
+      });
+
+      // Create Student_Fees document for current term only
+      if (isCurrentTerm) {
+        final DocumentReference studentFeesRef = termRef
+            .collection('Student_Fees')
+            .doc('Fees_Details');
+
+        batch.set(studentFeesRef, {
+          'term_name': term,
+          'academic_year': currentAcademicYear,
+          'student_id': _studentID!,
+          'student_name': _studentFullName,
+          'student_class': _selectedClass!,
+
+          // Fee Structure
+          'tuition_fee': '0',
+          'examination_fee': '0',
+          'library_fee': '0',
+          'laboratory_fee': '0',
+          'sports_fee': '0',
+          'development_fee': '0',
+          'transport_fee': '0',
+          'meal_fee': '0',
+          'uniform_fee': '0',
+          'stationery_fee': '0',
+          'other_fees': '0',
+          'total_fees': '0',
+
+          // Payment Details
+          'amount_paid': '0',
+          'outstanding_balance': '0',
+          'payment_status': 'Not Paid',
+          'payment_due_date': termDates[term]!['end_date'],
+          'last_payment_date': null,
+          'last_payment_amount': '0',
+          'payment_method': 'N/A',
+          'receipt_number': 'N/A',
+
+          // Fee Categories Status
+          'fees_breakdown': {
+            'tuition_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
+            'examination_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
+            'library_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
+            'laboratory_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
+            'sports_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
+            'development_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
+            'transport_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
+            'meal_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
+            'uniform_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
+            'stationery_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
+            'other_fees': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
+          },
+
+          // Timestamps and tracking
+          'created_at': FieldValue.serverTimestamp(),
+          'last_updated': FieldValue.serverTimestamp(),
+          'updated_by': _loggedInUser?.email ?? 'system',
+
+          // Additional tracking fields
+          'fee_schedule_applied': false,
+          'discount_applied': '0',
+          'discount_reason': 'N/A',
+          'penalty_applied': '0',
+          'penalty_reason': 'N/A',
+          'payment_plan_active': false,
+          'payment_plan_details': 'N/A',
+
+          // Parent/Guardian information for fees
+          'parent_guardian_name': 'N/A',
+          'parent_guardian_phone': 'N/A',
+          'parent_guardian_email': 'N/A',
+          'billing_address': 'N/A',
+
+          // Notes and remarks
+          'fee_notes': 'Initial fees record created for new student',
+          'admin_remarks': 'Fees to be updated by admin/finance department',
+          'special_instructions': 'N/A',
+        });
+
+        // Create Payment History subcollection for current term
+        final DocumentReference paymentHistoryRef = studentFeesRef
+            .collection('Payment_History')
+            .doc('History_Records');
+
+        batch.set(paymentHistoryRef, {
+          'term_name': term,
+          'academic_year': currentAcademicYear,
+          'payment_records': [],
+          'total_payments_made': 0,
+          'total_amount_paid': '0',
+          'first_payment_date': null,
+          'last_payment_date': null,
+          'payment_history_notes': 'No payments recorded yet',
+          'created_at': FieldValue.serverTimestamp(),
+          'last_updated': FieldValue.serverTimestamp(),
+        });
+      }
 
       // Create term-specific marks tracking
       final DocumentReference termMarksRef = termRef
@@ -563,11 +633,16 @@ class _Student_DetailsState extends State<Student_Details> {
       'subjects_source': 'Student_Subjects',
       'total_marks_source': 'TOTAL_MARKS',
       'past_terms_note': 'TERM_ONE and TERM_TWO marks initialized with N/A values',
+      'behavior_tracking_note': 'Student behavior tracking included for all terms',
+      'fees_tracking_note': 'Student fees tracking included for current term only',
     });
 
     print("Academic Performance structure created for academic year: $currentAcademicYear");
     print("Past terms (TERM_ONE and TERM_TWO) initialized with N/A values");
+    print("Student Behavior tracking added for all terms");
+    print("Student Fees tracking added for current term: $currentTerm");
     print("Structure references existing collections: Personal_Information, Student_Subjects, TOTAL_MARKS");
+
   }
 
   Future<void> _updateTotalStudentsCountOnSave(String school, String studentClass) async {

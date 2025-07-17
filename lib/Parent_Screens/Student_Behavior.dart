@@ -29,6 +29,8 @@ class _Student_BehaviorState extends State<Student_Behavior> with TickerProvider
   String? _errorMessage;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  String _selectedTerm = 'TERM_ONE'; // Default term
+  final List<String> _terms = ['TERM_ONE', 'TERM_TWO', 'TERM_THREE'];
 
   @override
   void initState() {
@@ -54,6 +56,14 @@ class _Student_BehaviorState extends State<Student_Behavior> with TickerProvider
     super.dispose();
   }
 
+  String _getCurrentAcademicYear() {
+    // Placeholder: Implement logic to get the current academic year
+    // For example, "2025-2026" based on current date
+    final now = DateTime.now();
+    final year = now.month >= 7 ? now.year : now.year - 1;
+    return '$year-${year + 1}';
+  }
+
   Future<void> _fetchBehaviorData() async {
     setState(() {
       _isLoading = true;
@@ -65,6 +75,8 @@ class _Student_BehaviorState extends State<Student_Behavior> with TickerProvider
         schoolName: widget.schoolName,
         studentClass: widget.studentClass,
         studentFullName: widget.studentName,
+        academicYear: _getCurrentAcademicYear(),
+        term: _selectedTerm,
       );
 
       if (mounted) {
@@ -87,6 +99,8 @@ class _Student_BehaviorState extends State<Student_Behavior> with TickerProvider
     required String schoolName,
     required String studentClass,
     required String studentFullName,
+    required String academicYear,
+    required String term,
   }) async {
     try {
       final DocumentSnapshot behaviorDoc = await _firestore
@@ -96,14 +110,18 @@ class _Student_BehaviorState extends State<Student_Behavior> with TickerProvider
           .doc(studentClass)
           .collection('Student_Details')
           .doc(studentFullName)
-          .collection('Personal_Information')
-          .doc('Student_Behaviours')
+          .collection('Academic_Performance')
+          .doc(academicYear)
+          .collection(term)
+          .doc('Term_Info')
+          .collection('Student_Behavior')
+          .doc('Behavior_Records')
           .get();
 
       if (behaviorDoc.exists) {
         return behaviorDoc.data() as Map<String, dynamic>;
       } else {
-        print('Student behavior document does not exist');
+        print('Student behavior document does not exist for $term in $academicYear');
         return null;
       }
     } catch (e) {
@@ -163,7 +181,53 @@ class _Student_BehaviorState extends State<Student_Behavior> with TickerProvider
         opacity: _fadeAnimation,
         child: Padding(
           padding: EdgeInsets.all(getResponsiveSize(16, screenWidth, screenHeight)),
-          child: _buildBody(screenWidth, screenHeight),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Term selection dropdown
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: getResponsiveSize(12, screenWidth, screenHeight)),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(getResponsiveSize(8, screenWidth, screenHeight)),
+                  border: Border.all(color: Colors.blueAccent, width: 1),
+                ),
+                child: DropdownButton<String>(
+                  value: _selectedTerm,
+                  isExpanded: true,
+                  hint: Text(
+                    'Select Term',
+                    style: TextStyle(
+                      fontSize: getResponsiveTextSize(16, screenWidth, screenHeight),
+                      color: Colors.grey,
+                    ),
+                  ),
+                  items: _terms.map((String term) {
+                    return DropdownMenuItem<String>(
+                      value: term,
+                      child: Text(
+                        term.replaceAll('_', ' '),
+                        style: TextStyle(
+                          fontSize: getResponsiveTextSize(16, screenWidth, screenHeight),
+                          color: const Color(0xFF2D3748),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _selectedTerm = newValue;
+                        _fetchBehaviorData();
+                      });
+                    }
+                  },
+                ),
+              ),
+              SizedBox(height: getResponsiveSize(16, screenWidth, screenHeight)),
+              Expanded(child: _buildBody(screenWidth, screenHeight)),
+            ],
+          ),
         ),
       ),
     );
@@ -220,7 +284,7 @@ class _Student_BehaviorState extends State<Student_Behavior> with TickerProvider
             ],
           ),
           child: Text(
-            'No behavior data found for this student',
+            'No behavior data found for this student in $_selectedTerm',
             style: TextStyle(
               fontSize: getResponsiveTextSize(16, screenWidth, screenHeight),
               color: const Color(0xFF667eea),
@@ -255,9 +319,23 @@ class _Student_BehaviorState extends State<Student_Behavior> with TickerProvider
           SizedBox(height: getResponsiveSize(16, screenWidth, screenHeight)),
           _buildBehaviorCard(
             'Last Updated',
-            _behaviorData!['lastUpdated'] != null
-                ? (_behaviorData!['lastUpdated'] as Timestamp).toDate().toString()
+            _behaviorData!['last_updated'] != null
+                ? (_behaviorData!['last_updated'] as Timestamp).toDate().toString()
                 : 'N/A',
+            screenWidth,
+            screenHeight,
+          ),
+          SizedBox(height: getResponsiveSize(16, screenWidth, screenHeight)),
+          _buildBehaviorCard(
+            'Updated By',
+            _behaviorData!['updated_by'] ?? 'N/A',
+            screenWidth,
+            screenHeight,
+          ),
+          SizedBox(height: getResponsiveSize(16, screenWidth, screenHeight)),
+          _buildBehaviorCard(
+            'Behavior Status',
+            _behaviorData!['behavior_status'] ?? 'N/A',
             screenWidth,
             screenHeight,
           ),
