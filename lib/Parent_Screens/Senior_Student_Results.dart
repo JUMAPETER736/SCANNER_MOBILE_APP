@@ -777,7 +777,7 @@ class _Senior_Student_ResultsState extends State<Senior_Student_Results> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total Marks: ${totalMarks['Student_Total_Marks'] ?? 0}'),
+              Text('Best_Sixt_Total_Points: ${totalMarks['Student_Total_Marks'] ?? 0}'),
               Text('Position: ${totalMarks['Student_Class_Position'] ?? 'N/A'}'),
             ],
           ),
