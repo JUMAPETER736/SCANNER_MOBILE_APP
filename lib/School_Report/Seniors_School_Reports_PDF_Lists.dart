@@ -369,7 +369,7 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
       final directory = await getTemporaryDirectory();
       final filePath = '${directory.path}/$uniqueFileName';
       final file = File(filePath);
-      await file.writeBytes(pdfBytes);
+      await file.writeAsBytes(pdfBytes);
 
       final storageRef = _storage.ref().child(
           'Schools/$schoolName/Classes/${widget.studentClass}/Reports/$uniqueFileName');
@@ -485,7 +485,6 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
       final snapshot = await _firestore.collection('$basePath/Student_Subjects').get();
       List<Map<String, dynamic>> subjectList = [];
 
-      // List of all possible subjects
       const allSubjects = [
         'ADDITIONAL MATHEMATICS',
         'AGRICULTURE',
@@ -503,7 +502,6 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
         'PHYSICS',
       ];
 
-      // Initialize subjects with default values
       for (var subject in allSubjects) {
         subjectList.add({
           'subject': subject,
@@ -515,7 +513,6 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
         });
       }
 
-      // Update with actual data from Firestore
       for (var doc in snapshot.docs) {
         final data = doc.data();
         final subjectName = data['Subject_Name']?.toString() ?? doc.id;
@@ -528,7 +525,6 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
         String gradeLetter = data['Grade_Letter']?.toString() ?? _getGradeFromPercentage(score.toDouble());
         String gradeRemark = data['Grade_Remark']?.toString() ?? 'N/A';
 
-        // Find and update the subject in the list
         final index = subjectList.indexWhere((s) => s['subject'] == subjectName);
         if (index != -1) {
           subjectList[index] = {
@@ -542,7 +538,6 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
         }
       }
 
-      // Sort subjects alphabetically
       subjectList.sort((a, b) => (a['subject'] as String).compareTo(b['subject'] as String));
       return subjectList;
     } catch (e) {
@@ -1039,7 +1034,7 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('JUNIORS PDF LIST'),
+        title: Text('SENIORS PDF LIST'), // Updated title to reflect class name
         backgroundColor: Colors.blue[600],
         foregroundColor: Colors.white,
         actions: [
@@ -1130,30 +1125,52 @@ class Seniors_School_Report_PDF {
   final String msceMessage;
 
   Seniors_School_Report_PDF({
-    required this.studentClass,
-    required this.studentFullName,
-    required this.subjects,
-    required this.subjectStats,
-    required this.studentTotalMarks,
-    required this.teacherTotalMarks,
-    required this.studentPosition,
-    required this.totalStudents,
-    required this.schoolName,
-    required this.schoolPhone,
-    required this.schoolEmail,
-    required this.schoolAccount,
-    required this.formTeacherRemarks,
-    required this.headTeacherRemarks,
-    required this.averageGradeLetter,
-    required this.jceStatus,
-    required this.schoolFees,
-    required this.boxNumber,
-    required this.schoolLocation,
-    required this.schoolBankAccount,
-    required this.nextTermOpeningDate,
-    required this.bestSixTotalPoints,
-    required this.msceMessage,
-  });
+    required String studentClass,
+    required String studentFullName,
+    required List<Map<String, dynamic>> subjects,
+    required Map<String, dynamic> subjectStats,
+    required int studentTotalMarks,
+    required int teacherTotalMarks,
+    required int studentPosition,
+    required int totalStudents,
+    required String schoolName,
+    required String schoolPhone,
+    required String schoolEmail,
+    required String schoolAccount,
+    required String formTeacherRemarks,
+    required String headTeacherRemarks,
+    required String averageGradeLetter,
+    required String jceStatus,
+    required String schoolFees,
+    required int boxNumber,
+    required String schoolLocation,
+    required String schoolBankAccount,
+    required String nextTermOpeningDate,
+    required int bestSixTotalPoints,
+    required String msceMessage,
+  })  : studentClass = studentClass,
+        studentFullName = studentFullName,
+        subjects = subjects,
+        subjectStats = subjectStats,
+        studentTotalMarks = studentTotalMarks,
+        teacherTotalMarks = teacherTotalMarks,
+        studentPosition = studentPosition,
+        totalStudents = totalStudents,
+        schoolName = schoolName,
+        schoolPhone = schoolPhone,
+        schoolEmail = schoolEmail,
+        schoolAccount = schoolAccount,
+        formTeacherRemarks = formTeacherRemarks,
+        headTeacherRemarks = headTeacherRemarks,
+        averageGradeLetter = averageGradeLetter,
+        jceStatus = jceStatus,
+        schoolFees = schoolFees,
+        boxNumber = boxNumber,
+        schoolLocation = schoolLocation,
+        schoolBankAccount = schoolBankAccount,
+        nextTermOpeningDate = nextTermOpeningDate,
+        bestSixTotalPoints = bestSixTotalPoints,
+        msceMessage = msceMessage;
 
   Future<Uint8List> generatePDF() async {
     final pdf = pw.Document();
@@ -1174,8 +1191,8 @@ class Seniors_School_Report_PDF {
             pw.SizedBox(height: 20),
             pw.Text('Student: $studentFullName', style: pw.TextStyle(fontSize: 18)),
             pw.Text('Class: $studentClass', style: pw.TextStyle(fontSize: 16)),
-            pw.Text('Term: ${Seniors_School_Reports_PDF_List().getCurrentTerm()}'),
-            pw.Text('Academic Year: ${Seniors_School_Reports_PDF_List(schoolName: 'schoolName',).getAcademicYear()}'),
+            pw.Text('Term: ${_Seniors_School_Reports_PDF_ListState().getCurrentTerm()}'),
+            pw.Text('Academic Year: ${_Seniors_School_Reports_PDF_ListState().getAcademicYear()}'),
             pw.SizedBox(height: 20),
             pw.Text('School Details:', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
             pw.Text('Phone: $schoolPhone'),
