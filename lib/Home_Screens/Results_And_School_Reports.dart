@@ -485,11 +485,11 @@ class _Results_And_School_ReportsState extends State<Results_And_School_Reports>
         title: _hasSelectedCriteria
             ? Text(
           '$teacherSchool',
-          style: TextStyle(fontWeight: FontWeight.bold),
+
         )
             : Text(
           'Results',
-          style: TextStyle(fontWeight: FontWeight.bold),
+
         ),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,

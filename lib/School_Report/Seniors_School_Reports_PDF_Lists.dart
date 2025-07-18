@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:intl/intl.dart';
-import 'Juniors_School_Report_PDF.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'dart:typed_data';
 
 class Seniors_School_Reports_PDF_List extends StatefulWidget {
-  // Updated constructor parameters to match the calling code
   final String schoolName;
   final String className;
   final String studentClass;
@@ -19,7 +23,6 @@ class Seniors_School_Reports_PDF_List extends StatefulWidget {
     Key? key,
   }) : super(key: key);
 
-  // Getter for backward compatibility
   String get selectedClass => studentClass;
 
   @override
@@ -29,11 +32,11 @@ class Seniors_School_Reports_PDF_List extends StatefulWidget {
 class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports_PDF_List> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   List<String> teacherClasses = [];
   String currentClass = '';
 
-  // State variables
   bool isLoading = true;
   bool isGenerating = false;
   bool hasError = false;
@@ -41,7 +44,6 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
   String? userEmail;
   String? schoolName;
 
-  // Data variables
   List<Map<String, dynamic>> studentsList = [];
   List<Map<String, dynamic>> pdfReportsList = [];
   int totalStudents = 0;
@@ -62,17 +64,14 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
     if ((currentMonth == 9 && currentDay >= 1) ||
         (currentMonth >= 10 && currentMonth <= 12)) {
       return 'ONE';
-    }
-    else if ((currentMonth == 1 && currentDay >= 2) ||
+    } else if ((currentMonth == 1 && currentDay >= 2) ||
         (currentMonth >= 2 && currentMonth <= 3) ||
         (currentMonth == 4 && currentDay <= 20)) {
       return 'TWO';
-    }
-    else if ((currentMonth == 4 && currentDay >= 25) ||
+    } else if ((currentMonth == 4 && currentDay >= 25) ||
         (currentMonth >= 5 && currentMonth <= 7)) {
       return 'THREE';
-    }
-    else {
+    } else {
       return 'ONE';
     }
   }
@@ -134,134 +133,23 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
       throw Exception('Please select a School and Classes before accessing reports.');
     }
 
-    // Store teacher's classes and set current class
     teacherClasses = teacherClassesList.map((e) => e.toString().trim().toUpperCase()).toList();
     currentClass = widget.studentClass.trim().toUpperCase();
-
-    // Use the schoolName passed from constructor
     schoolName = widget.schoolName;
 
-    // Validate that teacher's school matches the passed school name
     if (teacherSchool != widget.schoolName) {
       throw Exception('Access denied: You are not authorized for this school.');
     }
 
     final String studentClass = widget.studentClass.trim().toUpperCase();
 
-    if (studentClass != 'FORM 3' && studentClass != 'FORM 4') {
-      throw Exception('Only students in FORM 1 or FORM 2 can access this report.');
+    if (studentClass != 'FORM 1' && studentClass != 'FORM 2' && studentClass != 'FORM 3') {
+      throw Exception('Only students in FORM 1, FORM 2, or FORM 3 can access this report.');
     }
 
-    // Validate that teacher has access to this class
     if (!teacherClasses.contains(studentClass)) {
       throw Exception('Access denied: You are not authorized to access ${widget.studentClass} reports.');
     }
-  }
-
-  void _switchClass(String newClass) {
-    // Determine if we need to switch to Seniors or stay in Juniors
-    if (newClass == 'FORM 3' || newClass == 'FORM 4') {
-      // Navigate to Seniors class
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => Seniors_School_Reports_PDF_List(
-            schoolName: widget.schoolName,
-            className: widget.className,
-            studentClass: newClass,
-            studentFullName: widget.studentFullName,
-          ),
-        ),
-      );
-    } else if (newClass != currentClass) {
-      // Stay in Juniors but switch class
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => Seniors_School_Reports_PDF_List(
-            schoolName: widget.schoolName,
-            className: widget.className,
-            studentClass: newClass,
-            studentFullName: widget.studentFullName,
-          ),
-        ),
-      );
-    }
-  }
-
-  Widget _buildClassSwitcherButton() {
-    // Filter classes that the teacher has access to
-    List<String> availableClasses = teacherClasses.where((className) {
-      return ['FORM 1', 'FORM 2', 'FORM 3', 'FORM 4'].contains(className);
-    }).toList();
-
-    // If teacher has only one class, don't show the switcher
-    if (availableClasses.length <= 1) {
-      return SizedBox.shrink();
-    }
-
-    return Positioned(
-      bottom: 16,
-      left: 16,
-      child: FloatingActionButton.extended(
-        onPressed: () {
-          _showClassSwitcherDialog(availableClasses);
-        },
-        icon: Icon(Icons.class_),
-        label: Text(currentClass),
-        backgroundColor: Colors.orange,
-        heroTag: "classSwitcher", // Add unique hero tag to avoid conflicts
-      ),
-    );
-  }
-
-// 5. Add this method to show the class switcher dialog
-
-  void _showClassSwitcherDialog(List<String> availableClasses) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Switch Class'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Select a class to switch to:'),
-              SizedBox(height: 16),
-              ...availableClasses.map((className) {
-                bool isCurrentClass = className == currentClass;
-                return ListTile(
-                  leading: Icon(
-                    Icons.class_,
-                    color: isCurrentClass ? Colors.blue : Colors.grey,
-                  ),
-                  title: Text(
-                    className,
-                    style: TextStyle(
-                      fontWeight: isCurrentClass ? FontWeight.bold : FontWeight.normal,
-                      color: isCurrentClass ? Colors.blue : Colors.black,
-                    ),
-                  ),
-                  trailing: isCurrentClass
-                      ? Icon(Icons.check_circle, color: Colors.blue)
-                      : null,
-                  onTap: isCurrentClass ? null : () {
-                    Navigator.of(context).pop();
-                    _switchClass(className);
-                  },
-                );
-              }).toList(),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   Future<void> _fetchStudentsList() async {
@@ -336,7 +224,7 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
       );
       return;
     }
-    // Show confirmation dialog
+
     bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -349,29 +237,18 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: Colors.white),
-              ),
+              style: TextButton.styleFrom(backgroundColor: Colors.red),
+              child: Text('Cancel', style: TextStyle(color: Colors.white)),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.blue,
-              ),
-              child: Text(
-                'Generate',
-                style: TextStyle(color: Colors.white),
-              ),
+              style: TextButton.styleFrom(backgroundColor: Colors.blue),
+              child: Text('Generate', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
       },
     );
-
 
     if (confirmed != true) return;
 
@@ -392,7 +269,6 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
         final studentName = student['studentName'];
 
         try {
-          // Check if report already exists for this term
           final existingReport = await _firestore
               .collection('Schools/$schoolName/Classes/${widget.studentClass}/STUDENT_SCHOOL_REPORT_PDF_LIST')
               .where('studentName', isEqualTo: studentName)
@@ -413,17 +289,14 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
             generationProgress = (i + 1) / studentsList.length;
           });
 
-          // Add small delay to prevent overwhelming Firestore
           await Future.delayed(Duration(milliseconds: 500));
-
         } catch (e) {
           print("Error generating report for $studentName: $e");
           errorCount++;
-          // Continue with next student even if one fails
         }
       }
 
-      await _fetchExistingPDFReports(); // Refresh the list
+      await _fetchExistingPDFReports();
 
       String message = 'Report generation completed!';
       if (errorCount > 0) {
@@ -437,7 +310,6 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
           duration: Duration(seconds: 4),
         ),
       );
-
     } catch (e) {
       print("Error during batch generation: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -457,24 +329,16 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
 
   Future<void> _generateSingleReport(String studentName, String term, String academicYear) async {
     try {
-      // Fetch student data (similar to the original view code)
       final basePath = 'Schools/$schoolName/Classes/${widget.studentClass}/Student_Details/$studentName';
-
-      // Fetch all required data
       final studentData = await _fetchStudentReportData(basePath);
 
-      // Create a unique identifier for the PDF file using student's full name
-      // Clean the student name to make it file-system safe
       String cleanStudentName = studentName
-          .replaceAll(RegExp(r'[^\w\s-]'), '') // Remove special characters except spaces and hyphens
-          .replaceAll(RegExp(r'\s+'), '_') // Replace spaces with underscores
+          .replaceAll(RegExp(r'[^\w\s-]'), '')
+          .replaceAll(RegExp(r'\s+'), '_')
           .trim();
+      String uniqueFileName = '${cleanStudentName}_${widget.studentClass}_${term}_${academicYear}.pdf';
 
-      // Create unique filename with additional identifiers to ensure uniqueness
-      String uniqueFileName = '${cleanStudentName}_${widget.studentClass}_${term}_${academicYear}';
-
-      // Generate PDF
-      final pdfGenerator = Juniors_School_Report_PDF(
+      final pdfGenerator = Seniors_School_Report_PDF(
         studentClass: widget.studentClass,
         studentFullName: studentName,
         subjects: studentData['subjects'] ?? [],
@@ -496,44 +360,53 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
         schoolLocation: studentData['schoolLocation'] ?? 'N/A',
         schoolBankAccount: studentData['schoolBankAccount'],
         nextTermOpeningDate: studentData['nextTermOpeningDate'],
+        bestSixTotalPoints: studentData['bestSixTotalPoints'] ?? 0,
+        msceMessage: studentData['msceMessage'] ?? 'N/A',
       );
 
-      // Generate PDF with unique filename as parameter
-      await pdfGenerator.generateAndSavePDF(uniqueFileName);
+      final pdfBytes = await pdfGenerator.generatePDF();
 
-      // Save PDF report metadata to Firestore using student name as document ID
+      final directory = await getTemporaryDirectory();
+      final filePath = '${directory.path}/$uniqueFileName';
+      final file = File(filePath);
+      await file.writeBytes(pdfBytes);
+
+      final storageRef = _storage.ref().child(
+          'Schools/$schoolName/Classes/${widget.studentClass}/Reports/$uniqueFileName');
+      final uploadTask = await storageRef.putFile(file);
+      final pdfUrl = await uploadTask.ref.getDownloadURL();
+
+      await file.delete();
+
       await _firestore
           .collection('Schools/$schoolName/Classes/${widget.studentClass}/STUDENT_SCHOOL_REPORT_PDF_LIST')
-          .doc(studentName) // Use studentName as document ID instead of auto-generating
+          .doc(studentName)
           .set({
         'studentName': studentName,
         'studentClass': widget.studentClass,
-        'pdfFileName': uniqueFileName, // Store the unique filename
-        'pdfUrl': '', // Set to empty string since generateAndSavePDF returns void
+        'pdfFileName': uniqueFileName,
+        'pdfUrl': pdfUrl,
         'generatedAt': FieldValue.serverTimestamp(),
         'term': term,
         'academicYear': academicYear,
         'status': 'completed',
-        'fileSize': 0, // You can calculate this if needed
+        'fileSize': pdfBytes.length,
         'generatedBy': userEmail,
-        'className': widget.className, // Additional field for tracking
-        'uniqueId': uniqueFileName, // Store as unique identifier
+        'className': widget.className,
+        'uniqueId': uniqueFileName,
       });
-
     } catch (e) {
       print("Error generating single report for $studentName: $e");
 
-      // Create unique filename for error case as well
       String cleanStudentName = studentName
           .replaceAll(RegExp(r'[^\w\s-]'), '')
           .replaceAll(RegExp(r'\s+'), '_')
           .trim();
-      String uniqueFileName = '${cleanStudentName}_${widget.studentClass}_${term}_${academicYear}';
+      String uniqueFileName = '${cleanStudentName}_${widget.studentClass}_${term}_${academicYear}.pdf';
 
-      // Save error status to Firestore using student name as document ID
       await _firestore
           .collection('Schools/$schoolName/Classes/${widget.studentClass}/STUDENT_SCHOOL_REPORT_PDF_LIST')
-          .doc(studentName) // Use studentName as document ID for error case too
+          .doc(studentName)
           .set({
         'studentName': studentName,
         'studentClass': widget.studentClass,
@@ -554,27 +427,16 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
   }
 
   Future<Map<String, dynamic>> _fetchStudentReportData(String basePath) async {
-    // This method combines all the data fetching from the original view
     Map<String, dynamic> data = {};
 
     try {
-      // Fetch school info
       final schoolData = await _fetchSchoolInfo();
       data.addAll(schoolData);
-
-      // Fetch student subjects
       data['subjects'] = await _fetchStudentSubjects(basePath);
-
-      // Fetch total marks and remarks
       final marksData = await _fetchTotalMarks(basePath);
       data.addAll(marksData);
-
-      // Fetch subject stats
       data['subjectStats'] = await _fetchSubjectStats();
-
-      // Set total students
       data['totalStudents'] = totalStudents;
-
       return data;
     } catch (e) {
       print("Error fetching student report data: $e");
@@ -600,6 +462,7 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
         'schoolFees': schoolInfoDoc.exists ? (schoolInfoDoc['School_Fees'] ?? 'N/A') : 'N/A',
         'schoolBankAccount': schoolInfoDoc.exists ? (schoolInfoDoc['School_Bank_Account'] ?? 'N/A') : 'N/A',
         'nextTermOpeningDate': schoolInfoDoc.exists ? (schoolInfoDoc['Next_Term_Opening_Date'] ?? 'N/A') : 'N/A',
+        'schoolAccount': schoolInfoDoc.exists ? (schoolInfoDoc['School_Account'] ?? 'N/A') : 'N/A',
       };
     } catch (e) {
       print("Error fetching school info: $e");
@@ -607,6 +470,7 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
         'schoolName': schoolName,
         'schoolPhone': 'N/A',
         'schoolEmail': 'N/A',
+        'schoolAccount': 'N/A',
         'boxNumber': 0,
         'schoolLocation': 'N/A',
         'schoolFees': 'N/A',
@@ -621,29 +485,65 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
       final snapshot = await _firestore.collection('$basePath/Student_Subjects').get();
       List<Map<String, dynamic>> subjectList = [];
 
+      // List of all possible subjects
+      const allSubjects = [
+        'ADDITIONAL MATHEMATICS',
+        'AGRICULTURE',
+        'BIBLE KNOWLEDGE',
+        'BIOLOGY',
+        'CHEMISTRY',
+        'CHICHEWA',
+        'COMPUTER SCIENCE',
+        'ENGLISH',
+        'GEOGRAPHY',
+        'HISTORY',
+        'HOME ECONOMICS',
+        'LIFE & SOCIAL',
+        'MATHEMATICS',
+        'PHYSICS',
+      ];
+
+      // Initialize subjects with default values
+      for (var subject in allSubjects) {
+        subjectList.add({
+          'subject': subject,
+          'score': 0,
+          'position': 0,
+          'totalStudents': 0,
+          'gradeLetter': 'N/A',
+          'gradeRemark': 'N/A',
+        });
+      }
+
+      // Update with actual data from Firestore
       for (var doc in snapshot.docs) {
         final data = doc.data();
+        final subjectName = data['Subject_Name']?.toString() ?? doc.id;
         int score = 0;
         if (data['Subject_Grade'] != null) {
           score = double.tryParse(data['Subject_Grade'].toString())?.round() ?? 0;
         }
-
         int subjectPosition = (data['Subject_Position'] as num?)?.toInt() ?? 0;
         int totalStudentsInSubject = (data['Total_Students_Subject'] as num?)?.toInt() ?? 0;
         String gradeLetter = data['Grade_Letter']?.toString() ?? _getGradeFromPercentage(score.toDouble());
+        String gradeRemark = data['Grade_Remark']?.toString() ?? 'N/A';
 
-        subjectList.add({
-          'subject': data['Subject_Name'] ?? doc.id,
-          'score': score,
-          'position': subjectPosition,
-          'totalStudents': totalStudentsInSubject,
-          'gradeLetter': gradeLetter,
-        });
+        // Find and update the subject in the list
+        final index = subjectList.indexWhere((s) => s['subject'] == subjectName);
+        if (index != -1) {
+          subjectList[index] = {
+            'subject': subjectName,
+            'score': score,
+            'position': subjectPosition,
+            'totalStudents': totalStudentsInSubject,
+            'gradeLetter': gradeLetter,
+            'gradeRemark': gradeRemark,
+          };
+        }
       }
 
       // Sort subjects alphabetically
       subjectList.sort((a, b) => (a['subject'] as String).compareTo(b['subject'] as String));
-
       return subjectList;
     } catch (e) {
       print("Error fetching subjects: $e");
@@ -659,23 +559,26 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
         result = {
-          'studentTotalMarks': (data['Student_Total_Marks'] as num?)?.toInt() ?? 0,
-          'teacherTotalMarks': (data['Teacher_Total_Marks'] as num?)?.toInt() ?? 0,
+          'studentTotalMarks': int.tryParse(data['Student_Total_Marks']?.toString() ?? '0') ?? 0,
+          'teacherTotalMarks': int.tryParse(data['Teacher_Total_Marks']?.toString() ?? '0') ?? 0,
           'studentPosition': (data['Student_Class_Position'] as num?)?.toInt() ?? 0,
-          'averageGradeLetter': data['Average_Grade_Letter']?.toString() ?? '',
-          'jceStatus': data['JCE_Status']?.toString() ?? 'FAIL',
+          'averageGradeLetter': data['Aggregate_Grade']?.toString() ?? 'N/A',
+          'jceStatus': data['MSCE_Status']?.toString() ?? 'FAIL',
+          'bestSixTotalPoints': (data['Best_Six_Total_Points'] as num?)?.toInt() ?? 0,
+          'msceMessage': data['MSCE_Message']?.toString() ?? 'N/A',
         };
       } else {
         result = {
           'studentTotalMarks': 0,
           'teacherTotalMarks': 0,
           'studentPosition': 0,
-          'averageGradeLetter': '',
+          'averageGradeLetter': 'N/A',
           'jceStatus': 'FAIL',
+          'bestSixTotalPoints': 0,
+          'msceMessage': 'N/A',
         };
       }
 
-      // Fetch remarks
       try {
         final remarksDoc = await _firestore.doc('$basePath/TOTAL_MARKS/Results_Remarks').get();
         if (remarksDoc.exists) {
@@ -699,8 +602,10 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
         'studentTotalMarks': 0,
         'teacherTotalMarks': 0,
         'studentPosition': 0,
-        'averageGradeLetter': '',
+        'averageGradeLetter': 'N/A',
         'jceStatus': 'FAIL',
+        'bestSixTotalPoints': 0,
+        'msceMessage': 'N/A',
         'formTeacherRemarks': 'N/A',
         'headTeacherRemarks': 'N/A',
       };
@@ -752,7 +657,6 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
       final currentTerm = getCurrentTerm();
       final academicYear = getAcademicYear();
 
-      // Delete existing report first
       final existingReports = await _firestore
           .collection('Schools/$schoolName/Classes/${widget.studentClass}/STUDENT_SCHOOL_REPORT_PDF_LIST')
           .where('studentName', isEqualTo: studentName)
@@ -761,10 +665,17 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
           .get();
 
       for (var doc in existingReports.docs) {
+        final pdfFileName = doc.data()['pdfFileName'];
+        if (pdfFileName != null) {
+          await _storage
+              .ref()
+              .child('Schools/$schoolName/Classes/${widget.studentClass}/Reports/$pdfFileName')
+              .delete()
+              .catchError((e) => print("Error deleting old PDF: $e"));
+        }
         await doc.reference.delete();
       }
 
-      // Generate new report
       await _generateSingleReport(studentName, currentTerm, academicYear);
       await _fetchExistingPDFReports();
 
@@ -790,12 +701,25 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
 
   Future<void> _deleteReport(String docId) async {
     try {
+      final doc = await _firestore
+          .collection('Schools/$schoolName/Classes/${widget.studentClass}/STUDENT_SCHOOL_REPORT_PDF_LIST')
+          .doc(docId)
+          .get();
+
+      if (doc.exists && doc.data()!['pdfFileName'] != null) {
+        await _storage
+            .ref()
+            .child('Schools/$schoolName/Classes/${widget.studentClass}/Reports/${doc.data()!['pdfFileName']}')
+            .delete()
+            .catchError((e) => print("Error deleting PDF: $e"));
+      }
+
       await _firestore
           .collection('Schools/$schoolName/Classes/${widget.studentClass}/STUDENT_SCHOOL_REPORT_PDF_LIST')
           .doc(docId)
           .delete();
 
-      await _fetchExistingPDFReports(); // Refresh the list
+      await _fetchExistingPDFReports();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1027,19 +951,23 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
                 ],
               ),
               trailing: PopupMenuButton<String>(
-                onSelected: (value) {
+                onSelected: (value) async {
                   switch (value) {
                     case 'view':
-                    // Open PDF viewer (implement based on your PDF viewer)
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Opening PDF for ${report['studentName']}')),
-                      );
+                      if (report['pdfUrl'].isNotEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Opening PDF for ${report['studentName']}')),
+                        );
+                        // Implement PDF viewing (e.g., using flutter_pdfview or url_launcher)
+                      }
                       break;
                     case 'download':
-                    // Download PDF (implement based on your download mechanism)
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Downloading PDF for ${report['studentName']}')),
-                      );
+                      if (report['pdfUrl'].isNotEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Downloading PDF for ${report['studentName']}')),
+                        );
+                        // Implement download logic
+                      }
                       break;
                     case 'delete':
                       _showDeleteConfirmation(report['docId'], report['studentName']);
@@ -1111,7 +1039,7 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('SENIORS PDF LIST'),
+        title: Text('JUNIORS PDF LIST'),
         backgroundColor: Colors.blue[600],
         foregroundColor: Colors.white,
         actions: [
@@ -1125,7 +1053,11 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
           ? Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading data...'),
+          ],
         ),
       )
           : hasError
@@ -1169,5 +1101,138 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
         backgroundColor: Colors.green,
       ),
     );
+  }
+}
+
+class Seniors_School_Report_PDF {
+  final String studentClass;
+  final String studentFullName;
+  final List<Map<String, dynamic>> subjects;
+  final Map<String, dynamic> subjectStats;
+  final int studentTotalMarks;
+  final int teacherTotalMarks;
+  final int studentPosition;
+  final int totalStudents;
+  final String schoolName;
+  final String schoolPhone;
+  final String schoolEmail;
+  final String schoolAccount;
+  final String formTeacherRemarks;
+  final String headTeacherRemarks;
+  final String averageGradeLetter;
+  final String jceStatus;
+  final String schoolFees;
+  final int boxNumber;
+  final String schoolLocation;
+  final String schoolBankAccount;
+  final String nextTermOpeningDate;
+  final int bestSixTotalPoints;
+  final String msceMessage;
+
+  Seniors_School_Report_PDF({
+    required this.studentClass,
+    required this.studentFullName,
+    required this.subjects,
+    required this.subjectStats,
+    required this.studentTotalMarks,
+    required this.teacherTotalMarks,
+    required this.studentPosition,
+    required this.totalStudents,
+    required this.schoolName,
+    required this.schoolPhone,
+    required this.schoolEmail,
+    required this.schoolAccount,
+    required this.formTeacherRemarks,
+    required this.headTeacherRemarks,
+    required this.averageGradeLetter,
+    required this.jceStatus,
+    required this.schoolFees,
+    required this.boxNumber,
+    required this.schoolLocation,
+    required this.schoolBankAccount,
+    required this.nextTermOpeningDate,
+    required this.bestSixTotalPoints,
+    required this.msceMessage,
+  });
+
+  Future<Uint8List> generatePDF() async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: pw.EdgeInsets.all(32),
+        build: (pw.Context context) {
+          return [
+            pw.Header(
+              level: 0,
+              child: pw.Text(
+                '$schoolName - Student Report',
+                style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+              ),
+            ),
+            pw.SizedBox(height: 20),
+            pw.Text('Student: $studentFullName', style: pw.TextStyle(fontSize: 18)),
+            pw.Text('Class: $studentClass', style: pw.TextStyle(fontSize: 16)),
+            pw.Text('Term: ${Seniors_School_Reports_PDF_List().getCurrentTerm()}'),
+            pw.Text('Academic Year: ${Seniors_School_Reports_PDF_List(schoolName: 'schoolName',).getAcademicYear()}'),
+            pw.SizedBox(height: 20),
+            pw.Text('School Details:', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            pw.Text('Phone: $schoolPhone'),
+            pw.Text('Email: $schoolEmail'),
+            pw.Text('Location: $schoolLocation'),
+            pw.Text('Box Number: $boxNumber'),
+            pw.Text('Bank Account: $schoolBankAccount'),
+            pw.Text('School Fees: $schoolFees'),
+            pw.Text('Next Term Opening: $nextTermOpeningDate'),
+            pw.SizedBox(height: 20),
+            pw.Text('Academic Performance:', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            pw.Table.fromTextArray(
+              headers: ['Subject', 'Score', 'Grade', 'Remark', 'Position', 'Total Students'],
+              data: subjects
+                  .map((subject) => [
+                subject['subject'],
+                subject['score'].toString(),
+                subject['gradeLetter'],
+                subject['gradeRemark'],
+                subject['position'].toString(),
+                subject['totalStudents'].toString(),
+              ])
+                  .toList(),
+            ),
+            pw.SizedBox(height: 20),
+            pw.Text('Overall Performance:', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            pw.Text('Total Marks: $studentTotalMarks / $teacherTotalMarks'),
+            pw.Text('Aggregate Grade: $averageGradeLetter'),
+            pw.Text('Best Six Total Points: $bestSixTotalPoints'),
+            pw.Text('Position: $studentPosition / $totalStudents'),
+            pw.Text('MSCE Status: $jceStatus'),
+            pw.Text('MSCE Message: $msceMessage'),
+            pw.SizedBox(height: 20),
+            pw.Text('Remarks:', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            pw.Text('Form Teacher: $formTeacherRemarks'),
+            pw.Text('Head Teacher: $headTeacherRemarks'),
+            pw.SizedBox(height: 20),
+            if (subjectStats.isNotEmpty) ...[
+              pw.Text('Subject Statistics:', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+              pw.Table.fromTextArray(
+                headers: ['Subject', 'Average', 'Pass Rate', 'Total Pass', 'Total Fail'],
+                data: subjectStats.entries
+                    .map((entry) => [
+                  entry.key,
+                  entry.value['average'].toString(),
+                  '${entry.value['passRate']}%',
+                  entry.value['totalPass'].toString(),
+                  entry.value['totalFail'].toString(),
+                ])
+                    .toList(),
+              ),
+            ],
+          ];
+        },
+      ),
+    );
+
+    return pdf.save();
   }
 }

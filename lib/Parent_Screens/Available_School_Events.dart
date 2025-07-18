@@ -189,7 +189,7 @@ class _Available_School_EventsState extends State<Available_School_Events> {
             Text(
               'School Events',
               style: TextStyle(
-                  fontWeight: FontWeight.bold,
+
                   fontSize: _getResponsiveFontSize(context, 18)
               ),
             ),

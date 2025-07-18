@@ -39,7 +39,6 @@ class Grade_Analytics extends StatelessWidget {
         title: Text(
           'Grade Format',
           style: TextStyle(
-            fontWeight: FontWeight.w600,
             fontSize: 18 * scale,
             color: Colors.white,
           ),

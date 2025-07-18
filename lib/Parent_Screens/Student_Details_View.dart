@@ -523,7 +523,7 @@ class _Student_Details_ViewState extends State<Student_Details_View> {
       title: Text(
         'Student Details',
         style: const TextStyle(
-          fontWeight: FontWeight.bold,
+
           color: Colors.white,
         ),
       ),
