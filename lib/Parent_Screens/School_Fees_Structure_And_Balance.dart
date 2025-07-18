@@ -345,7 +345,6 @@ class _School_Fees_Structure_And_BalanceState extends State<School_Fees_Structur
             Text(
               'School Fees',
               style: TextStyle(
-                fontWeight: FontWeight.bold,
                 fontSize: _getResponsiveValue(context, 18, 20, 22),
               ),
             ),

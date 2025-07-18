@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../Log_In_And_Register_Screens/Login_Page.dart'; // Import for ParentDataManager
 
-class Junior_Student_Results extends StatefulWidget {
+class Student_Results extends StatefulWidget {
   static const String id = 'student_school_results';
 
   final String schoolName;
@@ -11,7 +11,7 @@ class Junior_Student_Results extends StatefulWidget {
   final String studentClass;
   final String studentName;
 
-  const Junior_Student_Results({
+  const Student_Results({
     Key? key,
     required this.schoolName,
     required this.className,
@@ -20,10 +20,10 @@ class Junior_Student_Results extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _Junior_Student_ResultsState createState() => _Junior_Student_ResultsState();
+  _Student_ResultsState createState() => _Student_ResultsState();
 }
 
-class _Junior_Student_ResultsState extends State<Junior_Student_Results> {
+class _Student_ResultsState extends State<Student_Results> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Data variables
@@ -670,7 +670,7 @@ class _Junior_Student_ResultsState extends State<Junior_Student_Results> {
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
-                    fontWeight: FontWeight.bold,
+
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -956,4 +956,5 @@ class _Junior_Student_ResultsState extends State<Junior_Student_Results> {
       ),
     );
   }
+
 }

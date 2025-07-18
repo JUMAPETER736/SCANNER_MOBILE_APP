@@ -159,7 +159,7 @@ class _Student_BehaviorState extends State<Student_Behavior> with TickerProvider
         title: Text(
           'Student Behavior',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
+
             color: Colors.white,
             fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
           ),

@@ -220,7 +220,7 @@ class _Performance_StatisticsState extends State<Performance_Statistics>
           style: TextStyle(
             color: Color(0xFF1F2937),
             fontSize: 20,
-            fontWeight: FontWeight.w600,
+
           ),
         ),
         centerTitle: true,

@@ -30,26 +30,7 @@ class MyApp extends StatelessWidget {
         Login_Page.id: (context) => Login_Page(),
         Forgot_Password.id: (context) => Forgot_Password(),
         Teacher_Home_Page.id: (context) => Teacher_Home_Page(),
-        // Remove Parent_Home_Page from routes since it needs parameters
-      },
-      onGenerateRoute: (settings) {
-        // Handle parameterized routes
-        if (settings.name == Parent_Home_Page.id) {
-          final args = settings.arguments as Map<String, dynamic>?;
-          final schoolName = args?['schoolName'] as String? ?? 'Default School';
-          final className = args?['className'] as String? ?? 'Default Class';
-          final studentClass = args?['studentClass'] as String? ?? 'Default Student Class';
-          final studentName = args?['studentName'] as String? ?? 'Default Student Name';
-          return MaterialPageRoute(
-            builder: (context) => Parent_Home_Page(
-              schoolName: schoolName,
-              className: className,
-              studentClass: studentClass,
-              studentName: studentName,
-            ),
-          );
-        }
-        return null;
+        Parent_Home_Page.id: (context) => Parent_Home_Page(),
       },
       onUnknownRoute: (settings) {
         return MaterialPageRoute(builder: (context) => NotFoundPage());
