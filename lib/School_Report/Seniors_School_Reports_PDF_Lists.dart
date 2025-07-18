@@ -7,7 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -941,15 +941,15 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
                 final filePath = await _downloadPDF(
                     report['pdfUrl'], report['pdfFileName']);
                 if (filePath != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PDFViewerPage(
-                        filePath: filePath,
-                        title: report['studentName'],
-                      ),
-                    ),
-                  );
+                  // Navigator.push(
+                  //   context,
+                  //   MaterialPageRoute(
+                  //     builder: (context) => PDFViewerPage(
+                  //       filePath: filePath,
+                  //       title: report['studentName'],
+                  //     ),
+                  //   ),
+                  // );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -1001,15 +1001,15 @@ class _Seniors_School_Reports_PDF_ListState extends State<Seniors_School_Reports
                         final filePath = await _downloadPDF(
                             report['pdfUrl'], report['pdfFileName']);
                         if (filePath != null) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PDFViewerPage(
-                                filePath: filePath,
-                                title: report['studentName'],
-                              ),
-                            ),
-                          );
+                         // Navigator.push(
+                          //  context,
+                            // MaterialPageRoute(
+                            //   builder: (context) => PDFViewerPage(
+                            //     filePath: filePath,
+                            //     title: report['studentName'],
+                            //   ),
+                            // ),
+                          //);
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -1348,35 +1348,36 @@ class Seniors_School_Report_PDF {
   }
 }
 
-class PDFViewerPage extends StatelessWidget {
-  final String filePath;
-  final String title;
 
-  const PDFViewerPage({required this.filePath, required this.title, Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        backgroundColor: Colors.blue[600],
-        foregroundColor: Colors.white,
-      ),
-      body: PDFView(
-        filePath: filePath,
-        enableSwipe: true,
-        swipeHorizontal: false,
-        autoSpacing: false,
-        pageFling: false,
-        onError: (error) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error loading PDF: $error'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
+//
+// class PDFViewerPage extends StatelessWidget {
+//   final String filePath;
+//   final String title;
+//
+//   const PDFViewerPage({required this.filePath, required this.title, Key? key}) : super(key: key);
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text(title),
+//         backgroundColor: Colors.blue[600],
+//         foregroundColor: Colors.white,
+//       ),
+//       body: SfPdfViewer.file(
+//         File(filePath),
+//         enableDoubleTapZooming: true,
+//         canShowScrollHead: true,
+//         canShowScrollStatus: true,
+//         onDocumentLoadFailed: (details) {
+//           ScaffoldMessenger.of(context).showSnackBar(
+//             SnackBar(
+//               content: Text('Error loading PDF: ${details.description}'),
+//               backgroundColor: Colors.red,
+//             ),
+//           );
+//         },
+//       ),
+//     );
+//   }
+// }
