@@ -40,6 +40,7 @@ dependencies:
   validators: ^3.0.0
   fluttertoast: ^8.2.8
   intl: ^0.19.0
+  syncfusion_flutter_pdfviewer: ^26.2.7
 
   # Notifications
   flutter_local_notifications: ^17.2.3
@@ -73,10 +74,12 @@ dev_dependencies:
 flutter:
   generate: true
   uses-material-design: true
+
   assets:
     - assets/images/
     - assets/fonts/Roboto-Regular.ttf
     - assets/fonts/Roboto-Bold.ttf
+
   fonts:
     - family: Abel
       fonts:
@@ -86,6 +89,9 @@ flutter:
         - asset: assets/fonts/Roboto-Regular.ttf
         - asset: assets/fonts/Roboto-Bold.ttf
           weight: 700
+
+flutter_intl:
+  enabled: true
 
 l10n:
   path: l10n
