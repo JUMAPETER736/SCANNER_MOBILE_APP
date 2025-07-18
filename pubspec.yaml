@@ -65,8 +65,6 @@ dependencies:
   # Cross-platform compatibility
   universal_io: ^2.2.2
 
-
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -77,10 +75,17 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/fonts/Roboto-Regular.ttf
+    - assets/fonts/Roboto-Bold.ttf
   fonts:
     - family: Abel
       fonts:
         - asset: assets/fonts/Abel-Regular.ttf
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700
 
 l10n:
   path: l10n
