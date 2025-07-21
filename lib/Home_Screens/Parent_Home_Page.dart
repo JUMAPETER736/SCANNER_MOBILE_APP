@@ -476,53 +476,21 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Parent Portal',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
+            color: Colors.black,
           ),
         ),
         backgroundColor: Colors.blueAccent,
-        elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
-          Container(
-            margin: EdgeInsets.only(
-              right: getResponsiveSize(16, screenWidth, screenHeight),
-            ),
-            child: IconButton(
-              icon: Container(
-                padding: EdgeInsets.all(
-                  getResponsiveSize(8, screenWidth, screenHeight),
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(
-                    getResponsiveSize(12, screenWidth, screenHeight),
-                  ),
-                ),
-                child: Icon(
-                  Icons.logout,
-                  color: Colors.white,
-                  size: getResponsiveSize(20, screenWidth, screenHeight),
-                ),
-              ),
-              onPressed: _logout,
-            ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.black),
+            onPressed: _logout,
           ),
         ],
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blueAccent, Colors.blue],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
       ),
       body: FadeTransition(
         opacity: _fadeAnimation,
