@@ -363,7 +363,6 @@ class _Student_DetailsState extends State<Student_Details> {
     }
   }
 
-// MARK: - Academic Performance Structure Creation (Updated to include Student Fees)
   Future<void> _createAcademicPerformanceStructure(WriteBatch batch, DocumentReference studentRef) async {
     final String currentAcademicYear = _getCurrentAcademicYear();
     final String currentTerm = _getCurrentTerm();
@@ -422,20 +421,20 @@ class _Student_DetailsState extends State<Student_Details> {
         'behavior_status': isPastTerm ? 'Past Term - No Records' : 'Not Evaluated',
       });
 
-      // Create Student_Fees document for current term only
-      if (isCurrentTerm) {
-        final DocumentReference studentFeesRef = termRef
-            .collection('Student_Fees')
-            .doc('Fees_Details');
+      // Create Student_Fees document for all terms (UPDATED STRUCTURE)
+      // Note: UI will show current term only, but all terms need fee structure
+      if (isCurrentTerm || isPastTerm) {
+        // Create school-level fee structure (keep existing)
+        final DocumentReference schoolFeesRef = termRef
+            .collection('School_Fees_Structure')
+            .doc('Fee_Structure');
 
-        batch.set(studentFeesRef, {
+        batch.set(schoolFeesRef, {
           'term_name': term,
           'academic_year': currentAcademicYear,
-          'student_id': _studentID!,
-          'student_name': _studentFullName,
-          'student_class': _selectedClass!,
+          'class': _selectedClass!,
 
-          // Fee Structure
+          // School Fee Structure (amounts set by school)
           'tuition_fee': '0',
           'examination_fee': '0',
           'library_fee': '0',
@@ -447,73 +446,162 @@ class _Student_DetailsState extends State<Student_Details> {
           'uniform_fee': '0',
           'stationery_fee': '0',
           'other_fees': '0',
-          'total_fees': '0',
+          'total_school_fees': '0',
 
-          // Payment Details
-          'amount_paid': '0',
-          'outstanding_balance': '0',
-          'payment_status': 'Not Paid',
+          // School settings
           'payment_due_date': termDates[term]!['end_date'],
+          'late_payment_penalty': '0',
+          'discount_policies': 'N/A',
+
+          // Timestamps
+          'created_at': FieldValue.serverTimestamp(),
+          'last_updated': FieldValue.serverTimestamp(),
+          'updated_by': _loggedInUser?.email ?? 'system',
+
+          'fee_structure_notes': 'Fee structure to be updated by admin/finance department',
+        });
+
+        // Create STUDENT-LEVEL fee payment tracking (NEW LOCATION)
+        final DocumentReference studentFeesRef = studentRef
+            .collection('Student_Fee_Payments')
+            .doc(currentAcademicYear)
+            .collection(term)
+            .doc('Payment_Records');
+
+        batch.set(studentFeesRef, {
+          'student_id': _studentID!,
+          'student_name': _studentFullName,
+          'student_class': _selectedClass!,
+          'term_name': term,
+          'academic_year': currentAcademicYear,
+
+          // Individual Payment Records (what student has paid)
+          'tuition_fee_paid': '0',
+          'examination_fee_paid': '0',
+          'library_fee_paid': '0',
+          'laboratory_fee_paid': '0',
+          'sports_fee_paid': '0',
+          'development_fee_paid': '0',
+          'transport_fee_paid': '0',
+          'meal_fee_paid': '0',
+          'uniform_fee_paid': '0',
+          'stationery_fee_paid': '0',
+          'other_fees_paid': '0',
+
+          // Remaining amounts (what student still owes)
+          'tuition_fee_remaining': '0',
+          'examination_fee_remaining': '0',
+          'library_fee_remaining': '0',
+          'laboratory_fee_remaining': '0',
+          'sports_fee_remaining': '0',
+          'development_fee_remaining': '0',
+          'transport_fee_remaining': '0',
+          'meal_fee_remaining': '0',
+          'uniform_fee_remaining': '0',
+          'stationery_fee_remaining': '0',
+          'other_fees_remaining': '0',
+
+          // Summary totals
+          'total_amount_paid': '0',
+          'total_amount_remaining': '0',
+          'total_fees_assigned': '0',
+          'payment_status': 'Not Paid',
+
+          // Payment tracking
           'last_payment_date': null,
           'last_payment_amount': '0',
           'payment_method': 'N/A',
           'receipt_number': 'N/A',
-
-          // Fee Categories Status
-          'fees_breakdown': {
-            'tuition_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
-            'examination_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
-            'library_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
-            'laboratory_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
-            'sports_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
-            'development_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
-            'transport_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
-            'meal_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
-            'uniform_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
-            'stationery_fee': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
-            'other_fees': {'amount': '0', 'paid': '0', 'balance': '0', 'status': 'Not Paid'},
-          },
+          'payment_percentage': '0.0',
 
           // Timestamps and tracking
           'created_at': FieldValue.serverTimestamp(),
           'last_updated': FieldValue.serverTimestamp(),
           'updated_by': _loggedInUser?.email ?? 'system',
 
-          // Additional tracking fields
-          'fee_schedule_applied': false,
-          'discount_applied': '0',
-          'discount_reason': 'N/A',
-          'penalty_applied': '0',
-          'penalty_reason': 'N/A',
-          'payment_plan_active': false,
-          'payment_plan_details': 'N/A',
-
-          // Parent/Guardian information for fees
+          // Student-specific information
           'parent_guardian_name': 'N/A',
           'parent_guardian_phone': 'N/A',
           'parent_guardian_email': 'N/A',
           'billing_address': 'N/A',
 
+          // Payment plan and special cases
+          'payment_plan_active': 'false',
+          'payment_plan_details': 'N/A',
+          'discount_applied': '0',
+          'discount_reason': 'N/A',
+          'penalty_applied': '0',
+          'penalty_reason': 'N/A',
+
           // Notes and remarks
-          'fee_notes': 'Initial fees record created for new student',
-          'admin_remarks': 'Fees to be updated by admin/finance department',
+          'payment_notes': isPastTerm
+              ? 'Payment record for completed term - fees may have been paid'
+              : 'Initial payment record created for new student',
+          'admin_remarks': isPastTerm
+              ? 'Past term - verify payment status with finance department'
+              : 'Awaiting fee assignment from school fee structure',
           'special_instructions': 'N/A',
+
+          // Reference to school fee structure
+          'school_fee_structure_ref': 'Academic_Performance/$currentAcademicYear/$term/School_Fees_Structure/Fee_Structure',
         });
 
-        // Create Payment History subcollection for current term
-        final DocumentReference paymentHistoryRef = studentFeesRef
-            .collection('Payment_History')
-            .doc('History_Records');
+        // Create Payment History for student
+        final DocumentReference studentPaymentHistoryRef = studentFeesRef
+            .collection('Individual_Payment_History')
+            .doc('Payment_Transactions');
 
-        batch.set(paymentHistoryRef, {
+        batch.set(studentPaymentHistoryRef, {
+          'student_id': _studentID!,
           'term_name': term,
           'academic_year': currentAcademicYear,
-          'payment_records': [],
-          'total_payments_made': 0,
+          'payment_transactions': [],
+          'total_transactions': '0',
           'total_amount_paid': '0',
           'first_payment_date': null,
           'last_payment_date': null,
           'payment_history_notes': 'No payments recorded yet',
+          'created_at': FieldValue.serverTimestamp(),
+          'last_updated': FieldValue.serverTimestamp(),
+        });
+
+        // Create Student Fee Summary for CURRENT TERM only (term-specific)
+        final DocumentReference studentFeeSummaryRef = studentRef
+            .collection('Student_Fee_Payments')
+            .doc(currentAcademicYear)
+            .collection(term)
+            .doc('Term_Fee_Summary');
+
+        batch.set(studentFeeSummaryRef, {
+          'student_id': _studentID!,
+          'student_name': _studentFullName,
+          'student_class': _selectedClass!,
+          'term_name': term,
+          'academic_year': currentAcademicYear,
+
+          // Term-specific totals
+          'term_total_fees': '0',
+          'term_total_paid': '0',
+          'term_total_remaining': '0',
+          'term_payment_percentage': '0.0',
+
+          // Term payment status
+          'term_payment_status': 'Not Started',
+          'payment_deadline': termDates[term]!['end_date'],
+          'is_payment_overdue': 'false',
+          'days_overdue': '0',
+
+          // Term payment tracking
+          'first_payment_date_for_term': null,
+          'last_payment_date_for_term': null,
+          'total_payment_transactions_for_term': '0',
+          'payment_completion_date': null,
+
+          // Term-specific notes
+          'term_payment_notes': 'Term fee tracking initialized for $term',
+          'payment_reminders_sent': '0',
+          'parent_notifications_sent': '0',
+
           'created_at': FieldValue.serverTimestamp(),
           'last_updated': FieldValue.serverTimestamp(),
         });
@@ -642,7 +730,7 @@ class _Student_DetailsState extends State<Student_Details> {
     print("Student Behavior tracking added for all terms");
     print("Student Fees tracking added for current term: $currentTerm");
     print("Structure references existing collections: Personal_Information, Student_Subjects, TOTAL_MARKS");
-
+    print("Updated Student Fees structure with separate school fee structure and student payment tracking");
   }
 
   Future<void> _updateTotalStudentsCountOnSave(String school, String studentClass) async {

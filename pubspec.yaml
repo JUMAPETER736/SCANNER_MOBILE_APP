@@ -5,7 +5,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.7.0
+  sdk: ^3.8.1
 
 dependencies:
   flutter:
@@ -19,7 +19,7 @@ dependencies:
   awesome_dialog: ^3.2.1
   modal_progress_hud_nsn: ^0.5.1
 
-  # Firebase (Updated for compatibility with firebase_core ^3.6.0)
+  # Firebase (Latest compatible versions)
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
   firebase_auth_web: ^5.13.2
@@ -27,7 +27,7 @@ dependencies:
   firebase_database: ^11.1.4
   firebase_storage: ^12.4.5
 
-  # Authentication & Social Login
+  # Authentication & Social Login (Updated versions)
   flutter_facebook_auth: ^7.1.2
   google_sign_in: ^6.2.1
   local_auth: ^2.3.0
@@ -36,31 +36,31 @@ dependencies:
   provider: ^6.1.2
   shared_preferences: ^2.3.3
 
-  # Validation & Utils
+  # Validation & Utils (Updated versions)
   validators: ^3.0.0
   fluttertoast: ^8.2.8
-  intl: ^0.19.0
-  syncfusion_flutter_pdfviewer: ^26.2.7
+  intl: ^0.20.2
+  syncfusion_flutter_pdfviewer: ^30.1.40
 
-  # Notifications
-  flutter_local_notifications: ^17.2.3
+  # Notifications (Updated)
+  flutter_local_notifications: ^19.3.1
 
-  # Scanning & QR Codes
-  mobile_scanner: ^5.2.3
+  # Scanning & QR Codes (Updated versions)
+  mobile_scanner: ^7.0.1
   qr_code_scanner: ^1.0.1
   qr_flutter: ^4.1.0
   barcode: ^2.2.8
   barcode_widget: ^2.0.3
 
-  # File & PDF Operations
+  # File & PDF Operations (Updated versions)
   path_provider: ^2.1.5
   pdf: ^3.11.1
   printing: ^5.13.4
   open_file: ^3.5.7
   http: ^1.4.0
 
-  # Permissions & Lifecycle
-  permission_handler: ^11.3.1
+  # Permissions & Lifecycle (Updated versions)
+  permission_handler: ^12.0.1
   flutter_plugin_android_lifecycle: ^2.0.22
 
   # Cross-platform compatibility
@@ -69,7 +69,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 flutter:
   generate: true
@@ -77,18 +77,9 @@ flutter:
 
   assets:
     - assets/images/
-    - assets/fonts/Roboto-Regular.ttf
-    - assets/fonts/Roboto-Bold.ttf
 
-  fonts:
-    - family: Abel
-      fonts:
-        - asset: assets/fonts/Abel-Regular.ttf
-    - family: Roboto
-      fonts:
-        - asset: assets/fonts/Roboto-Regular.ttf
-        - asset: assets/fonts/Roboto-Bold.ttf
-          weight: 700
+  # Fonts section removed - using google_fonts package instead
+  # This eliminates font file errors and provides better performance
 
 flutter_intl:
   enabled: true

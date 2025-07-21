@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Forgot_Password.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Login_Page.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Register_Page.dart';
@@ -20,8 +21,20 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
-        //platform: TargetPlatform.android, // Forces Android behavior
-        fontFamily: 'Abel', // Sets the font family
+        // Set Roboto as the default font family using Google Fonts
+        textTheme: GoogleFonts.robotoTextTheme(
+          Theme.of(context).textTheme,
+        ),
+        // You can also customize specific text styles
+        appBarTheme: AppBarTheme(
+          titleTextStyle: GoogleFonts.roboto(
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+          ),
+        ),
+        // Primary color scheme (optional)
+        primarySwatch: Colors.blue,
       ),
       debugShowCheckedModeBanner: false,
       initialRoute: Login_Page.id,
@@ -44,10 +57,51 @@ class NotFoundPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Sorry Page Not Found'),
+        title: Text(
+          'Sorry Page Not Found',
+          style: GoogleFonts.roboto(
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
       body: Center(
-        child: Text('404 - Page Not Found'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '404',
+              style: GoogleFonts.roboto(
+                fontSize: 72,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[400],
+              ),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Page Not Found',
+              style: GoogleFonts.roboto(
+                fontSize: 24,
+                fontWeight: FontWeight.w400,
+                color: Colors.grey[600],
+              ),
+            ),
+            SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  Login_Page.id,
+                      (route) => false,
+                );
+              },
+              child: Text(
+                'Go to Login',
+                style: GoogleFonts.roboto(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
