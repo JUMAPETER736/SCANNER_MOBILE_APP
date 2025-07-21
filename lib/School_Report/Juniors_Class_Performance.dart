@@ -702,7 +702,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
       backgroundColor: Colors.grey[50],
 
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'PERFORMANCE ANALYTICS',
           style: TextStyle(
             color: Colors.white,
@@ -715,7 +715,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh_rounded),
+            icon: const Icon(Icons.refresh_rounded),
             onPressed: () {
               setState(() {
                 isLoading = true;

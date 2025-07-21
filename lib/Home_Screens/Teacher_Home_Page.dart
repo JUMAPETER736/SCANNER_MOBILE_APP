@@ -355,7 +355,7 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
         title: const Text(
           'Scanna',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
+
             color: Colors.black,
           ),
         ),
