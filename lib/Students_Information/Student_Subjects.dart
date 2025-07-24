@@ -1316,7 +1316,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       appBar: AppBar(
         title: Text(
           'Subjects for ${widget.studentName}',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(),
         ),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,

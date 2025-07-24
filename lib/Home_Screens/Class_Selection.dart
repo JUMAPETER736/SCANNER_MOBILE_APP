@@ -1133,52 +1133,73 @@ class _Class_SelectionState extends State<Class_Selection> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: Text(
-          'Class & Subject Selection',
-          style: TextStyle(color: Colors.white),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        textTheme: Theme.of(context).textTheme.copyWith(
+          displayLarge: Theme.of(context).textTheme.displayLarge?.copyWith(fontWeight: FontWeight.w300),
+          displayMedium: Theme.of(context).textTheme.displayMedium?.copyWith(fontWeight: FontWeight.w300),
+          displaySmall: Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w300),
+          headlineLarge: Theme.of(context).textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.w400),
+          headlineMedium: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w400),
+          headlineSmall: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w400),
+          titleLarge: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w400),
+          titleMedium: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w400),
+          titleSmall: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w400),
+          bodyLarge: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w300),
+          bodyMedium: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w300),
+          bodySmall: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w300),
+          labelLarge: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w400),
+          labelMedium: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w400),
+          labelSmall: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w400),
         ),
-        backgroundColor: Colors.blueAccent,
-        elevation: 0,
-        centerTitle: true,
       ),
-      body: isLoading
-          ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(color: Colors.blueAccent),
-            SizedBox(height: 16),
-            Text(
-              'Loading...',
-              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-            ),
-          ],
+      child: Scaffold(
+        backgroundColor: Colors.grey[100],
+        appBar: AppBar(
+          title: Text(
+            'Class & Subject Selection',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.blueAccent,
+          elevation: 0,
+          centerTitle: true,
         ),
-      )
-          : SingleChildScrollView(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Always show school selection
-            _buildSchoolSelection(),
+        body: isLoading
+            ? Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Colors.blueAccent),
+              SizedBox(height: 16),
+              Text(
+                'Loading...',
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        )
+            : SingleChildScrollView(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Always show school selection
+              _buildSchoolSelection(),
 
-            // Only show class selection if conditions are not met
-            if (!_isSelectionComplete()) _buildClassSelection(),
+              // Only show class selection if conditions are not met
+              if (!_isSelectionComplete()) _buildClassSelection(),
 
-            // Only show subject selection if conditions are not met
-            if (!_isSelectionComplete()) _buildSubjectSelection(),
+              // Only show subject selection if conditions are not met
+              if (!_isSelectionComplete()) _buildSubjectSelection(),
 
-            // Always show selection summary
-            _buildSelectionSummary(),
+              // Always show selection summary
+              _buildSelectionSummary(),
 
-            SizedBox(height: 20),
-            _buildActionButton(),
-            SizedBox(height: 20),
-          ],
+              SizedBox(height: 20),
+              _buildActionButton(),
+              SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
