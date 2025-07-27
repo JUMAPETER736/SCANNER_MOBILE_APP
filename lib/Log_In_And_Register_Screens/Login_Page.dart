@@ -579,9 +579,8 @@ class _Login_PageState extends State<Login_Page> {
   Widget _buildSchoolNameField(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min, // Prevent taking up more space than needed
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Label at the top
         Padding(
           padding: const EdgeInsets.only(bottom: 8.0),
           child: Text(
@@ -593,7 +592,6 @@ class _Login_PageState extends State<Login_Page> {
             ),
           ),
         ),
-        // TextField with autocomplete
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15.0),
@@ -610,19 +608,17 @@ class _Login_PageState extends State<Login_Page> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: _schoolNameController, // Use the persistent controller
+                controller: _schoolNameController,
                 onChanged: (value) {
                   schoolName = value;
                   setState(() {
                     _emptySchoolNameField = false;
                     _schoolNameErrorMessage = '';
                     _errorMessage = '';
-
-                    // Filter schools based on input
                     if (value.isNotEmpty) {
                       filteredSchools = availableSchools
                           .where((school) => school.toLowerCase().contains(value.toLowerCase()))
-                          .take(4) // Limit to 4 suggestions to prevent overflow
+                          .take(4)
                           .toList();
                     } else {
                       filteredSchools = [];
@@ -630,18 +626,22 @@ class _Login_PageState extends State<Login_Page> {
                   });
                 },
                 keyboardType: TextInputType.text,
-                style: TextStyle(fontSize: _getResponsiveFontSize(context, 16.0)),
+                style: TextStyle(
+                  fontSize: _getResponsiveFontSize(context, 16.0),
+                  fontWeight: FontWeight.w500,
+                ),
                 decoration: InputDecoration(
                   hintText: 'e.g. Lilongwe Secondary School',
                   hintStyle: TextStyle(
                     color: Colors.grey[400],
-                    fontWeight: FontWeight.w400,
+                    fontWeight: FontWeight.w500,
                     fontSize: _getResponsiveFontSize(context, 14.0),
                   ),
                   errorText: _emptySchoolNameField ? _schoolNameErrorMessage : null,
                   errorStyle: TextStyle(
                     color: Colors.red,
                     fontSize: _getResponsiveFontSize(context, 12.0),
+                    fontWeight: FontWeight.w500,
                   ),
                   prefixIcon: Container(
                     margin: EdgeInsets.all(8.0),
@@ -676,10 +676,9 @@ class _Login_PageState extends State<Login_Page> {
                   contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                 ),
               ),
-              // Suggestions list - Fixed height container with scrolling
               if (filteredSchools.isNotEmpty)
                 Container(
-                  height: 160, // Fixed height to prevent overflow
+                  height: 160,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
@@ -703,13 +702,12 @@ class _Login_PageState extends State<Login_Page> {
                         onTap: () {
                           setState(() {
                             schoolName = filteredSchools[index];
-                            _schoolNameController.text = schoolName; // Update controller text
-                            filteredSchools = []; // Clear suggestions after selection
+                            _schoolNameController.text = schoolName;
+                            filteredSchools = [];
                             _emptySchoolNameField = false;
                             _schoolNameErrorMessage = '';
                             _errorMessage = '';
                           });
-                          // Unfocus the text field to hide keyboard
                           FocusScope.of(context).unfocus();
                         },
                         child: Container(
@@ -727,6 +725,7 @@ class _Login_PageState extends State<Login_Page> {
                             style: TextStyle(
                               fontSize: _getResponsiveFontSize(context, 14.0),
                               color: Colors.black87,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
@@ -742,23 +741,95 @@ class _Login_PageState extends State<Login_Page> {
   }
 
   Widget _buildStudentNameField(BuildContext context) {
-    return _buildStyledTextField(
-      label: 'Student Name',
-      icon: Icons.person,
-      obscureText: false,
-      keyboardType: TextInputType.name,
-      hintText: 'e.g. JUMA PETER',
-      showError: _emptyStudentNameField,
-      errorText: _studentNameErrorMessage,
-      showLabelOnTop: true, // Add this line
-      onChanged: (value) {
-        studentName = value;
-        setState(() {
-          _emptyStudentNameField = false;
-          _studentNameErrorMessage = '';
-          _errorMessage = '';
-        });
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Text(
+            'Student Name',
+            style: TextStyle(
+              fontSize: _getResponsiveFontSize(context, 16.0),
+              fontWeight: FontWeight.w500,
+              color: Colors.blueAccent,
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: TextField(
+            onChanged: (value) {
+              studentName = value;
+              setState(() {
+                _emptyStudentNameField = false;
+                _studentNameErrorMessage = '';
+                _errorMessage = '';
+              });
+            },
+            keyboardType: TextInputType.name,
+            style: TextStyle(
+              fontSize: _getResponsiveFontSize(context, 16.0),
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: InputDecoration(
+              hintText: 'e.g. JUMA PETER',
+              hintStyle: TextStyle(
+                color: Colors.grey[400],
+                fontWeight: FontWeight.w500,
+                fontSize: _getResponsiveFontSize(context, 14.0),
+              ),
+              errorText: _emptyStudentNameField ? _studentNameErrorMessage : null,
+              errorStyle: TextStyle(
+                color: Colors.red,
+                fontSize: _getResponsiveFontSize(context, 12.0),
+                fontWeight: FontWeight.w500,
+              ),
+              prefixIcon: Container(
+                margin: EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                child: Icon(Icons.person, color: Colors.blueAccent, size: _getResponsiveFontSize(context, 20.0)),
+              ),
+              filled: true,
+              fillColor: Colors.grey.withOpacity(0.05),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15.0),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15.0),
+                borderSide: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15.0),
+                borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15.0),
+                borderSide: BorderSide(color: Colors.red, width: 1),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15.0),
+                borderSide: BorderSide(color: Colors.red, width: 2),
+              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
