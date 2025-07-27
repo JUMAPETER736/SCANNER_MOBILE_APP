@@ -133,7 +133,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
                   style: TextStyle(
                     fontSize: getResponsiveTextSize(14, screenWidth, screenHeight),
                     color: Colors.blueAccent,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 SizedBox(height: getResponsiveSize(2, screenWidth, screenHeight)),
@@ -141,7 +141,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
                   loggedInUser?.email?.split('@')[0] ?? 'Parent',
                   style: TextStyle(
                     fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w400,
                     color: Colors.blueAccent,
                   ),
                   overflow: TextOverflow.ellipsis,

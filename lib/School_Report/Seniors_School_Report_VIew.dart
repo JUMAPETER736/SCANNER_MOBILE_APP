@@ -103,7 +103,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       );
     } catch (e) {
       setState(() {
-        isLoading = false;
+
         hasError = true;
         errorMessage = 'Failed to load data: ${e.toString()}';
       });
@@ -131,7 +131,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       if (!userDoc.exists) {
         if (mounted) {
           setState(() {
-            isLoading = false;
+
             hasError = true;
             errorMessage = 'User details not found.';
           });
@@ -1016,7 +1016,7 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           'Progress Report',
           style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 20)),
         ),
-        backgroundColor: Colors.grey[300],
+        backgroundColor: Colors.grey[500],
         actions: [
           IconButton(
             icon: Icon(Icons.print, size: _getResponsiveFontSize(context, baseSize: 24)),

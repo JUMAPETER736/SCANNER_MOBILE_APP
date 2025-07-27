@@ -286,7 +286,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
       )
           : Text(
         'Name of Students',
-        style: TextStyle(fontWeight: FontWeight.bold),
+        style: TextStyle(fontWeight: FontWeight.w500),
       ),
       centerTitle: true,
       backgroundColor: Colors.blueAccent,

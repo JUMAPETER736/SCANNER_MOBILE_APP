@@ -359,7 +359,7 @@ class _Register_PageState extends State<Register_Page> {
                               style: TextStyle(
                                 fontSize: _getResponsiveFontSize(context, 24.0),
                                 color: Colors.blueAccent,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w500,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -482,7 +482,7 @@ class _Register_PageState extends State<Register_Page> {
                                 style: TextStyle(
                                   fontSize: _getResponsiveFontSize(context, 22.0),
                                   color: Colors.white,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
@@ -590,6 +590,7 @@ class _Register_PageState extends State<Register_Page> {
                                   'Already have an account? ',
                                   style: TextStyle(
                                     color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
                                     fontSize: _getResponsiveFontSize(context, 20.0),
                                   ),
                                 ),
@@ -606,7 +607,7 @@ class _Register_PageState extends State<Register_Page> {
                                     'Log In',
                                     style: TextStyle(
                                       color: Colors.blueAccent,
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w500,
                                       fontSize: _getResponsiveFontSize(context, 20.0),
                                     ),
                                   ),

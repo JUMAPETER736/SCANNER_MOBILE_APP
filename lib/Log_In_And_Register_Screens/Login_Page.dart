@@ -434,7 +434,7 @@ class _Login_PageState extends State<Login_Page> {
             style: TextStyle(
               fontSize: _getResponsiveFontSize(context, 30.0),
               color: Colors.blueAccent,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
           ),
@@ -448,7 +448,7 @@ class _Login_PageState extends State<Login_Page> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15.0),
         color: Colors.grey.withOpacity(0.1),
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        //border: Border.all(color: Colors.Gray.withOpacity(0.2)),
       ),
       child: Row(
         children: [
@@ -588,7 +588,7 @@ class _Login_PageState extends State<Login_Page> {
             'School Name',
             style: TextStyle(
               fontSize: _getResponsiveFontSize(context, 16.0),
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
               color: Colors.blueAccent,
             ),
           ),
@@ -635,6 +635,7 @@ class _Login_PageState extends State<Login_Page> {
                   hintText: 'e.g. Lilongwe Secondary School',
                   hintStyle: TextStyle(
                     color: Colors.grey[400],
+                    fontWeight: FontWeight.w400,
                     fontSize: _getResponsiveFontSize(context, 14.0),
                   ),
                   errorText: _emptySchoolNameField ? _schoolNameErrorMessage : null,
@@ -773,7 +774,7 @@ class _Login_PageState extends State<Login_Page> {
             'Class',
             style: TextStyle(
               fontSize: _getResponsiveFontSize(context, 16.0),
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
               color: Colors.blueAccent,
             ),
           ),
@@ -820,6 +821,7 @@ class _Login_PageState extends State<Login_Page> {
                   hintText: 'e.g. FORM 1',
                   hintStyle: TextStyle(
                     color: Colors.grey[400],
+                    fontWeight: FontWeight.w500,
                     fontSize: _getResponsiveFontSize(context, 14.0),
                   ),
                   errorText: _emptyStudentClassField ? _studentClassErrorMessage : null,
@@ -1023,7 +1025,7 @@ class _Login_PageState extends State<Login_Page> {
             style: TextStyle(
               fontSize: _getResponsiveFontSize(context, 22.0),
               color: Colors.blueAccent,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ),
@@ -1065,7 +1067,7 @@ class _Login_PageState extends State<Login_Page> {
           style: TextStyle(
             fontSize: _getResponsiveFontSize(context, 22.0),
             color: Colors.white,
-            fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w400,
           ),
         ),
       ),
@@ -1162,6 +1164,7 @@ class _Login_PageState extends State<Login_Page> {
             "Don't have an account? ",
             style: TextStyle(
               color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
               fontSize: _getResponsiveFontSize(context, 20.0),
             ),
           ),
@@ -1178,7 +1181,7 @@ class _Login_PageState extends State<Login_Page> {
               'Sign Up',
               style: TextStyle(
                 color: Colors.blueAccent,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
                 fontSize: _getResponsiveFontSize(context, 20.0),
               ),
             ),

@@ -1316,7 +1316,9 @@ class _Student_SubjectsState extends State<Student_Subjects> {
       appBar: AppBar(
         title: Text(
           'Subjects for ${widget.studentName}',
-          style: const TextStyle(),
+          style: const TextStyle(
+            fontWeight: FontWeight.w500,
+          ),
         ),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
@@ -1393,7 +1395,7 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                   ),
                 ),
                 subtitle: Text(
-                  'Grade: ${grade.isEmpty || grade == 'Loading...' ? (grade == 'Loading...' ? grade : 'N/A') : grade}',
+                  'Grade: ${grade.isEmpty || grade == 'Loading...' ? (grade == 'Loading...' ? grade : 'N/A') : grade}%',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,

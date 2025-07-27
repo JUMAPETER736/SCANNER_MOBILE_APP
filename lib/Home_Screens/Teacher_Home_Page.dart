@@ -355,8 +355,8 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
         title: const Text(
           'Scanna',
           style: TextStyle(
-
-            color: Colors.black,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
           ),
         ),
         backgroundColor: Colors.blueAccent,
@@ -364,7 +364,7 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> {
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.black),
+            icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: _logout,
           ),
         ],

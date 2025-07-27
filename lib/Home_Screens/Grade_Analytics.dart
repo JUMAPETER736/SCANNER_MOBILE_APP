@@ -41,6 +41,7 @@ class Grade_Analytics extends StatelessWidget {
           style: TextStyle(
             fontSize: 18 * scale,
             color: Colors.white,
+            fontWeight: FontWeight.w500,
           ),
         ),
         backgroundColor: Color(0xFF1976D2),

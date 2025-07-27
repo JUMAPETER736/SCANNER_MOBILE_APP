@@ -766,7 +766,7 @@ class _Juniors_School_Report_ViewState extends State<Juniors_School_Report_View>
     return Scaffold(
       appBar: AppBar(
         title: Text('Progress Report'),
-        backgroundColor: Colors.grey[300], // Light gray color
+        backgroundColor: Colors.grey[500], // Light gray color
         actions: [
           IconButton(
             icon: Icon(Icons.print),

@@ -30,7 +30,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
     'totalClassPassed': 0,
     'totalClassFailed': 0,
   };
-  bool isLoading = true;
+  bool isLoading = false;
   bool hasError = false;
   String? errorMessage;
   String? userEmail;

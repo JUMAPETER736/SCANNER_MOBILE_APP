@@ -749,9 +749,9 @@ class _CreateEventPageState extends State<CreateEventPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Create Event ,
+          'Create Event',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
             fontSize: getResponsiveTextSizeByCategory(context, 18, 'title'),
           ),
         ),
@@ -791,7 +791,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
                       'Create Event for $actualSchool',
                       style: TextStyle(
                         fontSize: getResponsiveTextSizeByCategory(context, 20, 'title'),
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                         color: Colors.blueAccent,
                       ),
                       textAlign: TextAlign.center,
