@@ -30,7 +30,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
     'totalClassPassed': 0,
     'totalClassFailed': 0,
   };
-  bool isLoading = false;
+  bool isLoading = true;
   bool hasError = false;
   String? errorMessage;
   String? userEmail;
@@ -702,7 +702,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
       backgroundColor: Colors.grey[50],
 
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'PERFORMANCE ANALYTICS',
           style: TextStyle(
             color: Colors.white,
@@ -715,7 +715,7 @@ class _Seniors_Class_PerformanceState extends State<Seniors_Class_Performance> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded),
+            icon: Icon(Icons.refresh_rounded),
             onPressed: () {
               setState(() {
                 isLoading = true;

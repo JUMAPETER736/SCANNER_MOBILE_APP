@@ -30,9 +30,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
     'totalClassPassed': 0,
     'totalClassFailed': 0,
   };
-
-  // Ensure proper initialization
-  bool isLoading = false; // Changed to true initially
+  bool isLoading = true;
   bool hasError = false;
   String? errorMessage;
   String? userEmail;
@@ -45,23 +43,13 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
   }
 
   Future<void> _fetchTeacherClasses() async {
-    if (!mounted) return; // Add mounted check
-
-    setState(() {
-      isLoading = true;
-      hasError = false;
-      errorMessage = null;
-    });
-
     User? user = _auth.currentUser;
     if (user == null) {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-          hasError = true;
-          errorMessage = 'No user is currently logged in.';
-        });
-      }
+      setState(() {
+        isLoading = false;
+        hasError = true;
+        errorMessage = 'No user is currently logged in.';
+      });
       return;
     }
 
@@ -70,42 +58,35 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
     try {
       DocumentSnapshot userDoc = await _firestore.collection('Teachers_Details').doc(userEmail).get();
       if (!userDoc.exists || userDoc['school'] != widget.schoolName) {
-        if (mounted) {
-          setState(() {
-            isLoading = false;
-            hasError = true;
-            errorMessage = 'You do not have access to this school.';
-          });
-        }
+        setState(() {
+          isLoading = false;
+          hasError = true;
+          errorMessage = 'You do not have access to this school.';
+        });
         return;
       }
 
       List<String> classes = List<String>.from(userDoc['classes'] ?? []);
-      if (mounted) {
-        setState(() {
-          teacherClasses = classes;
-        });
-      }
+      setState(() {
+        teacherClasses = classes;
+      });
 
       await _fetchClassData();
     } catch (e) {
       print("Error: $e");
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-          hasError = true;
-          errorMessage = 'An error occurred while fetching data: $e';
-        });
-      }
+      setState(() {
+        isLoading = false;
+        hasError = true;
+        errorMessage = 'An error occurred while fetching data: $e';
+      });
     }
   }
 
   Future<void> _onClassSelected(String className) async {
-    if (className != selectedClass && mounted) {
+    if (className != selectedClass) {
       setState(() {
         selectedClass = className;
         isLoading = true;
-        hasError = false;
         subjects = [];
         subjectPerformance = {};
         classPerformance = {
@@ -127,21 +108,16 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
         _fetchSubjectPerformance(),
       ]);
 
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-          hasError = false;
-        });
-      }
+      setState(() {
+        isLoading = false;
+      });
     } catch (e) {
       print("Error: $e");
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-          hasError = true;
-          errorMessage = 'An error occurred while fetching data: $e';
-        });
-      }
+      setState(() {
+        isLoading = false;
+        hasError = true;
+        errorMessage = 'An error occurred while fetching data: $e';
+      });
     }
   }
 
@@ -151,7 +127,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
 
       DocumentSnapshot classSummaryDoc = await _firestore.doc(classPath).get();
 
-      if (classSummaryDoc.exists && mounted) {
+      if (classSummaryDoc.exists) {
         final data = classSummaryDoc.data() as Map<String, dynamic>;
         setState(() {
           classPerformance = {
@@ -161,7 +137,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
             'totalClassFailed': data['Total_Class_Failed'] ?? 0,
           };
         });
-      } else if (mounted) {
+      } else {
         // If no performance data exists, show empty state
         setState(() {
           classPerformance = {
@@ -200,12 +176,10 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
         };
       }
 
-      if (mounted) {
-        setState(() {
-          subjects = fetchedSubjects;
-          subjectPerformance = tempSubjectPerformance;
-        });
-      }
+      setState(() {
+        subjects = fetchedSubjects;
+        subjectPerformance = tempSubjectPerformance;
+      });
     } catch (e) {
       print("Error fetching subject performance: $e");
       throw Exception("Failed to fetch subject performance: $e");
@@ -215,8 +189,8 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-      decoration: const BoxDecoration(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, 16),
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Colors.white, Colors.white],
           begin: Alignment.topLeft,
@@ -227,14 +201,14 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
         children: [
           Text(
             widget.schoolName,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: Colors.black,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'RESULTS STATISTICS',
             style: TextStyle(
@@ -252,7 +226,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
 
   Widget _buildClassSelector() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      margin: EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -264,8 +238,8 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
               color: Colors.grey[800],
             ),
           ),
-          const SizedBox(height: 8),
-          SizedBox(
+          SizedBox(height: 8),
+          Container(
             height: 45,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
@@ -275,12 +249,12 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                 final isSelected = className == selectedClass;
 
                 return Container(
-                  margin: const EdgeInsets.only(right: 12),
+                  margin: EdgeInsets.only(right: 12),
                   child: InkWell(
                     onTap: () => _onClassSelected(className),
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
                         color: isSelected ? Colors.blue[600] : Colors.grey[300],
@@ -316,8 +290,8 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
 
     if (!hasData) {
       return Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(20),
+        margin: EdgeInsets.all(16),
+        padding: EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.orange[50],
           borderRadius: BorderRadius.circular(12),
@@ -330,7 +304,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
               size: 40,
               color: Colors.orange[600],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               'No Performance Data Available',
               style: TextStyle(
@@ -339,7 +313,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                 color: Colors.orange[800],
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
               'Performance data for this class has not been calculated yet.',
               style: TextStyle(
@@ -354,7 +328,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
     }
 
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -366,7 +340,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
               color: Colors.grey[800],
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -378,7 +352,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: _buildSummaryCard(
                   'Pass Rate',
@@ -390,7 +364,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -402,7 +376,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: _buildSummaryCard(
                   'Failed',
@@ -417,12 +391,14 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
         ],
       ),
     );
+
+
   }
 
   Widget _buildSummaryCard(
       String title, String value, IconData icon, MaterialColor color, {required FontWeight fontWeight}) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
@@ -431,14 +407,14 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
           BoxShadow(
             color: color.withOpacity(0.1),
             blurRadius: 4,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         children: [
           Icon(icon, color: color[600], size: 20),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             value,
             style: TextStyle(
@@ -447,7 +423,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
               color: color[700],
             ),
           ),
-          const SizedBox(height: 2),
+          SizedBox(height: 2),
           Text(
             title,
             style: TextStyle(
@@ -466,8 +442,8 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
     // Check if subject data exists
     if (subjects.isEmpty) {
       return Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(20),
+        margin: EdgeInsets.all(16),
+        padding: EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.orange[50],
           borderRadius: BorderRadius.circular(12),
@@ -480,7 +456,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
               size: 40,
               color: Colors.orange[600],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               'No Subject Performance Data',
               style: TextStyle(
@@ -489,7 +465,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                 color: Colors.orange[800],
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
               'Subject performance data for this class has not been calculated yet.',
               style: TextStyle(
@@ -504,7 +480,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
     }
 
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -516,7 +492,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
               color: Colors.grey[800],
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -527,10 +503,10 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
               children: [
                 // Header Row
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
-                    borderRadius: const BorderRadius.only(
+                    borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(12),
                       topRight: Radius.circular(12),
                     ),
@@ -611,7 +587,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                   };
 
                   return Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                     decoration: BoxDecoration(
                       color: index % 2 == 0 ? Colors.white : Colors.grey[50],
                       border: Border(
@@ -638,7 +614,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                           flex: 1,
                           child: Text(
                             performance['totalStudents'].toString(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -703,31 +679,30 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
   Widget build(BuildContext context) {
     if (errorMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.error, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(errorMessage!)),
-                ],
-              ),
-              backgroundColor: Colors.red[600],
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              duration: const Duration(seconds: 3),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(child: Text(errorMessage!)),
+              ],
             ),
-          );
-          setState(() => errorMessage = null);
-        }
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        setState(() => errorMessage = null);
       });
     }
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
+
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'PERFORMANCE ANALYTICS',
           style: TextStyle(
             color: Colors.white,
@@ -740,7 +715,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded),
+            icon: Icon(Icons.refresh_rounded),
             onPressed: () {
               setState(() {
                 isLoading = true;
@@ -752,8 +727,10 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
           ),
         ],
       ),
+
+
       body: isLoading
-          ? const Center(
+          ? Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -766,7 +743,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
               'Loading Performance Data...',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey,
+                color: Colors.grey[600],
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -783,7 +760,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
               size: 60,
               color: Colors.red[400],
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40),
               child: Text(
@@ -796,7 +773,7 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                 ),
               ),
             ),
-            const SizedBox(height: 30),
+            SizedBox(height: 30),
             ElevatedButton(
               onPressed: () {
                 setState(() {
@@ -810,9 +787,9 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               ),
-              child: const Text(
+              child: Text(
                 'Retry',
                 style: TextStyle(
                   fontSize: 16,
@@ -825,14 +802,14 @@ class _Juniors_Class_PerformanceState extends State<Juniors_Class_Performance> {
         ),
       )
           : SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
+        physics: BouncingScrollPhysics(),
         child: Column(
           children: [
             _buildHeader(),
             _buildClassSelector(),
             _buildClassSummary(),
             _buildSubjectPerformanceTable(),
-            const SizedBox(height: 30),
+            SizedBox(height: 30),
           ],
         ),
       ),

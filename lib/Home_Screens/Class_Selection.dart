@@ -1157,7 +1157,7 @@ class _Class_SelectionState extends State<Class_Selection> {
         backgroundColor: Colors.grey[100],
         appBar: AppBar(
           title: Text(
-            'Class & Subject Selection',
+            'Select School',
             style: TextStyle(color: Colors.white),
           ),
           backgroundColor: Colors.blueAccent,

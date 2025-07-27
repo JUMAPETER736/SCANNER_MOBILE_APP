@@ -173,7 +173,7 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
     final leftActions = [
       {
         'icon': Icons.class_,
-        'title': 'Select School & Class',
+        'title': 'Select School',
         'subtitle': 'Choose your class',
         'color': Colors.blueAccent,
         'onTap': () {
@@ -265,8 +265,8 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
       },
       {
         'icon': Icons.picture_as_pdf,
-        'title': 'School Reports PDFs',
-        'subtitle': 'PDF reports',
+        'title': ' Report PDFs',
+        'subtitle': 'List of Reports',
         'color': Colors.deepOrangeAccent,
         'onTap': () {
           Navigator.push(
@@ -461,7 +461,7 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
         title: const Text(
           'Teacher Portal',
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.white,
           ),
         ),
         backgroundColor: Colors.blueAccent,
