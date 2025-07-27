@@ -469,7 +469,7 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.black),
+            icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: _logout,
           ),
         ],
