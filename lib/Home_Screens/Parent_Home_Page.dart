@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/Log_In_And_Register_Screens/Login_Page.dart';
 import 'package:scanna/Parent_Screens/Student_Details_View.dart';
 import 'package:scanna/Parent_Screens/Available_School_Events.dart';
@@ -18,8 +19,10 @@ class Parent_Home_Page extends StatefulWidget {
 
 class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProviderStateMixin {
   final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  String userName = '';
 
   void getCurrentUser() async {
     try {
@@ -28,9 +31,30 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
         setState(() {
           loggedInUser = user;
         });
+        await fetchUserName(user.email!);
       }
     } catch (e) {
       print(e);
+    }
+  }
+
+  Future<void> fetchUserName(String email) async {
+    try {
+      QuerySnapshot querySnapshot = await _firestore
+          .collection('Schools')
+          .doc('Teachers_Details')
+          .collection('Teachers_Details')
+          .where('email', isEqualTo: email)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        String name = querySnapshot.docs.first.get('name');
+        setState(() {
+          userName = name;
+        });
+      }
+    } catch (e) {
+      print('Error fetching user name: $e');
     }
   }
 
@@ -129,16 +153,7 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Welcome back!',
-                  style: TextStyle(
-                    fontSize: getResponsiveTextSize(14, screenWidth, screenHeight),
-                    color: Colors.blueAccent,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                SizedBox(height: getResponsiveSize(2, screenWidth, screenHeight)),
-                Text(
-                  loggedInUser?.email?.split('@')[0] ?? 'Parent',
+                  userName.isNotEmpty ? 'Welcome Back, $userName' : 'Welcome back!',
                   style: TextStyle(
                     fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
                     fontWeight: FontWeight.w400,
