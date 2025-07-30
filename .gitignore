@@ -49,3 +49,6 @@ echo "android/caches/" >> .gitignore
 echo "android/.gradle/" >> .gitignore
 echo "android/build/" >> .gitignore
 echo "android/app/build/" >> .gitignore
+echo "android/wrapper/" >> .gitignore
+echo "*.jar" >> .gitignore
+echo "!android/gradle/wrapper/gradle-wrapper.jar" >> .gitignore
