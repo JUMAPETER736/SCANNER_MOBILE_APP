@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Add to .gitignore
+echo "android/caches/" >> .gitignore
+echo "android/.gradle/" >> .gitignore
+echo "android/build/" >> .gitignore
+echo "android/app/build/" >> .gitignore
