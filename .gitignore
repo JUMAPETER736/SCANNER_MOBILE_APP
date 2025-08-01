@@ -52,3 +52,22 @@ echo "android/app/build/" >> .gitignore
 echo "android/wrapper/" >> .gitignore
 echo "*.jar" >> .gitignore
 echo "!android/gradle/wrapper/gradle-wrapper.jar" >> .gitignore
+
+
+# CACHE AND BUILD DIRECTORIES - NEVER COMMIT THESE!
+android/caches/
+android/wrapper/
+android/.gradle/
+android/build/
+build/
+caches/
+wrapper/
+.gradle/
+gradle/
+**/caches/
+**/wrapper/
+**/.gradle/
+
+# Large JAR files
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
