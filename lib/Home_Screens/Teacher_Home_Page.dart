@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scanna/Settings/Main_Settings.dart';
 import 'package:scanna/Home_Screens/Grade_Analytics.dart';
 import 'package:scanna/Home_Screens/Class_Selection.dart';
@@ -23,9 +24,12 @@ class Teacher_Home_Page extends StatefulWidget {
 
 class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProviderStateMixin {
   final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
   int _selectedIndex = 1;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  String teacherName = 'Teacher'; // Default name
+  bool isLoadingName = true;
 
   void getCurrentUser() async {
     try {
@@ -34,9 +38,43 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
         setState(() {
           loggedInUser = user;
         });
+        // Fetch teacher name from Firestore
+        await getTeacherName(user.email!);
       }
     } catch (e) {
       print(e);
+    }
+  }
+
+  Future<void> getTeacherName(String email) async {
+    try {
+      // Query the Teachers_Details collection for the document with matching email
+      QuerySnapshot querySnapshot = await _firestore
+          .collection('Schools')
+          .doc('Teachers_Details')
+          .collection('Teachers_Details')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        DocumentSnapshot teacherDoc = querySnapshot.docs.first;
+        String name = teacherDoc.get('name') ?? 'Teacher';
+        setState(() {
+          teacherName = name.toUpperCase(); // Convert to uppercase
+          isLoadingName = false;
+        });
+      } else {
+        // If no document found, keep default name
+        setState(() {
+          isLoadingName = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching teacher name: $e');
+      setState(() {
+        isLoadingName = false;
+      });
     }
   }
 
@@ -141,7 +179,7 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Welcome back, Teacher!',
+                  'Welcome',
                   style: TextStyle(
                     fontSize: getResponsiveTextSize(14, screenWidth, screenHeight),
                     color: Colors.blueAccent,
@@ -149,11 +187,20 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
                   ),
                 ),
                 SizedBox(height: getResponsiveSize(2, screenWidth, screenHeight)),
-                Text(
-                  loggedInUser?.email?.split('@')[0] ?? 'Teacher',
+                isLoadingName
+                    ? SizedBox(
+                  width: getResponsiveSize(20, screenWidth, screenHeight),
+                  height: getResponsiveSize(20, screenWidth, screenHeight),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                  ),
+                )
+                    : Text(
+                  teacherName,
                   style: TextStyle(
                     fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
-                    fontWeight: FontWeight.w400,
+                    fontWeight: FontWeight.w600,
                     color: Colors.blueAccent,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -169,6 +216,8 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
   Widget _buildQuickActions() {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final orientation = MediaQuery.of(context).orientation;
+    final isLandscape = orientation == Orientation.landscape;
 
     final leftActions = [
       {
@@ -277,7 +326,69 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
       },
     ];
 
-    return Expanded(
+    return isLandscape
+        ? // Landscape layout: Use flexible sizing for scrollable content
+    Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: getResponsiveSize(20, screenWidth, screenHeight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Quick Actions',
+            style: TextStyle(
+              fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF667eea),
+            ),
+          ),
+          SizedBox(height: getResponsiveSize(8, screenWidth, screenHeight)),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left column
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: leftActions.map((action) {
+                    return Container(
+                      margin: EdgeInsets.only(
+                        bottom: getResponsiveSize(8, screenWidth, screenHeight),
+                        right: getResponsiveSize(4, screenWidth, screenHeight),
+                      ),
+                      height: getResponsiveSize(80, screenWidth, screenHeight),
+                      child: _buildActionCard(action, screenWidth, screenHeight),
+                    );
+                  }).toList(),
+                ),
+              ),
+              // Right column
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: rightActions.map((action) {
+                    return Container(
+                      margin: EdgeInsets.only(
+                        bottom: getResponsiveSize(8, screenWidth, screenHeight),
+                        left: getResponsiveSize(4, screenWidth, screenHeight),
+                      ),
+                      height: getResponsiveSize(80, screenWidth, screenHeight),
+                      child: _buildActionCard(action, screenWidth, screenHeight),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: getResponsiveSize(20, screenWidth, screenHeight)), // Extra spacing at bottom
+        ],
+      ),
+    )
+        : // Portrait layout: Use Expanded to fill available space without scrolling
+    Expanded(
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.symmetric(
@@ -433,7 +544,10 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
   }
 
   Widget _buildHome(BuildContext context, User? loggedInUser) {
-    return FadeTransition(
+    final orientation = MediaQuery.of(context).orientation;
+    final isLandscape = orientation == Orientation.landscape;
+
+    final content = FadeTransition(
       opacity: _fadeAnimation,
       child: Column(
         children: [
@@ -442,6 +556,22 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
         ],
       ),
     );
+
+    // In portrait mode: disable scrolling, fit content to screen
+    // In landscape mode: enable scrolling for better content visibility
+    if (isLandscape) {
+      return SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height,
+          ),
+          child: content,
+        ),
+      );
+    } else {
+      return content;
+    }
   }
 
   Widget _buildHelp() {
