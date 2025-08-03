@@ -840,7 +840,11 @@ class _Student_DetailsState extends State<Student_Details> {
       title: const Text(
         'Enter Student Details',
         style: TextStyle(
+<<<<<<< HEAD
           fontWeight: FontWeight.w500,
+=======
+          fontWeight: FontWeight.bold,
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
           color: Colors.white,
         ),
       ),
@@ -942,7 +946,11 @@ class _Student_DetailsState extends State<Student_Details> {
               'Cancel',
               style: TextStyle(
                 fontSize: 16,
+<<<<<<< HEAD
                 fontWeight: FontWeight.w400,
+=======
+                fontWeight: FontWeight.bold,
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
               ),
             ),
           ),
@@ -963,8 +971,13 @@ class _Student_DetailsState extends State<Student_Details> {
             child: const Text(
               'Save & Generate QR Code',
               style: TextStyle(
+<<<<<<< HEAD
                 fontSize: 15,
                 fontWeight: FontWeight.w400,
+=======
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
               ),
               textAlign: TextAlign.center,
             ),

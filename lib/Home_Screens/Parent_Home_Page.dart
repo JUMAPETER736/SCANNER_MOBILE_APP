@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+<<<<<<< HEAD
 import 'package:cloud_firestore/cloud_firestore.dart';
+=======
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
 import 'package:scanna/Log_In_And_Register_Screens/Login_Page.dart';
 import 'package:scanna/Parent_Screens/Student_Details_View.dart';
 import 'package:scanna/Parent_Screens/Available_School_Events.dart';
@@ -19,10 +22,15 @@ class Parent_Home_Page extends StatefulWidget {
 
 class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProviderStateMixin {
   final _auth = FirebaseAuth.instance;
+<<<<<<< HEAD
   final _firestore = FirebaseFirestore.instance;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   String userName = '';
+=======
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
 
   void getCurrentUser() async {
     try {
@@ -31,13 +39,17 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
         setState(() {
           loggedInUser = user;
         });
+<<<<<<< HEAD
         await fetchUserName(user.email!);
+=======
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
       }
     } catch (e) {
       print(e);
     }
   }
 
+<<<<<<< HEAD
   Future<void> fetchUserName(String email) async {
     try {
       QuerySnapshot querySnapshot = await _firestore
@@ -58,6 +70,8 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
     }
   }
 
+=======
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
   @override
   void initState() {
     super.initState();
@@ -153,10 +167,26 @@ class _Parent_Home_PageState extends State<Parent_Home_Page> with TickerProvider
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
+<<<<<<< HEAD
                   userName.isNotEmpty ? 'Welcome Back, $userName' : 'Welcome back!',
                   style: TextStyle(
                     fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
                     fontWeight: FontWeight.w400,
+=======
+                  'Welcome back!',
+                  style: TextStyle(
+                    fontSize: getResponsiveTextSize(14, screenWidth, screenHeight),
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: getResponsiveSize(2, screenWidth, screenHeight)),
+                Text(
+                  loggedInUser?.email?.split('@')[0] ?? 'Parent',
+                  style: TextStyle(
+                    fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
+                    fontWeight: FontWeight.bold,
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                     color: Colors.blueAccent,
                   ),
                   overflow: TextOverflow.ellipsis,

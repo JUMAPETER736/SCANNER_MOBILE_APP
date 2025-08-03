@@ -103,7 +103,11 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       );
     } catch (e) {
       setState(() {
+<<<<<<< HEAD
 
+=======
+        isLoading = false;
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
         hasError = true;
         errorMessage = 'Failed to load data: ${e.toString()}';
       });
@@ -131,7 +135,11 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
       if (!userDoc.exists) {
         if (mounted) {
           setState(() {
+<<<<<<< HEAD
 
+=======
+            isLoading = false;
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
             hasError = true;
             errorMessage = 'User details not found.';
           });
@@ -1016,7 +1024,11 @@ class _Seniors_School_Report_ViewState extends State<Seniors_School_Report_View>
           'Progress Report',
           style: TextStyle(fontSize: _getResponsiveFontSize(context, baseSize: 20)),
         ),
+<<<<<<< HEAD
         backgroundColor: Colors.grey[500],
+=======
+        backgroundColor: Colors.grey[300],
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
         actions: [
           IconButton(
             icon: Icon(Icons.print, size: _getResponsiveFontSize(context, baseSize: 24)),

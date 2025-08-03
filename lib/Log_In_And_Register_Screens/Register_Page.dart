@@ -275,6 +275,7 @@ class _Register_PageState extends State<Register_Page> {
     bool isLandscape = _isLandscape(context);
     double screenHeight = MediaQuery.of(context).size.height;
 
+<<<<<<< HEAD
     return Theme(
         data: Theme.of(context).copyWith(
           textTheme: Theme.of(context).textTheme.copyWith(
@@ -299,6 +300,9 @@ class _Register_PageState extends State<Register_Page> {
     child: Scaffold(
 
 
+=======
+    return Scaffold(
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
       body: ModalProgressHUD(
         inAsyncCall: _showSpinner,
         color: Colors.white,
@@ -359,7 +363,11 @@ class _Register_PageState extends State<Register_Page> {
                               style: TextStyle(
                                 fontSize: _getResponsiveFontSize(context, 24.0),
                                 color: Colors.blueAccent,
+<<<<<<< HEAD
                                 fontWeight: FontWeight.w500,
+=======
+                                fontWeight: FontWeight.bold,
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -482,7 +490,11 @@ class _Register_PageState extends State<Register_Page> {
                                 style: TextStyle(
                                   fontSize: _getResponsiveFontSize(context, 22.0),
                                   color: Colors.white,
+<<<<<<< HEAD
                                   fontWeight: FontWeight.w500,
+=======
+                                  fontWeight: FontWeight.bold,
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                                 ),
                               ),
                             ),
@@ -590,7 +602,10 @@ class _Register_PageState extends State<Register_Page> {
                                   'Already have an account? ',
                                   style: TextStyle(
                                     color: Colors.grey[600],
+<<<<<<< HEAD
                                     fontWeight: FontWeight.w500,
+=======
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                                     fontSize: _getResponsiveFontSize(context, 20.0),
                                   ),
                                 ),
@@ -607,7 +622,11 @@ class _Register_PageState extends State<Register_Page> {
                                     'Log In',
                                     style: TextStyle(
                                       color: Colors.blueAccent,
+<<<<<<< HEAD
                                       fontWeight: FontWeight.w500,
+=======
+                                      fontWeight: FontWeight.bold,
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                                       fontSize: _getResponsiveFontSize(context, 20.0),
                                     ),
                                   ),

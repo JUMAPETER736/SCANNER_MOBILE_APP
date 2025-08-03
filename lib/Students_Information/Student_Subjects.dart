@@ -1395,7 +1395,11 @@ class _Student_SubjectsState extends State<Student_Subjects> {
                   ),
                 ),
                 subtitle: Text(
+<<<<<<< HEAD
                   'Grade: ${grade.isEmpty || grade == 'Loading...' ? (grade == 'Loading...' ? grade : 'N/A') : grade}%',
+=======
+                  'Grade: ${grade.isEmpty || grade == 'Loading...' ? (grade == 'Loading...' ? grade : 'N/A') : grade}',
+>>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
