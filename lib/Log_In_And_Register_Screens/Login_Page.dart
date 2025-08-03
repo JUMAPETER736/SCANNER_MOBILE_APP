@@ -290,7 +290,6 @@ class _Login_PageState extends State<Login_Page> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
 
     return Theme(
         data: Theme.of(context).copyWith(
@@ -315,9 +314,6 @@ class _Login_PageState extends State<Login_Page> {
 
     child: Scaffold(
 
-=======
-    return Scaffold(
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
       body: ModalProgressHUD(
         inAsyncCall: _showSpinner,
         color: Colors.blueAccent,
@@ -386,10 +382,7 @@ class _Login_PageState extends State<Login_Page> {
           ),
         ),
       ),
-<<<<<<< HEAD
     ),
-=======
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
     );
   }
 
@@ -441,11 +434,7 @@ class _Login_PageState extends State<Login_Page> {
             style: TextStyle(
               fontSize: _getResponsiveFontSize(context, 30.0),
               color: Colors.blueAccent,
-<<<<<<< HEAD
               fontWeight: FontWeight.w500,
-=======
-              fontWeight: FontWeight.bold,
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
             ),
             textAlign: TextAlign.center,
           ),
@@ -459,11 +448,7 @@ class _Login_PageState extends State<Login_Page> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15.0),
         color: Colors.grey.withOpacity(0.1),
-<<<<<<< HEAD
         //border: Border.all(color: Colors.Gray.withOpacity(0.2)),
-=======
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
       ),
       child: Row(
         children: [
@@ -594,33 +579,19 @@ class _Login_PageState extends State<Login_Page> {
   Widget _buildSchoolNameField(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-<<<<<<< HEAD
       mainAxisSize: MainAxisSize.min,
       children: [
-=======
-      mainAxisSize: MainAxisSize.min, // Prevent taking up more space than needed
-      children: [
-        // Label at the top
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
         Padding(
           padding: const EdgeInsets.only(bottom: 8.0),
           child: Text(
             'School Name',
             style: TextStyle(
               fontSize: _getResponsiveFontSize(context, 16.0),
-<<<<<<< HEAD
               fontWeight: FontWeight.w500,
-=======
-              fontWeight: FontWeight.w600,
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
               color: Colors.blueAccent,
             ),
           ),
         ),
-<<<<<<< HEAD
-=======
-        // TextField with autocomplete
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15.0),
@@ -637,30 +608,17 @@ class _Login_PageState extends State<Login_Page> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-<<<<<<< HEAD
                 controller: _schoolNameController,
-=======
-                controller: _schoolNameController, // Use the persistent controller
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                 onChanged: (value) {
                   schoolName = value;
                   setState(() {
                     _emptySchoolNameField = false;
                     _schoolNameErrorMessage = '';
                     _errorMessage = '';
-<<<<<<< HEAD
                     if (value.isNotEmpty) {
                       filteredSchools = availableSchools
                           .where((school) => school.toLowerCase().contains(value.toLowerCase()))
                           .take(4)
-=======
-
-                    // Filter schools based on input
-                    if (value.isNotEmpty) {
-                      filteredSchools = availableSchools
-                          .where((school) => school.toLowerCase().contains(value.toLowerCase()))
-                          .take(4) // Limit to 4 suggestions to prevent overflow
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                           .toList();
                     } else {
                       filteredSchools = [];
@@ -668,32 +626,22 @@ class _Login_PageState extends State<Login_Page> {
                   });
                 },
                 keyboardType: TextInputType.text,
-<<<<<<< HEAD
                 style: TextStyle(
                   fontSize: _getResponsiveFontSize(context, 16.0),
                   fontWeight: FontWeight.w500,
                 ),
-=======
-                style: TextStyle(fontSize: _getResponsiveFontSize(context, 16.0)),
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                 decoration: InputDecoration(
                   hintText: 'e.g. Lilongwe Secondary School',
                   hintStyle: TextStyle(
                     color: Colors.grey[400],
-<<<<<<< HEAD
                     fontWeight: FontWeight.w500,
-=======
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                     fontSize: _getResponsiveFontSize(context, 14.0),
                   ),
                   errorText: _emptySchoolNameField ? _schoolNameErrorMessage : null,
                   errorStyle: TextStyle(
                     color: Colors.red,
                     fontSize: _getResponsiveFontSize(context, 12.0),
-<<<<<<< HEAD
                     fontWeight: FontWeight.w500,
-=======
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                   ),
                   prefixIcon: Container(
                     margin: EdgeInsets.all(8.0),
@@ -728,16 +676,9 @@ class _Login_PageState extends State<Login_Page> {
                   contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                 ),
               ),
-<<<<<<< HEAD
               if (filteredSchools.isNotEmpty)
                 Container(
                   height: 160,
-=======
-              // Suggestions list - Fixed height container with scrolling
-              if (filteredSchools.isNotEmpty)
-                Container(
-                  height: 160, // Fixed height to prevent overflow
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
@@ -761,21 +702,12 @@ class _Login_PageState extends State<Login_Page> {
                         onTap: () {
                           setState(() {
                             schoolName = filteredSchools[index];
-<<<<<<< HEAD
                             _schoolNameController.text = schoolName;
                             filteredSchools = [];
-=======
-                            _schoolNameController.text = schoolName; // Update controller text
-                            filteredSchools = []; // Clear suggestions after selection
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                             _emptySchoolNameField = false;
                             _schoolNameErrorMessage = '';
                             _errorMessage = '';
                           });
-<<<<<<< HEAD
-=======
-                          // Unfocus the text field to hide keyboard
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                           FocusScope.of(context).unfocus();
                         },
                         child: Container(
@@ -793,10 +725,7 @@ class _Login_PageState extends State<Login_Page> {
                             style: TextStyle(
                               fontSize: _getResponsiveFontSize(context, 14.0),
                               color: Colors.black87,
-<<<<<<< HEAD
                               fontWeight: FontWeight.w500,
-=======
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                             ),
                           ),
                         ),
@@ -812,7 +741,6 @@ class _Login_PageState extends State<Login_Page> {
   }
 
   Widget _buildStudentNameField(BuildContext context) {
-<<<<<<< HEAD
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -902,25 +830,6 @@ class _Login_PageState extends State<Login_Page> {
           ),
         ),
       ],
-=======
-    return _buildStyledTextField(
-      label: 'Student Name',
-      icon: Icons.person,
-      obscureText: false,
-      keyboardType: TextInputType.name,
-      hintText: 'e.g. JUMA PETER',
-      showError: _emptyStudentNameField,
-      errorText: _studentNameErrorMessage,
-      showLabelOnTop: true, // Add this line
-      onChanged: (value) {
-        studentName = value;
-        setState(() {
-          _emptyStudentNameField = false;
-          _studentNameErrorMessage = '';
-          _errorMessage = '';
-        });
-      },
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
     );
   }
 
@@ -936,11 +845,7 @@ class _Login_PageState extends State<Login_Page> {
             'Class',
             style: TextStyle(
               fontSize: _getResponsiveFontSize(context, 16.0),
-<<<<<<< HEAD
               fontWeight: FontWeight.w500,
-=======
-              fontWeight: FontWeight.w600,
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
               color: Colors.blueAccent,
             ),
           ),
@@ -987,10 +892,7 @@ class _Login_PageState extends State<Login_Page> {
                   hintText: 'e.g. FORM 1',
                   hintStyle: TextStyle(
                     color: Colors.grey[400],
-<<<<<<< HEAD
                     fontWeight: FontWeight.w500,
-=======
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                     fontSize: _getResponsiveFontSize(context, 14.0),
                   ),
                   errorText: _emptyStudentClassField ? _studentClassErrorMessage : null,
@@ -1194,11 +1096,7 @@ class _Login_PageState extends State<Login_Page> {
             style: TextStyle(
               fontSize: _getResponsiveFontSize(context, 22.0),
               color: Colors.blueAccent,
-<<<<<<< HEAD
               fontWeight: FontWeight.w400,
-=======
-              fontWeight: FontWeight.w500,
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
             ),
           ),
         ),
@@ -1240,11 +1138,7 @@ class _Login_PageState extends State<Login_Page> {
           style: TextStyle(
             fontSize: _getResponsiveFontSize(context, 22.0),
             color: Colors.white,
-<<<<<<< HEAD
               fontWeight: FontWeight.w400,
-=======
-            fontWeight: FontWeight.bold,
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
           ),
         ),
       ),
@@ -1341,10 +1235,7 @@ class _Login_PageState extends State<Login_Page> {
             "Don't have an account? ",
             style: TextStyle(
               color: Colors.grey[600],
-<<<<<<< HEAD
               fontWeight: FontWeight.w500,
-=======
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
               fontSize: _getResponsiveFontSize(context, 20.0),
             ),
           ),
@@ -1361,11 +1252,7 @@ class _Login_PageState extends State<Login_Page> {
               'Sign Up',
               style: TextStyle(
                 color: Colors.blueAccent,
-<<<<<<< HEAD
                 fontWeight: FontWeight.w500,
-=======
-                fontWeight: FontWeight.bold,
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                 fontSize: _getResponsiveFontSize(context, 20.0),
               ),
             ),

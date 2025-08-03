@@ -282,19 +282,11 @@ class _Student_Name_ListState extends State<Student_Name_List> {
       title: _hasSelectedCriteria
           ? Text(
         '$teacherSchool',
-<<<<<<< HEAD
         style: TextStyle(),
       )
           : Text(
         'Name of Students',
         style: TextStyle(fontWeight: FontWeight.w500),
-=======
-        style: TextStyle(fontWeight: FontWeight.bold),
-      )
-          : Text(
-        'Name of Students',
-        style: TextStyle(fontWeight: FontWeight.bold),
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
       ),
       centerTitle: true,
       backgroundColor: Colors.blueAccent,
@@ -621,11 +613,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                   child: Text(
                     'Cancel',
                     style: TextStyle(
-<<<<<<< HEAD
 
-=======
-                      fontWeight: FontWeight.bold,
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                       color: Colors.red,
                     ),
                   ),
@@ -645,11 +633,7 @@ class _Student_Name_ListState extends State<Student_Name_List> {
                   ),
                   child: Text(
                     'Search',
-<<<<<<< HEAD
                     style: TextStyle(),
-=======
-                    style: TextStyle(fontWeight: FontWeight.bold),
->>>>>>> 85f7c1bc238d4c9527f736cfbb93398ae2c223e0
                   ),
                 ),
               ],
