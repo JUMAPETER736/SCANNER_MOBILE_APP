@@ -1,38 +1,121 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="description" content="Scanna - QR Code Scanner App">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="scanna">
+  <meta name="apple-mobile-web-app-title" content="Scanna">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>scanna</title>
+  <!-- Preload critical resources -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Loading screen styles -->
+  <style>
+    .loading-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #2196F3;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      color: #666;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+    }
+
+    /* Hide loading screen when app loads */
+    .loaded .loading-container {
+      display: none;
+    }
+  </style>
+
+  <title>Scanna</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+<!-- Loading screen -->
+<div class="loading-container">
+  <div class="spinner"></div>
+  <div class="loading-text">Loading Scanna...</div>
+</div>
+
+<!-- This script installs service_worker.js to provide PWA functionality -->
+<script>
+  var serviceWorkerVersion = null;
+  var scriptLoaded = false;
+
+  function loadMainDartJs() {
+    if (scriptLoaded) {
+      return;
+    }
+    scriptLoaded = true;
+    var scriptTag = document.createElement('script');
+    scriptTag.src = 'main.dart.js';
+    scriptTag.type = 'application/javascript';
+    scriptTag.onload = function() {
+      // Hide loading screen when app loads
+      document.body.classList.add('loaded');
+    };
+    document.body.append(scriptTag);
+  }
+
+  if ('serviceWorker' in navigator) {
+    // Service workers are supported. Use them.
+    window.addEventListener('load', function () {
+      var serviceWorkerUrl = 'flutter_service_worker.js?v=' + serviceWorkerVersion;
+      navigator.serviceWorker.register(serviceWorkerUrl)
+        .then((reg) => {
+          function waitForActivation(serviceWorker) {
+            serviceWorker.addEventListener('statechange', () => {
+              if (serviceWorker.state == 'activated') {
+                loadMainDartJs();
+              }
+            });
+          }
+          if (!reg.active && (reg.installing || reg.waiting)) {
+            waitForActivation(reg.installing || reg.waiting);
+          } else if (!reg.active.scriptURL.endsWith(serviceWorkerVersion)) {
+            reg.update();
+            waitForActivation(reg.installing);
+          } else {
+            loadMainDartJs();
+          }
+        });
+    });
+  } else {
+    // Service workers not supported. Just drop the <script> tag.
+    loadMainDartJs();
+  }
+</script>
 </body>
 </html>

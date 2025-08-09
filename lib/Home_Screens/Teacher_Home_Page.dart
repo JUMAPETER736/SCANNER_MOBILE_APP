@@ -29,7 +29,6 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   String teacherName = 'Teacher'; // Default name
-  bool isLoadingName = true;
 
   void getCurrentUser() async {
     try {
@@ -38,7 +37,7 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
         setState(() {
           loggedInUser = user;
         });
-        // Fetch teacher name from Firestore
+        // Fetch teacher name from Firestore in background
         await getTeacherName(user.email!);
       }
     } catch (e) {
@@ -62,19 +61,10 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
         String name = teacherDoc.get('name') ?? 'Teacher';
         setState(() {
           teacherName = name.toUpperCase(); // Convert to uppercase
-          isLoadingName = false;
-        });
-      } else {
-        // If no document found, keep default name
-        setState(() {
-          isLoadingName = false;
         });
       }
     } catch (e) {
       print('Error fetching teacher name: $e');
-      setState(() {
-        isLoadingName = false;
-      });
     }
   }
 
@@ -141,7 +131,7 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
     return baseSize * scale;
   }
 
-  Widget _buildWelcomeSection() {
+  Widget _buildTeacherNameSection() {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
@@ -149,66 +139,18 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         horizontal: getResponsiveSize(20, screenWidth, screenHeight),
-        vertical: getResponsiveSize(12, screenWidth, screenHeight),
+        vertical: getResponsiveSize(16, screenWidth, screenHeight),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: getResponsiveSize(50, screenWidth, screenHeight),
-            height: getResponsiveSize(50, screenWidth, screenHeight),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Colors.blueAccent, Colors.blue],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(
-                getResponsiveSize(25, screenWidth, screenHeight),
-              ),
-            ),
-            child: Icon(
-              Icons.school,
-              color: Colors.white,
-              size: getResponsiveSize(25, screenWidth, screenHeight),
-            ),
+      child: Center(
+        child: Text(
+          teacherName,
+          style: TextStyle(
+            fontSize: getResponsiveTextSize(24, screenWidth, screenHeight),
+            fontWeight: FontWeight.bold,
+            color: Colors.blueAccent,
           ),
-          SizedBox(width: getResponsiveSize(15, screenWidth, screenHeight)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Welcome',
-                  style: TextStyle(
-                    fontSize: getResponsiveTextSize(14, screenWidth, screenHeight),
-                    color: Colors.blueAccent,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                SizedBox(height: getResponsiveSize(2, screenWidth, screenHeight)),
-                isLoadingName
-                    ? SizedBox(
-                  width: getResponsiveSize(20, screenWidth, screenHeight),
-                  height: getResponsiveSize(20, screenWidth, screenHeight),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
-                  ),
-                )
-                    : Text(
-                  teacherName,
-                  style: TextStyle(
-                    fontSize: getResponsiveTextSize(18, screenWidth, screenHeight),
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blueAccent,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
@@ -551,7 +493,7 @@ class _Teacher_Home_PageState extends State<Teacher_Home_Page> with TickerProvid
       opacity: _fadeAnimation,
       child: Column(
         children: [
-          _buildWelcomeSection(),
+          _buildTeacherNameSection(),
           _buildQuickActions(),
         ],
       ),
